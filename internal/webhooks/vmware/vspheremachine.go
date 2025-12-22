@@ -22,11 +22,8 @@ import (
 	"fmt"
 	"reflect"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -45,47 +42,31 @@ type VSphereMachine struct {
 	NetworkProvider string
 }
 
-var _ webhook.CustomValidator = &VSphereMachine{}
-var _ webhook.CustomDefaulter = &VSphereMachine{}
+var _ admission.Validator[*vmwarev1.VSphereMachine] = &VSphereMachine{}
+var _ admission.Defaulter[*vmwarev1.VSphereMachine] = &VSphereMachine{}
 
 func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&vmwarev1.VSphereMachine{}).
+	return ctrl.NewWebhookManagedBy(mgr, &vmwarev1.VSphereMachine{}).
 		WithValidator(webhook).
 		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		Complete()
 }
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *VSphereMachine) Default(_ context.Context, _ runtime.Object) error {
+func (webhook *VSphereMachine) Default(_ context.Context, _ *vmwarev1.VSphereMachine) error {
 	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereMachine) ValidateCreate(_ context.Context, object runtime.Object) (admission.Warnings, error) {
-	objTyped, ok := object.(*vmwarev1.VSphereMachine)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachine but got a %T", object))
-	}
-
+func (webhook *VSphereMachine) ValidateCreate(_ context.Context, objTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
 	allErrs := validateNetwork(webhook.NetworkProvider, objTyped.Spec.Network, field.NewPath("spec", "network"))
 
 	return nil, webhooks.AggregateObjErrors(objTyped.GroupVersionKind().GroupKind(), objTyped.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
+func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
 	var allErrs field.ErrorList
-
-	newTyped, ok := newRaw.(*vmwarev1.VSphereMachine)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachine but got a %T", newRaw))
-	}
-
-	oldTyped, ok := oldRaw.(*vmwarev1.VSphereMachine)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachine but got a %T", oldRaw))
-	}
 
 	newSpec, oldSpec := newTyped.Spec, oldTyped.Spec
 
@@ -120,7 +101,7 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldRaw runtime.
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereMachine) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *VSphereMachine) ValidateDelete(_ context.Context, _ *vmwarev1.VSphereMachine) (admission.Warnings, error) {
 	return nil, nil
 }
 

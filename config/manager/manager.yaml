@@ -38,6 +38,8 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.uid
+          - name: KUBE_FEATURE_WatchListClient
+            value: "true"
         ports:
         - containerPort: 9440
           name: healthz

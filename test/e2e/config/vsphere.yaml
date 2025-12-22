@@ -192,6 +192,10 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-conformance-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-ownerrefs-finalizers-supervisor.yaml"
           - sourcePath: "../data/shared/capv/main/metadata.yaml"
+        replacements:
+          # Disable KUBE_FEATURE_WatchListClient for now in e2e tests because Service informers don't work with vcsim.
+          - old: "- name: KUBE_FEATURE_WatchListClient\n          value: \"true\""
+            new: "- name: KUBE_FEATURE_WatchListClient\n          value: \"false\""
       - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.14}"
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.14}/infrastructure-components.yaml"
         type: "url"

@@ -331,6 +331,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:crd:dir=$(SUPERVISOR_CRD_ROOT)
 	# net-operator is used for tests
 	$(CONTROLLER_GEN) \
+		paths=./$(NETOP_DIR)/... \
 		paths=./$(NETOP_DIR)/controllers/... \
         output:rbac:dir=$(NETOP_RBAC_ROOT) \
         rbac:roleName=manager-role

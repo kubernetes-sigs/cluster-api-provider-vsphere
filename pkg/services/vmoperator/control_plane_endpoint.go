@@ -189,7 +189,7 @@ func newVirtualMachineService(ctx *vmware.ClusterContext) *vmoprv1.VirtualMachin
 			Namespace: ctx.Cluster.Namespace,
 		},
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: vmoprv1.SchemeGroupVersion.String(),
+			APIVersion: vmoprv1.GroupVersion.String(),
 			Kind:       "VirtualMachineService",
 		},
 	}

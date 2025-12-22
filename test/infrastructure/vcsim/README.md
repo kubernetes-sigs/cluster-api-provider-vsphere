@@ -69,7 +69,8 @@ source vcsim.env
 $ source vcsim.env
 
 # Then you are ready to create a workload cluster
-$ cat <your template> | envsubst | kubectl apply -f -
+make envsubst
+$ cat <your template> | hack/tools/bin/envsubst | kubectl apply -f -
 ```
 
 #### Using govc with vcsim

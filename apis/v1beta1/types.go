@@ -216,6 +216,27 @@ type VirtualMachineCloneSpec struct {
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=29
 	DataDisks []VSphereDisk `json:"dataDisks,omitempty"`
+	// nestedHV controls nested hardware-assisted virtualization.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// Check the compatibility with the ESXi version before setting the value.
+	// +optional
+	// +kubebuilder:validation:Enum=enabled;disabled
+	NestedHV string `json:"nestedHV,omitempty"`
+	// ftEncryptionMode is the encrypted fault tolerance mode.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// Check the compatibility with the ESXi version before setting the value.
+	// +optional
+	// +kubebuilder:validation:Enum=ftEncryptionDisabled;ftEncryptionOpportunistic;ftEncryptionRequired
+	FtEncryptionMode string `json:"ftEncryptionMode,omitempty"`
+	// migrateEncryption is the encrypted vMotion mode.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// Check the compatibility with the ESXi version before setting the value.
+	// +optional
+	// +kubebuilder:validation:Enum=disabled;opportunistic;required
+	MigrateEncryption string `json:"migrateEncryption,omitempty"`
 }
 
 // VirtualMachineResources is the definition of the VM's cpu and memory

@@ -31,8 +31,10 @@ import (
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -109,6 +111,9 @@ func init() {
 	_ = appsv1.AddToScheme(inmemoryScheme)
 	_ = rbacv1.AddToScheme(inmemoryScheme)
 	_ = infrav1.AddToScheme(inmemoryScheme)
+	_ = storagev1.AddToScheme(inmemoryScheme)
+	_ = apiextensionsv1.AddToScheme(inmemoryScheme)
+	_ = policyv1.AddToScheme(inmemoryScheme)
 }
 
 // InitFlags initializes the flags.

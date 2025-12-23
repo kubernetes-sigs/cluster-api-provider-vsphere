@@ -194,7 +194,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := b9b906573c236b661c2b9565be6fefcdecfc99d2 # Note: this the commit ID of CAPI v1.12.1.
+CAPI_HACK_TOOLS_VER := bae425233190b4e365c7b285bf07a58516813fcb # Note: this the commit ID of CAPI main from 20251222103634-bae425233190.
 
 BOSKOSCTL_BIN := boskosctl
 BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))
@@ -381,7 +381,7 @@ generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.12 v1.13 v1.14 main) ## Generate test templates for all branches
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.13 v1.14 v1.15 main) ## Generate test templates for all branches
 
 .PHONY: generate-e2e-templates-main
 generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the main branch
@@ -427,6 +427,14 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/fast-rollout" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-fast-rollout-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/ownerrefs-finalizers" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-ownerrefs-finalizers-supervisor.yaml"
 
+.PHONY: generate-e2e-templates-v1.15
+generate-e2e-templates-v1.15: $(KUSTOMIZE)
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.15/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.15/clusterclass-quick-start.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.15/workload" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.15/cluster-template-workload.yaml"
+
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.15/clusterclass" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.15/clusterclass-quick-start-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.15/workload" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.15/cluster-template-workload-supervisor.yaml"
+
 .PHONY: generate-e2e-templates-v1.14
 generate-e2e-templates-v1.14: $(KUSTOMIZE)
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.14/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.14/clusterclass-quick-start.yaml"
@@ -442,14 +450,6 @@ generate-e2e-templates-v1.13: $(KUSTOMIZE)
 
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.13/clusterclass" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.13/clusterclass-quick-start-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.13/workload" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.13/cluster-template-workload-supervisor.yaml"
-
-.PHONY: generate-e2e-templates-v1.12
-generate-e2e-templates-v1.12: $(KUSTOMIZE)
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.12/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.12/clusterclass-quick-start.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.12/workload" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.12/cluster-template-workload.yaml"
-
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.12/clusterclass" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.12/clusterclass-quick-start-supervisor.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.12/workload" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.12/cluster-template-workload-supervisor.yaml"
 
 .PHONY: generate-test-infra-prowjobs
 generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra

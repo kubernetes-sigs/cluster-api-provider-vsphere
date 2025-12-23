@@ -17,7 +17,6 @@ limitations under the License.
 package vmware
 
 import (
-	"context"
 	"reflect"
 	"testing"
 
@@ -126,7 +125,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 
 func TestClusterReconciler_getFailureDomains(t *testing.T) {
 	g := NewWithT(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	scheme := runtime.NewScheme()
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())

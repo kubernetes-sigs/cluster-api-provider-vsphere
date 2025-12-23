@@ -268,6 +268,12 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 			node.Labels = map[string]string{}
 		}
 		node.Labels["node-role.kubernetes.io/control-plane"] = ""
+		node.Spec.Taints = []corev1.Taint{
+			{
+				Key:    "node-role.kubernetes.io/control-plane",
+				Effect: corev1.TaintEffectNoSchedule,
+			},
+		}
 	}
 
 	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(node), node); err != nil {

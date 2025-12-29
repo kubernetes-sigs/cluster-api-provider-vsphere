@@ -19,12 +19,14 @@ package network
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/pkg/errors"
 	nsxvpcv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -167,17 +169,30 @@ func (vp *nsxtVPCNetworkProvider) ProvisionClusterNetwork(ctx context.Context, c
 		Spec: nsxvpcv1.SubnetSetSpec{},
 	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, vp.client, subnetset, func() error {
-		if err := ctrlutil.SetOwnerReference(
-			clusterCtx.VSphereCluster,
-			subnetset,
-			vp.client.Scheme(),
-		); err != nil {
-			return errors.Wrapf(err, "error setting %s as owner of %s", klog.KObj(clusterCtx.VSphereCluster), klog.KObj(subnetset))
+	subnetSetExists := true
+	if err := vp.client.Get(ctx, client.ObjectKeyFromObject(subnetset), subnetset); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
 		}
+		subnetSetExists = false
+	}
+	originalSubnetSet := subnetset.DeepCopy()
 
-		return nil
-	})
+	if err := ctrlutil.SetOwnerReference(
+		clusterCtx.VSphereCluster,
+		subnetset,
+		vp.client.Scheme(),
+	); err != nil {
+		return errors.Wrapf(err, "error setting %s as owner of %s", klog.KObj(clusterCtx.VSphereCluster), klog.KObj(subnetset))
+	}
+
+	var err error
+	if !subnetSetExists {
+		err = vp.client.Create(ctx, subnetset)
+	} else if !reflect.DeepEqual(originalSubnetSet, subnetset) {
+		patch := client.MergeFrom(originalSubnetSet)
+		err = vp.client.Patch(ctx, subnetset, patch)
+	}
 	if err != nil {
 		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
 		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{

@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -547,129 +548,146 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		minHardwareVersion = int32(hwVersion)
 	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, v.Client, vmOperatorVM, func() error {
-		// Define a new VM Operator virtual machine.
-		// NOTE: Set field-by-field in order to preserve changes made directly
-		//  to the VirtualMachine spec by other sources (e.g. the cloud provider)
-		if vmOperatorVM.Spec.ImageName == "" {
-			vmOperatorVM.Spec.ImageName = supervisorMachineCtx.VSphereMachine.Spec.ImageName
-		}
-		if vmOperatorVM.Spec.ClassName == "" {
-			vmOperatorVM.Spec.ClassName = supervisorMachineCtx.VSphereMachine.Spec.ClassName
-		}
-		if vmOperatorVM.Spec.StorageClass == "" {
-			vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
-		}
-		vmOperatorVM.Spec.PowerState = vmoprv1.VirtualMachinePowerStateOn
-		if supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName != "" {
-			if vmOperatorVM.Spec.Reserved == nil {
-				vmOperatorVM.Spec.Reserved = &vmoprv1.VirtualMachineReservedSpec{}
-			}
-			if vmOperatorVM.Spec.Reserved.ResourcePolicyName == "" {
-				vmOperatorVM.Spec.Reserved.ResourcePolicyName = supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName
-			}
-		}
-		if vmOperatorVM.Spec.Bootstrap == nil {
-			vmOperatorVM.Spec.Bootstrap = &vmoprv1.VirtualMachineBootstrapSpec{}
-		}
-		vmOperatorVM.Spec.Bootstrap.CloudInit = &vmoprv1.VirtualMachineBootstrapCloudInitSpec{
-			RawCloudConfig: &vmoprv1common.SecretKeySelector{
-				Name: dataSecretName,
-				Key:  "user-data",
-			},
-		}
-		if supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode != "" {
-			var powerOffMode vmoprv1.VirtualMachinePowerOpMode
-			switch supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode {
-			case vmwarev1.VirtualMachinePowerOpModeHard:
-				powerOffMode = vmoprv1.VirtualMachinePowerOpModeHard
-			case vmwarev1.VirtualMachinePowerOpModeSoft:
-				powerOffMode = vmoprv1.VirtualMachinePowerOpModeSoft
-			case vmwarev1.VirtualMachinePowerOpModeTrySoft:
-				powerOffMode = vmoprv1.VirtualMachinePowerOpModeTrySoft
-			default:
-				return fmt.Errorf("unable to map PowerOffMode %q to vm-operator equivalent", supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode)
-			}
-			vmOperatorVM.Spec.PowerOffMode = powerOffMode
-		}
-
-		if vmOperatorVM.Spec.MinHardwareVersion == 0 {
-			vmOperatorVM.Spec.MinHardwareVersion = minHardwareVersion
-		}
-
-		// VMOperator supports readiness probe and will add/remove endpoints to a
-		// VirtualMachineService based on the outcome of the readiness check.
-		// When creating the initial control plane node, we do not declare a probe
-		// in order to reduce the likelihood of a race between the VirtualMachineService
-		// endpoint additions and the kubeadm commands run on the VM itself.
-		// Once the initial control plane node is ready, we can re-add the probe so
-		// that subsequent machines do not attempt to speak to a kube-apiserver
-		// that is not yet ready.
-		// Not all network providers (for example, NSX-VPC) provide support for VM
-		// readiness probes. The flag PerformsVMReadinessProbe is used to determine
-		// whether a VM readiness probe should be conducted.
-		if v.ConfigureControlPlaneVMReadinessProbe && infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) && ptr.Deref(supervisorMachineCtx.Cluster.Status.Initialization.ControlPlaneInitialized, false) {
-			vmOperatorVM.Spec.ReadinessProbe = &vmoprv1.VirtualMachineReadinessProbeSpec{
-				TCPSocket: &vmoprv1.TCPSocketAction{
-					Port: intstr.FromInt(defaultAPIBindPort),
-				},
-			}
-		}
-
-		// Assign the VM's labels.
-		vmOperatorVM.Labels = getVMLabels(supervisorMachineCtx, vmOperatorVM.Labels, affinityInfo)
-
-		addResourcePolicyAnnotations(supervisorMachineCtx, vmOperatorVM)
-
-		if err := v.addVolumes(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
+	vmExists := true
+	if err := v.Client.Get(ctx, client.ObjectKeyFromObject(vmOperatorVM), vmOperatorVM); err != nil {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
+		vmExists = false
+	}
+	originalVM := vmOperatorVM.DeepCopy()
 
-		// Apply hooks to modify the VM spec
-		// The hooks are loosely typed so as to allow for different VirtualMachine backends
-		for _, vmModifier := range supervisorMachineCtx.VMModifiers {
-			modified, err := vmModifier(vmOperatorVM)
-			if err != nil {
-				return err
-			}
-			typedModified, ok := modified.(*vmoprv1.VirtualMachine)
-			if !ok {
-				return fmt.Errorf("VM modifier returned result of the wrong type: %T", typedModified)
-			}
-			vmOperatorVM = typedModified
+	// Define a new VM Operator virtual machine.
+	// NOTE: Set field-by-field in order to preserve changes made directly
+	//  to the VirtualMachine spec by other sources (e.g. the cloud provider)
+	if vmOperatorVM.Spec.ImageName == "" {
+		vmOperatorVM.Spec.ImageName = supervisorMachineCtx.VSphereMachine.Spec.ImageName
+	}
+	if vmOperatorVM.Spec.ClassName == "" {
+		vmOperatorVM.Spec.ClassName = supervisorMachineCtx.VSphereMachine.Spec.ClassName
+	}
+	if vmOperatorVM.Spec.StorageClass == "" {
+		vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
+	}
+	vmOperatorVM.Spec.PowerState = vmoprv1.VirtualMachinePowerStateOn
+	if supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName != "" {
+		if vmOperatorVM.Spec.Reserved == nil {
+			vmOperatorVM.Spec.Reserved = &vmoprv1.VirtualMachineReservedSpec{}
 		}
-
-		// Set VM Affinity rules and GroupName.
-		// The Affinity rules set in Spec.Affinity primarily take effect only during the
-		// initial placement.
-		// These rules DO NOT impact new VMs created after initial placement, such as scaling up,
-		// because placement relies on information derived from
-		// VirtualMachineGroup annotations. This ensures all the VMs
-		// for a MachineDeployment are placed in the same failureDomain.
-		// Note: no matter of the different placement behaviour, we are setting affinity rules on all machines for consistency.
-		if affinityInfo != nil {
-			if vmOperatorVM.Spec.Affinity == nil {
-				vmOperatorVM.Spec.Affinity = &affinityInfo.affinitySpec
-			}
-			if vmOperatorVM.Spec.GroupName == "" {
-				vmOperatorVM.Spec.GroupName = affinityInfo.vmGroupName
-			}
+		if vmOperatorVM.Spec.Reserved.ResourcePolicyName == "" {
+			vmOperatorVM.Spec.Reserved.ResourcePolicyName = supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName
 		}
-
-		// Make sure the VSphereMachine owns the VM Operator VirtualMachine.
-		if err := ctrlutil.SetControllerReference(supervisorMachineCtx.VSphereMachine, vmOperatorVM, v.Client.Scheme()); err != nil {
-			return errors.Wrapf(err, "failed to mark %s %s/%s as owner of %s %s/%s",
-				supervisorMachineCtx.VSphereMachine.GroupVersionKind(),
-				supervisorMachineCtx.VSphereMachine.Namespace,
-				supervisorMachineCtx.VSphereMachine.Name,
-				vmOperatorVM.GroupVersionKind(),
-				vmOperatorVM.Namespace,
-				vmOperatorVM.Name)
+	}
+	if vmOperatorVM.Spec.Bootstrap == nil {
+		vmOperatorVM.Spec.Bootstrap = &vmoprv1.VirtualMachineBootstrapSpec{}
+	}
+	vmOperatorVM.Spec.Bootstrap.CloudInit = &vmoprv1.VirtualMachineBootstrapCloudInitSpec{
+		RawCloudConfig: &vmoprv1common.SecretKeySelector{
+			Name: dataSecretName,
+			Key:  "user-data",
+		},
+	}
+	if supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode != "" {
+		var powerOffMode vmoprv1.VirtualMachinePowerOpMode
+		switch supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode {
+		case vmwarev1.VirtualMachinePowerOpModeHard:
+			powerOffMode = vmoprv1.VirtualMachinePowerOpModeHard
+		case vmwarev1.VirtualMachinePowerOpModeSoft:
+			powerOffMode = vmoprv1.VirtualMachinePowerOpModeSoft
+		case vmwarev1.VirtualMachinePowerOpModeTrySoft:
+			powerOffMode = vmoprv1.VirtualMachinePowerOpModeTrySoft
+		default:
+			return fmt.Errorf("unable to map PowerOffMode %q to vm-operator equivalent", supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode)
 		}
+		vmOperatorVM.Spec.PowerOffMode = powerOffMode
+	}
 
-		return nil
-	})
-	return err
+	if vmOperatorVM.Spec.MinHardwareVersion == 0 {
+		vmOperatorVM.Spec.MinHardwareVersion = minHardwareVersion
+	}
+
+	// VMOperator supports readiness probe and will add/remove endpoints to a
+	// VirtualMachineService based on the outcome of the readiness check.
+	// When creating the initial control plane node, we do not declare a probe
+	// in order to reduce the likelihood of a race between the VirtualMachineService
+	// endpoint additions and the kubeadm commands run on the VM itself.
+	// Once the initial control plane node is ready, we can re-add the probe so
+	// that subsequent machines do not attempt to speak to a kube-apiserver
+	// that is not yet ready.
+	// Not all network providers (for example, NSX-VPC) provide support for VM
+	// readiness probes. The flag PerformsVMReadinessProbe is used to determine
+	// whether a VM readiness probe should be conducted.
+	if v.ConfigureControlPlaneVMReadinessProbe && infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) && ptr.Deref(supervisorMachineCtx.Cluster.Status.Initialization.ControlPlaneInitialized, false) {
+		vmOperatorVM.Spec.ReadinessProbe = &vmoprv1.VirtualMachineReadinessProbeSpec{
+			TCPSocket: &vmoprv1.TCPSocketAction{
+				Port: intstr.FromInt(defaultAPIBindPort),
+			},
+		}
+	}
+
+	// Assign the VM's labels.
+	vmOperatorVM.Labels = getVMLabels(supervisorMachineCtx, vmOperatorVM.Labels, affinityInfo)
+
+	addResourcePolicyAnnotations(supervisorMachineCtx, vmOperatorVM)
+
+	if err := v.addVolumes(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
+		return err
+	}
+
+	// Apply hooks to modify the VM spec
+	// The hooks are loosely typed to allow for different VirtualMachine backends
+	for _, vmModifier := range supervisorMachineCtx.VMModifiers {
+		modified, err := vmModifier(vmOperatorVM)
+		if err != nil {
+			return err
+		}
+		typedModified, ok := modified.(*vmoprv1.VirtualMachine)
+		if !ok {
+			return fmt.Errorf("VM modifier returned result of the wrong type: %T", typedModified)
+		}
+		vmOperatorVM = typedModified
+	}
+
+	// Set VM Affinity rules and GroupName.
+	// The Affinity rules set in Spec.Affinity primarily take effect only during the
+	// initial placement.
+	// These rules DO NOT impact new VMs created after initial placement, such as scaling up,
+	// because placement relies on information derived from
+	// VirtualMachineGroup annotations. This ensures all the VMs
+	// for a MachineDeployment are placed in the same failureDomain.
+	// Note: no matter of the different placement behaviour, we are setting affinity rules on all machines for consistency.
+	if affinityInfo != nil {
+		if vmOperatorVM.Spec.Affinity == nil {
+			vmOperatorVM.Spec.Affinity = &affinityInfo.affinitySpec
+		}
+		if vmOperatorVM.Spec.GroupName == "" {
+			vmOperatorVM.Spec.GroupName = affinityInfo.vmGroupName
+		}
+	}
+
+	// Make sure the VSphereMachine owns the VM Operator VirtualMachine.
+	if err := ctrlutil.SetControllerReference(supervisorMachineCtx.VSphereMachine, vmOperatorVM, v.Client.Scheme()); err != nil {
+		return errors.Wrapf(err, "failed to mark %s %s/%s as owner of %s %s/%s",
+			supervisorMachineCtx.VSphereMachine.GroupVersionKind(),
+			supervisorMachineCtx.VSphereMachine.Namespace,
+			supervisorMachineCtx.VSphereMachine.Name,
+			vmOperatorVM.GroupVersionKind(),
+			vmOperatorVM.Namespace,
+			vmOperatorVM.Name)
+	}
+
+	if !vmExists {
+		if err := v.Client.Create(ctx, vmOperatorVM); err != nil {
+			return err
+		}
+	} else if !reflect.DeepEqual(originalVM, vmOperatorVM) {
+		patch := client.MergeFrom(originalVM)
+		if err := v.Client.Patch(ctx, vmOperatorVM, patch); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func convertKeyValueSlice(pairs []vmoprv1common.KeyValuePair) []vmwarev1.KeyValuePair {
@@ -795,7 +813,7 @@ func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, su
 			supervisorMachineCtx.Cluster.Namespace, supervisorMachineCtx.Cluster.Name)
 	}
 
-	// If the list is empty, fall back to usse legacy labels for filtering
+	// If the list is empty, fall back to use legacy labels for filtering
 	if len(vmList.Items) == 0 {
 		legacyLabels := map[string]string{legacyClusterSelectorKey: supervisorMachineCtx.Cluster.Name}
 		if err := v.Client.List(

@@ -74,8 +74,14 @@ func createDefaultNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext
 
 func updateVMServiceWithVIP(ctx context.Context, clusterCtx *vmware.ClusterContext, c ctrlclient.Client, cpService CPService, vip string) {
 	vmService := getVirtualMachineService(ctx, clusterCtx, c, cpService)
-	vmService.Status.LoadBalancer.Ingress = []vmoprv1.LoadBalancerIngress{{IP: vip}}
-	err := c.Status().Update(ctx, vmService)
+
+	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+	s := &vmoprv1.VirtualMachineService{}
+	err := c.Get(ctx, ctrlclient.ObjectKeyFromObject(vmService), s)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	s.Status.LoadBalancer.Ingress = []vmoprv1.LoadBalancerIngress{{IP: vip}}
+	err = c.Status().Update(ctx, s)
 	Expect(err).ShouldNot(HaveOccurred())
 }
 

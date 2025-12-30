@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -105,6 +106,8 @@ func init() {
 	_ = vmoprv1.AddToScheme(scheme)
 	_ = storagev1.AddToScheme(scheme)
 	_ = vmwarev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = spqv1.AddToScheme(scheme)
 
 	// scheme used for operating in memory.
 	_ = corev1.AddToScheme(inmemoryScheme)

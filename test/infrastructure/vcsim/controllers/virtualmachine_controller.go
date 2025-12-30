@@ -32,8 +32,6 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
-	"sigs.k8s.io/cluster-api/util/finalizers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -79,7 +77,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, virtualMachine, vcsimv1.VMFinalizer); err != nil || finalizerAdded {
+	if finalizerAdded, err := ensureFinalizer(ctx, r.Client, virtualMachine, vcsimv1.VMFinalizer); err != nil || finalizerAdded {
 		return ctrl.Result{}, err
 	}
 
@@ -217,19 +215,8 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(virtualMachine, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// Always attempt to Patch the VSphereVM + conditionsTracker object and status after each reconciliation.
 	defer func() {
-		// NOTE: Patch on VSphereVM will only add/remove a finalizer.
-		if err := patchHelper.Patch(ctx, virtualMachine); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, err})
-		}
-
 		// NOTE: Patch on conditionsTracker will only track of provisioning process of the fake node, etcd, api server, etc.
 		if err := inmemoryClient.Update(ctx, conditionsTracker); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
@@ -265,7 +252,17 @@ func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster 
 		return ret, err
 	}
 
+	if !controllerutil.ContainsFinalizer(virtualMachine, vcsimv1.VMFinalizer) {
+		return ctrl.Result{}, nil
+	}
+
+	original := virtualMachine.DeepCopyObject().(client.Object)
 	controllerutil.RemoveFinalizer(virtualMachine, vcsimv1.VMFinalizer)
+
+	patch := client.MergeFrom(original)
+	if err := r.Client.Patch(ctx, virtualMachine, patch); err != nil {
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -325,4 +322,26 @@ func (r *VirtualMachineReconciler) SetupWithManager(_ context.Context, mgr ctrl.
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
+}
+
+// ensureFinalizer mirrors the corresponding util from CAPI without using the patch helper.
+func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, finalizer string) (finalizerAdded bool, err error) {
+	// Finalizers can only be added when the deletionTimestamp is not set.
+	if !o.GetDeletionTimestamp().IsZero() {
+		return false, nil
+	}
+
+	if controllerutil.ContainsFinalizer(o, finalizer) {
+		return false, nil
+	}
+
+	original := o.DeepCopyObject().(client.Object)
+	controllerutil.AddFinalizer(o, finalizer)
+
+	patch := client.MergeFrom(original)
+	if err := c.Patch(ctx, o, patch); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

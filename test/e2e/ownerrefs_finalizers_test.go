@@ -238,6 +238,8 @@ var (
 				"VirtualMachineClassBinding":      func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
 				"VirtualMachineClass":             func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
 				"VMOperatorDependencies":          func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"StoragePolicyUsage":              func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"Zone":                            func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
 			}
 		}
 
@@ -311,6 +313,7 @@ var vSphereFinalizers = func() map[string]func(types.NamespacedName) []string {
 		return map[string]func(types.NamespacedName) []string{
 			"VSphereMachine": func(_ types.NamespacedName) []string { return []string{infrav1.MachineFinalizer} },
 			"VSphereCluster": func(_ types.NamespacedName) []string { return []string{vmwarev1.ClusterFinalizer} },
+			"Zone":           func(_ types.NamespacedName) []string { return []string{"vmoperator.vmware.com/zone-finalizer"} },
 		}
 	}
 

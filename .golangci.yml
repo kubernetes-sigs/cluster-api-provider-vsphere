@@ -108,10 +108,6 @@ linters:
         # CAPV
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
           alias: infrav1
-        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3
-          alias: infrav1alpha3
-        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4
-          alias: infrav1alpha4
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
           alias: vmwarev1
         # VMware Operator
@@ -207,9 +203,6 @@ linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/errors" is deprecated:'
         # Deprecations for old api groups
-      - linters:
-          - staticcheck
-        text: 'SA1019: "sigs.k8s.io/cluster-api-provider-vsphere/apis/(v1alpha3|v1alpha4)" is deprecated: This package will be removed in one of the next releases.'
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/api/core/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
@@ -313,28 +306,6 @@ linters:
           - staticcheck
         path: ^apis\/.*\/.*conversion.*\.go$
         text: 'ST1016: methods on the same type should have the same receiver name'
-        # missing comments on v1alpha3 and v1alpha4 packages. These rules should be removed when those packages are removed.
-      - linters:
-          - revive
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: package-comments
-      - linters:
-          - staticcheck
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: ST1000
-      - linters:
-          - revive
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: exported (.*) should have comment (.*)or be unexported
-        # wrong comment
-      - linters:
-          - revive
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: comment on exported (.*) should be of the form (.*)
-      - linters:
-          - staticcheck
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: ST1021|ST1020
       - linters:
           - goconst
         path: (.+)_test\.go

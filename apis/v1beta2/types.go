@@ -319,14 +319,19 @@ const (
 )
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
+// +kubebuilder:validation:MinProperties=1
 type APIEndpoint struct {
-	// The hostname on which the API server is serving.
+	// host is the hostname on which the API server is serving.
 	// +optional
-	Host string `json:"host"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Host string `json:"host,omitempty"`
 
-	// The port on which the API server is serving.
+	// port is the port on which the API server is serving.
 	// +optional
-	Port int32 `json:"port"`
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port,omitempty"`
 }
 
 // IsZero returns true if either the host or the port are zero values.

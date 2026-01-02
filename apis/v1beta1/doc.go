@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 // Package v1beta1 contains API Schema definitions for the infrastructure v1beta1 API group
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2
 // +kubebuilder:object:generate=true
 // +groupName=infrastructure.cluster.x-k8s.io
 package v1beta1

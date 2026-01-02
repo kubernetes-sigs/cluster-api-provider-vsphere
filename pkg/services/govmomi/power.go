@@ -30,7 +30,7 @@ import (
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 )
 
 func (vms *VMService) getPowerState(ctx context.Context, virtualMachineCtx *virtualMachineContext) (infrav1.VirtualMachinePowerState, error) {

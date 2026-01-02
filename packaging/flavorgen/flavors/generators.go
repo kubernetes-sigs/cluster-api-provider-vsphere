@@ -32,7 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/kubevip"
@@ -224,24 +224,24 @@ func getInfraServerValue() ([]byte, error) {
 	return byteArr, nil
 }
 
-func newVSphereCluster() infrav1.VSphereCluster {
-	return infrav1.VSphereCluster{
+func newVSphereCluster() infrav1beta1.VSphereCluster {
+	return infrav1beta1.VSphereCluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&infrav1.VSphereCluster{}),
+			APIVersion: infrav1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&infrav1beta1.VSphereCluster{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      env.ClusterNameVar,
 			Namespace: env.NamespaceVar,
 		},
-		Spec: infrav1.VSphereClusterSpec{
+		Spec: infrav1beta1.VSphereClusterSpec{
 			Server:     env.VSphereServerVar,
 			Thumbprint: env.VSphereThumbprint,
-			IdentityRef: &infrav1.VSphereIdentityReference{
+			IdentityRef: &infrav1beta1.VSphereIdentityReference{
 				Name: env.ClusterNameVar,
-				Kind: infrav1.SecretKind,
+				Kind: infrav1beta1.SecretKind,
 			},
-			ControlPlaneEndpoint: infrav1.APIEndpoint{
+			ControlPlaneEndpoint: infrav1beta1.APIEndpoint{
 				Host: env.ControlPlaneEndpointHostVar,
 				Port: 6443,
 			},
@@ -306,28 +306,28 @@ func clusterLabels() map[string]string {
 	return map[string]string{"cluster.x-k8s.io/cluster-name": env.ClusterNameVar}
 }
 
-func newVSphereMachineTemplate(templateName string) infrav1.VSphereMachineTemplate {
-	return infrav1.VSphereMachineTemplate{
+func newVSphereMachineTemplate(templateName string) infrav1beta1.VSphereMachineTemplate {
+	return infrav1beta1.VSphereMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      templateName,
 			Namespace: env.NamespaceVar,
 		},
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&infrav1.VSphereMachineTemplate{}),
+			APIVersion: infrav1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&infrav1beta1.VSphereMachineTemplate{}),
 		},
-		Spec: infrav1.VSphereMachineTemplateSpec{
-			Template: infrav1.VSphereMachineTemplateResource{
+		Spec: infrav1beta1.VSphereMachineTemplateSpec{
+			Template: infrav1beta1.VSphereMachineTemplateResource{
 				Spec: defaultVirtualMachineSpec(),
 			},
 		},
 	}
 }
 
-func defaultVirtualMachineSpec() infrav1.VSphereMachineSpec {
-	return infrav1.VSphereMachineSpec{
+func defaultVirtualMachineSpec() infrav1beta1.VSphereMachineSpec {
+	return infrav1beta1.VSphereMachineSpec{
 		VirtualMachineCloneSpec: defaultVirtualMachineCloneSpec(),
-		PowerOffMode:            infrav1.VirtualMachinePowerOpModeTrySoft,
+		PowerOffMode:            infrav1beta1.VirtualMachinePowerOpModeTrySoft,
 	}
 }
 
@@ -354,11 +354,11 @@ func newVMWareMachineTemplate(templateName string) vmwarev1.VSphereMachineTempla
 	}
 }
 
-func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
-	return infrav1.VirtualMachineCloneSpec{
+func defaultVirtualMachineCloneSpec() infrav1beta1.VirtualMachineCloneSpec {
+	return infrav1beta1.VirtualMachineCloneSpec{
 		Datacenter: env.VSphereDataCenterVar,
-		Network: infrav1.NetworkSpec{
-			Devices: []infrav1.NetworkDeviceSpec{
+		Network: infrav1beta1.NetworkSpec{
+			Devices: []infrav1beta1.NetworkDeviceSpec{
 				{
 					NetworkName: env.VSphereNetworkVar,
 					DHCP4:       true,
@@ -367,7 +367,7 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 			},
 		},
 		CustomVMXKeys:     defaultCustomVMXKeys(),
-		CloneMode:         infrav1.LinkedClone,
+		CloneMode:         infrav1beta1.LinkedClone,
 		NumCPUs:           env.DefaultNumCPUs,
 		DiskGiB:           env.DefaultDiskGiB,
 		MemoryMiB:         env.DefaultMemoryMiB,
@@ -377,40 +377,40 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 		Datastore:         env.VSphereDatastoreVar,
 		StoragePolicyName: env.VSphereStoragePolicyVar,
 		Folder:            env.VSphereFolderVar,
-		OS:                infrav1.Linux,
+		OS:                infrav1beta1.Linux,
 	}
 }
 
-func newNodeIPAMVSphereMachineTemplate(templateName string) infrav1.VSphereMachineTemplate {
-	return infrav1.VSphereMachineTemplate{
+func newNodeIPAMVSphereMachineTemplate(templateName string) infrav1beta1.VSphereMachineTemplate {
+	return infrav1beta1.VSphereMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      templateName,
 			Namespace: env.NamespaceVar,
 		},
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&infrav1.VSphereMachineTemplate{}),
+			APIVersion: infrav1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&infrav1beta1.VSphereMachineTemplate{}),
 		},
-		Spec: infrav1.VSphereMachineTemplateSpec{
-			Template: infrav1.VSphereMachineTemplateResource{
+		Spec: infrav1beta1.VSphereMachineTemplateSpec{
+			Template: infrav1beta1.VSphereMachineTemplateResource{
 				Spec: nodeIPAMVirtualMachineSpec(),
 			},
 		},
 	}
 }
 
-func nodeIPAMVirtualMachineSpec() infrav1.VSphereMachineSpec {
-	return infrav1.VSphereMachineSpec{
+func nodeIPAMVirtualMachineSpec() infrav1beta1.VSphereMachineSpec {
+	return infrav1beta1.VSphereMachineSpec{
 		VirtualMachineCloneSpec: nodeIPAMVirtualMachineCloneSpec(),
-		PowerOffMode:            infrav1.VirtualMachinePowerOpModeTrySoft,
+		PowerOffMode:            infrav1beta1.VirtualMachinePowerOpModeTrySoft,
 	}
 }
 
-func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
-	return infrav1.VirtualMachineCloneSpec{
+func nodeIPAMVirtualMachineCloneSpec() infrav1beta1.VirtualMachineCloneSpec {
+	return infrav1beta1.VirtualMachineCloneSpec{
 		Datacenter: env.VSphereDataCenterVar,
-		Network: infrav1.NetworkSpec{
-			Devices: []infrav1.NetworkDeviceSpec{
+		Network: infrav1beta1.NetworkSpec{
+			Devices: []infrav1beta1.NetworkDeviceSpec{
 				{
 					NetworkName: env.VSphereNetworkVar,
 					DHCP4:       false,
@@ -429,7 +429,7 @@ func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 			},
 		},
 		CustomVMXKeys:     defaultCustomVMXKeys(),
-		CloneMode:         infrav1.LinkedClone,
+		CloneMode:         infrav1beta1.LinkedClone,
 		NumCPUs:           env.DefaultNumCPUs,
 		DiskGiB:           env.DefaultDiskGiB,
 		MemoryMiB:         env.DefaultMemoryMiB,
@@ -439,7 +439,7 @@ func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 		Datastore:         env.VSphereDatastoreVar,
 		StoragePolicyName: env.VSphereStoragePolicyVar,
 		Folder:            env.VSphereFolderVar,
-		OS:                infrav1.Linux,
+		OS:                infrav1beta1.Linux,
 	}
 }
 
@@ -724,7 +724,7 @@ func newKubeadmControlplane(infraTemplate client.Object, files []bootstrapv1.Fil
 	}
 }
 
-func newIgnitionKubeadmControlplane(infraTemplate infrav1.VSphereMachineTemplate, files []bootstrapv1.File) controlplanev1.KubeadmControlPlane {
+func newIgnitionKubeadmControlplane(infraTemplate infrav1beta1.VSphereMachineTemplate, files []bootstrapv1.File) controlplanev1.KubeadmControlPlane {
 	return controlplanev1.KubeadmControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: controlplanev1.GroupVersion.String(),

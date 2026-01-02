@@ -155,7 +155,7 @@ type FailureDomainHosts struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspherefailuredomains,scope=Cluster,categories=cluster-api
 
 // VSphereFailureDomain is the Schema for the vspherefailuredomains API.

@@ -83,6 +83,12 @@ linters:
       linters:
         - kubeapilinter
 
+    ## Excludes until we start fixing v1beta2 KAL findings
+    - path: "apis/v1beta2"
+      text: ".*"
+      linters:
+        - kubeapilinter
+
     ## Excludes for current apiVersions that can be removed once v1beta1 is removed.
     # .status.deprecated.v1beta1.conditions fields are using v1beta1.Condition types.
     - path: "apis/vmware/v1beta1"

@@ -336,7 +336,7 @@ type VSphereVMV1Beta2Status struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vspherevms,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 
 // VSphereVM is the Schema for the vspherevms API.

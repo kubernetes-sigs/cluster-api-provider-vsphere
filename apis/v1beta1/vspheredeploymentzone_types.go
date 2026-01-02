@@ -188,7 +188,7 @@ type VSphereDeploymentZoneV1Beta2Status struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspheredeploymentzones,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status
 

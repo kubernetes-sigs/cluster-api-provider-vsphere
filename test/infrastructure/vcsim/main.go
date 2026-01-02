@@ -58,7 +58,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
@@ -99,7 +99,7 @@ func init() {
 	// scheme used for operating on the management cluster.
 	_ = corev1.AddToScheme(scheme)
 	_ = clusterv1beta1.AddToScheme(scheme)
-	_ = infrav1.AddToScheme(scheme)
+	_ = infrav1beta1.AddToScheme(scheme)
 	_ = vcsimv1.AddToScheme(scheme)
 	_ = topologyv1.AddToScheme(scheme)
 	_ = vmoprv1.AddToScheme(scheme)
@@ -110,7 +110,7 @@ func init() {
 	_ = corev1.AddToScheme(inmemoryScheme)
 	_ = appsv1.AddToScheme(inmemoryScheme)
 	_ = rbacv1.AddToScheme(inmemoryScheme)
-	_ = infrav1.AddToScheme(inmemoryScheme)
+	_ = infrav1beta1.AddToScheme(inmemoryScheme)
 	_ = storagev1.AddToScheme(inmemoryScheme)
 	_ = apiextensionsv1.AddToScheme(inmemoryScheme)
 	_ = policyv1.AddToScheme(inmemoryScheme)
@@ -269,7 +269,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	// Check for non-supervisor VSphereCluster and start controller if found
-	gvr := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
+	gvr := infrav1beta1.GroupVersion.WithResource(reflect.TypeOf(&infrav1beta1.VSphereCluster{}).Elem().Name())
 	govmomiMode, err := isCRDDeployed(mgr, gvr)
 	if err != nil {
 		setupLog.Error(err, "unable to detect govmomi mode")

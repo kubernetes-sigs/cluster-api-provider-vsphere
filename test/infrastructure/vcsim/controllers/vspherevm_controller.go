@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -42,8 +43,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
@@ -74,7 +75,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the VSphereVM instance
-	vSphereVM := &infrav1.VSphereVM{}
+	vSphereVM := &infrav1beta1.VSphereVM{}
 	if err := r.Client.Get(ctx, req.NamespacedName, vSphereVM); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -88,7 +89,9 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Fetch the owner VSphereMachine.
-	vSphereMachine, err := util.GetOwnerVSphereMachine(ctx, r.Client, vSphereVM.ObjectMeta)
+	// Note: Temporarily using a local copy of util.GetOwnerVSphereMachine until this controller can be migrated to v1beta2.
+	vSphereMachine, err := GetOwnerVSphereMachine(ctx, r.Client, vSphereVM.ObjectMeta)
+
 	// vsphereMachine can be nil in cases where custom mover other than clusterctl
 	// moves the resources without ownerreferences set
 	// in that case nil vsphereMachine can cause panic and CrashLoopBackOff the pod
@@ -136,7 +139,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		Namespace: cluster.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	vSphereCluster := &infrav1.VSphereCluster{}
+	vSphereCluster := &infrav1beta1.VSphereCluster{}
 	if err := r.Client.Get(ctx, key, vSphereCluster); err != nil {
 		log.Info("VSphereCluster can't be retrieved")
 		return ctrl.Result{}, err
@@ -203,13 +206,13 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// track of the provisioning process of the fake node, etcd, api server, etc for this specific vSphereVM.
 	// (the process managed by this controller).
 	// NOTE: The type of the in memory conditionsTracker object doesn't matter as soon as it implements Cluster API's conditions interfaces.
-	conditionsTracker := &infrav1.VSphereVM{}
+	conditionsTracker := &infrav1beta1.VSphereVM{}
 	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(vSphereVM), conditionsTracker); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrap(err, "failed to get conditionsTracker")
 		}
 
-		conditionsTracker = &infrav1.VSphereVM{
+		conditionsTracker = &infrav1beta1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      vSphereVM.Name,
 				Namespace: vSphereVM.Namespace,
@@ -248,7 +251,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return r.reconcileNormal(ctx, cluster, vSphereCluster, machine, vSphereVM, conditionsTracker)
 }
 
-func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, vSphereCluster *infrav1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
+func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, vSphereCluster *infrav1beta1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1beta1.VSphereVM, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
 	ipReconciler := r.getVMIpReconciler(vSphereCluster, vSphereVM)
 	if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
 		return ret, err
@@ -262,7 +265,7 @@ func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clus
 	return ctrl.Result{}, nil
 }
 
-func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, _ *infrav1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
+func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, _ *infrav1beta1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1beta1.VSphereVM, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
 	bootstrapReconciler := r.getVMBootstrapReconciler(vSphereVM)
 	if ret, err := bootstrapReconciler.reconcileDelete(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
 		return ret, err
@@ -272,7 +275,7 @@ func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clus
 	return ctrl.Result{}, nil
 }
 
-func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1.VSphereCluster, vSphereVM *infrav1.VSphereVM) *vmIPReconciler {
+func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1beta1.VSphereCluster, vSphereVM *infrav1beta1.VSphereVM) *vmIPReconciler {
 	return &vmIPReconciler{
 		Client: r.Client,
 
@@ -284,7 +287,7 @@ func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1.VSphereC
 		},
 		IsVMWaitingforIP: func() bool {
 			// A vSphereVM is waiting for an IP when not ready VMProvisioned condition is false with reason WaitingForIPAllocation
-			return !vSphereVM.Status.Ready && v1beta1conditions.IsFalse(vSphereVM, infrav1.VMProvisionedCondition) && v1beta1conditions.GetReason(vSphereVM, infrav1.VMProvisionedCondition) == infrav1.WaitingForIPAllocationReason
+			return !vSphereVM.Status.Ready && v1beta1conditions.IsFalse(vSphereVM, infrav1beta1.VMProvisionedCondition) && v1beta1conditions.GetReason(vSphereVM, infrav1beta1.VMProvisionedCondition) == infrav1beta1.WaitingForIPAllocationReason
 		},
 		GetVMPath: func() string {
 			// Return vmref of the VM as it is populated already by CAPV
@@ -293,7 +296,7 @@ func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1.VSphereC
 	}
 }
 
-func (r *VSphereVMReconciler) getVMBootstrapReconciler(vSphereVM *infrav1.VSphereVM) *vmBootstrapReconciler {
+func (r *VSphereVMReconciler) getVMBootstrapReconciler(vSphereVM *infrav1beta1.VSphereVM) *vmBootstrapReconciler {
 	return &vmBootstrapReconciler{
 		Client:          r.Client,
 		InMemoryManager: r.InMemoryManager,
@@ -312,12 +315,13 @@ func (r *VSphereVMReconciler) getVMBootstrapReconciler(vSphereVM *infrav1.VSpher
 	}
 }
 
-func (r *VSphereVMReconciler) getVCenterSession(ctx context.Context, vSphereCluster *infrav1.VSphereCluster, vSphereVM *infrav1.VSphereVM) (*session.Session, error) {
+func (r *VSphereVMReconciler) getVCenterSession(ctx context.Context, vSphereCluster *infrav1beta1.VSphereCluster, vSphereVM *infrav1beta1.VSphereVM) (*session.Session, error) {
 	if vSphereCluster.Spec.IdentityRef == nil {
 		return nil, errors.New("vcsim do not support using credentials provided to the manager")
 	}
 
-	creds, err := identity.GetCredentials(ctx, r.Client, vSphereCluster, capvNamespace)
+	// Note: Temporarily using a local copy of identity.GetCredentials until this controller can be migrated to v1beta2.
+	creds, err := GetCredentials(ctx, r.Client, vSphereCluster, capvNamespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to retrieve credentials from IdentityRef")
 	}
@@ -336,7 +340,7 @@ func (r *VSphereVMReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vspherevm")
 
 	err := ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.VSphereVM{}).
+		For(&infrav1beta1.VSphereVM{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)
@@ -389,6 +393,117 @@ func getOwnerMachineV1Beta1(ctx context.Context, c client.Client, obj metav1.Obj
 // getMachineByName finds and return a Machine object using the specified params.
 func getMachineByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1beta1.Machine, error) {
 	m := &clusterv1beta1.Machine{}
+	key := client.ObjectKey{Name: name, Namespace: namespace}
+	if err := c.Get(ctx, key, m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// Credentials are the user credentials used with the VSphere API.
+type Credentials struct {
+	Username string
+	Password string
+}
+
+// GetCredentials returns the VCenter credentials for the v1beta1 VSphereCluster.
+func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1beta1.VSphereCluster, controllerNamespace string) (*Credentials, error) {
+	ref := cluster.Spec.IdentityRef
+	secret := &corev1.Secret{}
+	var secretKey client.ObjectKey
+
+	switch ref.Kind {
+	case infrav1beta1.SecretKind:
+		secretKey = client.ObjectKey{
+			Namespace: cluster.Namespace,
+			Name:      ref.Name,
+		}
+	case infrav1beta1.VSphereClusterIdentityKind:
+		identity := &infrav1beta1.VSphereClusterIdentity{}
+		key := client.ObjectKey{
+			Name: ref.Name,
+		}
+		if err := c.Get(ctx, key, identity); err != nil {
+			return nil, err
+		}
+
+		if !identity.Status.Ready {
+			return nil, errors.New("identity isn't ready to be used yet")
+		}
+
+		if identity.Spec.AllowedNamespaces == nil {
+			return nil, errors.New("allowedNamespaces set to nil, no namespaces are allowed to use this identity")
+		}
+
+		selector, err := metav1.LabelSelectorAsSelector(&identity.Spec.AllowedNamespaces.Selector)
+		if err != nil {
+			return nil, errors.New("failed to build selector")
+		}
+
+		ns := &corev1.Namespace{}
+		nsKey := client.ObjectKey{
+			Name: cluster.Namespace,
+		}
+		if err := c.Get(ctx, nsKey, ns); err != nil {
+			return nil, err
+		}
+		if !selector.Matches(labels.Set(ns.GetLabels())) {
+			return nil, fmt.Errorf("namespace %s is not allowed to use specifified identity", cluster.Namespace)
+		}
+
+		secretKey = client.ObjectKey{
+			Name:      identity.Spec.SecretName,
+			Namespace: controllerNamespace,
+		}
+	default:
+		return nil, fmt.Errorf("unknown type %s used for Identity", ref.Kind)
+	}
+
+	if err := c.Get(ctx, secretKey, secret); err != nil {
+		return nil, err
+	}
+
+	credentials := &Credentials{
+		Username: getData(secret, UsernameKey),
+		Password: getData(secret, PasswordKey),
+	}
+
+	return credentials, nil
+}
+
+const (
+	// UsernameKey is the key used for the username.
+	UsernameKey = "username"
+	// PasswordKey is the key used for the password.
+	PasswordKey = "password"
+)
+
+func getData(secret *corev1.Secret, key string) string {
+	if secret.Data == nil {
+		return ""
+	}
+	if val, ok := secret.Data[key]; ok {
+		return string(val)
+	}
+	return ""
+}
+
+// GetOwnerVSphereMachine returns the VSphereMachine owner for the passed object.
+func GetOwnerVSphereMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*infrav1beta1.VSphereMachine, error) {
+	for _, ref := range obj.OwnerReferences {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+		if ref.Kind == "VSphereMachine" && gv.Group == infrav1.GroupVersion.Group {
+			return getVSphereMachineByName(ctx, c, obj.Namespace, ref.Name)
+		}
+	}
+	return nil, nil
+}
+
+func getVSphereMachineByName(ctx context.Context, c client.Client, namespace, name string) (*infrav1beta1.VSphereMachine, error) {
+	m := &infrav1beta1.VSphereMachine{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	if err := c.Get(ctx, key, m); err != nil {
 		return nil, err

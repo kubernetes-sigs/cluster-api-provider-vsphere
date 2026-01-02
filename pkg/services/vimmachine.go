@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -298,15 +298,15 @@ func (v *VimMachineService) reconcileNetwork(ctx context.Context, vimMachineCtx 
 	vimMachineCtx.VSphereMachine.Status.Network = networkStatusList
 
 	addresses := vm.Status.Addresses
-	machineAddresses := make([]clusterv1beta1.MachineAddress, 0, len(addresses))
+	machineAddresses := make([]clusterv1.MachineAddress, 0, len(addresses))
 	for _, addr := range addresses {
-		machineAddresses = append(machineAddresses, clusterv1beta1.MachineAddress{
-			Type:    clusterv1beta1.MachineExternalIP,
+		machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
+			Type:    clusterv1.MachineExternalIP,
 			Address: addr,
 		})
 	}
-	machineAddresses = append(machineAddresses, clusterv1beta1.MachineAddress{
-		Type:    clusterv1beta1.MachineInternalDNS,
+	machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
+		Type:    clusterv1.MachineInternalDNS,
 		Address: vm.GetName(),
 	})
 	vimMachineCtx.VSphereMachine.Status.Addresses = machineAddresses

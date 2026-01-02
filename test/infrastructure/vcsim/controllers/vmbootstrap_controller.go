@@ -44,7 +44,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
@@ -840,7 +840,7 @@ func (r *vmBootstrapReconciler) reconcileDelete(ctx context.Context, cluster *cl
 		res = capiutil.LowestNonZeroResult(res, phaseResult)
 	}
 	if res.IsZero() && len(errs) == 0 {
-		controllerutil.RemoveFinalizer(conditionsTracker, infrav1.VMFinalizer)
+		controllerutil.RemoveFinalizer(conditionsTracker, infrav1beta1.VMFinalizer)
 	}
 	return res, kerrors.NewAggregate(errs)
 }

@@ -42,6 +42,9 @@ var (
 
 	// objectTypes contains all types to be registered to the GroupVersion.
 	objectTypes = []runtime.Object{}
+
+	// localSchemeBuilder is used for type conversions.
+	localSchemeBuilder = &schemeBuilder
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {

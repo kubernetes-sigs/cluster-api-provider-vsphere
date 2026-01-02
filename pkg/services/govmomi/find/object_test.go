@@ -28,7 +28,7 @@ import (
 	"github.com/vmware/govmomi/simulator"
 	"k8s.io/utils/ptr"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/find"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"

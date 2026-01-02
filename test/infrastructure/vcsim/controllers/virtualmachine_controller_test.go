@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
@@ -154,7 +154,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 		g.Expect(res).To(Equal(ctrl.Result{RequeueAfter: 5 * time.Second}))
 
 		// Check the conditionsTracker is waiting for infrastructure ready
-		conditionsTracker := &infrav1.VSphereVM{}
+		conditionsTracker := &infrav1beta1.VSphereVM{}
 		err = inmemoryClient.Get(ctx, client.ObjectKeyFromObject(virtualMachine), conditionsTracker)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -292,7 +292,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 
 		// Check the mirrorVSphereMachine reports all provisioned
 
-		conditionsTracker := &infrav1.VSphereVM{}
+		conditionsTracker := &infrav1beta1.VSphereVM{}
 		err = inmemoryClient.Get(ctx, client.ObjectKeyFromObject(virtualMachine), conditionsTracker)
 		g.Expect(err).ToNot(HaveOccurred())
 

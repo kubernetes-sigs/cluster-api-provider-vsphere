@@ -199,7 +199,18 @@ func spokeVSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, c randfil
 
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubVSphereMachineStatus,
 		spokeVSphereMachineSpec,
+	}
+}
+
+func hubVSphereMachineStatus(in *infrav1.VSphereMachineStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereMachineV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
 	}
 }
 

@@ -46,7 +46,7 @@ const (
 
 const (
 	// VMProvisionedCondition documents the status of the provisioning of a VSphereMachine and its underlying VSphereVM.
-	VMProvisionedCondition clusterv1beta1.ConditionType = "VMProvisioned"
+	VMProvisionedCondition clusterv1.ConditionType = "VMProvisioned"
 
 	// WaitingForClusterInfrastructureReason (Severity=Info) documents a VSphereMachine waiting for the cluster
 	// infrastructure to be ready before starting the provisioning process.
@@ -209,7 +209,7 @@ const (
 const (
 	// IPAddressClaimedCondition documents the status of claiming an IP address
 	// from an IPAM provider.
-	IPAddressClaimedCondition clusterv1beta1.ConditionType = "IPAddressClaimed"
+	IPAddressClaimedCondition clusterv1.ConditionType = "IPAddressClaimed"
 
 	// IPAddressClaimsBeingCreatedReason (Severity=Info) documents that claims for the
 	// IP addresses required by the VSphereVM are being created.

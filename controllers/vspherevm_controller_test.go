@@ -30,12 +30,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -210,8 +209,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 
-		g.Expect(v1beta1conditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
-		vmProvisionCondition := v1beta1conditions.Get(vm, infrav1.VMProvisionedCondition)
+		g.Expect(deprecatedv1beta1conditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
+		vmProvisionCondition := deprecatedv1beta1conditions.Get(vm, infrav1.VMProvisionedCondition)
 		g.Expect(vmProvisionCondition.Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.WaitingForStaticIPAllocationReason))
 	})
@@ -246,8 +245,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 
-		g.Expect(v1beta1conditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
-		vmProvisionCondition := v1beta1conditions.Get(vm, infrav1.VMProvisionedCondition)
+		g.Expect(deprecatedv1beta1conditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
+		vmProvisionCondition := deprecatedv1beta1conditions.Get(vm, infrav1.VMProvisionedCondition)
 		g.Expect(vmProvisionCondition.Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.WaitingForIPAllocationReason))
 	})
@@ -502,8 +501,8 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
-		g.Expect(v1beta1conditions.Has(vm, clusterv1beta1.ConditionType(infrav1.VCenterAvailableCondition))).To(BeTrue())
-		vCenterCondition := v1beta1conditions.Get(vm, clusterv1beta1.ConditionType(infrav1.VCenterAvailableCondition))
+		g.Expect(deprecatedv1beta1conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
+		vCenterCondition := deprecatedv1beta1conditions.Get(vm, infrav1.VCenterAvailableCondition)
 		g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
 	},
 	)

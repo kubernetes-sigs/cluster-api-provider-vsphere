@@ -223,7 +223,29 @@ func spokeVSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, c randfil
 
 func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubVSphereVMStatus,
 		spokeVSphereFailureDomainSpec,
+		spokeVSphereVMStatus,
+	}
+}
+
+func hubVSphereVMStatus(in *infrav1.VSphereVMStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereVMV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereVMStatus(in *VSphereVMStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereVMV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
 	}
 }
 

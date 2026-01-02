@@ -115,9 +115,9 @@ type VSphereClusterSpec struct {
 	// +optional
 	Thumbprint string `json:"thumbprint,omitempty"`
 
-	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
 
 	// IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
 	// the identity to use when reconciling the cluster.

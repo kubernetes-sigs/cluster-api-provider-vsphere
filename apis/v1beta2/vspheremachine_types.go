@@ -183,6 +183,7 @@ type VSphereMachineStatus struct {
 	Initialization VSphereMachineInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// Addresses contains the VSphere instance associated addresses.
+	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// Network returns the network status for each of the machine's configured

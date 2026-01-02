@@ -379,9 +379,10 @@ func checkGovmomiVSphereClusterFailureDomains(ctx context.Context, proxy framewo
 	}
 	Expect(proxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(vSphereCluster), vSphereCluster)).To(Succeed())
 
-	Expect(vSphereCluster.Status.FailureDomains).To(BeEquivalentTo(clusterv1beta1.FailureDomains{
-		"ownerrefs-finalizers": clusterv1beta1.FailureDomainSpec{
-			ControlPlane: true,
+	Expect(vSphereCluster.Status.FailureDomains).To(BeEquivalentTo([]clusterv1.FailureDomain{
+		{
+			Name:         "ownerrefs-finalizers",
+			ControlPlane: ptr.To(true),
 		},
 	}))
 }

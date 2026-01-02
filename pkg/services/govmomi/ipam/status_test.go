@@ -27,7 +27,7 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"

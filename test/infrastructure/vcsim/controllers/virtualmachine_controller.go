@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
@@ -199,14 +199,14 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// track of the provisioning process of the fake node, etcd, api server, etc for this specific virtualMachine.
 	// (the process managed by this controller).
 	// NOTE: The type of the in memory conditionsTracker object doesn't matter as soon as it implements Cluster API's conditions interfaces.
-	// Unfortunately vmoprv1.VirtualMachine isn't a condition getter, so we fallback on using a infrav1.VSphereVM.
-	conditionsTracker := &infrav1.VSphereVM{}
+	// Unfortunately vmoprv1.VirtualMachine isn't a condition getter, so we fallback on using a infrav1beta1.VSphereVM.
+	conditionsTracker := &infrav1beta1.VSphereVM{}
 	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(virtualMachine), conditionsTracker); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrap(err, "failed to get conditionsTracker")
 		}
 
-		conditionsTracker = &infrav1.VSphereVM{
+		conditionsTracker = &infrav1beta1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      virtualMachine.Name,
 				Namespace: virtualMachine.Namespace,
@@ -245,7 +245,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return r.reconcileNormal(ctx, cluster, machine, virtualMachine, conditionsTracker)
 }
 
-func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
+func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
 	ipReconciler := r.getVMIpReconciler(cluster, virtualMachine)
 	if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
 		return ret, err
@@ -259,7 +259,7 @@ func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster 
 	return ctrl.Result{}, nil
 }
 
-func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
+func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
 	bootstrapReconciler := r.getVMBootstrapReconciler(virtualMachine)
 	if ret, err := bootstrapReconciler.reconcileDelete(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
 		return ret, err

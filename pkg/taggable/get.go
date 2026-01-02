@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/find"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )

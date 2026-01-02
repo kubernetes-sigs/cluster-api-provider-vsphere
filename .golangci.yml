@@ -107,6 +107,8 @@ linters:
           alias: ctrl
         # CAPV
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
+          alias: infrav1beta1
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2
           alias: infrav1
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
           alias: vmwarev1

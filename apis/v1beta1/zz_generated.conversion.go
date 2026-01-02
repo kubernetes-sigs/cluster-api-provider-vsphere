@@ -1826,7 +1826,9 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	if err := Convert_v1beta1_VirtualMachineCloneSpec_To_v1beta2_VirtualMachineCloneSpec(&in.VirtualMachineCloneSpec, &out.VirtualMachineCloneSpec, s); err != nil {
 		return err
 	}
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	out.GuestSoftPowerOffTimeout = (*v1.Duration)(unsafe.Pointer(in.GuestSoftPowerOffTimeout))
@@ -1843,7 +1845,9 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 	if err := Convert_v1beta2_VirtualMachineCloneSpec_To_v1beta1_VirtualMachineCloneSpec(&in.VirtualMachineCloneSpec, &out.VirtualMachineCloneSpec, s); err != nil {
 		return err
 	}
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)
 	out.GuestSoftPowerOffTimeout = (*v1.Duration)(unsafe.Pointer(in.GuestSoftPowerOffTimeout))

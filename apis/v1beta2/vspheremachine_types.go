@@ -112,10 +112,12 @@ const (
 type VSphereMachineSpec struct {
 	VirtualMachineCloneSpec `json:",inline"`
 
-	// ProviderID is the virtual machine's BIOS UUID formated as
+	// providerID is the virtual machine's BIOS UUID formated as
 	// vsphere://12345678-1234-1234-1234-123456789abc
 	// +optional
-	ProviderID *string `json:"providerID,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ProviderID string `json:"providerID,omitempty"`
 
 	// FailureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
 	// For this infrastructure provider, the name is equivalent to the name of the VSphereDeploymentZone.

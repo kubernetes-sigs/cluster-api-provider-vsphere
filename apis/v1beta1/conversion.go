@@ -150,6 +150,10 @@ func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	if dst.Spec.ProviderID != nil && *dst.Spec.ProviderID == "" {
+		dst.Spec.ProviderID = nil
+	}
+
 	return nil
 }
 
@@ -166,6 +170,10 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereMachineTemplate)
 	if err := Convert_v1beta2_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(src, dst, nil); err != nil {
 		return err
+	}
+
+	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
+		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
 	return nil

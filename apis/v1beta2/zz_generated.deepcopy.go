@@ -1233,11 +1233,6 @@ func (in *VSphereMachineList) DeepCopyObject() runtime.Object {
 func (in *VSphereMachineSpec) DeepCopyInto(out *VSphereMachineSpec) {
 	*out = *in
 	in.VirtualMachineCloneSpec.DeepCopyInto(&out.VirtualMachineCloneSpec)
-	if in.ProviderID != nil {
-		in, out := &in.ProviderID, &out.ProviderID
-		*out = new(string)
-		**out = **in
-	}
 	if in.FailureDomain != nil {
 		in, out := &in.FailureDomain, &out.FailureDomain
 		*out = new(string)

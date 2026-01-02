@@ -552,7 +552,7 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 		ok, err := vimMachineService.reconcileProviderID(ctx, machineCtx, vsphereVM)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(ok).To(BeTrue())
-		g.Expect(*machineCtx.VSphereMachine.Spec.ProviderID).To(Equal(util.ProviderIDPrefix + biosUUID))
+		g.Expect(machineCtx.VSphereMachine.Spec.ProviderID).To(Equal(util.ProviderIDPrefix + biosUUID))
 	})
 
 	t.Run("returns error when VSphereVM biosUUID is not valid", func(t *testing.T) {

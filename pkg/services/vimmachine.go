@@ -259,8 +259,8 @@ func (v *VimMachineService) reconcileProviderID(ctx context.Context, vimMachineC
 	if providerID == "" {
 		return false, errors.Errorf("failed to reconcile providerID: invalid BIOS UUID %s for %s", biosUUID, vimMachineCtx)
 	}
-	if vimMachineCtx.VSphereMachine.Spec.ProviderID == nil || *vimMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
-		vimMachineCtx.VSphereMachine.Spec.ProviderID = &providerID
+	if vimMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
+		vimMachineCtx.VSphereMachine.Spec.ProviderID = providerID
 		log.Info("Updating providerID on VSphereMachine", "providerID", providerID)
 	}
 

@@ -1249,7 +1249,7 @@ func (in *VSphereMachineStatus) DeepCopyInto(out *VSphereMachineStatus) {
 	*out = *in
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]v1beta1.MachineAddress, len(*in))
+		*out = make([]corev1beta2.MachineAddress, len(*in))
 		copy(*out, *in)
 	}
 	if in.Network != nil {

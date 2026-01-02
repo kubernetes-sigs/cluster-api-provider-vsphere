@@ -24,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -45,9 +44,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "single IPv4 address, no preferred CIDR",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1beta1.MachineAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 					},
@@ -60,9 +59,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "single IPv6 address, no preferred CIDR",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1beta1.MachineAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -75,17 +74,17 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "multiple IPv4 addresses, only 1 internal, no preferred CIDR",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1beta1.MachineAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "1.1.1.1",
 						},
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "2.2.2.2",
 						},
 					},
@@ -105,13 +104,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1beta1.MachineAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "172.17.0.1",
 						},
 					},
@@ -131,13 +130,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1beta1.MachineAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -158,13 +157,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 				},
 				Status: infrav1.VSphereMachineStatus{
 
-					Addresses: []clusterv1beta1.MachineAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -184,7 +183,7 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1beta1.MachineAddress{},
+					Addresses: []clusterv1.MachineAddress{},
 				},
 			},
 			ipAddr:      "",
@@ -202,9 +201,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 				},
 				Status: infrav1.VSphereMachineStatus{
 
-					Addresses: []clusterv1beta1.MachineAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    clusterv1beta1.MachineExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "10.0.0.1",
 						},
 					},

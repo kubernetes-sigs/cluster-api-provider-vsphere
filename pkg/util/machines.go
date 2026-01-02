@@ -28,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -67,7 +66,7 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 	}
 
 	for _, machineAddr := range machine.Status.Addresses {
-		if machineAddr.Type != clusterv1beta1.MachineExternalIP {
+		if machineAddr.Type != clusterv1.MachineExternalIP {
 			continue
 		}
 		if cidr == nil {

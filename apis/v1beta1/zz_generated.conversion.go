@@ -1874,8 +1874,8 @@ func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in
 		out.Addresses = nil
 	}
 	out.Network = *(*[]v1beta2.NetworkStatus)(unsafe.Pointer(&in.Network))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.V1Beta2 = (*v1beta2.VSphereMachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
 	return nil
@@ -1895,10 +1895,9 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 		out.Addresses = nil
 	}
 	out.Network = *(*[]NetworkStatus)(unsafe.Pointer(&in.Network))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.V1Beta2 = (*VSphereMachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
 

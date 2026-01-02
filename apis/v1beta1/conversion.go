@@ -411,6 +411,12 @@ func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *in
 		return err
 	}
 
+	// Retrieve legacy failureReason and failureMessage from the deprecated field.
+	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
+		out.FailureReason = in.Deprecated.V1Beta1.FailureReason
+		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
+	}
+
 	// Move initialization to old field
 	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
@@ -422,6 +428,19 @@ func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VS
 		return err
 	}
 
+	// Move failureReason and failureMessage to the deprecated field.
+	if in.FailureReason == nil && in.FailureMessage == nil {
+		return nil
+	}
+
+	if out.Deprecated == nil {
+		out.Deprecated = &infrav1.VSphereMachineDeprecatedStatus{}
+	}
+	if out.Deprecated.V1Beta1 == nil {
+		out.Deprecated.V1Beta1 = &infrav1.VSphereMachineV1Beta1DeprecatedStatus{}
+	}
+	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
+	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
 	return nil
 }
 

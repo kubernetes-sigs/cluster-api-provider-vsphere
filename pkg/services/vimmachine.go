@@ -138,11 +138,20 @@ func (v *VimMachineService) SyncFailureReason(ctx context.Context, machineCtx ca
 	}
 	if vsphereVM != nil {
 		// Reconcile VSphereMachine's failures
-		vimMachineCtx.VSphereMachine.Status.FailureReason = vsphereVM.Status.FailureReason
-		vimMachineCtx.VSphereMachine.Status.FailureMessage = vsphereVM.Status.FailureMessage
+		if vsphereVM.Status.FailureReason != nil || vsphereVM.Status.FailureMessage != nil {
+			if vimMachineCtx.VSphereMachine.Status.Deprecated == nil {
+				vimMachineCtx.VSphereMachine.Status.Deprecated = &infrav1.VSphereMachineDeprecatedStatus{}
+			}
+			if vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1 == nil {
+				vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1 = &infrav1.VSphereMachineV1Beta1DeprecatedStatus{}
+			}
+			vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1.FailureReason = vsphereVM.Status.FailureReason
+			vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1.FailureMessage = vsphereVM.Status.FailureMessage
+		}
 	}
 
-	return vimMachineCtx.VSphereMachine.Status.FailureReason != nil || vimMachineCtx.VSphereMachine.Status.FailureMessage != nil, err
+	return vimMachineCtx.VSphereMachine.Status.Deprecated != nil && vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1 != nil &&
+		(vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1.FailureReason != nil || vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1.FailureMessage != nil), err
 }
 
 // ReconcileNormal reconciles create and update events for the VSphere VM.

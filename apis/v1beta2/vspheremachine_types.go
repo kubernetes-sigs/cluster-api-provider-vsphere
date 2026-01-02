@@ -177,9 +177,10 @@ type VSphereVMNamingStrategy struct {
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.
 type VSphereMachineStatus struct {
-	// Ready is true when the provider resource is ready.
+	// initialization provides observations of the VSphereMachine initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization VSphereMachineInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// Addresses contains the VSphere instance associated addresses.
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
@@ -234,6 +235,15 @@ type VSphereMachineStatus struct {
 	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *VSphereMachineV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// VSphereMachineInitializationStatus provides observations of the VSphereMachine initialization process.
+// +kubebuilder:validation:MinProperties=1
+type VSphereMachineInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // VSphereMachineV1Beta2Status groups all the fields that will be added or modified in VSphereMachineStatus with the V1Beta2 version.

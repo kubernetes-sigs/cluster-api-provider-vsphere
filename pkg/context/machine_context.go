@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -74,7 +75,7 @@ func (c *VIMMachineContext) GetVSphereMachine() VSphereMachine {
 
 // GetReady return when the VSphereMachine is ready.
 func (c *VIMMachineContext) GetReady() bool {
-	return c.VSphereMachine.Status.Ready
+	return ptr.Deref(c.VSphereMachine.Status.Initialization.Provisioned, false)
 }
 
 // GetObjectMeta returns the ObjectMeta for the VSphereMachine in the VIMMachineContext.

@@ -685,7 +685,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 		requeue, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(requeue).To(BeFalse())
-		g.Expect(machineCtx.VSphereMachine.Status.Ready).To(BeTrue())
+		g.Expect(ptr.Deref(machineCtx.VSphereMachine.Status.Initialization.Provisioned, false)).To(BeTrue())
 	})
 	t.Run("creates the VSphereVM when no resource found", func(t *testing.T) {
 		g := NewWithT(t)
@@ -698,7 +698,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 		requeue, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(requeue).To(BeTrue())
-		g.Expect(machineCtx.VSphereMachine.Status.Ready).To(BeFalse())
+		g.Expect(ptr.Deref(machineCtx.VSphereMachine.Status.Initialization.Provisioned, false)).To(BeFalse())
 	})
 	t.Run("returns error when the BIOS UUID is invalid", func(t *testing.T) {
 		g := NewWithT(t)

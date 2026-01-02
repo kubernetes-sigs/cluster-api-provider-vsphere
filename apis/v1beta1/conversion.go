@@ -141,6 +141,18 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &infrav1.VSphereMachine{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.VSphereMachineInitializationStatus{}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.VSphereMachineInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 	return nil
 }
 
@@ -154,7 +166,7 @@ func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -391,6 +403,25 @@ func Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZon
 	if in.Conditions != nil {
 		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
+	return nil
+}
+
+func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *infrav1.VSphereMachineStatus, out *VSphereMachineStatus, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Move initialization to old field
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+
+	return nil
+}
+
+func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VSphereMachineStatus, out *infrav1.VSphereMachineStatus, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in, out, s); err != nil {
+		return err
+	}
+
 	return nil
 }
 

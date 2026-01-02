@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -325,7 +326,7 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 		return affinityReconcileResult, err
 	}
 
-	clusterCtx.VSphereCluster.Status.Ready = true
+	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = ptr.To(true)
 
 	return reconcile.Result{}, nil
 }

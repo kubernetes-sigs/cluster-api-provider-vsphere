@@ -601,6 +601,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1beta1.MachineAddress)(nil), (*corev1beta2.MachineAddress)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachineAddress_To_v1beta2_MachineAddress(a.(*corev1beta1.MachineAddress), b.(*corev1beta2.MachineAddress), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*corev1beta1.ObjectMeta)(nil), (*corev1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*corev1beta1.ObjectMeta), b.(*corev1beta2.ObjectMeta), scope)
 	}); err != nil {
@@ -618,6 +623,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*VSphereDeploymentZoneStatus)(nil), (*v1beta2.VSphereDeploymentZoneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZoneStatus(a.(*VSphereDeploymentZoneStatus), b.(*v1beta2.VSphereDeploymentZoneStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1beta2.MachineAddress)(nil), (*corev1beta1.MachineAddress)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(a.(*corev1beta2.MachineAddress), b.(*corev1beta1.MachineAddress), scope)
 	}); err != nil {
 		return err
 	}
@@ -1772,7 +1782,17 @@ func Convert_v1beta2_VSphereMachine_To_v1beta1_VSphereMachine(in *v1beta2.VSpher
 
 func autoConvert_v1beta1_VSphereMachineList_To_v1beta2_VSphereMachineList(in *VSphereMachineList, out *v1beta2.VSphereMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.VSphereMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.VSphereMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_VSphereMachine_To_v1beta2_VSphereMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1783,7 +1803,17 @@ func Convert_v1beta1_VSphereMachineList_To_v1beta2_VSphereMachineList(in *VSpher
 
 func autoConvert_v1beta2_VSphereMachineList_To_v1beta1_VSphereMachineList(in *v1beta2.VSphereMachineList, out *VSphereMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]VSphereMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]VSphereMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_VSphereMachine_To_v1beta1_VSphereMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1828,7 +1858,17 @@ func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1beta
 
 func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VSphereMachineStatus, out *v1beta2.VSphereMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	if in.Addresses != nil {
+		in, out := &in.Addresses, &out.Addresses
+		*out = make([]corev1beta2.MachineAddress, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_MachineAddress_To_v1beta2_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Addresses = nil
+	}
 	out.Network = *(*[]v1beta2.NetworkStatus)(unsafe.Pointer(&in.Network))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
@@ -1844,7 +1884,17 @@ func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VS
 
 func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *v1beta2.VSphereMachineStatus, out *VSphereMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	if in.Addresses != nil {
+		in, out := &in.Addresses, &out.Addresses
+		*out = make([]corev1beta1.MachineAddress, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Addresses = nil
+	}
 	out.Network = *(*[]NetworkStatus)(unsafe.Pointer(&in.Network))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))

@@ -180,7 +180,7 @@ type VSphereMachineStatus struct {
 	Ready bool `json:"ready"`
 
 	// Addresses contains the VSphere instance associated addresses.
-	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// Network returns the network status for each of the machine's configured
 	// network interfaces.

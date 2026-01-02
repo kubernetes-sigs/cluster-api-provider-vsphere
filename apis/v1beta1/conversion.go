@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"maps"
+	"reflect"
 	"slices"
 	"sort"
 
@@ -26,6 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
@@ -37,6 +39,18 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &infrav1.VSphereCluster{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.VSphereClusterInitializationStatus{}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.VSphereClusterInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 	return nil
 }
 
@@ -46,7 +60,7 @@ func (dst *VSphereCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -190,6 +204,9 @@ func Convert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in *in
 			clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 	}
+
+	// Move initialization to old field
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {

@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // Conditions and condition Reasons for the VSphereCluster object.
@@ -25,7 +26,7 @@ import (
 const (
 	// FailureDomainsAvailableCondition documents the status of the failure domains
 	// associated to the VSphereCluster.
-	FailureDomainsAvailableCondition clusterv1beta1.ConditionType = "FailureDomainsAvailable"
+	FailureDomainsAvailableCondition clusterv1.ConditionType = "FailureDomainsAvailable"
 
 	// FailureDomainsSkippedReason (Severity=Info) documents that some of the failure domain statuses
 	// associated to the VSphereCluster are reported as not ready.
@@ -120,7 +121,7 @@ const (
 const (
 	// VCenterAvailableCondition documents the connectivity with vcenter
 	// for a given resource.
-	VCenterAvailableCondition clusterv1beta1.ConditionType = "VCenterAvailable"
+	VCenterAvailableCondition clusterv1.ConditionType = "VCenterAvailable"
 
 	// VCenterUnreachableReason (Severity=Error) documents a controller detecting
 	// issues with VCenter reachability.
@@ -129,7 +130,7 @@ const (
 
 const (
 	// ClusterModulesAvailableCondition documents the availability of cluster modules for the VSphereCluster object.
-	ClusterModulesAvailableCondition clusterv1beta1.ConditionType = "ClusterModulesAvailable"
+	ClusterModulesAvailableCondition clusterv1.ConditionType = "ClusterModulesAvailable"
 
 	// MissingVCenterVersionReason (Severity=Warning) documents a controller detecting
 	//  the scenario in which the vCenter version is not set in the status of the VSphereCluster object.

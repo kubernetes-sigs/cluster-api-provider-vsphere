@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
@@ -145,8 +145,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.BeElementOf(kcpUUID+"a", mdUUID+"a"))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[1].ModuleUUID).To(gomega.BeElementOf(kcpUUID+"a", mdUUID+"a"))
 				// Check that condition got set.
-				g.Expect(v1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.IsTrue(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
 			},
 		},
 		{
@@ -174,9 +174,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.BeElementOf(kcpUUID, mdUUID))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[1].ModuleUUID).To(gomega.BeElementOf(kcpUUID, mdUUID))
 				// Check that condition got set.
-				g.Expect(v1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
+				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
 			},
 		},
 		{
@@ -204,9 +204,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.BeElementOf(kcpUUID, mdUUID))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[1].ModuleUUID).To(gomega.BeElementOf(kcpUUID, mdUUID))
 				// Check that condition got set.
-				g.Expect(v1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
+				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
 			},
 		},
 		{
@@ -235,9 +235,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.BeElementOf(kcpUUID+"a", mdUUID))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[1].ModuleUUID).To(gomega.BeElementOf(kcpUUID+"a", mdUUID))
 				// Check that condition got set.
-				g.Expect(v1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
+				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
 			},
 		},
 		{
@@ -253,9 +253,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(mdUUID))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeFalse())
 
-				g.Expect(v1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("kcp"))
+				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("kcp"))
 			},
 		},
 		{
@@ -273,9 +273,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(kcpUUID))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeTrue())
 
-				g.Expect(v1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("md"))
+				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("md"))
 			},
 		},
 		{
@@ -289,9 +289,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 			haveError: false,
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.BeEmpty())
-				g.Expect(v1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
-				g.Expect(v1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("kcp"))
+				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("kcp"))
 			},
 		},
 		{

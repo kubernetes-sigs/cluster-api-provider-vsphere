@@ -135,6 +135,12 @@ linters:
           alias: v1beta1conditions
         - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2
           alias: v1beta2conditions
+        - pkg: sigs.k8s.io/cluster-api/util/conditions
+          alias: ""
+        - pkg: sigs.k8s.io/cluster-api/util/patch
+          alias: ""
+        - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
+          alias: deprecatedv1beta1conditions
         # CAPI addons
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
           alias: addonsv1
@@ -188,6 +194,12 @@ linters:
     # Specific exclude rules for deprecated fields that are still part of the codebase. These
     # should be removed as the referenced deprecated item is removed from the project.
     rules:
+      # Specific exclude rules for deprecated types that are still part of the codebase. These
+      # should be removed as the referenced deprecated types are removed from the project.
+      # v1Beta1 deprecated fields
+      - linters:
+          - staticcheck
+        text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
         # Excludes for controller-runtime deprecations that we should migrate away from sooner or later
       - linters:
           - staticcheck

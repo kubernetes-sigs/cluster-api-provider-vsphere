@@ -17,8 +17,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	"maps"
+	"slices"
+	"sort"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -186,6 +191,17 @@ func Convert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in *in
 		}
 	}
 
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = clusterv1beta1.FailureDomains{}
+		for _, fd := range in.FailureDomains {
+			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
+				ControlPlane: ptr.Deref(fd.ControlPlane, false),
+				Attributes:   fd.Attributes,
+			}
+		}
+	}
+
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
 		return nil
@@ -207,6 +223,21 @@ func Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VS
 	// Retrieve new conditions (v1beta2) from the v1beta2 field.
 	if in.V1Beta2 != nil {
 		out.Conditions = in.V1Beta2.Conditions
+	}
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = []clusterv1.FailureDomain{}
+		domainNames := slices.Collect(maps.Keys(in.FailureDomains))
+		sort.Strings(domainNames)
+		for _, name := range domainNames {
+			fd := in.FailureDomains[name]
+			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
+				Name:         name,
+				ControlPlane: ptr.To(fd.ControlPlane),
+				Attributes:   fd.Attributes,
+			})
+		}
 	}
 
 	// Move legacy conditions (v1beta1) to the deprecated field.

@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -501,8 +502,8 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
-		g.Expect(v1beta1conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
-		vCenterCondition := v1beta1conditions.Get(vm, infrav1.VCenterAvailableCondition)
+		g.Expect(v1beta1conditions.Has(vm, clusterv1beta1.ConditionType(infrav1.VCenterAvailableCondition))).To(BeTrue())
+		vCenterCondition := v1beta1conditions.Get(vm, clusterv1beta1.ConditionType(infrav1.VCenterAvailableCondition))
 		g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
 	},
 	)

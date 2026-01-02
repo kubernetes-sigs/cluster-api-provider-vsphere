@@ -26,11 +26,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -551,7 +552,7 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 		ok, err := vimMachineService.reconcileProviderID(ctx, machineCtx, vsphereVM)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(ok).To(BeTrue())
-		g.Expect(*machineCtx.VSphereMachine.Spec.ProviderID).To(Equal(util.ProviderIDPrefix + biosUUID))
+		g.Expect(machineCtx.VSphereMachine.Spec.ProviderID).To(Equal(util.ProviderIDPrefix + biosUUID))
 	})
 
 	t.Run("returns error when VSphereVM biosUUID is not valid", func(t *testing.T) {
@@ -615,8 +616,8 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 		ok, err := vimMachineService.reconcileNetwork(ctx, machineCtx, vsphereVM)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(ok).To(BeTrue())
-		g.Expect(machineCtx.VSphereMachine.Status.Addresses).To(ContainElement(clusterv1beta1.MachineAddress{
-			Type:    clusterv1beta1.MachineInternalDNS,
+		g.Expect(machineCtx.VSphereMachine.Status.Addresses).To(ContainElement(clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalDNS,
 			Address: vsphereVM.Name,
 		}))
 	})
@@ -684,7 +685,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 		requeue, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(requeue).To(BeFalse())
-		g.Expect(machineCtx.VSphereMachine.Status.Ready).To(BeTrue())
+		g.Expect(ptr.Deref(machineCtx.VSphereMachine.Status.Initialization.Provisioned, false)).To(BeTrue())
 	})
 	t.Run("creates the VSphereVM when no resource found", func(t *testing.T) {
 		g := NewWithT(t)
@@ -697,7 +698,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 		requeue, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(requeue).To(BeTrue())
-		g.Expect(machineCtx.VSphereMachine.Status.Ready).To(BeFalse())
+		g.Expect(ptr.Deref(machineCtx.VSphereMachine.Status.Initialization.Provisioned, false)).To(BeFalse())
 	})
 	t.Run("returns error when the BIOS UUID is invalid", func(t *testing.T) {
 		g := NewWithT(t)

@@ -340,26 +340,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*VSphereDeploymentZoneStatus)(nil), (*v1beta2.VSphereDeploymentZoneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZoneStatus(a.(*VSphereDeploymentZoneStatus), b.(*v1beta2.VSphereDeploymentZoneStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.VSphereDeploymentZoneStatus)(nil), (*VSphereDeploymentZoneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(a.(*v1beta2.VSphereDeploymentZoneStatus), b.(*VSphereDeploymentZoneStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*VSphereDeploymentZoneV1Beta2Status)(nil), (*v1beta2.VSphereDeploymentZoneV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_VSphereDeploymentZoneV1Beta2Status_To_v1beta2_VSphereDeploymentZoneV1Beta2Status(a.(*VSphereDeploymentZoneV1Beta2Status), b.(*v1beta2.VSphereDeploymentZoneV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.VSphereDeploymentZoneV1Beta2Status)(nil), (*VSphereDeploymentZoneV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_VSphereDeploymentZoneV1Beta2Status_To_v1beta1_VSphereDeploymentZoneV1Beta2Status(a.(*v1beta2.VSphereDeploymentZoneV1Beta2Status), b.(*VSphereDeploymentZoneV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*VSphereDisk)(nil), (*v1beta2.VSphereDisk)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereDisk_To_v1beta2_VSphereDisk(a.(*VSphereDisk), b.(*v1beta2.VSphereDisk), scope)
 	}); err != nil {
@@ -630,6 +610,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*VSphereDeploymentZoneStatus)(nil), (*v1beta2.VSphereDeploymentZoneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZoneStatus(a.(*VSphereDeploymentZoneStatus), b.(*v1beta2.VSphereDeploymentZoneStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.VSphereClusterIdentityStatus)(nil), (*VSphereClusterIdentityStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(a.(*v1beta2.VSphereClusterIdentityStatus), b.(*VSphereClusterIdentityStatus), scope)
 	}); err != nil {
@@ -637,6 +622,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.VSphereClusterStatus)(nil), (*VSphereClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(a.(*v1beta2.VSphereClusterStatus), b.(*VSphereClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.VSphereDeploymentZoneStatus)(nil), (*VSphereDeploymentZoneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(a.(*v1beta2.VSphereDeploymentZoneStatus), b.(*VSphereDeploymentZoneStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -1503,7 +1493,17 @@ func Convert_v1beta2_VSphereDeploymentZone_To_v1beta1_VSphereDeploymentZone(in *
 
 func autoConvert_v1beta1_VSphereDeploymentZoneList_To_v1beta2_VSphereDeploymentZoneList(in *VSphereDeploymentZoneList, out *v1beta2.VSphereDeploymentZoneList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.VSphereDeploymentZone)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.VSphereDeploymentZone, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_VSphereDeploymentZone_To_v1beta2_VSphereDeploymentZone(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1514,7 +1514,17 @@ func Convert_v1beta1_VSphereDeploymentZoneList_To_v1beta2_VSphereDeploymentZoneL
 
 func autoConvert_v1beta2_VSphereDeploymentZoneList_To_v1beta1_VSphereDeploymentZoneList(in *v1beta2.VSphereDeploymentZoneList, out *VSphereDeploymentZoneList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]VSphereDeploymentZone)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]VSphereDeploymentZone, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_VSphereDeploymentZone_To_v1beta1_VSphereDeploymentZone(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1555,46 +1565,36 @@ func Convert_v1beta2_VSphereDeploymentZoneSpec_To_v1beta1_VSphereDeploymentZoneS
 
 func autoConvert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, out *v1beta2.VSphereDeploymentZoneStatus, s conversion.Scope) error {
 	out.Ready = (*bool)(unsafe.Pointer(in.Ready))
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.VSphereDeploymentZoneV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZoneStatus is an autogenerated conversion function.
-func Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, out *v1beta2.VSphereDeploymentZoneStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZoneStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(in *v1beta2.VSphereDeploymentZoneStatus, out *VSphereDeploymentZoneStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.Ready = (*bool)(unsafe.Pointer(in.Ready))
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*VSphereDeploymentZoneV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus is an autogenerated conversion function.
-func Convert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(in *v1beta2.VSphereDeploymentZoneStatus, out *VSphereDeploymentZoneStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(in, out, s)
-}
-
-func autoConvert_v1beta1_VSphereDeploymentZoneV1Beta2Status_To_v1beta2_VSphereDeploymentZoneV1Beta2Status(in *VSphereDeploymentZoneV1Beta2Status, out *v1beta2.VSphereDeploymentZoneV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_VSphereDeploymentZoneV1Beta2Status_To_v1beta2_VSphereDeploymentZoneV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_VSphereDeploymentZoneV1Beta2Status_To_v1beta2_VSphereDeploymentZoneV1Beta2Status(in *VSphereDeploymentZoneV1Beta2Status, out *v1beta2.VSphereDeploymentZoneV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_VSphereDeploymentZoneV1Beta2Status_To_v1beta2_VSphereDeploymentZoneV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_VSphereDeploymentZoneV1Beta2Status_To_v1beta1_VSphereDeploymentZoneV1Beta2Status(in *v1beta2.VSphereDeploymentZoneV1Beta2Status, out *VSphereDeploymentZoneV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_VSphereDeploymentZoneV1Beta2Status_To_v1beta1_VSphereDeploymentZoneV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_VSphereDeploymentZoneV1Beta2Status_To_v1beta1_VSphereDeploymentZoneV1Beta2Status(in *v1beta2.VSphereDeploymentZoneV1Beta2Status, out *VSphereDeploymentZoneV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_VSphereDeploymentZoneV1Beta2Status_To_v1beta1_VSphereDeploymentZoneV1Beta2Status(in, out, s)
 }
 
 func autoConvert_v1beta1_VSphereDisk_To_v1beta2_VSphereDisk(in *VSphereDisk, out *v1beta2.VSphereDisk, s conversion.Scope) error {

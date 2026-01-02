@@ -163,7 +163,7 @@ const (
 
 const (
 	// PlacementConstraintMetCondition documents whether the placement constraint is configured correctly or not.
-	PlacementConstraintMetCondition clusterv1beta1.ConditionType = "PlacementConstraintMet"
+	PlacementConstraintMetCondition clusterv1.ConditionType = "PlacementConstraintMet"
 
 	// ResourcePoolNotFoundReason (Severity=Error) documents that the resource pool in the placement constraint
 	// associated to the VSphereDeploymentZone is misconfigured.
@@ -176,7 +176,7 @@ const (
 
 const (
 	// VSphereFailureDomainValidatedCondition documents whether the failure domain for the deployment zone is configured correctly or not.
-	VSphereFailureDomainValidatedCondition clusterv1beta1.ConditionType = "VSphereFailureDomainValidated"
+	VSphereFailureDomainValidatedCondition clusterv1.ConditionType = "VSphereFailureDomainValidated"
 
 	// RegionMisconfiguredReason (Severity=Error) documents that the region for the Failure Domain associated to
 	// the VSphereDeploymentZone is misconfigured.

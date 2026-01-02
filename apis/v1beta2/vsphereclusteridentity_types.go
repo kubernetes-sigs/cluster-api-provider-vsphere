@@ -18,7 +18,6 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -65,21 +64,6 @@ type VSphereClusterIdentitySpec struct {
 
 // VSphereClusterIdentityStatus contains the status of the VSphereClusterIdentity.
 type VSphereClusterIdentityStatus struct {
-	// +optional
-	Ready bool `json:"ready,omitempty"`
-
-	// Conditions defines current service state of the VSphereCluster.
-	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in VSphereClusterIdentity's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *VSphereClusterIdentityV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// VSphereClusterIdentityV1Beta2Status groups all the fields that will be added or modified in VSphereClusterIdentityStatus with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type VSphereClusterIdentityV1Beta2Status struct {
 	// conditions represents the observations of a VSphereClusterIdentity's current state.
 	// Known condition types are Available and Paused.
 	// +optional
@@ -87,6 +71,32 @@ type VSphereClusterIdentityV1Beta2Status struct {
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// +optional
+	Ready bool `json:"ready,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *VSphereClusterIdentityDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// VSphereClusterIdentityDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereClusterIdentityDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// +optional
+	V1Beta1 *VSphereClusterIdentityV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// VSphereClusterIdentityV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereClusterIdentityV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the VSphereCluster.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // AllowedNamespaces restricts the namespaces this VSphereClusterIdentity can be used from.
@@ -117,30 +127,33 @@ type VSphereIdentityReference struct {
 	Name string `json:"name"`
 }
 
-// GetConditions returns the conditions for the VSphereClusterIdentity.
-func (c *VSphereClusterIdentity) GetConditions() clusterv1beta1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (c *VSphereClusterIdentity) GetV1Beta1Conditions() clusterv1.Conditions {
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return c.Status.Deprecated.V1Beta1.Conditions
+}
+
+// SetV1Beta1Conditions sets the conditions on this object.
+func (c *VSphereClusterIdentity) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &VSphereClusterIdentityDeprecatedStatus{}
+	}
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &VSphereClusterIdentityV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
+}
+
+// GetConditions returns the set of conditions for this object.
+func (c *VSphereClusterIdentity) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
 }
 
-// SetConditions sets the conditions on the VSphereClusterIdentity.
-func (c *VSphereClusterIdentity) SetConditions(conditions clusterv1beta1.Conditions) {
+// SetConditions sets conditions for an API object.
+func (c *VSphereClusterIdentity) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
-}
-
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (c *VSphereClusterIdentity) GetV1Beta2Conditions() []metav1.Condition {
-	if c.Status.V1Beta2 == nil {
-		return nil
-	}
-	return c.Status.V1Beta2.Conditions
-}
-
-// SetV1Beta2Conditions sets conditions for an API object.
-func (c *VSphereClusterIdentity) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if c.Status.V1Beta2 == nil {
-		c.Status.V1Beta2 = &VSphereClusterIdentityV1Beta2Status{}
-	}
-	c.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

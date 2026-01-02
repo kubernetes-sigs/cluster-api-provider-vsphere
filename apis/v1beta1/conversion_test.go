@@ -52,7 +52,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereClusterIdentity{},
 		Spoke:       &VSphereClusterIdentity{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterIdentityFuzzFuncs},
 	}))
 	t.Run("for VSphereDeploymentZone", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -108,6 +108,33 @@ func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
 		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
+func VSphereClusterIdentityFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVSphereClusterIdentityStatus,
+		spokeVSphereClusterIdentityStatus,
+	}
+}
+
+func hubVSphereClusterIdentityStatus(in *infrav1.VSphereClusterIdentityStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereClusterIdentityV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereClusterIdentityStatus(in *VSphereClusterIdentityStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterIdentityV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}

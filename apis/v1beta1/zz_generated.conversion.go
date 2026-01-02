@@ -240,26 +240,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*VSphereClusterIdentityStatus)(nil), (*v1beta2.VSphereClusterIdentityStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_VSphereClusterIdentityStatus_To_v1beta2_VSphereClusterIdentityStatus(a.(*VSphereClusterIdentityStatus), b.(*v1beta2.VSphereClusterIdentityStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.VSphereClusterIdentityStatus)(nil), (*VSphereClusterIdentityStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(a.(*v1beta2.VSphereClusterIdentityStatus), b.(*VSphereClusterIdentityStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*VSphereClusterIdentityV1Beta2Status)(nil), (*v1beta2.VSphereClusterIdentityV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_VSphereClusterIdentityV1Beta2Status_To_v1beta2_VSphereClusterIdentityV1Beta2Status(a.(*VSphereClusterIdentityV1Beta2Status), b.(*v1beta2.VSphereClusterIdentityV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.VSphereClusterIdentityV1Beta2Status)(nil), (*VSphereClusterIdentityV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_VSphereClusterIdentityV1Beta2Status_To_v1beta1_VSphereClusterIdentityV1Beta2Status(a.(*v1beta2.VSphereClusterIdentityV1Beta2Status), b.(*VSphereClusterIdentityV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*VSphereClusterList)(nil), (*v1beta2.VSphereClusterList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereClusterList_To_v1beta2_VSphereClusterList(a.(*VSphereClusterList), b.(*v1beta2.VSphereClusterList), scope)
 	}); err != nil {
@@ -640,8 +620,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*VSphereClusterIdentityStatus)(nil), (*v1beta2.VSphereClusterIdentityStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_VSphereClusterIdentityStatus_To_v1beta2_VSphereClusterIdentityStatus(a.(*VSphereClusterIdentityStatus), b.(*v1beta2.VSphereClusterIdentityStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*VSphereClusterStatus)(nil), (*v1beta2.VSphereClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(a.(*VSphereClusterStatus), b.(*v1beta2.VSphereClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.VSphereClusterIdentityStatus)(nil), (*VSphereClusterIdentityStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(a.(*v1beta2.VSphereClusterIdentityStatus), b.(*VSphereClusterIdentityStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -1151,7 +1141,17 @@ func Convert_v1beta2_VSphereClusterIdentity_To_v1beta1_VSphereClusterIdentity(in
 
 func autoConvert_v1beta1_VSphereClusterIdentityList_To_v1beta2_VSphereClusterIdentityList(in *VSphereClusterIdentityList, out *v1beta2.VSphereClusterIdentityList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.VSphereClusterIdentity)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.VSphereClusterIdentity, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_VSphereClusterIdentity_To_v1beta2_VSphereClusterIdentity(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1162,7 +1162,17 @@ func Convert_v1beta1_VSphereClusterIdentityList_To_v1beta2_VSphereClusterIdentit
 
 func autoConvert_v1beta2_VSphereClusterIdentityList_To_v1beta1_VSphereClusterIdentityList(in *v1beta2.VSphereClusterIdentityList, out *VSphereClusterIdentityList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]VSphereClusterIdentity)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]VSphereClusterIdentity, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_VSphereClusterIdentity_To_v1beta1_VSphereClusterIdentity(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1195,46 +1205,36 @@ func Convert_v1beta2_VSphereClusterIdentitySpec_To_v1beta1_VSphereClusterIdentit
 
 func autoConvert_v1beta1_VSphereClusterIdentityStatus_To_v1beta2_VSphereClusterIdentityStatus(in *VSphereClusterIdentityStatus, out *v1beta2.VSphereClusterIdentityStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.VSphereClusterIdentityV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_VSphereClusterIdentityStatus_To_v1beta2_VSphereClusterIdentityStatus is an autogenerated conversion function.
-func Convert_v1beta1_VSphereClusterIdentityStatus_To_v1beta2_VSphereClusterIdentityStatus(in *VSphereClusterIdentityStatus, out *v1beta2.VSphereClusterIdentityStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_VSphereClusterIdentityStatus_To_v1beta2_VSphereClusterIdentityStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(in *v1beta2.VSphereClusterIdentityStatus, out *VSphereClusterIdentityStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.Ready = in.Ready
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*VSphereClusterIdentityV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus is an autogenerated conversion function.
-func Convert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(in *v1beta2.VSphereClusterIdentityStatus, out *VSphereClusterIdentityStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(in, out, s)
-}
-
-func autoConvert_v1beta1_VSphereClusterIdentityV1Beta2Status_To_v1beta2_VSphereClusterIdentityV1Beta2Status(in *VSphereClusterIdentityV1Beta2Status, out *v1beta2.VSphereClusterIdentityV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_VSphereClusterIdentityV1Beta2Status_To_v1beta2_VSphereClusterIdentityV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_VSphereClusterIdentityV1Beta2Status_To_v1beta2_VSphereClusterIdentityV1Beta2Status(in *VSphereClusterIdentityV1Beta2Status, out *v1beta2.VSphereClusterIdentityV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_VSphereClusterIdentityV1Beta2Status_To_v1beta2_VSphereClusterIdentityV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_VSphereClusterIdentityV1Beta2Status_To_v1beta1_VSphereClusterIdentityV1Beta2Status(in *v1beta2.VSphereClusterIdentityV1Beta2Status, out *VSphereClusterIdentityV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_VSphereClusterIdentityV1Beta2Status_To_v1beta1_VSphereClusterIdentityV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_VSphereClusterIdentityV1Beta2Status_To_v1beta1_VSphereClusterIdentityV1Beta2Status(in *v1beta2.VSphereClusterIdentityV1Beta2Status, out *VSphereClusterIdentityV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_VSphereClusterIdentityV1Beta2Status_To_v1beta1_VSphereClusterIdentityV1Beta2Status(in, out, s)
 }
 
 func autoConvert_v1beta1_VSphereClusterList_To_v1beta2_VSphereClusterList(in *VSphereClusterList, out *v1beta2.VSphereClusterList, s conversion.Scope) error {

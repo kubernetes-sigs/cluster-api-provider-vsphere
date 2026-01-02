@@ -21,7 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -302,7 +302,7 @@ type VSphereMachineTemplateResource struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the specification of the desired behavior of the machine.
 	Spec VSphereMachineSpec `json:"spec"`

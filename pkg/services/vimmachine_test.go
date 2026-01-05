@@ -152,7 +152,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}, {NetworkName: "bar", DHCP6: false}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}, {NetworkName: "bar", DHCP6: ptr.To(false)}}},
 				},
 			},
 		}
@@ -179,7 +179,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}, {NetworkName: "bar", DHCP6: false}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}, {NetworkName: "bar", DHCP6: ptr.To(false)}}},
 				},
 			},
 		}
@@ -192,10 +192,10 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		devices := vm.Spec.Network.Devices
 		g.Expect(devices).To(HaveLen(2))
 		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
-		g.Expect(devices[0].DHCP4).To(BeTrue())
+		g.Expect(*devices[0].DHCP4).To(BeTrue())
 
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
-		g.Expect(devices[1].DHCP6).To(BeTrue())
+		g.Expect(*devices[1].DHCP6).To(BeTrue())
 	})
 
 	t.Run("appends the n/w names present in the networks list of the topology with number of devices in VMSpec < number of networks in the placement constraint", func(t *testing.T) {
@@ -208,7 +208,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}}},
 				},
 			},
 		}
@@ -235,7 +235,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}}},
 				},
 			},
 		}
@@ -248,10 +248,10 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		devices := vm.Spec.Network.Devices
 		g.Expect(devices).To(HaveLen(2))
 		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
-		g.Expect(devices[0].DHCP4).To(BeTrue())
+		g.Expect(*devices[0].DHCP4).To(BeTrue())
 
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
-		g.Expect(devices[1].DHCP6).To(BeTrue())
+		g.Expect(*devices[1].DHCP6).To(BeTrue())
 	})
 
 	t.Run("only overrides the n/w names present in the networks list of the topology with number of devices in VMSpec > number of networks in the placement constraint", func(t *testing.T) {
@@ -264,7 +264,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}, {NetworkName: "bar", DHCP6: false}, {NetworkName: "baz", DHCP6: false}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}, {NetworkName: "bar", DHCP6: ptr.To(false)}, {NetworkName: "baz", DHCP6: ptr.To(false)}}},
 				},
 			},
 		}
@@ -293,7 +293,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}, {NetworkName: "bar", DHCP6: false}, {NetworkName: "baz", DHCP6: false}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}, {NetworkName: "bar", DHCP6: ptr.To(false)}, {NetworkName: "baz", DHCP6: ptr.To(false)}}},
 				},
 			},
 		}
@@ -306,13 +306,13 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		devices := vm.Spec.Network.Devices
 		g.Expect(devices).To(HaveLen(3))
 		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
-		g.Expect(devices[0].DHCP4).To(BeTrue())
+		g.Expect(*devices[0].DHCP4).To(BeTrue())
 
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
-		g.Expect(devices[1].DHCP6).To(BeTrue())
+		g.Expect(*devices[1].DHCP6).To(BeTrue())
 
 		g.Expect(devices[2].NetworkName).To(Equal("baz"))
-		g.Expect(devices[2].DHCP6).To(BeFalse())
+		g.Expect(*devices[2].DHCP6).To(BeFalse())
 	})
 }
 
@@ -330,11 +330,11 @@ func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
 			SearchDomains: []string{"vmware.ci"},
 			DHCP4Overrides: &infrav1.DHCPOverrides{
 				Hostname:    ptr.To("hal"),
-				RouteMetric: ptr.To(12345),
+				RouteMetric: ptr.To[int32](12345),
 			},
 			DHCP6Overrides: &infrav1.DHCPOverrides{
 				Hostname:    ptr.To("hal"),
-				RouteMetric: ptr.To(23456),
+				RouteMetric: ptr.To[int32](23456),
 			},
 			AddressesFromPools: []corev1.TypedLocalObjectReference{
 				{
@@ -347,17 +347,17 @@ func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
 
 		g.Expect(device).To(Equal(infrav1.NetworkDeviceSpec{
 			NetworkName:   "nw-name",
-			DHCP4:         true,
-			DHCP6:         false,
+			DHCP4:         ptr.To(true),
+			DHCP6:         ptr.To(false),
 			Nameservers:   []string{"1.1.1.1"},
 			SearchDomains: []string{"vmware.ci"},
 			DHCP4Overrides: &infrav1.DHCPOverrides{
 				Hostname:    ptr.To("hal"),
-				RouteMetric: ptr.To(12345),
+				RouteMetric: ptr.To[int32](12345),
 			},
 			DHCP6Overrides: &infrav1.DHCPOverrides{
 				Hostname:    ptr.To("hal"),
-				RouteMetric: ptr.To(23456),
+				RouteMetric: ptr.To[int32](23456),
 			},
 			AddressesFromPools: []corev1.TypedLocalObjectReference{
 				{
@@ -583,7 +583,7 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host:      hostAddr,
-				Ready:     conditionStatus == corev1.ConditionTrue,
+				Ready:     ptr.To(conditionStatus == corev1.ConditionTrue),
 				Addresses: addresses,
 				Network:   networkStatus,
 				Conditions: []clusterv1beta1.Condition{
@@ -597,10 +597,10 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 	}
 
 	networkStatus := []infrav1.NetworkStatus{
-		{Connected: true, IPAddrs: []string{hostAddr}, MACAddr: "aa:bb:cc:dd:ee:ff", NetworkName: "fake"},
+		{Connected: ptr.To(true), IPAddrs: []string{hostAddr}, MACAddr: "aa:bb:cc:dd:ee:ff", NetworkName: "fake"},
 	}
 	networkStatusWithoutMACAddr := []infrav1.NetworkStatus{
-		{Connected: true, IPAddrs: []string{hostAddr}, MACAddr: "", NetworkName: "fake"},
+		{Connected: ptr.To(true), IPAddrs: []string{hostAddr}, MACAddr: "", NetworkName: "fake"},
 	}
 	addresses := []string{"1.2.3.4"}
 
@@ -650,7 +650,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host:      hostAddr,
-				Ready:     conditionStatus == corev1.ConditionTrue,
+				Ready:     ptr.To(conditionStatus == corev1.ConditionTrue),
 				Addresses: addresses,
 				Network:   networkStatus,
 				Conditions: []clusterv1beta1.Condition{
@@ -668,7 +668,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 	}
 
 	networkStatus := []infrav1.NetworkStatus{
-		{Connected: true, IPAddrs: []string{hostAddr}, MACAddr: "aa:bb:cc:dd:ee:ff", NetworkName: "fake"},
+		{Connected: ptr.To(true), IPAddrs: []string{hostAddr}, MACAddr: "aa:bb:cc:dd:ee:ff", NetworkName: "fake"},
 	}
 	addresses := []string{"1.2.3.4"}
 	biosUUID := "42055285-ff20-2c28-965c-05558ea1b4c7"
@@ -806,8 +806,8 @@ func Test_VimMachineService_FetchVSphereMachine(t *testing.T) {
 					Devices: []infrav1.NetworkDeviceSpec{
 						{
 							NetworkName: "VM Network",
-							DHCP4:       true,
-							DHCP6:       true,
+							DHCP4:       ptr.To(true),
+							DHCP6:       ptr.To(true),
 						},
 					},
 				},
@@ -888,7 +888,7 @@ func Test_VimMachineService_SyncFailureReason(t *testing.T) {
 						Status: conditionStatus,
 					},
 				},
-				Ready: conditionStatus == corev1.ConditionTrue,
+				Ready: ptr.To(conditionStatus == corev1.ConditionTrue),
 			},
 		}
 	}
@@ -913,14 +913,14 @@ func Test_GenerateVSphereVMName(t *testing.T) {
 	tests := []struct {
 		name        string
 		machineName string
-		template    *string
+		template    string
 		want        []gomegatypes.GomegaMatcher
 		wantErr     bool
 	}{
 		{
 			name:        "default template",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v",
-			template:    nil,
+			template:    "",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v"),
 			},
@@ -928,7 +928,7 @@ func Test_GenerateVSphereVMName(t *testing.T) {
 		{
 			name:        "template which doesn't respect max length: trim to max length",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v", // 41 characters
-			template:    ptr.To[string]("{{ .machine.name }}-{{ .machine.name }}"),
+			template:    "{{ .machine.name }}-{{ .machine.name }}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v-quick-start-d34gt4-md"), // 63 characters
 			},
@@ -936,7 +936,7 @@ func Test_GenerateVSphereVMName(t *testing.T) {
 		{
 			name:        "template for 20 characters: keep machine name if name has 20 characters",
 			machineName: "quick-md-8nxwc-gfd5v", // 20 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-md-8nxwc-gfd5v"), // 20 characters
 			},
@@ -944,7 +944,7 @@ func Test_GenerateVSphereVMName(t *testing.T) {
 		{
 			name:        "template for 20 characters: trim to 20 characters if name has more than 20 characters",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v", // 41 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d3-gfd5v"), // 20 characters
 			},
@@ -952,7 +952,7 @@ func Test_GenerateVSphereVMName(t *testing.T) {
 		{
 			name:        "template for 20 characters: trim to 19 characters if name has more than 20 characters and last character of prefix is -",
 			machineName: "quick-start-d-34gt4-md-0-wqc85-8nxwc-gfd5v", // 42 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d-gfd5v"), // 19 characters
 			},
@@ -960,7 +960,7 @@ func Test_GenerateVSphereVMName(t *testing.T) {
 		{
 			name:        "template with a prefix and only 5 random character from the machine name",
 			machineName: "quick-start-d-34gt4-md-0-wqc85-8nxwc-gfd5v", // 42 characters
-			template:    ptr.To[string]("vm-{{ trunc -5 .machine.name }}"),
+			template:    "vm-{{ trunc -5 .machine.name }}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("vm-gfd5v"), // 8 characters
 			},

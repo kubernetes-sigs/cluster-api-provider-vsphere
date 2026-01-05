@@ -51,6 +51,7 @@ spec:
       network:
         devices:
         - dhcp4: true
+          dhcp6: false
           networkName: '${VSPHERE_NETWORK}'
       numCPUs: 2
       os: Linux
@@ -77,6 +78,7 @@ spec:
       network:
         devices:
         - dhcp4: true
+          dhcp6: false
           networkName: '${VSPHERE_NETWORK}'
       numCPUs: 2
       os: Linux

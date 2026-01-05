@@ -70,12 +70,9 @@ func (webhook *VSphereMachineTemplate) ValidateCreate(ctx context.Context, obj *
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "hardwareVersion"), spec.HardwareVersion, "should be a valid VM hardware version, example vmx-17"))
 		}
 	}
-	if spec.GuestSoftPowerOffTimeout != nil {
+	if spec.GuestSoftPowerOffTimeoutSeconds != 0 {
 		if spec.PowerOffMode != infrav1.VirtualMachinePowerOpModeTrySoft {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
-		}
-		if spec.GuestSoftPowerOffTimeout.Duration <= 0 {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeoutSeconds, "should not be set in templates unless the powerOffMode is trySoft"))
 		}
 	}
 	pciErrs := validatePCIDevices(spec.PciDevices)
@@ -116,14 +113,14 @@ func (webhook *VSphereMachineTemplate) ValidateDelete(_ context.Context, _ *infr
 func validateVSphereVMNamingTemplate(_ context.Context, vsphereMachineTemplate *infrav1.VSphereMachineTemplate) field.ErrorList {
 	var allErrs field.ErrorList
 	namingStrategy := vsphereMachineTemplate.Spec.Template.Spec.NamingStrategy
-	if namingStrategy != nil && namingStrategy.Template != nil {
+	if namingStrategy != nil && namingStrategy.Template != "" {
 		name, err := services.GenerateVSphereVMName("machine", namingStrategy)
 		templateFldPath := field.NewPath("spec", "template", "spec", "namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					templateFldPath,
-					*namingStrategy.Template,
+					namingStrategy.Template,
 					fmt.Sprintf("invalid VSphereVM name template: %v", err),
 				),
 			)
@@ -133,7 +130,7 @@ func validateVSphereVMNamingTemplate(_ context.Context, vsphereMachineTemplate *
 				allErrs = append(allErrs,
 					field.Invalid(
 						templateFldPath,
-						*namingStrategy.Template,
+						namingStrategy.Template,
 						fmt.Sprintf("invalid VSphereVM name template, generated name is not a valid Kubernetes object name: %v", err),
 					),
 				)

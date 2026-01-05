@@ -274,7 +274,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, 
 	}
 
 	for _, vsphereCluster := range clusterList.Items {
-		if deploymentZoneCtx.VSphereDeploymentZone.Spec.Server != vsphereCluster.Spec.Server || vsphereCluster.Spec.IdentityRef == nil {
+		if deploymentZoneCtx.VSphereDeploymentZone.Spec.Server != vsphereCluster.Spec.Server || !vsphereCluster.Spec.IdentityRef.IsDefined() {
 			continue
 		}
 

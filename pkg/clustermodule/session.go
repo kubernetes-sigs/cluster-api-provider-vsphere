@@ -46,7 +46,7 @@ func (s *service) newParams(clusterCtx capvcontext.ClusterContext) *session.Para
 }
 
 func (s *service) fetchSession(ctx context.Context, clusterCtx *capvcontext.ClusterContext, params *session.Params) (*session.Session, error) {
-	if clusterCtx.VSphereCluster.Spec.IdentityRef != nil {
+	if clusterCtx.VSphereCluster.Spec.IdentityRef.IsDefined() {
 		creds, err := identity.GetCredentials(ctx, s.Client, clusterCtx.VSphereCluster, s.ControllerManagerContext.Namespace)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get credentials from IdentityRef")

@@ -119,11 +119,14 @@ type VSphereMachineSpec struct {
 	// +kubebuilder:validation:MaxLength=512
 	ProviderID string `json:"providerID,omitempty"`
 
-	// FailureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
+	// failureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
 	// For this infrastructure provider, the name is equivalent to the name of the VSphereDeploymentZone.
-	FailureDomain *string `json:"failureDomain,omitempty"`
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	FailureDomain string `json:"failureDomain,omitempty"`
 
-	// PowerOffMode describes the desired behavior when powering off a VM.
+	// powerOffMode describes the desired behavior when powering off a VM.
 	//
 	// There are three, supported power off modes: hard, soft, and
 	// trySoft. The first mode, hard, is the equivalent of a physical
@@ -131,7 +134,7 @@ type VSphereMachineSpec struct {
 	// requires the VM's guest to have VM Tools installed and attempts to
 	// gracefully shut down the VM. Its variant, trySoft, first attempts
 	// a graceful shutdown, and if that fails or the VM is not in a powered off
-	// state after reaching the GuestSoftPowerOffTimeout, the VM is halted.
+	// state after reaching the GuestSoftPowerOffTimeoutSeconds, the VM is halted.
 	//
 	// If omitted, the mode defaults to hard.
 	//
@@ -139,7 +142,7 @@ type VSphereMachineSpec struct {
 	// +kubebuilder:default=hard
 	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
 
-	// GuestSoftPowerOffTimeout sets the wait timeout for shutdown in the VM guest.
+	// guestSoftPowerOffTimeoutSeconds sets the wait timeout for shutdown in the VM guest.
 	// The VM will be powered off forcibly after the timeout if the VM is still
 	// up and running when the PowerOffMode is set to trySoft.
 	//
@@ -148,16 +151,17 @@ type VSphereMachineSpec struct {
 	// If omitted, the timeout defaults to 5 minutes.
 	//
 	// +optional
-	GuestSoftPowerOffTimeout *metav1.Duration `json:"guestSoftPowerOffTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	GuestSoftPowerOffTimeoutSeconds int32 `json:"guestSoftPowerOffTimeoutSeconds,omitempty"`
 
-	// NamingStrategy allows configuring the naming strategy used when calculating the name of the VSphereVM.
+	// namingStrategy allows configuring the naming strategy used when calculating the name of the VSphereVM.
 	// +optional
 	NamingStrategy *VSphereVMNamingStrategy `json:"namingStrategy,omitempty"`
 }
 
 // VSphereVMNamingStrategy defines the naming strategy for the VSphereVMs.
 type VSphereVMNamingStrategy struct {
-	// Template defines the template to use for generating the name of the VSphereVM object.
+	// template defines the template to use for generating the name of the VSphereVM object.
 	// If not defined, it will fall back to `{{ .machine.name }}`.
 	// The templating has the following data available:
 	// * `.machine.name`: The name of the Machine object.
@@ -172,26 +176,33 @@ type VSphereVMNamingStrategy struct {
 	// * Names are automatically truncated at 63 characters. Please note that this can lead to name conflicts,
 	//   so we highly recommend to use a template which leads to a name shorter than 63 characters.
 	// +optional
-	Template *string `json:"template,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	Template string `json:"template,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.
+// +kubebuilder:validation:MinProperties=1
 type VSphereMachineStatus struct {
 	// initialization provides observations of the VSphereMachine initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
 	Initialization VSphereMachineInitializationStatus `json:"initialization,omitempty,omitzero"`
 
-	// Addresses contains the VSphere instance associated addresses.
+	// addresses contains the VSphere instance associated addresses.
 	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=128
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
-	// Network returns the network status for each of the machine's configured
+	// network returns the network status for each of the machine's configured
 	// network interfaces.
 	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=128
 	Network []NetworkStatus `json:"network,omitempty"`
 
-	// Conditions defines current service state of the VSphereMachine.
+	// conditions defines current service state of the VSphereMachine.
 	// +optional
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
@@ -239,7 +250,7 @@ type VSphereMachineDeprecatedStatus struct {
 // VSphereMachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereMachineV1Beta1DeprecatedStatus struct {
-	// FailureReason will be set in the event that there is a terminal problem
+	// failureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
 	//
@@ -261,7 +272,7 @@ type VSphereMachineV1Beta1DeprecatedStatus struct {
 	// +optional
 	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
 
-	// FailureMessage will be set in the event that there is a terminal problem
+	// failureMessage will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a more verbose string suitable
 	// for logging and human consumption.
 	//
@@ -281,7 +292,9 @@ type VSphereMachineV1Beta1DeprecatedStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=10240
+	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 }
 
 // +kubebuilder:object:root=true
@@ -296,11 +309,19 @@ type VSphereMachineV1Beta1DeprecatedStatus struct {
 
 // VSphereMachine is the Schema for the vspheremachines API.
 type VSphereMachine struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VSphereMachineSpec   `json:"spec,omitempty"`
-	Status VSphereMachineStatus `json:"status,omitempty"`
+	// spec is the desired state of VSphereMachine.
+	// +required
+	Spec VSphereMachineSpec `json:"spec,omitempty,omitzero"`
+
+	// status is the observed state of VSphereMachine.
+	// +optional
+	Status VSphereMachineStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetConditions returns the conditions for a VSphereMachine.

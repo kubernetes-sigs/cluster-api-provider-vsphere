@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -251,7 +252,7 @@ func Test_GetMachineMetadata(t *testing.T) {
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
+									DHCP4:       ptr.To(true),
 								},
 							},
 						},
@@ -287,7 +288,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
+									DHCP4:       ptr.To(true),
 									DeviceName:  "ens192",
 								},
 							},
@@ -324,7 +325,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP6:       true,
+									DHCP6:       ptr.To(true),
 								},
 							},
 						},
@@ -360,8 +361,8 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
-									DHCP6:       true,
+									DHCP4:       ptr.To(true),
+									DHCP6:       ptr.To(true),
 								},
 							},
 						},
@@ -397,10 +398,10 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
+									DHCP4:       ptr.To(true),
 									DHCP4Overrides: &infrav1.DHCPOverrides{
 										Hostname:     toStringPtr("hal"),
-										RouteMetric:  toIntPtr(12345),
+										RouteMetric:  ptr.To[int32](12345),
 										SendHostname: toBoolPtr(true),
 										UseDNS:       toBoolPtr(true),
 										UseDomains:   toStringPtr("true"),
@@ -409,10 +410,10 @@ network:
 										UseNTP:       toBoolPtr(true),
 										UseRoutes:    toStringPtr("route"),
 									},
-									DHCP6: true,
+									DHCP6: ptr.To(true),
 									DHCP6Overrides: &infrav1.DHCPOverrides{
 										Hostname:     toStringPtr("hal"),
-										RouteMetric:  toIntPtr(12345),
+										RouteMetric:  ptr.To[int32](12345),
 										SendHostname: toBoolPtr(true),
 										UseDNS:       toBoolPtr(true),
 										UseDomains:   toStringPtr("true"),
@@ -476,9 +477,9 @@ network:
 								{
 									NetworkName:    "network1",
 									MACAddr:        "00:00:00:00:00",
-									DHCP4:          true,
+									DHCP4:          ptr.To(true),
 									DHCP4Overrides: nil,
-									DHCP6:          true,
+									DHCP6:          ptr.To(true),
 									DHCP6Overrides: nil,
 								},
 							},
@@ -515,7 +516,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP6:       true,
+									DHCP6:       ptr.To(true),
 									IPAddrs:     []string{"192.168.4.21"},
 									Gateway4:    "192.168.4.1",
 								},
@@ -556,7 +557,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP6:       true,
+									DHCP6:       ptr.To(true),
 									IPAddrs:     []string{"192.168.4.21"},
 									Gateway4:    "192.168.4.1",
 								},
@@ -565,7 +566,7 @@ network:
 								{
 									To:     "192.168.5.1/24",
 									Via:    "192.168.4.254",
-									Metric: 3,
+									Metric: ptr.To[int32](3),
 								},
 							},
 						},
@@ -608,19 +609,19 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
+									DHCP4:       ptr.To(true),
 									Routes: []infrav1.NetworkRouteSpec{
 										{
 											To:     "192.168.5.1/24",
 											Via:    "192.168.4.254",
-											Metric: 3,
+											Metric: ptr.To[int32](3),
 										},
 									},
 								},
 								{
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
-									DHCP6:       true,
+									DHCP6:       ptr.To(true),
 									MTU:         mtu(100),
 								},
 							},
@@ -679,7 +680,7 @@ network:
 								{
 									NetworkName:   "network12",
 									MACAddr:       "00:00:00:00:01",
-									DHCP6:         true,
+									DHCP6:         ptr.To(true),
 									SearchDomains: []string{"vmware6.ci"},
 								},
 							},
@@ -735,12 +736,12 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
+									DHCP4:       ptr.To(true),
 								},
 								{
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
-									DHCP6:       true,
+									DHCP6:       ptr.To(true),
 								},
 							},
 						},
@@ -792,7 +793,7 @@ network:
 								{
 									NetworkName: "network2",
 									MACAddr:     "00:00:00:00:01",
-									DHCP4:       true,
+									DHCP4:       ptr.To(true),
 								},
 								{
 									NetworkName: "network3",
@@ -868,12 +869,12 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
+									DHCP4:       ptr.To(true),
 								},
 								{
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
-									DHCP6:       true,
+									DHCP6:       ptr.To(true),
 								},
 							},
 						},
@@ -1163,8 +1164,4 @@ func toStringPtr(s string) *string {
 
 func toBoolPtr(b bool) *bool {
 	return &b
-}
-
-func toIntPtr(i int) *int {
-	return &i
 }

@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -35,10 +33,10 @@ const (
 	// IPAddressClaim that is in use.
 	IPAddressClaimFinalizer = "vspherevm.infrastructure.cluster.x-k8s.io/ip-claim-protection"
 
-	// GuestSoftPowerOffDefaultTimeout is the default timeout to wait for
+	// GuestSoftPowerOffDefaultTimeoutSeconds is the default timeout to wait for
 	// shutdown finishes in the guest VM before powering off the VM forcibly
 	// Only effective when the powerOffMode is set to trySoft.
-	GuestSoftPowerOffDefaultTimeout = 5 * time.Minute
+	GuestSoftPowerOffDefaultTimeoutSeconds = 5 * 60
 )
 
 // VSphereVM's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -182,21 +180,23 @@ const (
 type VSphereVMSpec struct {
 	VirtualMachineCloneSpec `json:",inline"`
 
-	// BootstrapRef is a reference to a bootstrap provider-specific resource
+	// bootstrapRef is a reference to a bootstrap provider-specific resource
 	// that holds configuration details.
 	// This field is optional in case no bootstrap data is required to create
 	// a VM.
 	// +optional
 	BootstrapRef *corev1.ObjectReference `json:"bootstrapRef,omitempty"`
 
-	// BiosUUID is the VM's BIOS UUID that is assigned at runtime after
+	// biosUUID is the VM's BIOS UUID that is assigned at runtime after
 	// the VM has been created.
 	// This field is required at runtime for other controllers that read
 	// this CRD as unstructured data.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
 	BiosUUID string `json:"biosUUID,omitempty"`
 
-	// PowerOffMode describes the desired behavior when powering off a VM.
+	// powerOffMode describes the desired behavior when powering off a VM.
 	//
 	// There are three, supported power off modes: hard, soft, and
 	// trySoft. The first mode, hard, is the equivalent of a physical
@@ -204,7 +204,7 @@ type VSphereVMSpec struct {
 	// requires the VM's guest to have VM Tools installed and attempts to
 	// gracefully shut down the VM. Its variant, trySoft, first attempts
 	// a graceful shutdown, and if that fails or the VM is not in a powered off
-	// state after reaching the GuestSoftPowerOffTimeout, the VM is halted.
+	// state after reaching the GuestSoftPowerOffTimeoutSeconds, the VM is halted.
 	//
 	// If omitted, the mode defaults to hard.
 	//
@@ -212,7 +212,7 @@ type VSphereVMSpec struct {
 	// +kubebuilder:default=hard
 	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
 
-	// GuestSoftPowerOffTimeout sets the wait timeout for shutdown in the VM guest.
+	// guestSoftPowerOffTimeoutSeconds sets the wait timeout for shutdown in the VM guest.
 	// The VM will be powered off forcibly after the timeout if the VM is still
 	// up and running when the PowerOffMode is set to trySoft.
 	//
@@ -221,56 +221,70 @@ type VSphereVMSpec struct {
 	// If omitted, the timeout defaults to 5 minutes.
 	//
 	// +optional
-	GuestSoftPowerOffTimeout *metav1.Duration `json:"guestSoftPowerOffTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	GuestSoftPowerOffTimeoutSeconds int32 `json:"guestSoftPowerOffTimeoutSeconds,omitempty"`
 }
 
 // VSphereVMStatus defines the observed state of VSphereVM.
+// +kubebuilder:validation:MinProperties=1
 type VSphereVMStatus struct {
-	// Host describes the hostname or IP address of the infrastructure host
+	// host describes the hostname or IP address of the infrastructure host
 	// that the VSphereVM is residing on.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
 	Host string `json:"host,omitempty"`
 
-	// Ready is true when the provider resource is ready.
+	// ready is true when the provider resource is ready.
 	// This field is required at runtime for other controllers that read
 	// this CRD as unstructured data.
 	// +optional
-	Ready bool `json:"ready,omitempty"`
+	Ready *bool `json:"ready,omitempty"`
 
-	// Addresses is a list of the VM's IP addresses.
+	// addresses is a list of the VM's IP addresses.
 	// This field is required at runtime for other controllers that read
 	// this CRD as unstructured data.
 	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=128
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=39
 	Addresses []string `json:"addresses,omitempty"`
 
-	// CloneMode is the type of clone operation used to clone this VM. Since
+	// cloneMode is the type of clone operation used to clone this VM. Since
 	// LinkedMode is the default but fails gracefully if the source of the
 	// clone has no snapshots, this field may be used to determine the actual
 	// type of clone operation used to create this VM.
 	// +optional
 	CloneMode CloneMode `json:"cloneMode,omitempty"`
 
-	// Snapshot is the name of the snapshot from which the VM was cloned if
+	// snapshot is the name of the snapshot from which the VM was cloned if
 	// LinkedMode is enabled.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
 	Snapshot string `json:"snapshot,omitempty"`
 
-	// RetryAfter tracks the time we can retry queueing a task
+	// retryAfter tracks the time we can retry queueing a task
 	// +optional
 	RetryAfter metav1.Time `json:"retryAfter,omitempty"`
 
-	// TaskRef is a managed object reference to a Task related to the machine.
+	// taskRef is a managed object reference to a Task related to the machine.
 	// This value is set automatically at runtime and should not be set or
 	// modified by users.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
 	TaskRef string `json:"taskRef,omitempty"`
 
-	// Network returns the network status for each of the machine's configured
+	// network returns the network status for each of the machine's configured
 	// network interfaces.
 	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=128
 	Network []NetworkStatus `json:"network,omitempty"`
 
-	// FailureReason will be set in the event that there is a terminal problem
+	// failureReason will be set in the event that there is a terminal problem
 	// reconciling the vspherevm and will contain a succinct value suitable
 	// for vm interpretation.
 	//
@@ -285,7 +299,7 @@ type VSphereVMStatus struct {
 	// +optional
 	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
 
-	// FailureMessage will be set in the event that there is a terminal problem
+	// failureMessage will be set in the event that there is a terminal problem
 	// reconciling the vspherevm and will contain a more verbose string suitable
 	// for logging and human consumption.
 	//
@@ -298,23 +312,28 @@ type VSphereVMStatus struct {
 	// can be added as events to the vspherevm object and/or logged in the
 	// controller's output.
 	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=10240
+	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
-	// Conditions defines current service state of the VSphereVM.
+	// conditions defines current service state of the VSphereVM.
 	// +optional
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
-	// ModuleUUID is the unique identifier for the vCenter cluster module construct
+	// moduleUUID is the unique identifier for the vCenter cluster module construct
 	// which is used to configure anti-affinity. Objects with the same ModuleUUID
 	// will be anti-affined, meaning that the vCenter DRS will best effort schedule
 	// the VMs on separate hosts.
 	// +optional
+	// +kubebuilder:validation:MaxLength=2048
 	ModuleUUID *string `json:"moduleUUID,omitempty"`
 
-	// VMRef is the VM's Managed Object Reference on vSphere. It can be used by consumers
+	// vmRef is the VM's Managed Object Reference on vSphere. It can be used by consumers
 	// to programatically get this VM representation on vSphere in case of the need to retrieve informations.
 	// This field is set once the machine is created and should not be changed
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
 	VMRef string `json:"vmRef,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in VSphereVM's status with the V1Beta2 version.
@@ -342,11 +361,19 @@ type VSphereVMV1Beta2Status struct {
 
 // VSphereVM is the Schema for the vspherevms API.
 type VSphereVM struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VSphereVMSpec   `json:"spec,omitempty"`
-	Status VSphereVMStatus `json:"status,omitempty"`
+	// spec is the desired state of VSphereVM.
+	// +required
+	Spec VSphereVMSpec `json:"spec,omitempty,omitzero"`
+
+	// status is the observed state of VSphereVM.
+	// +optional
+	Status VSphereVMStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetConditions returns the conditions for a VSphereVM.

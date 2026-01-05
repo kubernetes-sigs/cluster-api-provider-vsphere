@@ -33,6 +33,39 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 )
 
+// VirtualMachine represents data about a vSphere virtual machine object.
+type VirtualMachine struct {
+	// Name is the VM's name.
+	Name string `json:"name"`
+
+	// BiosUUID is the VM's BIOS UUID.
+	BiosUUID string `json:"biosUUID"`
+
+	// State is the VM's state.
+	State VirtualMachineState `json:"state"`
+
+	// Network is the status of the VM's network devices.
+	Network []infrav1.NetworkStatus `json:"network"`
+
+	// VMRef is the VM's Managed Object Reference on vSphere.
+	VMRef string `json:"vmRef"`
+}
+
+// VirtualMachineState describes the state of a VM.
+type VirtualMachineState string
+
+const (
+	// VirtualMachineStateNotFound is the string representing a VM that
+	// cannot be located.
+	VirtualMachineStateNotFound VirtualMachineState = "notfound"
+
+	// VirtualMachineStatePending is the string representing a VM with an in-flight task.
+	VirtualMachineStatePending = "pending"
+
+	// VirtualMachineStateReady is the string representing a powered-on VM with reported IP addresses.
+	VirtualMachineStateReady = "ready"
+)
+
 // VSphereMachineService is used for vsphere VM lifecycle and syncing with VSphereMachine types.
 type VSphereMachineService interface {
 	GetMachinesInCluster(ctx context.Context, namespace, clusterName string) ([]client.Object, error)
@@ -48,10 +81,10 @@ type VSphereMachineService interface {
 // machines on vSphere.
 type VirtualMachineService interface {
 	// ReconcileVM reconciles a VM with the intended state.
-	ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMContext) (infrav1.VirtualMachine, error)
+	ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMContext) (VirtualMachine, error)
 
 	// DestroyVM powers off and removes a VM from the inventory.
-	DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, infrav1.VirtualMachine, error)
+	DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, VirtualMachine, error)
 }
 
 // ControlPlaneEndpointService is a service for reconciling load balanced control plane endpoints.

@@ -237,7 +237,7 @@ func newVSphereCluster() infrav1.VSphereCluster {
 		Spec: infrav1.VSphereClusterSpec{
 			Server:     env.VSphereServerVar,
 			Thumbprint: env.VSphereThumbprint,
-			IdentityRef: &infrav1.VSphereIdentityReference{
+			IdentityRef: infrav1.VSphereIdentityReference{
 				Name: env.ClusterNameVar,
 				Kind: infrav1.SecretKind,
 			},
@@ -361,8 +361,8 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 			Devices: []infrav1.NetworkDeviceSpec{
 				{
 					NetworkName: env.VSphereNetworkVar,
-					DHCP4:       true,
-					DHCP6:       false,
+					DHCP4:       ptr.To(true),
+					DHCP6:       ptr.To(false),
 				},
 			},
 		},
@@ -413,8 +413,8 @@ func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 			Devices: []infrav1.NetworkDeviceSpec{
 				{
 					NetworkName: env.VSphereNetworkVar,
-					DHCP4:       false,
-					DHCP6:       false,
+					DHCP4:       ptr.To(false),
+					DHCP6:       ptr.To(false),
 					AddressesFromPools: []corev1.TypedLocalObjectReference{
 						{
 							APIGroup: ptr.To(env.NodeIPAMPoolAPIGroup),

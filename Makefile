@@ -468,7 +468,7 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 
 ##@ lint and verify:
 
-GOLANGCI_LINT_API_EXTRA_ARGS ?= "--new-from-merge-base=main"
+GOLANGCI_LINT_API_EXTRA_ARGS ?=
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint the codebase

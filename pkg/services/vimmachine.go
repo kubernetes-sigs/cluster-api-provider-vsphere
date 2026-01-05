@@ -173,7 +173,7 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 	}
 
 	// Waits the VM's ready state.
-	if !vm.Status.Ready {
+	if !ptr.Deref(vm.Status.Ready, false) {
 		log.Info("Waiting for VSphereVM to become ready")
 		// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
 		// in order to provide evidences about machine provisioning while provisioning is actually happening.
@@ -402,7 +402,7 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachi
 			vm.Spec.BiosUUID = vsphereVM.Spec.BiosUUID
 		}
 		vm.Spec.PowerOffMode = vimMachineCtx.VSphereMachine.Spec.PowerOffMode
-		vm.Spec.GuestSoftPowerOffTimeout = vimMachineCtx.VSphereMachine.Spec.GuestSoftPowerOffTimeout
+		vm.Spec.GuestSoftPowerOffTimeoutSeconds = vimMachineCtx.VSphereMachine.Spec.GuestSoftPowerOffTimeoutSeconds
 		return nil
 	}
 
@@ -443,7 +443,7 @@ func generateVMObjectName(vimMachineCtx *capvcontext.VIMMachineContext, machineN
 // GenerateVSphereVMName generates the name of a VSphereVM based on the naming strategy.
 func GenerateVSphereVMName(machineName string, namingStrategy *infrav1.VSphereVMNamingStrategy) (string, error) {
 	// Per default the name of the VSphereVM should be equal to the Machine name (this is the same as "{{ .machine.name }}")
-	if namingStrategy == nil || namingStrategy.Template == nil {
+	if namingStrategy == nil || namingStrategy.Template == "" {
 		// Note: No need to trim to max length in this case as valid Machine names will also be valid VSphereVM names.
 		return machineName, nil
 	}
@@ -536,10 +536,10 @@ func mergeNetworkConfigurationInNetworkDeviceSpec(device *infrav1.NetworkDeviceS
 		device.NetworkName = nc.NetworkName
 	}
 	if nc.DHCP4 != nil {
-		device.DHCP4 = *nc.DHCP4
+		device.DHCP4 = nc.DHCP4
 	}
 	if nc.DHCP6 != nil {
-		device.DHCP6 = *nc.DHCP6
+		device.DHCP6 = nc.DHCP6
 	}
 	if len(nc.Nameservers) > 0 {
 		device.Nameservers = make([]string, len(nc.Nameservers))

@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
@@ -93,7 +94,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 		log := log
 		// It is safe to infer KubeadmControlPlane or MachineDeployment from .ControlPlane as modules
 		// are only implemented for these types.
-		if mod.ControlPlane {
+		if ptr.Deref(mod.ControlPlane, false) {
 			log = log.WithValues("KubeadmControlPlane", klog.KRef(clusterCtx.VSphereCluster.Namespace, mod.TargetObjectName), "moduleUUID", mod.ModuleUUID)
 		} else {
 			log = log.WithValues("MachineDeployment", klog.KRef(clusterCtx.VSphereCluster.Namespace, mod.TargetObjectName), "moduleUUID", mod.ModuleUUID)
@@ -101,7 +102,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 		ctx := ctrl.LoggerInto(ctx, log)
 
 		curr := mod.TargetObjectName
-		if mod.ControlPlane {
+		if ptr.Deref(mod.ControlPlane, false) {
 			curr = appendKCPKey(curr)
 		}
 		if obj, ok := objectMap[curr]; !ok {
@@ -118,7 +119,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 				log.Error(err, "Failed to check if cluster module for object exists")
 				// Append the module and remove it from objectMap to not create new ones instead.
 				clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
-					ControlPlane:     obj.IsControlPlane(),
+					ControlPlane:     ptr.To(obj.IsControlPlane()),
 					TargetObjectName: obj.GetName(),
 					ModuleUUID:       mod.ModuleUUID,
 				})
@@ -131,7 +132,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 			// needs to be created.
 			if exists {
 				clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
-					ControlPlane:     obj.IsControlPlane(),
+					ControlPlane:     ptr.To(obj.IsControlPlane()),
 					TargetObjectName: obj.GetName(),
 					ModuleUUID:       mod.ModuleUUID,
 				})
@@ -158,7 +159,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 			continue
 		}
 		clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
-			ControlPlane:     obj.IsControlPlane(),
+			ControlPlane:     ptr.To(obj.IsControlPlane()),
 			TargetObjectName: obj.GetName(),
 			ModuleUUID:       moduleUUID,
 		})

@@ -104,24 +104,24 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 		},
 		{
 			name:           "successful VSphereMachineTemplate creation with namingStrategy.Template not set",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: nil}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: ""}),
 		},
 		{
 			name:           "successful VSphereMachineTemplate creation with namingStrategy.template is set to the fallback value",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: ptr.To[string]("{{ .machine.name }}")}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "{{ .machine.name }}"}),
 		},
 		{
 			name:           "successful VSphereMachineTemplate creation with namingStrategy.template is set the Windows example",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}")}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"}),
 		},
 		{
 			name:           "failed VSphereMachineTemplate creation with namingStrategy.template is set to an invalid template",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: ptr.To[string]("{{ invalid")}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "{{ invalid"}),
 			wantErr:        true,
 		},
 		{
 			name:           "failed VSphereMachineTemplate creation with namingStrategy.template  is set to a valid template that renders an invalid name",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: ptr.To[string]("-{{ .machine.name }}")}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "-{{ .machine.name }}"}),
 			wantErr:        true,
 		},
 	}
@@ -192,7 +192,7 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 		{
 			name:              "naming strategy can not be updated",
 			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, nil),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: ptr.To[string]("{{ .machine.name }}")}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "{{ .machine.name }}"}),
 			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},

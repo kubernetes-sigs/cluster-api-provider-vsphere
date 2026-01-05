@@ -290,7 +290,7 @@ func patchGovmomiClusterTemplate(_ context.Context, vsphereCluster runtime.Objec
 	case *infrav1.VSphereClusterTemplate:
 		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Host = controlPlaneIPAddr
 		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Port = controlPlanePort
-		vsphereCluster.Spec.Template.Spec.IdentityRef = &infrav1.VSphereIdentityReference{
+		vsphereCluster.Spec.Template.Spec.IdentityRef = infrav1.VSphereIdentityReference{
 			Kind: infrav1.SecretKind,
 			Name: credsSecretName,
 		}

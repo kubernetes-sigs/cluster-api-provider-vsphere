@@ -45,7 +45,23 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	// Recover intent for bool values converted to *bool.
+	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.DisableClusterModule, ok, restored.Spec.DisableClusterModule, &dst.Spec.DisableClusterModule)
+
+	if len(src.Spec.ClusterModules) == len(dst.Spec.ClusterModules) {
+		for i, dstClusterModule := range dst.Spec.ClusterModules {
+			srcClusterModule := src.Spec.ClusterModules[i]
+			var restoredControlPlane *bool
+			if len(dst.Spec.ClusterModules) == len(restored.Spec.ClusterModules) {
+				restoredClusterModules := restored.Spec.ClusterModules[i]
+				restoredControlPlane = restoredClusterModules.ControlPlane
+			}
+
+			clusterv1.Convert_bool_To_Pointer_bool(srcClusterModule.ControlPlane, ok, restoredControlPlane, &dstClusterModule.ControlPlane)
+
+			dst.Spec.ClusterModules[i] = dstClusterModule
+		}
+	}
+
 	initialization := infrav1.VSphereClusterInitializationStatus{}
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
 	if !reflect.DeepEqual(initialization, infrav1.VSphereClusterInitializationStatus{}) {
@@ -69,6 +85,29 @@ func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &infrav1.VSphereClusterTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Template.Spec.DisableClusterModule, ok, restored.Spec.Template.Spec.DisableClusterModule, &dst.Spec.Template.Spec.DisableClusterModule)
+
+	if len(src.Spec.Template.Spec.ClusterModules) == len(dst.Spec.Template.Spec.ClusterModules) {
+		for i, dstClusterModule := range dst.Spec.Template.Spec.ClusterModules {
+			srcClusterModule := src.Spec.Template.Spec.ClusterModules[i]
+			var restoredControlPlane *bool
+			if len(dst.Spec.Template.Spec.ClusterModules) == len(restored.Spec.Template.Spec.ClusterModules) {
+				restoredClusterModules := restored.Spec.Template.Spec.ClusterModules[i]
+				restoredControlPlane = restoredClusterModules.ControlPlane
+			}
+
+			clusterv1.Convert_bool_To_Pointer_bool(srcClusterModule.ControlPlane, ok, restoredControlPlane, &dstClusterModule.ControlPlane)
+
+			dst.Spec.Template.Spec.ClusterModules[i] = dstClusterModule
+		}
+	}
+
 	return nil
 }
 
@@ -78,7 +117,7 @@ func (dst *VSphereClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *VSphereClusterIdentity) ConvertTo(dstRaw conversion.Hub) error {
@@ -87,6 +126,13 @@ func (src *VSphereClusterIdentity) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &infrav1.VSphereClusterIdentity{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Ready, &dst.Status.Ready)
 	return nil
 }
 
@@ -96,7 +142,7 @@ func (dst *VSphereClusterIdentity) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *VSphereDeploymentZone) ConvertTo(dstRaw conversion.Hub) error {
@@ -132,6 +178,9 @@ func (dst *VSphereFailureDomain) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	if dst.Spec.Topology.ComputeCluster != nil && *dst.Spec.Topology.ComputeCluster == "" {
+		dst.Spec.Topology.ComputeCluster = nil
+	}
 	return nil
 }
 
@@ -147,11 +196,68 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	// Recover intent for bool values converted to *bool.
+	if len(src.Spec.Network.Routes) == len(dst.Spec.Network.Routes) {
+		for i, dstRoute := range dst.Spec.Network.Routes {
+			srcRoute := src.Spec.Network.Routes[i]
+			var restoredMetric *int32
+			if len(dst.Spec.Network.Routes) == len(restored.Spec.Network.Routes) {
+				restoredMetric = restored.Spec.Network.Routes[i].Metric
+			}
+			clusterv1.Convert_int32_To_Pointer_int32(srcRoute.Metric, ok, restoredMetric, &dstRoute.Metric)
+			dst.Spec.Network.Routes[i] = dstRoute
+		}
+	}
+
+	if len(src.Spec.Network.Devices) == len(dst.Spec.Network.Devices) {
+		for i, dstDevice := range dst.Spec.Network.Devices {
+			srcDevice := src.Spec.Network.Devices[i]
+			var restoredDeviceDHCP4, restoredDeviceDHCP6, restoredSkipIPAllocation *bool
+			if len(dst.Spec.Network.Devices) == len(restored.Spec.Network.Devices) {
+				restoredDevice := restored.Spec.Network.Devices[i]
+				restoredDeviceDHCP4 = restoredDevice.DHCP4
+				restoredDeviceDHCP6 = restoredDevice.DHCP6
+				restoredSkipIPAllocation = restoredDevice.SkipIPAllocation
+
+				if len(srcDevice.Routes) == len(dstDevice.Routes) {
+					for i, dstRoute := range dstDevice.Routes {
+						srcRoute := srcDevice.Routes[i]
+						var restoredMetric *int32
+						if len(dstDevice.Routes) == len(restoredDevice.Routes) {
+							restoredMetric = restoredDevice.Routes[i].Metric
+						}
+						clusterv1.Convert_int32_To_Pointer_int32(srcRoute.Metric, ok, restoredMetric, &dstRoute.Metric)
+						dstDevice.Routes[i] = dstRoute
+					}
+				}
+			}
+
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.DHCP4, ok, restoredDeviceDHCP4, &dstDevice.DHCP4)
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.DHCP6, ok, restoredDeviceDHCP6, &dstDevice.DHCP6)
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.SkipIPAllocation, ok, restoredSkipIPAllocation, &dstDevice.SkipIPAllocation)
+
+			dst.Spec.Network.Devices[i] = dstDevice
+		}
+	}
+
 	initialization := infrav1.VSphereMachineInitializationStatus{}
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
 	if !reflect.DeepEqual(initialization, infrav1.VSphereMachineInitializationStatus{}) {
 		dst.Status.Initialization = initialization
+	}
+
+	if len(src.Status.Network) == len(dst.Status.Network) {
+		for i, dstNetwork := range dst.Status.Network {
+			srcNetwork := src.Status.Network[i]
+			var restoredConnected *bool
+			if len(dst.Status.Network) == len(restored.Status.Network) {
+				restoredNetwork := restored.Status.Network[i]
+				restoredConnected = restoredNetwork.Connected
+			}
+
+			clusterv1.Convert_bool_To_Pointer_bool(srcNetwork.Connected, ok, restoredConnected, &dstNetwork.Connected)
+
+			dst.Status.Network[i] = dstNetwork
+		}
 	}
 	return nil
 }
@@ -166,6 +272,14 @@ func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
+	if dst.Spec.FailureDomain != nil && *dst.Spec.FailureDomain == "" {
+		dst.Spec.FailureDomain = nil
+	}
+
+	if dst.Spec.NamingStrategy != nil && dst.Spec.NamingStrategy.Template != nil && *dst.Spec.NamingStrategy.Template == "" {
+		dst.Spec.NamingStrategy.Template = nil
+	}
+
 	return utilconversion.MarshalData(src, dst)
 }
 
@@ -173,6 +287,55 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.VSphereMachineTemplate)
 	if err := Convert_v1beta1_VSphereMachineTemplate_To_v1beta2_VSphereMachineTemplate(src, dst, nil); err != nil {
 		return err
+	}
+
+	restored := &infrav1.VSphereMachineTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if len(src.Spec.Template.Spec.Network.Routes) == len(dst.Spec.Template.Spec.Network.Routes) {
+		for i, dstRoute := range dst.Spec.Template.Spec.Network.Routes {
+			srcRoute := src.Spec.Template.Spec.Network.Routes[i]
+			var restoredMetric *int32
+			if len(dst.Spec.Template.Spec.Network.Routes) == len(restored.Spec.Template.Spec.Network.Routes) {
+				restoredMetric = restored.Spec.Template.Spec.Network.Routes[i].Metric
+			}
+			clusterv1.Convert_int32_To_Pointer_int32(srcRoute.Metric, ok, restoredMetric, &dstRoute.Metric)
+			dst.Spec.Template.Spec.Network.Routes[i] = dstRoute
+		}
+	}
+
+	if len(src.Spec.Template.Spec.Network.Devices) == len(dst.Spec.Template.Spec.Network.Devices) {
+		for i, dstDevice := range dst.Spec.Template.Spec.Network.Devices {
+			srcDevice := src.Spec.Template.Spec.Network.Devices[i]
+			var restoredDeviceDHCP4, restoredDeviceDHCP6, restoredSkipIPAllocation *bool
+			if len(dst.Spec.Template.Spec.Network.Devices) == len(restored.Spec.Template.Spec.Network.Devices) {
+				restoredDevice := restored.Spec.Template.Spec.Network.Devices[i]
+				restoredDeviceDHCP4 = restoredDevice.DHCP4
+				restoredDeviceDHCP6 = restoredDevice.DHCP6
+				restoredSkipIPAllocation = restoredDevice.SkipIPAllocation
+
+				if len(srcDevice.Routes) == len(dstDevice.Routes) {
+					for i, dstRoute := range dstDevice.Routes {
+						srcRoute := srcDevice.Routes[i]
+						var restoredMetric *int32
+						if len(dstDevice.Routes) == len(restoredDevice.Routes) {
+							restoredMetric = restoredDevice.Routes[i].Metric
+						}
+						clusterv1.Convert_int32_To_Pointer_int32(srcRoute.Metric, ok, restoredMetric, &dstRoute.Metric)
+						dstDevice.Routes[i] = dstRoute
+					}
+				}
+			}
+
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.DHCP4, ok, restoredDeviceDHCP4, &dstDevice.DHCP4)
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.DHCP6, ok, restoredDeviceDHCP6, &dstDevice.DHCP6)
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.SkipIPAllocation, ok, restoredSkipIPAllocation, &dstDevice.SkipIPAllocation)
+
+			dst.Spec.Template.Spec.Network.Devices[i] = dstDevice
+		}
 	}
 
 	return nil
@@ -188,7 +351,15 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
-	return nil
+	if dst.Spec.Template.Spec.FailureDomain != nil && *dst.Spec.Template.Spec.FailureDomain == "" {
+		dst.Spec.Template.Spec.FailureDomain = nil
+	}
+
+	if dst.Spec.Template.Spec.NamingStrategy != nil && dst.Spec.Template.Spec.NamingStrategy.Template != nil && *dst.Spec.Template.Spec.NamingStrategy.Template == "" {
+		dst.Spec.Template.Spec.NamingStrategy.Template = nil
+	}
+
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
@@ -197,6 +368,70 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &infrav1.VSphereVM{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if len(src.Spec.Network.Routes) == len(dst.Spec.Network.Routes) {
+		for i, dstRoute := range dst.Spec.Network.Routes {
+			srcRoute := src.Spec.Network.Routes[i]
+			var restoredMetric *int32
+			if len(dst.Spec.Network.Routes) == len(restored.Spec.Network.Routes) {
+				restoredMetric = restored.Spec.Network.Routes[i].Metric
+			}
+			clusterv1.Convert_int32_To_Pointer_int32(srcRoute.Metric, ok, restoredMetric, &dstRoute.Metric)
+			dst.Spec.Network.Routes[i] = dstRoute
+		}
+	}
+
+	if len(src.Spec.Network.Devices) == len(dst.Spec.Network.Devices) {
+		for i, dstDevice := range dst.Spec.Network.Devices {
+			srcDevice := src.Spec.Network.Devices[i]
+			var restoredDeviceDHCP4, restoredDeviceDHCP6, restoredSkipIPAllocation *bool
+			if len(dst.Spec.Network.Devices) == len(restored.Spec.Network.Devices) {
+				restoredDevice := restored.Spec.Network.Devices[i]
+				restoredDeviceDHCP4 = restoredDevice.DHCP4
+				restoredDeviceDHCP6 = restoredDevice.DHCP6
+				restoredSkipIPAllocation = restoredDevice.SkipIPAllocation
+
+				if len(srcDevice.Routes) == len(dstDevice.Routes) {
+					for i, dstRoute := range dstDevice.Routes {
+						srcRoute := srcDevice.Routes[i]
+						var restoredMetric *int32
+						if len(dstDevice.Routes) == len(restoredDevice.Routes) {
+							restoredMetric = restoredDevice.Routes[i].Metric
+						}
+						clusterv1.Convert_int32_To_Pointer_int32(srcRoute.Metric, ok, restoredMetric, &dstRoute.Metric)
+						dstDevice.Routes[i] = dstRoute
+					}
+				}
+			}
+
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.DHCP4, ok, restoredDeviceDHCP4, &dstDevice.DHCP4)
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.DHCP6, ok, restoredDeviceDHCP6, &dstDevice.DHCP6)
+			clusterv1.Convert_bool_To_Pointer_bool(srcDevice.SkipIPAllocation, ok, restoredSkipIPAllocation, &dstDevice.SkipIPAllocation)
+
+			dst.Spec.Network.Devices[i] = dstDevice
+		}
+	}
+
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Ready, &dst.Status.Ready)
+	if len(src.Status.Network) == len(dst.Status.Network) {
+		for i, dstNetwork := range dst.Status.Network {
+			srcNetwork := src.Status.Network[i]
+			var restoredConnected *bool
+			if len(dst.Status.Network) == len(restored.Status.Network) {
+				restoredNetwork := restored.Status.Network[i]
+				restoredConnected = restoredNetwork.Connected
+			}
+
+			clusterv1.Convert_bool_To_Pointer_bool(srcNetwork.Connected, ok, restoredConnected, &dstNetwork.Connected)
+
+			dst.Status.Network[i] = dstNetwork
+		}
+	}
 	return nil
 }
 
@@ -206,6 +441,31 @@ func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	return utilconversion.MarshalData(src, dst)
+}
+
+func Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *infrav1.VSphereClusterSpec, out *VSphereClusterSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.IdentityRef, infrav1.VSphereIdentityReference{}) {
+		out.IdentityRef = &VSphereIdentityReference{}
+		if err := autoConvert_v1beta2_VSphereIdentityReference_To_v1beta1_VSphereIdentityReference(&in.IdentityRef, out.IdentityRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in *VSphereClusterSpec, out *infrav1.VSphereClusterSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in, out, s); err != nil {
+		return err
+	}
+	if in.IdentityRef != nil {
+		if err := autoConvert_v1beta1_VSphereIdentityReference_To_v1beta2_VSphereIdentityReference(in.IdentityRef, &out.IdentityRef, s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -406,6 +666,51 @@ func Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZon
 	return nil
 }
 
+func Convert_v1beta2_Topology_To_v1beta1_Topology(in *infrav1.Topology, out *Topology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_Topology_To_v1beta1_Topology(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.Hosts, infrav1.FailureDomainHosts{}) {
+		out.Hosts = &FailureDomainHosts{}
+		if err := autoConvert_v1beta2_FailureDomainHosts_To_v1beta1_FailureDomainHosts(&in.Hosts, out.Hosts, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_Topology_To_v1beta2_Topology(in *Topology, out *infrav1.Topology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_Topology_To_v1beta2_Topology(in, out, s); err != nil {
+		return err
+	}
+	if in.Hosts != nil {
+		if err := autoConvert_v1beta1_FailureDomainHosts_To_v1beta2_FailureDomainHosts(in.Hosts, &out.Hosts, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *infrav1.VSphereMachineSpec, out *VSphereMachineSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.GuestSoftPowerOffTimeoutSeconds != 0 {
+		out.GuestSoftPowerOffTimeout = clusterv1.ConvertFromSeconds(&in.GuestSoftPowerOffTimeoutSeconds)
+	}
+	return nil
+}
+
+func Convert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSphereMachineSpec, out *infrav1.VSphereMachineSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in, out, s); err != nil {
+		return err
+	}
+
+	out.GuestSoftPowerOffTimeoutSeconds = ptr.Deref(clusterv1.ConvertToSeconds(in.GuestSoftPowerOffTimeout), 0)
+	return nil
+}
+
 func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *infrav1.VSphereMachineStatus, out *VSphereMachineStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in, out, s); err != nil {
 		return err
@@ -441,6 +746,26 @@ func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VS
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
+	return nil
+}
+
+func Convert_v1beta2_VSphereVMSpec_To_v1beta1_VSphereVMSpec(in *infrav1.VSphereVMSpec, out *VSphereVMSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereVMSpec_To_v1beta1_VSphereVMSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.GuestSoftPowerOffTimeoutSeconds != 0 {
+		out.GuestSoftPowerOffTimeout = clusterv1.ConvertFromSeconds(&in.GuestSoftPowerOffTimeoutSeconds)
+	}
+	return nil
+}
+
+func Convert_v1beta1_VSphereVMSpec_To_v1beta2_VSphereVMSpec(in *VSphereVMSpec, out *infrav1.VSphereVMSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_VSphereVMSpec_To_v1beta2_VSphereVMSpec(in, out, s); err != nil {
+		return err
+	}
+
+	out.GuestSoftPowerOffTimeoutSeconds = ptr.Deref(clusterv1.ConvertToSeconds(in.GuestSoftPowerOffTimeout), 0)
 	return nil
 }
 

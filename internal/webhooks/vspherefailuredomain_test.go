@@ -62,8 +62,8 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 			failureDomain: infrav1.VSphereFailureDomain{Spec: infrav1.VSphereFailureDomainSpec{
 				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
-					ComputeCluster: nil,
-					Hosts: &infrav1.FailureDomainHosts{
+					ComputeCluster: "",
+					Hosts: infrav1.FailureDomainHosts{
 						VMGroupName:   "vm-foo",
 						HostGroupName: "host-foo",
 					},
@@ -85,8 +85,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
-					ComputeCluster: ptr.To("blah2"),
-					Hosts:          nil,
+					ComputeCluster: "blah2",
 				},
 			}},
 		},
@@ -105,8 +104,8 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
-					ComputeCluster: nil,
-					Hosts: &infrav1.FailureDomainHosts{
+					ComputeCluster: "",
+					Hosts: infrav1.FailureDomainHosts{
 						VMGroupName:   "vm-foo",
 						HostGroupName: "host-foo",
 					},
@@ -128,7 +127,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
-					ComputeCluster: nil,
+					ComputeCluster: "",
 				},
 			}},
 		},
@@ -147,7 +146,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 				},
 				Topology: infrav1.Topology{
 					Datacenter:            "/blah",
-					ComputeCluster:        ptr.To("blah2"),
+					ComputeCluster:        "blah2",
 					Networks:              []string{"nw-1"},
 					NetworkConfigurations: []infrav1.NetworkConfiguration{{NetworkName: "nw-1"}},
 				},

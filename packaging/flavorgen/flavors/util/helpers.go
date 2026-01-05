@@ -57,12 +57,6 @@ var (
 			FieldPath: []string{"spec", "selector", "matchLabels"},
 		},
 		{
-			Kind:      "VSphereClusterTemplate",
-			Name:      "${CLUSTER_CLASS_NAME}",
-			Value:     map[string]interface{}{},
-			FieldPath: []string{"spec", "template", "spec"},
-		},
-		{
 			Kind:      "VSphereCluster",
 			Name:      "${CLUSTER_NAME}",
 			Value:     env.ControlPlaneEndpointPortVar,

@@ -65,10 +65,10 @@ func (vms *VMService) isSoftPowerOffTimeoutExceeded(vm *infrav1.VSphereVM) bool 
 	timeSoftPowerOff := v1beta1conditions.GetLastTransitionTime(vm, infrav1.GuestSoftPowerOffSucceededCondition)
 	diff := now.Sub(timeSoftPowerOff.Time)
 	var timeout time.Duration
-	if vm.Spec.GuestSoftPowerOffTimeout != nil {
-		timeout = vm.Spec.GuestSoftPowerOffTimeout.Duration
+	if vm.Spec.GuestSoftPowerOffTimeoutSeconds != 0 {
+		timeout = time.Duration(vm.Spec.GuestSoftPowerOffTimeoutSeconds) * time.Second
 	} else {
-		timeout = infrav1.GuestSoftPowerOffDefaultTimeout
+		timeout = infrav1.GuestSoftPowerOffDefaultTimeoutSeconds
 	}
 	return timeout.Seconds() > 0 && diff.Seconds() >= timeout.Seconds()
 }

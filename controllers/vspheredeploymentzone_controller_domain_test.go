@@ -78,7 +78,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 			},
 			Topology: infrav1.Topology{
 				Datacenter:     "DC0",
-				ComputeCluster: ptr.To("DC0_C0"),
+				ComputeCluster: "DC0_C0",
 			},
 		},
 	}
@@ -100,7 +100,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 	g.Expect(simr.Run("tags.attached.ls k8s-region-west-2", stdout)).To(Succeed())
 	g.Expect(stdout).Should(gbytes.Say("ClusterComputeResource"))
 
-	vsphereFailureDomain.Spec.Topology.ComputeCluster = ptr.To("DC0_C1")
+	vsphereFailureDomain.Spec.Topology.ComputeCluster = "DC0_C1"
 	// Since association is verified, the method errors since the tag is not associated to the object.
 	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
 
@@ -155,8 +155,8 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroup
 			},
 			Topology: infrav1.Topology{
 				Datacenter:     "DC0",
-				ComputeCluster: ptr.To("DC0_C0"),
-				Hosts: &infrav1.FailureDomainHosts{
+				ComputeCluster: "DC0_C0",
+				Hosts: infrav1.FailureDomainHosts{
 					HostGroupName: "test_grp_1",
 				},
 			},
@@ -225,7 +225,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: nil,
+					ComputeCluster: "",
 				},
 			},
 		},
@@ -240,7 +240,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: ptr.To("DC0_C0"),
+					ComputeCluster: "DC0_C0",
 				},
 			},
 		},
@@ -255,8 +255,8 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: ptr.To("DC0_C0"),
-					Hosts: &infrav1.FailureDomainHosts{
+					ComputeCluster: "DC0_C0",
+					Hosts: infrav1.FailureDomainHosts{
 						HostGroupName: "group-one",
 						VMGroupName:   "vm-group-one",
 					},

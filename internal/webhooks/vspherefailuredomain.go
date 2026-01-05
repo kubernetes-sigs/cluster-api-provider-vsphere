@@ -49,7 +49,7 @@ func (webhook *VSphereFailureDomain) SetupWebhookWithManager(mgr ctrl.Manager) e
 func (webhook *VSphereFailureDomain) ValidateCreate(_ context.Context, obj *infrav1.VSphereFailureDomain) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
-	if obj.Spec.Topology.ComputeCluster == nil && obj.Spec.Topology.Hosts != nil {
+	if obj.Spec.Topology.ComputeCluster == "" && obj.Spec.Topology.Hosts.IsDefined() {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "ComputeCluster"), "cannot be empty if Hosts is not empty"))
 	}
 
@@ -57,15 +57,15 @@ func (webhook *VSphereFailureDomain) ValidateCreate(_ context.Context, obj *infr
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Region", "Type"), fmt.Sprintf("region's Failure Domain type cannot be %s", obj.Spec.Region.Type)))
 	}
 
-	if obj.Spec.Zone.Type == infrav1.HostGroupFailureDomain && obj.Spec.Topology.Hosts == nil {
+	if obj.Spec.Zone.Type == infrav1.HostGroupFailureDomain && !obj.Spec.Topology.Hosts.IsDefined() {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "Hosts"), fmt.Sprintf("cannot be nil if zone's Failure Domain type is %s", obj.Spec.Zone.Type)))
 	}
 
-	if obj.Spec.Region.Type == infrav1.ComputeClusterFailureDomain && obj.Spec.Topology.ComputeCluster == nil {
+	if obj.Spec.Region.Type == infrav1.ComputeClusterFailureDomain && obj.Spec.Topology.ComputeCluster == "" {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "ComputeCluster"), fmt.Sprintf("cannot be nil if region's Failure Domain type is %s", obj.Spec.Region.Type)))
 	}
 
-	if obj.Spec.Zone.Type == infrav1.ComputeClusterFailureDomain && obj.Spec.Topology.ComputeCluster == nil {
+	if obj.Spec.Zone.Type == infrav1.ComputeClusterFailureDomain && obj.Spec.Topology.ComputeCluster == "" {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "ComputeCluster"), fmt.Sprintf("cannot be nil if zone's Failure Domain type is %s", obj.Spec.Zone.Type)))
 	}
 

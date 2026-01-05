@@ -492,7 +492,7 @@ func GenerateVirtualMachineName(machineName string, namingStrategy *vmwarev1.Vir
 		return machineName, nil
 	}
 
-	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, namingStrategy.Template)
+	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, *namingStrategy.Template)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate name for VirtualMachine")
 	}

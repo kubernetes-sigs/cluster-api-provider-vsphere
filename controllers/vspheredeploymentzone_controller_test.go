@@ -93,7 +93,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: ptr.To("DC0_C0"),
+					ComputeCluster: "DC0_C0",
 					Datastore:      "LocalDS_0",
 					Networks:       []string{"VM Network"},
 				},
@@ -174,7 +174,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 					},
 					Topology: infrav1.Topology{
 						Datacenter:     "DC0",
-						ComputeCluster: ptr.To("DC0_C0"),
+						ComputeCluster: "DC0_C0",
 						Datastore:      "LocalDS_0",
 						Networks:       []string{"VM Network"},
 					},
@@ -343,7 +343,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: ptr.To("DC0_C0"),
+					ComputeCluster: "DC0_C0",
 					Datastore:      "LocalDS_0",
 					Networks:       []string{"VM Network"},
 				},
@@ -415,7 +415,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: ptr.To("DC0_C0"),
+					ComputeCluster: "DC0_C0",
 					Datastore:      "LocalDS_0",
 					Networks:       []string{"VM Network"},
 				},
@@ -618,7 +618,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 				Spec: infrav1.VSphereFailureDomainSpec{
 					Topology: infrav1.Topology{
 						Datacenter:     "DC0",
-						ComputeCluster: ptr.To("DC0_C0"),
+						ComputeCluster: "DC0_C0",
 					},
 				},
 			})).To(Succeed())
@@ -662,7 +662,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		Spec: infrav1.VSphereFailureDomainSpec{
 			Topology: infrav1.Topology{
 				Datacenter:     "DC0",
-				ComputeCluster: ptr.To("DC0_C0"),
+				ComputeCluster: "DC0_C0",
 			},
 		},
 	}

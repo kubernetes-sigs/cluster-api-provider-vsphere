@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -43,6 +44,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/cluster"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/clustermodules"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
@@ -60,11 +62,11 @@ type VMService struct{}
 //  2. Updating the VM with the bootstrap data, such as the cloud-init meta and user data, before...
 //  3. Powering on the VM, and finally...
 //  4. Returning the real-time state of the VM to the caller
-func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMContext) (vm infrav1.VirtualMachine, _ error) {
+func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMContext) (vm services.VirtualMachine, _ error) {
 	// Initialize the result.
-	vm = infrav1.VirtualMachine{
+	vm = services.VirtualMachine{
 		Name:  vmCtx.VSphereVM.Name,
-		State: infrav1.VirtualMachineStatePending,
+		State: services.VirtualMachineStatePending,
 	}
 
 	// If there is an in-flight task associated with this VM then do not
@@ -97,7 +99,7 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 				Reason:  infrav1.VSphereVMVirtualMachineNotFoundByBIOSUUIDV1Beta2Reason,
 				Message: err.Error(),
 			})
-			vm.State = infrav1.VirtualMachineStateNotFound
+			vm.State = services.VirtualMachineStateNotFound
 			return vm, err
 		}
 
@@ -207,17 +209,17 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 		return vm, err
 	}
 
-	vm.State = infrav1.VirtualMachineStateReady
+	vm.State = services.VirtualMachineStateReady
 	return vm, nil
 }
 
 // DestroyVM powers off and destroys a virtual machine.
-func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, infrav1.VirtualMachine, error) {
+func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, services.VirtualMachine, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	vm := infrav1.VirtualMachine{
+	vm := services.VirtualMachine{
 		Name:  vmCtx.VSphereVM.Name,
-		State: infrav1.VirtualMachineStatePending,
+		State: services.VirtualMachineStatePending,
 	}
 
 	// If there is an in-flight task associated with this VM then do not
@@ -238,7 +240,7 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 		// If the VM's MoRef could not be found then the VM no longer exists. This
 		// is the desired state.
 		if isNotFound(err) || isFolderNotFound(err) {
-			vm.State = infrav1.VirtualMachineStateNotFound
+			vm.State = services.VirtualMachineStateNotFound
 			return reconcile.Result{}, vm, nil
 		}
 		return reconcile.Result{}, vm, err
@@ -678,7 +680,7 @@ func (vms *VMService) getNetworkStatus(ctx context.Context, virtualMachineCtx *v
 	apiNetStatus := []infrav1.NetworkStatus{}
 	for _, s := range allNetStatus {
 		apiNetStatus = append(apiNetStatus, infrav1.NetworkStatus{
-			Connected:   s.Connected,
+			Connected:   ptr.To(s.Connected),
 			IPAddrs:     sanitizeIPAddrs(ctx, s.IPAddrs),
 			MACAddr:     s.MACAddr,
 			NetworkName: s.NetworkName,
@@ -723,13 +725,13 @@ func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.V
 func (vms *VMService) reconcileVMGroupInfo(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if virtualMachineCtx.VSphereFailureDomain == nil || virtualMachineCtx.VSphereFailureDomain.Spec.Topology.Hosts == nil {
+	if virtualMachineCtx.VSphereFailureDomain == nil || !virtualMachineCtx.VSphereFailureDomain.Spec.Topology.Hosts.IsDefined() {
 		log.V(5).Info("Hosts topology in failure domain not defined. skipping reconcile VM group")
 		return true, nil
 	}
 
 	topology := virtualMachineCtx.VSphereFailureDomain.Spec.Topology
-	vmGroup, err := cluster.FindVMGroup(ctx, virtualMachineCtx, *topology.ComputeCluster, topology.Hosts.VMGroupName)
+	vmGroup, err := cluster.FindVMGroup(ctx, virtualMachineCtx, topology.ComputeCluster, topology.Hosts.VMGroupName)
 	if err != nil {
 		return false, errors.Wrapf(err, "unable to find VM Group %s", topology.Hosts.VMGroupName)
 	}

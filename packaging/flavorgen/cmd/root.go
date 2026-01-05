@@ -178,6 +178,12 @@ func generateSingle(flavor string) (string, error) {
 		}
 	case flavors.ClusterClassSupervisor:
 		objs = flavors.ClusterClassTemplateSupervisor()
+		replacements = append(replacements, util.Replacement{
+			Kind:      "VSphereClusterTemplate",
+			Name:      "${CLUSTER_CLASS_NAME}",
+			Value:     map[string]interface{}{},
+			FieldPath: []string{"spec", "template", "spec"},
+		})
 	case flavors.ClusterTopologySupervisor:
 		var err error
 		objs, err = flavors.ClusterTopologyTemplateSupervisor()

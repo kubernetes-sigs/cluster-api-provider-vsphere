@@ -116,50 +116,48 @@ const (
 
 // VSphereDeploymentZoneSpec defines the desired state of VSphereDeploymentZone.
 type VSphereDeploymentZoneSpec struct {
-
-	// Server is the address of the vSphere endpoint.
+	// server is the address of the vSphere endpoint.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
 	Server string `json:"server,omitempty"`
 
-	// FailureDomain is the name of the VSphereFailureDomain used for this VSphereDeploymentZone
+	// failureDomain is the name of the VSphereFailureDomain used for this VSphereDeploymentZone
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	FailureDomain string `json:"failureDomain,omitempty"`
 
-	// ControlPlane determines if this failure domain is suitable for use by control plane machines.
+	// controlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional
 	ControlPlane *bool `json:"controlPlane,omitempty"`
 
-	// PlacementConstraint encapsulates the placement constraints
+	// placementConstraint encapsulates the placement constraints
 	// used within this deployment zone.
-	PlacementConstraint PlacementConstraint `json:"placementConstraint"`
+	// +optional
+	PlacementConstraint PlacementConstraint `json:"placementConstraint,omitempty,omitzero"`
 }
 
 // PlacementConstraint is the context information for VM placements within a failure domain.
+// +kubebuilder:validation:MinProperties=1
 type PlacementConstraint struct {
-	// ResourcePool is the name or inventory path of the resource pool in which
+	// resourcePool is the name or inventory path of the resource pool in which
 	// the virtual machine is created/located.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
 	ResourcePool string `json:"resourcePool,omitempty"`
 
-	// Folder is the name or inventory path of the folder in which the
+	// folder is the name or inventory path of the folder in which the
 	// virtual machine is created/located.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
 	Folder string `json:"folder,omitempty"`
 }
 
-// Network holds information about the network.
-type Network struct {
-	// Name is the network name for this machine's VM.
-	Name string `json:"name,omitempty"`
-
-	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
-	// +optional
-	DHCP4 *bool `json:"dhcp4,omitempty"`
-
-	// DHCP6 indicates whether or not to use DHCP for IPv6
-	// +optional
-	DHCP6 *bool `json:"dhcp6,omitempty"`
-}
-
 // VSphereDeploymentZoneStatus contains the status for a VSphereDeploymentZone.
+// +kubebuilder:validation:MinProperties=1
 type VSphereDeploymentZoneStatus struct {
 	// conditions represents the observations of a VSphereDeploymentZone's current state.
 	// Known condition types are Ready, VCenterAvailable, PlacementConstraintReady, FailureDomainValidated and Paused.
@@ -169,7 +167,7 @@ type VSphereDeploymentZoneStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// Ready is true when the VSphereDeploymentZone resource is ready.
+	// ready is true when the VSphereDeploymentZone resource is ready.
 	// If set to false, it will be ignored by VSphereClusters
 	// +optional
 	Ready *bool `json:"ready,omitempty"`
@@ -205,11 +203,19 @@ type VSphereDeploymentZoneV1Beta1DeprecatedStatus struct {
 
 // VSphereDeploymentZone is the Schema for the vspheredeploymentzones API.
 type VSphereDeploymentZone struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VSphereDeploymentZoneSpec   `json:"spec,omitempty"`
-	Status VSphereDeploymentZoneStatus `json:"status,omitempty"`
+	// spec is the desired state of VSphereDeploymentZone.
+	// +required
+	Spec VSphereDeploymentZoneSpec `json:"spec,omitempty,omitzero"`
+
+	// status is the observed state of VSphereDeploymentZone.
+	// +optional
+	Status VSphereDeploymentZoneStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

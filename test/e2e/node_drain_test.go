@@ -39,7 +39,6 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -181,10 +180,9 @@ func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy fra
 		Name:      "vsphere-csi-controller",
 	}
 	Expect(workloadClusterProxy.GetClient().Get(ctx, csiControllerKey, csiController)).To(Succeed())
-	patchHelper, err := patch.NewHelper(csiController, workloadClusterProxy.GetClient())
-	Expect(err).ToNot(HaveOccurred())
+	csiControllerOrig := csiController.DeepCopy()
 	csiController.Spec.Replicas = ptr.To[int32](0)
-	Expect(patchHelper.Patch(ctx, csiController)).To(Succeed())
+	Expect(workloadClusterProxy.GetClient().Patch(ctx, csiController, client.MergeFrom(csiControllerOrig))).To(Succeed())
 	waitForDeploymentScaledDown(ctx, workloadClusterProxy.GetClient(), csiControllerKey, e2eConfig.GetIntervals("node-drain", "wait-deployment-available")...)
 }
 
@@ -198,10 +196,9 @@ func unblockNodeVolumeDetachment(ctx context.Context, bootstrapClusterProxy fram
 		Name:      "vsphere-csi-controller",
 	}
 	Expect(workloadClusterProxy.GetClient().Get(ctx, csiControllerKey, csiController)).To(Succeed())
-	patchHelper, err := patch.NewHelper(csiController, workloadClusterProxy.GetClient())
-	Expect(err).ToNot(HaveOccurred())
+	csiControllerOrig := csiController.DeepCopy()
 	csiController.Spec.Replicas = ptr.To[int32](1)
-	Expect(patchHelper.Patch(ctx, csiController)).To(Succeed())
+	Expect(workloadClusterProxy.GetClient().Patch(ctx, csiController, client.MergeFrom(csiControllerOrig))).To(Succeed())
 
 	framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
 		Getter:     workloadClusterProxy.GetClient(),

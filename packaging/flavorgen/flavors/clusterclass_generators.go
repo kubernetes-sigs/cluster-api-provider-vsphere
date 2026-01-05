@@ -26,7 +26,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/yaml"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/clusterclass"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
@@ -46,8 +46,8 @@ func newClusterClass() clusterv1.ClusterClass {
 		Spec: clusterv1.ClusterClassSpec{
 			Infrastructure: clusterv1.InfrastructureClass{
 				TemplateRef: clusterv1.ClusterClassTemplateReference{
-					APIVersion: infrav1beta1.GroupVersion.String(),
-					Kind:       util.TypeToKind(&infrav1beta1.VSphereClusterTemplate{}),
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       util.TypeToKind(&infrav1.VSphereClusterTemplate{}),
 					Name:       env.ClusterClassNameVar,
 				},
 			},
@@ -93,8 +93,8 @@ func getControlPlaneClass() clusterv1.ControlPlaneClass {
 		},
 		MachineInfrastructure: clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 			TemplateRef: clusterv1.ClusterClassTemplateReference{
-				APIVersion: infrav1beta1.GroupVersion.String(),
-				Kind:       util.TypeToKind(&infrav1beta1.VSphereMachineTemplate{}),
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       util.TypeToKind(&infrav1.VSphereMachineTemplate{}),
 				Name:       fmt.Sprintf("%s-template", env.ClusterClassNameVar),
 			},
 		},
@@ -132,9 +132,9 @@ func getWorkersClass() clusterv1.WorkersClass {
 				},
 				Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
 					TemplateRef: clusterv1.ClusterClassTemplateReference{
-						Kind:       util.TypeToKind(&infrav1beta1.VSphereMachineTemplate{}),
+						Kind:       util.TypeToKind(&infrav1.VSphereMachineTemplate{}),
 						Name:       fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar),
-						APIVersion: infrav1beta1.GroupVersion.String(),
+						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
 			},
@@ -219,19 +219,19 @@ func getEnableSSHIntoNodesTemplate() string {
 	return string(templateStr)
 }
 
-func newVSphereClusterTemplate() infrav1beta1.VSphereClusterTemplate {
-	return infrav1beta1.VSphereClusterTemplate{
+func newVSphereClusterTemplate() infrav1.VSphereClusterTemplate {
+	return infrav1.VSphereClusterTemplate{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1beta1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&infrav1beta1.VSphereClusterTemplate{}),
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&infrav1.VSphereClusterTemplate{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      env.ClusterClassNameVar,
 			Namespace: env.NamespaceVar,
 		},
-		Spec: infrav1beta1.VSphereClusterTemplateSpec{
-			Template: infrav1beta1.VSphereClusterTemplateResource{
-				Spec: infrav1beta1.VSphereClusterSpec{},
+		Spec: infrav1.VSphereClusterTemplateSpec{
+			Template: infrav1.VSphereClusterTemplateResource{
+				Spec: infrav1.VSphereClusterSpec{},
 			},
 		},
 	}

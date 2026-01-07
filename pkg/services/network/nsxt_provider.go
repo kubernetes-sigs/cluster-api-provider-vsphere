@@ -19,11 +19,13 @@ package network
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -134,44 +136,57 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clus
 		},
 	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, np.client, vnet, func() error {
-		// add or update vnet spec only if FW is enabled and if WhitelistSourceRanges is empty
-		if np.disableFW != "true" && vnet.Spec.WhitelistSourceRanges == "" {
-			supportFW, err := util.NCPSupportFW(ctx, np.client)
+	vnetExists := true
+	if err := np.client.Get(ctx, client.ObjectKeyFromObject(vnet), vnet); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		vnetExists = false
+	}
+	originalVNET := vnet.DeepCopy()
+
+	// add or update vnet spec only if FW is enabled and if WhitelistSourceRanges is empty
+	if np.disableFW != "true" && vnet.Spec.WhitelistSourceRanges == "" {
+		supportFW, err := util.NCPSupportFW(ctx, np.client)
+		if err != nil {
+			return errors.Wrap(err, "failed to check if NCP supports firewall rules enforcement on GC T1 router")
+		}
+		// specify whitelist_source_ranges if needed and if NCP supports it
+		if supportFW {
+			// Find system namespace snat ip
+			systemNSSnatIP, err := util.GetNamespaceNetSnatIP(ctx, np.client, SystemNamespace)
 			if err != nil {
-				return errors.Wrap(err, "failed to check if NCP supports firewall rules enforcement on GC T1 router")
+				return errors.Wrap(err, "failed to get Snat IP for kube-system")
 			}
-			// specify whitelist_source_ranges if needed and if NCP supports it
-			if supportFW {
-				// Find system namespace snat ip
-				systemNSSnatIP, err := util.GetNamespaceNetSnatIP(ctx, np.client, SystemNamespace)
-				if err != nil {
-					return errors.Wrap(err, "failed to get Snat IP for kube-system")
-				}
-				log.V(4).Info("Got system namespace snat ip", "ip", systemNSSnatIP)
+			log.V(4).Info("Got system namespace snat ip", "ip", systemNSSnatIP)
 
-				// WhitelistSourceRanges accept cidrs only
-				vnet.Spec.WhitelistSourceRanges = systemNSSnatIP + "/32"
-			}
+			// WhitelistSourceRanges accept cidrs only
+			vnet.Spec.WhitelistSourceRanges = systemNSSnatIP + "/32"
 		}
+	}
 
-		if err := ctrlutil.SetOwnerReference(
-			clusterCtx.VSphereCluster,
-			vnet,
-			np.client.Scheme(),
-		); err != nil {
-			return errors.Wrapf(
-				err,
-				"error setting %s/%s as owner of %s/%s",
-				clusterCtx.VSphereCluster.Namespace,
-				clusterCtx.VSphereCluster.Name,
-				vnet.Namespace,
-				vnet.Name,
-			)
-		}
+	if err := ctrlutil.SetOwnerReference(
+		clusterCtx.VSphereCluster,
+		vnet,
+		np.client.Scheme(),
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error setting %s/%s as owner of %s/%s",
+			clusterCtx.VSphereCluster.Namespace,
+			clusterCtx.VSphereCluster.Name,
+			vnet.Namespace,
+			vnet.Name,
+		)
+	}
 
-		return nil
-	})
+	var err error
+	if !vnetExists {
+		err = np.client.Create(ctx, vnet)
+	} else if !reflect.DeepEqual(originalVNET, vnet) {
+		patch := client.MergeFrom(originalVNET)
+		err = np.client.Patch(ctx, vnet, patch)
+	}
 	if err != nil {
 		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
 		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
@@ -223,7 +238,7 @@ func (np *nsxtNetworkProvider) ConfigureVirtualMachine(_ context.Context, cluste
 	}
 	vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmoprv1.VirtualMachineNetworkInterfaceSpec{
 		Name: fmt.Sprintf("eth%d", len(vm.Spec.Network.Interfaces)),
-		Network: vmoprv1common.PartialObjectRef{
+		Network: &vmoprv1common.PartialObjectRef{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       NetworkGVKNSXT.Kind,
 				APIVersion: NetworkGVKNSXT.GroupVersion().String(),

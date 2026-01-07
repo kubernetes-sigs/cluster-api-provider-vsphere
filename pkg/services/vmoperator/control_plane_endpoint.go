@@ -19,6 +19,7 @@ package vmoperator
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
@@ -188,10 +189,6 @@ func newVirtualMachineService(ctx *vmware.ClusterContext) *vmoprv1.VirtualMachin
 			Name:      controlPlaneVMServiceName(ctx.Cluster.Name),
 			Namespace: ctx.Cluster.Namespace,
 		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: vmoprv1.SchemeGroupVersion.String(),
-			Kind:       "VirtualMachineService",
-		},
 	}
 }
 
@@ -201,47 +198,60 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 
 	vmService := newVirtualMachineService(clusterCtx)
 
-	_, err := ctrlutil.CreateOrPatch(ctx, s.Client, vmService, func() error {
-		if vmService.Annotations == nil {
-			vmService.Annotations = annotations
-		} else {
-			for k, v := range annotations {
-				vmService.Annotations[k] = v
-			}
+	vmServiceExists := true
+	if err := s.Client.Get(ctx, client.ObjectKeyFromObject(vmService), vmService); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return nil, err
 		}
+		vmServiceExists = false
+	}
+	originalVMService := vmService.DeepCopy()
+
+	if vmService.Annotations == nil {
 		vmService.Annotations = annotations
-		vmService.Spec = vmoprv1.VirtualMachineServiceSpec{
-			Type: serviceType,
-			Ports: []vmoprv1.VirtualMachineServicePort{
-				{
-					Name:       controlPlaneServiceAPIServerPortName,
-					Protocol:   "TCP",
-					Port:       defaultAPIBindPort,
-					TargetPort: defaultAPIBindPort,
-				},
+	} else {
+		for k, v := range annotations {
+			vmService.Annotations[k] = v
+		}
+	}
+	vmService.Annotations = annotations
+	vmService.Spec = vmoprv1.VirtualMachineServiceSpec{
+		Type: serviceType,
+		Ports: []vmoprv1.VirtualMachineServicePort{
+			{
+				Name:       controlPlaneServiceAPIServerPortName,
+				Protocol:   "TCP",
+				Port:       defaultAPIBindPort,
+				TargetPort: defaultAPIBindPort,
 			},
-			Selector: clusterRoleVMLabels(clusterCtx, true),
-		}
+		},
+		Selector: clusterRoleVMLabels(clusterCtx, true),
+	}
 
-		if err := ctrlutil.SetOwnerReference(
-			clusterCtx.VSphereCluster,
-			vmService,
-			s.Client.Scheme(),
-		); err != nil {
-			return errors.Wrapf(
-				err,
-				"error setting %s/%s as owner of %s/%s",
-				clusterCtx.VSphereCluster.Namespace,
-				clusterCtx.VSphereCluster.Name,
-				vmService.Namespace,
-				vmService.Name,
-			)
-		}
+	if err := ctrlutil.SetOwnerReference(
+		clusterCtx.VSphereCluster,
+		vmService,
+		s.Client.Scheme(),
+	); err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error setting %s/%s as owner of %s/%s",
+			clusterCtx.VSphereCluster.Namespace,
+			clusterCtx.VSphereCluster.Name,
+			vmService.Namespace,
+			vmService.Name,
+		)
+	}
 
-		return nil
-	})
-	if err != nil {
-		return nil, err
+	if !vmServiceExists {
+		if err := s.Client.Create(ctx, vmService); err != nil {
+			return nil, err
+		}
+	} else if !reflect.DeepEqual(originalVMService, vmService) {
+		patch := client.MergeFrom(originalVMService)
+		if err := s.Client.Patch(ctx, vmService, patch); err != nil {
+			return nil, err
+		}
 	}
 
 	return vmService, nil

@@ -136,7 +136,7 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clu
 	// Set the VM primary interface
 	vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmoprv1.VirtualMachineNetworkInterfaceSpec{
 		Name: PrimaryInterfaceName,
-		Network: vmoprv1common.PartialObjectRef{
+		Network: &vmoprv1common.PartialObjectRef{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       NetworkGVKNetOperator.Kind,
 				APIVersion: NetworkGVKNetOperator.GroupVersion().String(),

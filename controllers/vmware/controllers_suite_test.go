@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -40,6 +41,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
@@ -71,6 +73,8 @@ func setup(ctx context.Context) (*helpers.TestEnvironment, clustercache.ClusterC
 	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(vmoprv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(topologyv1.AddToScheme(scheme.Scheme))
 
 	testEnv := helpers.NewTestEnvironment(ctx)
 
@@ -123,7 +127,7 @@ func setup(ctx context.Context) (*helpers.TestEnvironment, clustercache.ClusterC
 	<-testEnv.Manager.Elected()
 
 	// wait for webhook port to be open prior to running tests
-	testEnv.WaitForWebhooks()
+	testEnv.WaitForWebhooks(ctx)
 
 	// create manager pod namespace
 	ns := &corev1.Namespace{

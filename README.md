@@ -54,9 +54,10 @@ The table below documents support matrix for Cluster API provider vSphere versio
 
 | Minor Release | Status                  | Supported Until (including maintenance mode)                                         |
 |---------------|-------------------------|--------------------------------------------------------------------------------------|
+| v1.15.x       | Standard support period | in maintenance mode when v1.17.0 will be released, EOL when v1.18.0 will be released |
 | v1.14.x       | Standard support period | in maintenance mode when v1.16.0 will be released, EOL when v1.17.0 will be released |
-| v1.13.x       | Standard support period | in maintenance mode when v1.15.0 will be released, EOL when v1.16.0 will be released |
-| v1.12.x       | Maintenance mode        | Maintenance mode v1.14.0 release date, EOL when v1.15.0 will be released             |
+| v1.13.x       | Maintenance mode        | Maintenance mode v1.15.0 release date, EOL when v1.16.0 will be released             |
+| v1.12.x       | EOL                     | EOL since v1.15.0 release date                                                       |
 | v1.11.x       | EOL                     | EOL since v1.14.0 release date                                                       |
 | v1.10.x       | EOL                     | EOL since v1.13.0 release date                                                       |
 | v1.9.x        | EOL                     | EOL since v1.12.0 release date                                                       |
@@ -71,6 +72,7 @@ supported:
 | CAPV v1.12   |        CAPI v1.9        |
 | CAPV v1.13   |       CAPI v1.10        |
 | CAPV v1.14   |       CAPI v1.11        |
+| CAPV v1.15   |       CAPI v1.12        |
 
 Other CAPV/CAPI version combinations might work, but it is up to the users to validate those combinations; 
 also please be aware that in case of a CAPI/CAPV combination not listed above, support will be provided at best effort.
@@ -84,9 +86,9 @@ The following table documents the Cluster API contract versions implemented by s
 
 | CAPV version | Implements Cluster API contract version |
 |--------------|:---------------------------------------:|
-| CAPV v1.12   |                 v1beta1                 |
 | CAPV v1.13   |                 v1beta1                 |
 | CAPV v1.14   |                 v1beta1                 |
+| CAPV v1.15   |                 v1beta1                 |
 
 Contract versions supported by Cluster API are documented in the [versions](https://cluster-api.sigs.k8s.io/reference/versions#cluster-api-release-vs-contract-versions) page in the [Cluster API book](https://cluster-api.sigs.k8s.io).
 
@@ -97,9 +99,9 @@ The table below documents CAPI API version required by supported CAPV versions.
 
 | CAPV version | Requires CAPI API version |
 |--------------|:-------------------------:|
-| CAPV v1.12   |          v1beta1          |
 | CAPV v1.13   |          v1beta1          |
 | CAPV v1.14   |          v1beta2          |
+| CAPV v1.15   |          v1beta2          |
 
 API versions supported by Cluster API are documented in the [versions](https://cluster-api.sigs.k8s.io/reference/versions#cluster-api-release-vs-api-versions) page in the [Cluster API book](https://cluster-api.sigs.k8s.io).
 
@@ -133,6 +135,7 @@ production-like environments, it is highly recommended to build and use your own
 | [v1.32.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
 | [v1.33.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
 | [v1.34.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
+| [v1.35.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
 
 [v1.24.11]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.24.11
 [v1.25.7]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.25.7
@@ -145,6 +148,7 @@ production-like environments, it is highly recommended to build and use your own
 [v1.32.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.32.0
 [v1.33.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.33.0
 [v1.34.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.34.0
+[v1.35.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.35.0
 
 A full list of the published machine images for CAPV can be found by [searching for releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases?q=templates%2F&expanded=true)
 on the repository having the prefix `templates/` and taking a look at the available assets.

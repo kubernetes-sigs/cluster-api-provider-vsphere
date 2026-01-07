@@ -21,12 +21,9 @@ import (
 	"fmt"
 	"reflect"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -38,25 +35,20 @@ import (
 // VSphereFailureDomain implements a validation and defaulting webhook for VSphereFailureDomain.
 type VSphereFailureDomain struct{}
 
-var _ webhook.CustomValidator = &VSphereFailureDomain{}
-var _ webhook.CustomDefaulter = &VSphereFailureDomain{}
+var _ admission.Validator[*infrav1.VSphereFailureDomain] = &VSphereFailureDomain{}
+var _ admission.Defaulter[*infrav1.VSphereFailureDomain] = &VSphereFailureDomain{}
 
 func (webhook *VSphereFailureDomain) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.VSphereFailureDomain{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereFailureDomain{}).
 		WithValidator(webhook).
 		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		Complete()
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereFailureDomain) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
+func (webhook *VSphereFailureDomain) ValidateCreate(_ context.Context, obj *infrav1.VSphereFailureDomain) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
-	obj, ok := raw.(*infrav1.VSphereFailureDomain)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereFailureDomain but got a %T", raw))
-	}
 	if obj.Spec.Topology.ComputeCluster == nil && obj.Spec.Topology.Hosts != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "ComputeCluster"), "cannot be empty if Hosts is not empty"))
 	}
@@ -91,15 +83,7 @@ func (webhook *VSphereFailureDomain) ValidateCreate(_ context.Context, raw runti
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereFailureDomain) ValidateUpdate(_ context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
-	oldTyped, ok := oldRaw.(*infrav1.VSphereFailureDomain)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereFailureDomain but got a %T", oldRaw))
-	}
-	newTyped, ok := newRaw.(*infrav1.VSphereFailureDomain)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereFailureDomain but got a %T", newRaw))
-	}
+func (webhook *VSphereFailureDomain) ValidateUpdate(_ context.Context, oldTyped, newTyped *infrav1.VSphereFailureDomain) (admission.Warnings, error) {
 	if !reflect.DeepEqual(newTyped.Spec, oldTyped.Spec) {
 		return nil, field.Forbidden(field.NewPath("spec"), "VSphereFailureDomainSpec is immutable")
 	}
@@ -107,16 +91,12 @@ func (webhook *VSphereFailureDomain) ValidateUpdate(_ context.Context, oldRaw ru
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereFailureDomain) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *VSphereFailureDomain) ValidateDelete(_ context.Context, _ *infrav1.VSphereFailureDomain) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *VSphereFailureDomain) Default(_ context.Context, obj runtime.Object) error {
-	typedObj, ok := obj.(*infrav1.VSphereFailureDomain)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereFailureDomain but got a %T", obj))
-	}
+func (webhook *VSphereFailureDomain) Default(_ context.Context, typedObj *infrav1.VSphereFailureDomain) error {
 	if typedObj.Spec.Zone.AutoConfigure == nil {
 		typedObj.Spec.Zone.AutoConfigure = ptr.To(false)
 	}

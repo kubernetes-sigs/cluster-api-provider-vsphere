@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -39,23 +38,18 @@ import (
 // VSphereVM implements a validation and defaulting webhook for VSphereVM.
 type VSphereVM struct{}
 
-var _ webhook.CustomValidator = &VSphereVM{}
-var _ webhook.CustomDefaulter = &VSphereVM{}
+var _ admission.Validator[*infrav1.VSphereVM] = &VSphereVM{}
+var _ admission.Defaulter[*infrav1.VSphereVM] = &VSphereVM{}
 
 func (webhook *VSphereVM) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.VSphereVM{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereVM{}).
 		WithValidator(webhook).
 		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		Complete()
 }
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *VSphereVM) Default(_ context.Context, obj runtime.Object) error {
-	typedObj, ok := obj.(*infrav1.VSphereVM)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereVM but got a %T", obj))
-	}
+func (webhook *VSphereVM) Default(_ context.Context, typedObj *infrav1.VSphereVM) error {
 	// Set Linux as default OS value
 	if typedObj.Spec.OS == "" {
 		typedObj.Spec.OS = infrav1.Linux
@@ -64,12 +58,8 @@ func (webhook *VSphereVM) Default(_ context.Context, obj runtime.Object) error {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereVM) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
+func (webhook *VSphereVM) ValidateCreate(_ context.Context, objValue *infrav1.VSphereVM) (admission.Warnings, error) {
 	var allErrs field.ErrorList
-	objValue, ok := raw.(*infrav1.VSphereVM)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereVM but got a %T", raw))
-	}
 	spec := objValue.Spec
 
 	if spec.Network.PreferredAPIServerCIDR != "" {
@@ -99,17 +89,9 @@ func (webhook *VSphereVM) ValidateCreate(_ context.Context, raw runtime.Object) 
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereVM) ValidateUpdate(_ context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
+func (webhook *VSphereVM) ValidateUpdate(_ context.Context, oldTyped, newTyped *infrav1.VSphereVM) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
-	oldTyped, ok := oldRaw.(*infrav1.VSphereVM)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereVM but got a %T", oldRaw))
-	}
-	newTyped, ok := newRaw.(*infrav1.VSphereVM)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereVM but got a %T", newRaw))
-	}
 	if newTyped.Spec.GuestSoftPowerOffTimeout != nil {
 		if newTyped.Spec.PowerOffMode != infrav1.VirtualMachinePowerOpModeTrySoft {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), newTyped.Spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
@@ -160,7 +142,7 @@ func (webhook *VSphereVM) ValidateUpdate(_ context.Context, oldRaw runtime.Objec
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereVM) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *VSphereVM) ValidateDelete(_ context.Context, _ *infrav1.VSphereVM) (admission.Warnings, error) {
 	return nil, nil
 }
 

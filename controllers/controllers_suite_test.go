@@ -130,7 +130,7 @@ func setup() {
 	<-testEnv.Manager.Elected()
 
 	// wait for webhook port to be open prior to running tests
-	testEnv.WaitForWebhooks()
+	testEnv.WaitForWebhooks(ctx)
 
 	// create manager pod namespace
 	ns := &corev1.Namespace{

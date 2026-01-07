@@ -1,7 +1,7 @@
 version: "2"
 run:
   timeout: 10m
-  go: "1.24"
+  go: "1.25"
   allow-parallel-runners: true
 linters:
   default: none
@@ -20,6 +20,7 @@ linters:
     - goconst
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
+    - godox # block FIXMEs
     - goprintffuncname # printft-like functions should be named with f at the end
     - gosec # potential security problems
     - govet # basically 'go vet'
@@ -78,6 +79,9 @@ linters:
       exclude:
         - ^ \+.*
         - ^ ANCHOR.*
+    godox:
+      keywords:
+        - FIXME # FIXME's should be removed before merging PRs
     gosec:
       excludes:
       # integer overflow conversion int -> int32
@@ -104,10 +108,6 @@ linters:
         # CAPV
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
           alias: infrav1
-        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3
-          alias: infrav1alpha3
-        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4
-          alias: infrav1alpha4
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
           alias: vmwarev1
         # VMware Operator
@@ -186,6 +186,10 @@ linters:
     # Specific exclude rules for deprecated fields that are still part of the codebase. These
     # should be removed as the referenced deprecated item is removed from the project.
     rules:
+        # Excludes for controller-runtime deprecations that we should migrate away from sooner or later
+      - linters:
+          - staticcheck
+        text: 'SA1019: mgr.GetEventRecorderFor is deprecated'
         # Deprecations for AutoConfigure
       - linters:
           - staticcheck
@@ -199,9 +203,6 @@ linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/errors" is deprecated:'
         # Deprecations for old api groups
-      - linters:
-          - staticcheck
-        text: 'SA1019: "sigs.k8s.io/cluster-api-provider-vsphere/apis/(v1alpha3|v1alpha4)" is deprecated: This package will be removed in one of the next releases.'
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/api/core/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
@@ -305,28 +306,6 @@ linters:
           - staticcheck
         path: ^apis\/.*\/.*conversion.*\.go$
         text: 'ST1016: methods on the same type should have the same receiver name'
-        # missing comments on v1alpha3 and v1alpha4 packages. These rules should be removed when those packages are removed.
-      - linters:
-          - revive
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: package-comments
-      - linters:
-          - staticcheck
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: ST1000
-      - linters:
-          - revive
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: exported (.*) should have comment (.*)or be unexported
-        # wrong comment
-      - linters:
-          - revive
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: comment on exported (.*) should be of the form (.*)
-      - linters:
-          - staticcheck
-        path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-        text: ST1021|ST1020
       - linters:
           - goconst
         path: (.+)_test\.go
@@ -335,6 +314,19 @@ linters:
           - staticcheck
         path: (.+)\.go$
         text: 'QF1008: could remove embedded field'
+      - linters:
+          - revive
+        path: pkg/util/.*\.go$
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
+        path: (pkg/context|pkg/services/govmomi/net)/.*\.go$
+        text: 'var-naming: avoid package names that conflict with Go standard library package names'
+      # packaging go module
+      - linters:
+          - revive
+        path: packaging/flavorgen/flavors/(crs/types|util)/.*\.go$
+        text: 'var-naming: avoid meaningless package names'
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

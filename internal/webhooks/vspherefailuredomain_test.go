@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -32,7 +31,7 @@ func TestVsphereFailureDomain_Default(t *testing.T) {
 		Spec: infrav1.VSphereFailureDomainSpec{},
 	}
 	webhook := &VSphereFailureDomain{}
-	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
+	g.Expect(webhook.Default(t.Context(), m)).ToNot(HaveOccurred())
 
 	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
 	g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse())
@@ -160,7 +159,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(*testing.T) {
 			webhook := &VSphereFailureDomain{}
-			_, err := webhook.ValidateCreate(context.Background(), &tt.failureDomain)
+			_, err := webhook.ValidateCreate(t.Context(), &tt.failureDomain)
 			if tt.errExpected == nil || *tt.errExpected {
 				g.Expect(err).To(HaveOccurred())
 			} else {

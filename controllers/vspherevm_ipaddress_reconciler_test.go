@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -45,7 +44,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			VSphereVM:                vsphereVM,
 		}
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("when VSphereVM Spec has address pool references", func(t *testing.T) {
 		vsphereVM := &infrav1.VSphereVM{

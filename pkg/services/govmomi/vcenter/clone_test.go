@@ -17,7 +17,6 @@ limitations under the License.
 package vcenter
 
 import (
-	ctx "context"
 	"crypto/tls"
 	"fmt"
 	"testing"
@@ -42,7 +41,7 @@ func TestGetDiskSpec(t *testing.T) {
 	vm := model.Map().Any("VirtualMachine").(*simulator.VirtualMachine)
 	machine := object.NewVirtualMachine(session.Client.Client, vm.Reference())
 
-	devices, err := machine.Device(ctx.TODO())
+	devices, err := machine.Device(t.Context())
 	if err != nil {
 		t.Fatalf("Failed to obtain vm devices: %v", err)
 	}
@@ -52,7 +51,7 @@ func TestGetDiskSpec(t *testing.T) {
 	}
 	disk := defaultDisks[0].(*types.VirtualDisk)
 	disk.CapacityInKB = int64(defaultSizeGiB) * 1024 * 1024 // GiB
-	if err := machine.EditDevice(ctx.TODO(), disk); err != nil {
+	if err := machine.EditDevice(t.Context(), disk); err != nil {
 		t.Fatalf("Can't resize disk for specified size")
 	}
 
@@ -160,7 +159,7 @@ func TestCreateDataDisks(t *testing.T) {
 	vm := model.Map().Any("VirtualMachine").(*simulator.VirtualMachine)
 	machine := object.NewVirtualMachine(session.Client.Client, vm.Reference())
 
-	deviceList, err := machine.Device(ctx.TODO())
+	deviceList, err := machine.Device(t.Context())
 	if err != nil {
 		t.Fatalf("Failed to obtain vm devices: %v", err)
 	}
@@ -261,7 +260,7 @@ func TestCreateDataDisks(t *testing.T) {
 			g := gomega.NewWithT(t)
 
 			// Create the data disks
-			newDisks, funcError := createDataDisks(ctx.TODO(), tc.dataDisks, tc.devices)
+			newDisks, funcError := createDataDisks(t.Context(), tc.dataDisks, tc.devices)
 			if (tc.err != "" && funcError == nil) || (tc.err == "" && funcError != nil) || (funcError != nil && tc.err != funcError.Error()) {
 				t.Fatalf("Expected to get '%v' error from assignUnitNumber, got: '%v'", tc.err, funcError)
 			}
@@ -390,7 +389,7 @@ func initSimulator(t *testing.T) (*simulator.Model, *session.Session, *simulator
 	pass, _ := server.URL.User.Password()
 
 	authSession, err := session.GetOrCreate(
-		ctx.TODO(),
+		t.Context(),
 		session.NewParams().
 			WithServer(server.URL.Host).
 			WithUserInfo(server.URL.User.Username(), pass).

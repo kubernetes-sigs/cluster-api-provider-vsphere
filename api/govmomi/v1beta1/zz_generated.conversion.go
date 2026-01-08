@@ -2449,6 +2449,8 @@ func autoConvert_v1beta1_VirtualMachineCloneSpec_To_v1beta2_VirtualMachineCloneS
 	out.NestedHV = (*bool)(unsafe.Pointer(in.NestedHV))
 	out.FtEncryptionMode = v1beta2.FtEncryptionMode(in.FtEncryptionMode)
 	out.MigrateEncryption = v1beta2.MigrateEncryption(in.MigrateEncryption)
+	out.CryptoKeyID = in.CryptoKeyID
+	out.CryptoProfile = in.CryptoProfile
 	return nil
 }
 
@@ -2490,6 +2492,8 @@ func autoConvert_v1beta2_VirtualMachineCloneSpec_To_v1beta1_VirtualMachineCloneS
 	out.NestedHV = (*bool)(unsafe.Pointer(in.NestedHV))
 	out.FtEncryptionMode = FtEncryptionMode(in.FtEncryptionMode)
 	out.MigrateEncryption = MigrateEncryption(in.MigrateEncryption)
+	out.CryptoKeyID = in.CryptoKeyID
+	out.CryptoProfile = in.CryptoProfile
 	return nil
 }
 

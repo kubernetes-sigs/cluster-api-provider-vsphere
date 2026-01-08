@@ -144,7 +144,7 @@ func (c *VSphereClusterIdentity) SetV1Beta2Conditions(conditions []metav1.Condit
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vsphereclusteridentities,scope=Cluster,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 
 // VSphereClusterIdentity defines the account to be used for reconciling clusters.

@@ -83,6 +83,14 @@ spec:
                   Defaults to LinkedClone, but fails gracefully to FullClone if the source
                   of the clone operation has no snapshots.
                 type: string
+              cryptoKeyID:
+                description: cryptoKeyID is the crypto key id.
+                type: string
+              cryptoProfile:
+                description: |-
+                  cryptoProfile of the storage encryption policy to use with this
+                  Virtual Machine
+                type: string
               customVMXKeys:
                 additionalProperties:
                   type: string

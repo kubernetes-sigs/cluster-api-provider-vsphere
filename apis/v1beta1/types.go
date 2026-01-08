@@ -237,6 +237,13 @@ type VirtualMachineCloneSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum=disabled;opportunistic;required
 	MigrateEncryption string `json:"migrateEncryption,omitempty"`
+	// cryptoKeyID is the crypto key id.
+	// +optional
+	CryptoKeyID string `json:"cryptoKeyID,omitempty"`
+	// cryptoProfile of the storage encryption policy to use with this
+	// Virtual Machine
+	// +optional
+	CryptoProfile string `json:"cryptoProfile,omitempty"`
 }
 
 // VirtualMachineResources is the definition of the VM's cpu and memory

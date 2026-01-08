@@ -308,6 +308,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(MAKE) clean-generated-yaml SRC_DIRS="$(CRD_ROOT),$(SUPERVISOR_CRD_ROOT),./config/govmomi/webhook/manifests.yaml,./config/supervisor/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
 		paths=./apis/v1beta1 \
+		paths=./apis/v1beta2 \
 		paths=./internal/webhooks \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(CRD_ROOT) \
@@ -361,11 +362,11 @@ generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
 
 .PHONY: generate-go-conversions
 generate-go-conversions: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
-#	$(MAKE) clean-generated-conversions SRC_DIRS="./apis/v1beta1" TODO: enable when v1beta2 is introduced
-#	$(CONVERSION_GEN) \
-#		--output-file=zz_generated.conversion.go \
-#		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-#		./apis/v1beta1
+	$(MAKE) clean-generated-conversions SRC_DIRS="./apis/v1beta1"
+	$(CONVERSION_GEN) \
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./apis/v1beta1
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date

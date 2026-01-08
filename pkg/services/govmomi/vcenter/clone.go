@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
@@ -174,10 +175,25 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 	if numCPUs < 2 {
 		numCPUs = 2
 	}
-	numCoresPerSocket := vmCtx.VSphereVM.Spec.NumCoresPerSocket
-	if numCoresPerSocket < 0 {
-		numCoresPerSocket = numCPUs
+
+	vCenterVersion, err := vmCtx.Session.GetVersion()
+	if err != nil {
+		return errors.Wrapf(err, "unable to get vCenter version for %q", vmCtx)
 	}
+	vCenterVersionSemver, _ := semver.New(string(vCenterVersion)) // ignore error, version was already validated on vmCtx.Session.GetVersion()
+
+	numCoresPerSocket := vmCtx.VSphereVM.Spec.NumCoresPerSocket
+
+	if vCenterVersionSemver.Major < 8 {
+		if numCoresPerSocket == 0 {
+			numCoresPerSocket = numCPUs
+		}
+	} else {
+		if numCoresPerSocket < 0 {
+			numCoresPerSocket = numCPUs
+		}
+	}
+
 	memMiB := vmCtx.VSphereVM.Spec.MemoryMiB
 	if memMiB == 0 {
 		memMiB = 2048

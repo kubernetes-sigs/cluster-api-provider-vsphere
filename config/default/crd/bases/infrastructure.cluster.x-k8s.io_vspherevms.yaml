@@ -116,6 +116,18 @@ spec:
                   Defaults to linkedClone, but fails gracefully to fullClone if the source
                   of the clone operation has no snapshots.
                 type: string
+              cryptoKeyID:
+                description: cryptoKeyID is the crypto key id.
+                maxLength: 128
+                minLength: 1
+                type: string
+              cryptoProfile:
+                description: |-
+                  cryptoProfile of the storage encryption policy to use with this
+                  Virtual Machine.
+                maxLength: 128
+                minLength: 1
+                type: string
               customVMXKeys:
                 additionalProperties:
                   type: string
@@ -1033,6 +1045,18 @@ spec:
                 enum:
                 - fullClone
                 - linkedClone
+                type: string
+              cryptoKeyID:
+                description: cryptoKeyID is the crypto key id.
+                maxLength: 128
+                minLength: 1
+                type: string
+              cryptoProfile:
+                description: |-
+                  cryptoProfile of the storage encryption policy to use with this
+                  Virtual Machine.
+                maxLength: 128
+                minLength: 1
                 type: string
               customVMXKeys:
                 additionalProperties:

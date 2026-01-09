@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -615,8 +616,8 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 		ok, err := vimMachineService.reconcileNetwork(ctx, machineCtx, vsphereVM)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(ok).To(BeTrue())
-		g.Expect(machineCtx.VSphereMachine.Status.Addresses).To(ContainElement(clusterv1beta1.MachineAddress{
-			Type:    clusterv1beta1.MachineInternalDNS,
+		g.Expect(machineCtx.VSphereMachine.Status.Addresses).To(ContainElement(clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalDNS,
 			Address: vsphereVM.Name,
 		}))
 	})

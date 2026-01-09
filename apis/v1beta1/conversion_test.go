@@ -17,12 +17,15 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/randfill"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 )
@@ -37,7 +40,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereCluster{},
 		Spoke:       &VSphereCluster{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterFuzzFuncs},
 	}))
 	t.Run("for VSphereClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -49,13 +52,13 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereClusterIdentity{},
 		Spoke:       &VSphereClusterIdentity{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterIdentityFuzzFuncs},
 	}))
 	t.Run("for VSphereDeploymentZone", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereDeploymentZone{},
 		Spoke:       &VSphereDeploymentZone{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereDeploymentZoneFuzzFuncs},
 	}))
 	t.Run("for VSphereFailureDomain", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -81,4 +84,85 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke:       &VSphereVM{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
 	}))
+}
+
+func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVSphereClusterStatus,
+		spokeVSphereClusterStatus,
+	}
+}
+
+func hubVSphereClusterStatus(in *infrav1.VSphereClusterStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereClusterV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
+func VSphereClusterIdentityFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVSphereClusterIdentityStatus,
+		spokeVSphereClusterIdentityStatus,
+	}
+}
+
+func hubVSphereClusterIdentityStatus(in *infrav1.VSphereClusterIdentityStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereClusterIdentityV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereClusterIdentityStatus(in *VSphereClusterIdentityStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterIdentityV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
+func VSphereDeploymentZoneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVSphereDeploymentZoneStatus,
+		spokeVSphereDeploymentZoneStatus,
+	}
+}
+
+func hubVSphereDeploymentZoneStatus(in *infrav1.VSphereDeploymentZoneStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereDeploymentZoneV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereDeploymentZoneV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
 }

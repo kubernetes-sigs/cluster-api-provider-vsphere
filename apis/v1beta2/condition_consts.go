@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // Conditions and condition Reasons for the VSphereCluster object.
@@ -25,7 +26,7 @@ import (
 const (
 	// FailureDomainsAvailableCondition documents the status of the failure domains
 	// associated to the VSphereCluster.
-	FailureDomainsAvailableCondition clusterv1beta1.ConditionType = "FailureDomainsAvailable"
+	FailureDomainsAvailableCondition clusterv1.ConditionType = "FailureDomainsAvailable"
 
 	// FailureDomainsSkippedReason (Severity=Info) documents that some of the failure domain statuses
 	// associated to the VSphereCluster are reported as not ready.
@@ -120,7 +121,7 @@ const (
 const (
 	// VCenterAvailableCondition documents the connectivity with vcenter
 	// for a given resource.
-	VCenterAvailableCondition clusterv1beta1.ConditionType = "VCenterAvailable"
+	VCenterAvailableCondition clusterv1.ConditionType = "VCenterAvailable"
 
 	// VCenterUnreachableReason (Severity=Error) documents a controller detecting
 	// issues with VCenter reachability.
@@ -129,7 +130,7 @@ const (
 
 const (
 	// ClusterModulesAvailableCondition documents the availability of cluster modules for the VSphereCluster object.
-	ClusterModulesAvailableCondition clusterv1beta1.ConditionType = "ClusterModulesAvailable"
+	ClusterModulesAvailableCondition clusterv1.ConditionType = "ClusterModulesAvailable"
 
 	// MissingVCenterVersionReason (Severity=Warning) documents a controller detecting
 	//  the scenario in which the vCenter version is not set in the status of the VSphereCluster object.
@@ -146,9 +147,9 @@ const (
 )
 
 const (
-	// CredentialsAvailableCondidtion is used by VSphereClusterIdentity when a credential
+	// CredentialsAvailableCondition is used by VSphereClusterIdentity when a credential
 	// secret is available and unused by other VSphereClusterIdentities.
-	CredentialsAvailableCondidtion clusterv1beta1.ConditionType = "CredentialsAvailable"
+	CredentialsAvailableCondition clusterv1.ConditionType = "CredentialsAvailable"
 
 	// SecretNotAvailableReason is used when the secret referenced by the VSphereClusterIdentity cannot be found.
 	SecretNotAvailableReason = "SecretNotAvailable"
@@ -162,7 +163,7 @@ const (
 
 const (
 	// PlacementConstraintMetCondition documents whether the placement constraint is configured correctly or not.
-	PlacementConstraintMetCondition clusterv1beta1.ConditionType = "PlacementConstraintMet"
+	PlacementConstraintMetCondition clusterv1.ConditionType = "PlacementConstraintMet"
 
 	// ResourcePoolNotFoundReason (Severity=Error) documents that the resource pool in the placement constraint
 	// associated to the VSphereDeploymentZone is misconfigured.
@@ -175,7 +176,7 @@ const (
 
 const (
 	// VSphereFailureDomainValidatedCondition documents whether the failure domain for the deployment zone is configured correctly or not.
-	VSphereFailureDomainValidatedCondition clusterv1beta1.ConditionType = "VSphereFailureDomainValidated"
+	VSphereFailureDomainValidatedCondition clusterv1.ConditionType = "VSphereFailureDomainValidated"
 
 	// RegionMisconfiguredReason (Severity=Error) documents that the region for the Failure Domain associated to
 	// the VSphereDeploymentZone is misconfigured.

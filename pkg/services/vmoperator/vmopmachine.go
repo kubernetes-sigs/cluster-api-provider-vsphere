@@ -791,12 +791,12 @@ func (v *VmopMachineService) reconcileProviderID(ctx context.Context, supervisor
 }
 
 // getVirtualMachinesInCluster returns all VMOperator VirtualMachine objects in the current cluster.
-// First filter by clusterSelectorKey. If the result is empty, they fall back to legacyClusterSelectorKey.
+// First filter by ClusterSelectorKey. If the result is empty, they fall back to legacyClusterSelectorKey.
 func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext) ([]*vmoprv1.VirtualMachine, error) {
 	if supervisorMachineCtx.Cluster == nil {
 		return []*vmoprv1.VirtualMachine{}, errors.Errorf("No cluster is set for machine %s in namespace %s", supervisorMachineCtx.GetVSphereMachine().GetName(), supervisorMachineCtx.GetVSphereMachine().GetNamespace())
 	}
-	labels := map[string]string{clusterSelectorKey: supervisorMachineCtx.Cluster.Name}
+	labels := map[string]string{ClusterSelectorKey: supervisorMachineCtx.Cluster.Name}
 	vmList := &vmoprv1.VirtualMachineList{}
 
 	if err := v.Client.List(

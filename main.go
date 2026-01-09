@@ -28,10 +28,13 @@ import (
 
 	perrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	"gopkg.in/fsnotify.v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -61,6 +64,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/version"
 	"sigs.k8s.io/cluster-api-provider-vsphere/webhooks"
@@ -271,10 +275,25 @@ func main() {
 	managerOpts.KubeConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 	managerOpts.KubeConfig.WarningHandler = apiwarnings.DefaultHandler(klog.Background().WithName("API Server Warning"))
 
+	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
-		managerOpts.Cache.DefaultNamespaces = map[string]cache.Config{
+		watchNamespaces = map[string]cache.Config{
 			watchNamespace: {},
 		}
+	}
+
+	req, _ := labels.NewRequirement(vmoperator.ClusterSelectorKey, selection.Exists, nil)
+	virtualMachineCacheSelector := labels.NewSelector().Add(*req)
+
+	managerOpts.Cache = cache.Options{
+		DefaultNamespaces: watchNamespaces,
+		SyncPeriod:        &syncPeriod,
+		ByObject: map[client.Object]cache.ByObject{
+			// Note: Only VirtualMachines with the cluster name label are cached (vmopmachine.go sets this label).
+			&vmoprv1.VirtualMachine{}: {
+				Label: virtualMachineCacheSelector,
+			},
+		},
 	}
 
 	if enableContentionProfiling {
@@ -283,7 +302,6 @@ func main() {
 
 	setupLog.Info(fmt.Sprintf("Feature gates: %+v\n", feature.Gates))
 
-	managerOpts.Cache.SyncPeriod = &syncPeriod
 	managerOpts.LeaseDuration = &leaderElectionLeaseDuration
 	managerOpts.RenewDeadline = &leaderElectionRenewDeadline
 	managerOpts.RetryPeriod = &leaderElectionRetryPeriod

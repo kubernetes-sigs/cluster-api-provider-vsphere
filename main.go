@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
@@ -52,6 +53,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
@@ -269,11 +271,54 @@ func main() {
 	// Note: setupLog can only be used after ctrl.SetLogger was called
 	setupLog.Info(fmt.Sprintf("Version: %s (git commit: %s)", version.Get().String(), version.Get().GitCommit))
 
+	// Set up the context that's going to be used in controllers and for the manager.
+	ctx := ctrl.SetupSignalHandler()
+
 	managerOpts.KubeConfig = ctrl.GetConfigOrDie()
 	managerOpts.KubeConfig.QPS = restConfigQPS
 	managerOpts.KubeConfig.Burst = restConfigBurst
 	managerOpts.KubeConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 	managerOpts.KubeConfig.WarningHandler = apiwarnings.DefaultHandler(klog.Background().WithName("API Server Warning"))
+
+	// Detect which CRDs are loaded.
+	httpClient, err := rest.HTTPClientFor(managerOpts.KubeConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to start manager: unable to create http client to detect CRDs")
+		os.Exit(1)
+	}
+	restMapper, err := apiutil.NewDynamicRESTMapper(managerOpts.KubeConfig, httpClient)
+	if err != nil {
+		setupLog.Error(err, "Unable to start manager: unable to create RESTMapper to detect CRDs")
+		os.Exit(1)
+	}
+
+	govmomiGVR := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
+	supervisorGVR := vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
+
+	var isSupervisorCRDLoaded, isGovmomiCRDLoaded bool
+	var errGovmomi, errSupervisor error
+	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(_ context.Context) (bool, error) {
+		// Check for non-supervisor VSphereCluster and start controller if found
+		isGovmomiCRDLoaded, errGovmomi = isCRDDeployed(restMapper, govmomiGVR)
+
+		// Check for supervisor VSphereCluster and start controller if found
+		isSupervisorCRDLoaded, errSupervisor = isCRDDeployed(restMapper, supervisorGVR)
+
+		// One of govmomi/supervisor mode should be detected, otherwise keep trying until timeout to handle
+		// race conditions during controllers startup right after install or upgrades, when also CRDs
+		// are installed in a short time frame.
+		if (isGovmomiCRDLoaded && errGovmomi == nil) || (isSupervisorCRDLoaded && errSupervisor == nil) {
+			return true, nil
+		}
+		return false, nil
+	}); err != nil {
+		// Continuing startup does not make sense without one of govmomi/supervisor mode detected.
+		// The Pod goes in CrashLoopBack and eventually recover, but failing to detect CRD after 30s is usually
+		// a signal of some problem.
+		err := fmt.Errorf("neither supervisor nor govmomi CRDs detected: %w", kerrors.NewAggregate([]error{err, errGovmomi, errSupervisor}))
+		setupLog.Error(err, "Unable to start manager")
+		os.Exit(1)
+	}
 
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
@@ -311,32 +356,6 @@ func main() {
 		clusterCache, err := setupClusterCache(ctx, mgr)
 		if err != nil {
 			return perrors.Wrapf(err, "unable to create remote cluster cache tracker")
-		}
-
-		govmomiGVR := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
-		supervisorGVR := vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
-
-		var isSupervisorCRDLoaded, isGovmomiCRDLoaded bool
-		var errGovmomi, errSupervisor error
-		if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(_ context.Context) (bool, error) {
-			// Check for non-supervisor VSphereCluster and start controller if found
-			isGovmomiCRDLoaded, errGovmomi = isCRDDeployed(mgr, govmomiGVR)
-
-			// Check for supervisor VSphereCluster and start controller if found
-			isSupervisorCRDLoaded, errSupervisor = isCRDDeployed(mgr, supervisorGVR)
-
-			// One of govmomi/supervisor mode should be detected, otherwise keep trying until timeout to handle
-			// race conditions during controllers startup right after install or upgrades, when also CRDs
-			// are installed in a short time frame.
-			if (isGovmomiCRDLoaded && errGovmomi == nil) || (isSupervisorCRDLoaded && errSupervisor == nil) {
-				return true, nil
-			}
-			return false, nil
-		}); err != nil {
-			// Continuing startup does not make sense without one of govmomi/supervisor mode detected.
-			// The Pod goes in CrashLoopBack and eventually recover, but failing to detect CRD after 30s is usually
-			// a signal of some problem.
-			return fmt.Errorf("neither supervisor nor govmomi CRDs detected: %w", kerrors.NewAggregate([]error{err, errGovmomi, errSupervisor}))
 		}
 
 		if isGovmomiCRDLoaded {
@@ -407,9 +426,6 @@ func main() {
 	managerOpts.Controller = config.Controller{
 		UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
 	}
-
-	// Set up the context that's going to be used in controllers and for the manager.
-	ctx := ctrl.SetupSignalHandler()
 
 	mgr, err := manager.New(ctx, managerOpts)
 	if err != nil {
@@ -525,8 +541,8 @@ func setupChecks(mgr ctrlmgr.Manager) {
 	}
 }
 
-func isCRDDeployed(mgr ctrlmgr.Manager, gvr schema.GroupVersionResource) (bool, error) {
-	_, err := mgr.GetRESTMapper().KindFor(gvr)
+func isCRDDeployed(restMapper meta.RESTMapper, gvr schema.GroupVersionResource) (bool, error) {
+	_, err := restMapper.KindFor(gvr)
 	if err != nil {
 		if meta.IsNoMatchError(err) {
 			return false, nil

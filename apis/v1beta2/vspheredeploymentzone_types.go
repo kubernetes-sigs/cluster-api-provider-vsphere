@@ -190,7 +190,7 @@ type VSphereDeploymentZoneDeprecatedStatus struct {
 // VSphereDeploymentZoneV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereDeploymentZoneV1Beta1DeprecatedStatus struct {
-	// conditions defines current service state of the VSphereCluster.
+	// conditions defines current service state of the VSphereDeploymentZone.
 	//
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//

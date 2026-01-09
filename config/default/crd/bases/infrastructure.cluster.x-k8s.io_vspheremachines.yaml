@@ -1464,8 +1464,10 @@ spec:
                 type: string
               providerID:
                 description: |-
-                  ProviderID is the virtual machine's BIOS UUID formated as
+                  providerID is the virtual machine's BIOS UUID formated as
                   vsphere://12345678-1234-1234-1234-123456789abc
+                maxLength: 512
+                minLength: 1
                 type: string
               resourcePool:
                 description: |-
@@ -1664,44 +1666,72 @@ spec:
                   - type
                   type: object
                 type: array
-              failureMessage:
+              deprecated:
+                description: deprecated groups all the status fields that are deprecated
+                  and will be removed when all the nested field are removed.
+                properties:
+                  v1beta1:
+                    description: |-
+                      v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+
+                      Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                    properties:
+                      failureMessage:
+                        description: |-
+                          FailureMessage will be set in the event that there is a terminal problem
+                          reconciling the Machine and will contain a more verbose string suitable
+                          for logging and human consumption.
+
+                          This field should not be set for transitive errors that a controller
+                          faces that are expected to be fixed automatically over
+                          time (like service outages), but instead indicate that something is
+                          fundamentally wrong with the Machine's spec or the configuration of
+                          the controller, and that manual intervention is required. Examples
+                          of terminal errors would be invalid combinations of settings in the
+                          spec, values that are unsupported by the controller, or the
+                          responsible controller itself being critically misconfigured.
+
+                          Any transient errors that occur during the reconciliation of Machines
+                          can be added as events to the Machine object and/or logged in the
+                          controller's output.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        type: string
+                      failureReason:
+                        description: |-
+                          FailureReason will be set in the event that there is a terminal problem
+                          reconciling the Machine and will contain a succinct value suitable
+                          for machine interpretation.
+
+                          This field should not be set for transitive errors that a controller
+                          faces that are expected to be fixed automatically over
+                          time (like service outages), but instead indicate that something is
+                          fundamentally wrong with the Machine's spec or the configuration of
+                          the controller, and that manual intervention is required. Examples
+                          of terminal errors would be invalid combinations of settings in the
+                          spec, values that are unsupported by the controller, or the
+                          responsible controller itself being critically misconfigured.
+
+                          Any transient errors that occur during the reconciliation of Machines
+                          can be added as events to the Machine object and/or logged in the
+                          controller's output.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        type: string
+                    type: object
+                type: object
+              initialization:
                 description: |-
-                  FailureMessage will be set in the event that there is a terminal problem
-                  reconciling the Machine and will contain a more verbose string suitable
-                  for logging and human consumption.
-
-                  This field should not be set for transitive errors that a controller
-                  faces that are expected to be fixed automatically over
-                  time (like service outages), but instead indicate that something is
-                  fundamentally wrong with the Machine's spec or the configuration of
-                  the controller, and that manual intervention is required. Examples
-                  of terminal errors would be invalid combinations of settings in the
-                  spec, values that are unsupported by the controller, or the
-                  responsible controller itself being critically misconfigured.
-
-                  Any transient errors that occur during the reconciliation of Machines
-                  can be added as events to the Machine object and/or logged in the
-                  controller's output.
-                type: string
-              failureReason:
-                description: |-
-                  FailureReason will be set in the event that there is a terminal problem
-                  reconciling the Machine and will contain a succinct value suitable
-                  for machine interpretation.
-
-                  This field should not be set for transitive errors that a controller
-                  faces that are expected to be fixed automatically over
-                  time (like service outages), but instead indicate that something is
-                  fundamentally wrong with the Machine's spec or the configuration of
-                  the controller, and that manual intervention is required. Examples
-                  of terminal errors would be invalid combinations of settings in the
-                  spec, values that are unsupported by the controller, or the
-                  responsible controller itself being critically misconfigured.
-
-                  Any transient errors that occur during the reconciliation of Machines
-                  can be added as events to the Machine object and/or logged in the
-                  controller's output.
-                type: string
+                  initialization provides observations of the VSphereMachine initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                minProperties: 1
+                properties:
+                  provisioned:
+                    description: |-
+                      provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+                    type: boolean
+                type: object
               network:
                 description: |-
                   Network returns the network status for each of the machine's configured
@@ -1731,9 +1761,6 @@ spec:
                   - macAddr
                   type: object
                 type: array
-              ready:
-                description: Ready is true when the provider resource is ready.
-                type: boolean
               v1beta2:
                 description: v1beta2 groups all the fields that will be added or modified
                   in VSphereMachine's status with the V1Beta2 version.

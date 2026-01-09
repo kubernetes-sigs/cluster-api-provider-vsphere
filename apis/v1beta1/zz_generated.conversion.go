@@ -421,16 +421,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*VSphereMachineStatus)(nil), (*v1beta2.VSphereMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(a.(*VSphereMachineStatus), b.(*v1beta2.VSphereMachineStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.VSphereMachineStatus)(nil), (*VSphereMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(a.(*v1beta2.VSphereMachineStatus), b.(*VSphereMachineStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*VSphereMachineTemplate)(nil), (*v1beta2.VSphereMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereMachineTemplate_To_v1beta2_VSphereMachineTemplate(a.(*VSphereMachineTemplate), b.(*v1beta2.VSphereMachineTemplate), scope)
 	}); err != nil {
@@ -626,6 +616,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*VSphereMachineStatus)(nil), (*v1beta2.VSphereMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(a.(*VSphereMachineStatus), b.(*v1beta2.VSphereMachineStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*corev1beta2.MachineAddress)(nil), (*corev1beta1.MachineAddress)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(a.(*corev1beta2.MachineAddress), b.(*corev1beta1.MachineAddress), scope)
 	}); err != nil {
@@ -648,6 +643,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.VSphereDeploymentZoneStatus)(nil), (*VSphereDeploymentZoneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(a.(*v1beta2.VSphereDeploymentZoneStatus), b.(*VSphereDeploymentZoneStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.VSphereMachineStatus)(nil), (*VSphereMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(a.(*v1beta2.VSphereMachineStatus), b.(*VSphereMachineStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -1327,7 +1327,7 @@ func Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *v1beta
 }
 
 func autoConvert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VSphereClusterStatus, out *v1beta2.VSphereClusterStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
+	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
@@ -1339,7 +1339,7 @@ func autoConvert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in
 	} else {
 		out.Conditions = nil
 	}
-	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	// WARNING: in.FailureDomains requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta1.FailureDomains vs []sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain)
 	out.VCenterVersion = v1beta2.VCenterVersion(in.VCenterVersion)
 	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
@@ -1357,8 +1357,8 @@ func autoConvert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in
 	} else {
 		out.Conditions = nil
 	}
-	out.Ready = in.Ready
-	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureDomains requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain vs sigs.k8s.io/cluster-api/api/core/v1beta1.FailureDomains)
 	out.VCenterVersion = VCenterVersion(in.VCenterVersion)
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
@@ -1826,7 +1826,9 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	if err := Convert_v1beta1_VirtualMachineCloneSpec_To_v1beta2_VirtualMachineCloneSpec(&in.VirtualMachineCloneSpec, &out.VirtualMachineCloneSpec, s); err != nil {
 		return err
 	}
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	out.GuestSoftPowerOffTimeout = (*v1.Duration)(unsafe.Pointer(in.GuestSoftPowerOffTimeout))
@@ -1843,7 +1845,9 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 	if err := Convert_v1beta2_VirtualMachineCloneSpec_To_v1beta1_VirtualMachineCloneSpec(&in.VirtualMachineCloneSpec, &out.VirtualMachineCloneSpec, s); err != nil {
 		return err
 	}
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)
 	out.GuestSoftPowerOffTimeout = (*v1.Duration)(unsafe.Pointer(in.GuestSoftPowerOffTimeout))
@@ -1857,7 +1861,7 @@ func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1beta
 }
 
 func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VSphereMachineStatus, out *v1beta2.VSphereMachineStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
+	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
 		*out = make([]corev1beta2.MachineAddress, len(*in))
@@ -1870,20 +1874,15 @@ func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in
 		out.Addresses = nil
 	}
 	out.Network = *(*[]v1beta2.NetworkStatus)(unsafe.Pointer(&in.Network))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.V1Beta2 = (*v1beta2.VSphereMachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
 	return nil
 }
 
-// Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus is an autogenerated conversion function.
-func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VSphereMachineStatus, out *v1beta2.VSphereMachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in, out, s)
-}
-
 func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *v1beta2.VSphereMachineStatus, out *VSphereMachineStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
 		*out = make([]corev1beta1.MachineAddress, len(*in))
@@ -1896,16 +1895,10 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 		out.Addresses = nil
 	}
 	out.Network = *(*[]NetworkStatus)(unsafe.Pointer(&in.Network))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.V1Beta2 = (*VSphereMachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus is an autogenerated conversion function.
-func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *v1beta2.VSphereMachineStatus, out *VSphereMachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_VSphereMachineTemplate_To_v1beta2_VSphereMachineTemplate(in *VSphereMachineTemplate, out *v1beta2.VSphereMachineTemplate, s conversion.Scope) error {

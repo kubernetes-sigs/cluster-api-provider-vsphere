@@ -39,7 +39,7 @@ type VSphereMachineService interface {
 	FetchVSphereMachine(ctx context.Context, name types.NamespacedName) (capvcontext.MachineContext, error)
 	FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error)
 	ReconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) error
-	SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error)
+	SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) error
 	ReconcileNormal(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error)
 	GetHostInfo(ctx context.Context, machineCtx capvcontext.MachineContext) (string, error)
 }

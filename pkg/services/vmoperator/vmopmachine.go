@@ -163,13 +163,8 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 }
 
 // SyncFailureReason returns true if there is a Failure on the VM Operator VM.
-func (v *VmopMachineService) SyncFailureReason(_ context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
-	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
-	if !ok {
-		return false, errors.New("received unexpected SupervisorMachineContext type")
-	}
-
-	return supervisorMachineCtx.VSphereMachine.Status.FailureReason != nil || supervisorMachineCtx.VSphereMachine.Status.FailureMessage != nil, nil
+func (v *VmopMachineService) SyncFailureReason(_ context.Context, _ capvcontext.MachineContext) error {
+	return nil
 }
 
 // affinityInfo is an internal struct used to store information about VM affinity.

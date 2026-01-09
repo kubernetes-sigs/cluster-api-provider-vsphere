@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
@@ -31,7 +32,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -326,7 +326,7 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 		return affinityReconcileResult, err
 	}
 
-	clusterCtx.VSphereCluster.Status.Ready = true
+	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = ptr.To(true)
 
 	return reconcile.Result{}, nil
 }
@@ -423,7 +423,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 	}
 
 	readyNotReported, notReady := 0, 0
-	failureDomains := clusterv1beta1.FailureDomains{}
+	var failureDomains []clusterv1.FailureDomain
 	for _, zone := range deploymentZoneList.Items {
 		if zone.Spec.Server != clusterCtx.VSphereCluster.Spec.Server {
 			continue
@@ -431,21 +431,30 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 
 		if zone.Status.Ready == nil {
 			readyNotReported++
-			failureDomains[zone.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: ptr.Deref(zone.Spec.ControlPlane, true),
-			}
+			failureDomains = append(failureDomains, clusterv1.FailureDomain{
+				Name:         zone.Name,
+				ControlPlane: zone.Spec.ControlPlane,
+			})
 			continue
 		}
 
 		if *zone.Status.Ready {
-			failureDomains[zone.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: ptr.Deref(zone.Spec.ControlPlane, true),
-			}
+			failureDomains = append(failureDomains, clusterv1.FailureDomain{
+				Name:         zone.Name,
+				ControlPlane: zone.Spec.ControlPlane,
+			})
 			continue
 		}
 		notReady++
 	}
 
+	// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
+	slices.SortFunc(failureDomains, func(a, b clusterv1.FailureDomain) int {
+		if a.Name < b.Name {
+			return -1
+		}
+		return 1
+	})
 	clusterCtx.VSphereCluster.Status.FailureDomains = failureDomains
 	if readyNotReported > 0 {
 		log.Info("Waiting for failure domains to be reconciled")

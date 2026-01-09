@@ -17,13 +17,17 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/randfill"
 
@@ -70,13 +74,13 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereMachine{},
 		Spoke:       &VSphereMachine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereMachineFuzzFuncs},
 	}))
 	t.Run("for VSphereMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereMachineTemplate{},
 		Spoke:       &VSphereMachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereMachineTemplateFuzzFuncs},
 	}))
 	t.Run("for VSphereVM", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -89,6 +93,7 @@ func TestFuzzyConversion(t *testing.T) {
 func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVSphereClusterStatus,
+		hubVSphereFailureDomain,
 		spokeVSphereClusterStatus,
 	}
 }
@@ -101,6 +106,31 @@ func hubVSphereClusterStatus(in *infrav1.VSphereClusterStatus, c randfill.Contin
 			in.Deprecated = nil
 		}
 	}
+
+	if len(in.FailureDomains) > 0 {
+		in.FailureDomains = nil // Remove all pre-existing potentially invalid FailureDomains
+		for i := range c.Int31n(20) {
+			in.FailureDomains = append(in.FailureDomains,
+				clusterv1.FailureDomain{
+					Name:         fmt.Sprintf("%d-%s", i, c.String(255)), // Ensure valid unique non-empty names.
+					ControlPlane: ptr.To(c.Bool()),
+				},
+			)
+		}
+		// The Cluster controller always ensures alphabetic sorting when writing this field.
+		slices.SortFunc(in.FailureDomains, func(a, b clusterv1.FailureDomain) int {
+			if a.Name < b.Name {
+				return -1
+			}
+			return 1
+		})
+	}
+}
+
+func hubVSphereFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.ControlPlane = ptr.To(c.Bool())
 }
 
 func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
@@ -164,5 +194,36 @@ func spokeVSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, c randfil
 		if reflect.DeepEqual(in.V1Beta2, &VSphereDeploymentZoneV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVSphereMachineStatus,
+		spokeVSphereMachineSpec,
+	}
+}
+
+func hubVSphereMachineStatus(in *infrav1.VSphereMachineStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereMachineV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.ProviderID != nil && *in.ProviderID == "" {
+		in.ProviderID = nil
+	}
+}
+
+func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeVSphereMachineSpec,
 	}
 }

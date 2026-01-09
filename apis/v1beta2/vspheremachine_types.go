@@ -112,10 +112,12 @@ const (
 type VSphereMachineSpec struct {
 	VirtualMachineCloneSpec `json:",inline"`
 
-	// ProviderID is the virtual machine's BIOS UUID formated as
+	// providerID is the virtual machine's BIOS UUID formated as
 	// vsphere://12345678-1234-1234-1234-123456789abc
 	// +optional
-	ProviderID *string `json:"providerID,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ProviderID string `json:"providerID,omitempty"`
 
 	// FailureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
 	// For this infrastructure provider, the name is equivalent to the name of the VSphereDeploymentZone.
@@ -175,11 +177,13 @@ type VSphereVMNamingStrategy struct {
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.
 type VSphereMachineStatus struct {
-	// Ready is true when the provider resource is ready.
+	// initialization provides observations of the VSphereMachine initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization VSphereMachineInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// Addresses contains the VSphere instance associated addresses.
+	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// Network returns the network status for each of the machine's configured
@@ -187,6 +191,54 @@ type VSphereMachineStatus struct {
 	// +optional
 	Network []NetworkStatus `json:"network,omitempty"`
 
+	// Conditions defines current service state of the VSphereMachine.
+	// +optional
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *VSphereMachineV1Beta2Status `json:"v1beta2,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *VSphereMachineDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// VSphereMachineInitializationStatus provides observations of the VSphereMachine initialization process.
+// +kubebuilder:validation:MinProperties=1
+type VSphereMachineInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
+}
+
+// VSphereMachineV1Beta2Status groups all the fields that will be added or modified in VSphereMachineStatus with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereMachineV1Beta2Status struct {
+	// conditions represents the observations of a VSphereMachine's current state.
+	// Known condition types are Ready, VirtualMachineProvisioned and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// VSphereMachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereMachineDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	V1Beta1 *VSphereMachineV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// VSphereMachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereMachineV1Beta1DeprecatedStatus struct {
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
@@ -203,6 +255,9 @@ type VSphereMachineStatus struct {
 	// Any transient errors that occur during the reconciliation of Machines
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
 
@@ -222,28 +277,11 @@ type VSphereMachineStatus struct {
 	// Any transient errors that occur during the reconciliation of Machines
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
-
-	// Conditions defines current service state of the VSphereMachine.
-	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *VSphereMachineV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// VSphereMachineV1Beta2Status groups all the fields that will be added or modified in VSphereMachineStatus with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type VSphereMachineV1Beta2Status struct {
-	// conditions represents the observations of a VSphereMachine's current state.
-	// Known condition types are Ready, VirtualMachineProvisioned and Paused.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

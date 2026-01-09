@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -125,23 +126,31 @@ func (v *VimMachineService) ReconcileDelete(ctx context.Context, machineCtx capv
 }
 
 // SyncFailureReason returns true if the VSphere Machine has failed.
-func (v *VimMachineService) SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
+func (v *VimMachineService) SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) error {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
-		return false, errors.New("received unexpected VIMMachineContext type")
+		return errors.New("received unexpected VIMMachineContext type")
 	}
 
 	vsphereVM, err := v.findVSphereVM(ctx, vimMachineCtx)
 	if err != nil {
-		return false, err
+		return err
 	}
 	if vsphereVM != nil {
 		// Reconcile VSphereMachine's failures
-		vimMachineCtx.VSphereMachine.Status.FailureReason = vsphereVM.Status.FailureReason
-		vimMachineCtx.VSphereMachine.Status.FailureMessage = vsphereVM.Status.FailureMessage
+		if vsphereVM.Status.FailureReason != nil || vsphereVM.Status.FailureMessage != nil {
+			if vimMachineCtx.VSphereMachine.Status.Deprecated == nil {
+				vimMachineCtx.VSphereMachine.Status.Deprecated = &infrav1.VSphereMachineDeprecatedStatus{}
+			}
+			if vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1 == nil {
+				vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1 = &infrav1.VSphereMachineV1Beta1DeprecatedStatus{}
+			}
+			vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1.FailureReason = vsphereVM.Status.FailureReason
+			vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1.FailureMessage = vsphereVM.Status.FailureMessage
+		}
 	}
 
-	return vimMachineCtx.VSphereMachine.Status.FailureReason != nil || vimMachineCtx.VSphereMachine.Status.FailureMessage != nil, err
+	return nil
 }
 
 // ReconcileNormal reconciles create and update events for the VSphere VM.
@@ -196,7 +205,7 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 		return true, nil
 	}
 
-	vimMachineCtx.VSphereMachine.Status.Ready = true
+	vimMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
 	return false, nil
 }
 
@@ -259,8 +268,8 @@ func (v *VimMachineService) reconcileProviderID(ctx context.Context, vimMachineC
 	if providerID == "" {
 		return false, errors.Errorf("failed to reconcile providerID: invalid BIOS UUID %s for %s", biosUUID, vimMachineCtx)
 	}
-	if vimMachineCtx.VSphereMachine.Spec.ProviderID == nil || *vimMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
-		vimMachineCtx.VSphereMachine.Spec.ProviderID = &providerID
+	if vimMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
+		vimMachineCtx.VSphereMachine.Spec.ProviderID = providerID
 		log.Info("Updating providerID on VSphereMachine", "providerID", providerID)
 	}
 

@@ -17,10 +17,17 @@ limitations under the License.
 package v1beta1
 
 import (
+	"maps"
+	"reflect"
+	"slices"
+	"sort"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
@@ -32,6 +39,18 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &infrav1.VSphereCluster{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.VSphereClusterInitializationStatus{}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.VSphereClusterInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 	return nil
 }
 
@@ -41,7 +60,7 @@ func (dst *VSphereCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -122,6 +141,18 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &infrav1.VSphereMachine{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.VSphereMachineInitializationStatus{}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.VSphereMachineInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 	return nil
 }
 
@@ -131,7 +162,11 @@ func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	if dst.Spec.ProviderID != nil && *dst.Spec.ProviderID == "" {
+		dst.Spec.ProviderID = nil
+	}
+
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -147,6 +182,10 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereMachineTemplate)
 	if err := Convert_v1beta2_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(src, dst, nil); err != nil {
 		return err
+	}
+
+	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
+		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
 	return nil
@@ -186,6 +225,20 @@ func Convert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in *in
 		}
 	}
 
+	// Move initialization to old field
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = clusterv1beta1.FailureDomains{}
+		for _, fd := range in.FailureDomains {
+			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
+				ControlPlane: ptr.Deref(fd.ControlPlane, false),
+				Attributes:   fd.Attributes,
+			}
+		}
+	}
+
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
 		return nil
@@ -207,6 +260,21 @@ func Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VS
 	// Retrieve new conditions (v1beta2) from the v1beta2 field.
 	if in.V1Beta2 != nil {
 		out.Conditions = in.V1Beta2.Conditions
+	}
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = []clusterv1.FailureDomain{}
+		domainNames := slices.Collect(maps.Keys(in.FailureDomains))
+		sort.Strings(domainNames)
+		for _, name := range domainNames {
+			fd := in.FailureDomains[name]
+			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
+				Name:         name,
+				ControlPlane: ptr.To(fd.ControlPlane),
+				Attributes:   fd.Attributes,
+			})
+		}
 	}
 
 	// Move legacy conditions (v1beta1) to the deprecated field.
@@ -335,6 +403,44 @@ func Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1beta2_VSphereDeploymentZon
 	if in.Conditions != nil {
 		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
+	return nil
+}
+
+func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *infrav1.VSphereMachineStatus, out *VSphereMachineStatus, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Retrieve legacy failureReason and failureMessage from the deprecated field.
+	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
+		out.FailureReason = in.Deprecated.V1Beta1.FailureReason
+		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
+	}
+
+	// Move initialization to old field
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+
+	return nil
+}
+
+func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VSphereMachineStatus, out *infrav1.VSphereMachineStatus, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Move failureReason and failureMessage to the deprecated field.
+	if in.FailureReason == nil && in.FailureMessage == nil {
+		return nil
+	}
+
+	if out.Deprecated == nil {
+		out.Deprecated = &infrav1.VSphereMachineDeprecatedStatus{}
+	}
+	if out.Deprecated.V1Beta1 == nil {
+		out.Deprecated.V1Beta1 = &infrav1.VSphereMachineV1Beta1DeprecatedStatus{}
+	}
+	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
+	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
 	return nil
 }
 

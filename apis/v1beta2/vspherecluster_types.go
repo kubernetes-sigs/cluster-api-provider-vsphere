@@ -18,7 +18,6 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -115,9 +114,9 @@ type VSphereClusterSpec struct {
 	// +optional
 	Thumbprint string `json:"thumbprint,omitempty"`
 
-	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
 
 	// IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
 	// the identity to use when reconciling the cluster.
@@ -170,11 +169,18 @@ type VSphereClusterStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// initialization provides observations of the VSphereCluster initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
-	Ready bool `json:"ready,omitempty"`
+	Initialization VSphereClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
 
-	// FailureDomains is a list of failure domain objects synced from the infrastructure provider.
-	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
+	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 
 	// VCenterVersion defines the version of the vCenter server defined in the spec.
 	VCenterVersion VCenterVersion `json:"vCenterVersion,omitempty"`
@@ -182,6 +188,15 @@ type VSphereClusterStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *VSphereClusterDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// VSphereClusterInitializationStatus provides observations of the VSphereCluster initialization process.
+// +kubebuilder:validation:MinProperties=1
+type VSphereClusterInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // VSphereClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

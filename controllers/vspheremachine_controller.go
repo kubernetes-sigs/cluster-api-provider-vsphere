@@ -400,15 +400,9 @@ func (r *machineReconciler) reconcileDelete(ctx context.Context, machineCtx capv
 func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capvcontext.MachineContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	machineFailed, err := r.VMService.SyncFailureReason(ctx, machineCtx)
+	err := r.VMService.SyncFailureReason(ctx, machineCtx)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return reconcile.Result{}, err
-	}
-
-	// If the VSphereMachine is in an error state, return early.
-	if machineFailed {
-		log.Error(err, "Error state detected, skipping reconciliation")
-		return reconcile.Result{}, nil
 	}
 
 	// Cluster `.status.initialization.infrastructureProvisioned == false is handled differently depending on if the machine is supervisor based.

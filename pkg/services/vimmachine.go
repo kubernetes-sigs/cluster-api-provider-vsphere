@@ -126,15 +126,15 @@ func (v *VimMachineService) ReconcileDelete(ctx context.Context, machineCtx capv
 }
 
 // SyncFailureReason returns true if the VSphere Machine has failed.
-func (v *VimMachineService) SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
+func (v *VimMachineService) SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) error {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
-		return false, errors.New("received unexpected VIMMachineContext type")
+		return errors.New("received unexpected VIMMachineContext type")
 	}
 
 	vsphereVM, err := v.findVSphereVM(ctx, vimMachineCtx)
 	if err != nil {
-		return false, err
+		return err
 	}
 	if vsphereVM != nil {
 		// Reconcile VSphereMachine's failures
@@ -150,8 +150,7 @@ func (v *VimMachineService) SyncFailureReason(ctx context.Context, machineCtx ca
 		}
 	}
 
-	return vimMachineCtx.VSphereMachine.Status.Deprecated != nil && vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1 != nil &&
-		(vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1.FailureReason != nil || vimMachineCtx.VSphereMachine.Status.Deprecated.V1Beta1.FailureMessage != nil), err
+	return nil
 }
 
 // ReconcileNormal reconciles create and update events for the VSphere VM.

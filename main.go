@@ -333,12 +333,16 @@ func main() {
 	managerOpts.Cache = cache.Options{
 		DefaultNamespaces: watchNamespaces,
 		SyncPeriod:        &syncPeriod,
-		ByObject: map[client.Object]cache.ByObject{
-			// Note: Only VirtualMachines with the cluster name label are cached (vmopmachine.go sets this label).
-			&vmoprv1.VirtualMachine{}: {
-				Label: virtualMachineCacheSelector,
-			},
-		},
+		ByObject: func() map[client.Object]cache.ByObject {
+			byObject := map[client.Object]cache.ByObject{}
+			if isSupervisorCRDLoaded {
+				// Note: Only VirtualMachines with the cluster name label are cached (vmopmachine.go sets this label).
+				byObject[&vmoprv1.VirtualMachine{}] = cache.ByObject{
+					Label: virtualMachineCacheSelector,
+				}
+			}
+			return byObject
+		}(),
 	}
 
 	if enableContentionProfiling {

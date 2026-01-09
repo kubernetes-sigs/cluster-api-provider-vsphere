@@ -233,7 +233,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.ObjectMeta.Annotations[ProviderTagsAnnotationKey]).To(Equal(ControlPlaneVMVMAntiAffinityTagValue))
 
 				Expect(vmopVM.Labels[clusterNameLabel]).To(Equal(clusterName))
-				Expect(vmopVM.Labels[clusterSelectorKey]).To(Equal(clusterName))
+				Expect(vmopVM.Labels[ClusterSelectorKey]).To(Equal(clusterName))
 				Expect(vmopVM.Labels[nodeSelectorKey]).To(Equal(roleControlPlane))
 				// for backward compatibility, will be removed in the future
 				Expect(vmopVM.Labels[legacyClusterSelectorKey]).To(Equal(clusterName))

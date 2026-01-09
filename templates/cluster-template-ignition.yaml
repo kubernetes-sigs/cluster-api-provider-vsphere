@@ -19,7 +19,7 @@ spec:
     kind: VSphereCluster
     name: '${CLUSTER_NAME}'
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereCluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -34,7 +34,7 @@ spec:
   server: '${VSPHERE_SERVER}'
   thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: '${CLUSTER_NAME}'

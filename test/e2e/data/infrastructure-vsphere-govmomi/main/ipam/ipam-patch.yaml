@@ -1,4 +1,4 @@
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: '${CLUSTER_NAME}'
@@ -18,7 +18,7 @@ spec:
           - ${IPAM_NAMESERVER:-8.8.8.8}
           networkName: '${VSPHERE_NETWORK}'
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: '${CLUSTER_NAME}-worker'

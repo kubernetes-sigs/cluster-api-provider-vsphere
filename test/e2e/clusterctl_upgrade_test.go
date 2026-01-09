@@ -73,7 +73,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15
 				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
-					{ // Upgrade to latest v1beta1.
+					{ // Upgrade to latest version of this contract.
 						Contract: clusterv1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
@@ -127,7 +127,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15
 				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
-					{ // Upgrade to latest v1beta1.
+					{ // Upgrade to latest version of this contract.
 						Contract: clusterv1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
@@ -181,7 +181,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.14
 				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
-					{ // Upgrade to latest v1beta1.
+					{ // Upgrade to latest version of this contract.
 						Contract: clusterv1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
@@ -235,7 +235,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13
 				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
-					{ // Upgrade to latest v1beta1.
+					{ // Upgrade to latest version of this contract.
 						Contract: clusterv1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,

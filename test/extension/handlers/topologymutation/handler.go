@@ -38,6 +38,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/clusterclass"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/kubevip"
@@ -57,6 +58,7 @@ type ExtensionHandlers struct {
 // NewExtensionHandlers returns a new ExtensionHandlers for the topology mutation hook handlers.
 func NewExtensionHandlers() *ExtensionHandlers {
 	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
 	_ = vmwarev1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
@@ -64,6 +66,7 @@ func NewExtensionHandlers() *ExtensionHandlers {
 	return &ExtensionHandlers{
 		// Add the apiGroups being handled to the decoder
 		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
+			infrav1.GroupVersion,
 			infrav1beta1.GroupVersion,
 			vmwarev1.GroupVersion,
 			controlplanev1.GroupVersion,
@@ -99,12 +102,12 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 					log.Error(err, "Error patching KubeadmConfigTemplate")
 					return errors.Wrap(err, "error patching KubeadmConfigTemplate")
 				}
-			case *infrav1beta1.VSphereClusterTemplate:
+			case *infrav1beta1.VSphereClusterTemplate, *infrav1.VSphereClusterTemplate:
 				if err := patchGovmomiClusterTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching VSphereClusterTemplate")
 					return errors.Wrap(err, "error patching VSphereClusterTemplate")
 				}
-			case *infrav1beta1.VSphereMachineTemplate:
+			case *infrav1beta1.VSphereMachineTemplate, *infrav1.VSphereMachineTemplate:
 				if err := patchGovmomiMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
 					log.Error(err, "Error patching VSphereMachineTemplate")
 					return errors.Wrap(err, "error patching VSphereMachineTemplate")
@@ -251,7 +254,7 @@ func patchUsers(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, templateVariab
 
 // patchGovmomiClusterTemplate patches the govmomi VSphereClusterTemplate.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchGovmomiClusterTemplate(_ context.Context, vsphereCluster *infrav1beta1.VSphereClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchGovmomiClusterTemplate(_ context.Context, vsphereCluster runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	// patch infraClusterSubstitutions
 	controlPlaneIPAddr, err := topologymutation.GetStringVariable(templateVariables, "controlPlaneIpAddr")
 	if err != nil {
@@ -261,33 +264,39 @@ func patchGovmomiClusterTemplate(_ context.Context, vsphereCluster *infrav1beta1
 	if err := topologymutation.GetObjectVariableInto(templateVariables, "controlPlanePort", &controlPlanePort); err != nil {
 		return err
 	}
-
-	vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Host = controlPlaneIPAddr
-	vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Port = controlPlanePort
-
 	credsSecretName, err := topologymutation.GetStringVariable(templateVariables, "credsSecretName")
 	if err != nil {
 		return err
 	}
-
-	vsphereCluster.Spec.Template.Spec.IdentityRef = &infrav1beta1.VSphereIdentityReference{
-		Kind: infrav1beta1.SecretKind,
-		Name: credsSecretName,
-	}
-
 	infraServerURL, err := topologymutation.GetStringVariable(templateVariables, "infraServer.url")
 	if err != nil {
 		return err
 	}
-
-	vsphereCluster.Spec.Template.Spec.Server = infraServerURL
-
 	infraServerThumbprint, err := topologymutation.GetStringVariable(templateVariables, "infraServer.thumbprint")
 	if err != nil {
 		return err
 	}
 
-	vsphereCluster.Spec.Template.Spec.Thumbprint = infraServerThumbprint
+	switch vsphereCluster := vsphereCluster.(type) {
+	case *infrav1beta1.VSphereClusterTemplate:
+		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Host = controlPlaneIPAddr
+		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Port = controlPlanePort
+		vsphereCluster.Spec.Template.Spec.IdentityRef = &infrav1beta1.VSphereIdentityReference{
+			Kind: infrav1beta1.SecretKind,
+			Name: credsSecretName,
+		}
+		vsphereCluster.Spec.Template.Spec.Server = infraServerURL
+		vsphereCluster.Spec.Template.Spec.Thumbprint = infraServerThumbprint
+	case *infrav1.VSphereClusterTemplate:
+		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Host = controlPlaneIPAddr
+		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Port = controlPlanePort
+		vsphereCluster.Spec.Template.Spec.IdentityRef = &infrav1.VSphereIdentityReference{
+			Kind: infrav1.SecretKind,
+			Name: credsSecretName,
+		}
+		vsphereCluster.Spec.Template.Spec.Server = infraServerURL
+		vsphereCluster.Spec.Template.Spec.Thumbprint = infraServerThumbprint
+	}
 
 	return nil
 }
@@ -313,11 +322,18 @@ func patchSupervisorClusterTemplate(_ context.Context, vsphereCluster *vmwarev1.
 
 // patchGovmomiMachineTemplate patches the govmomi VSphereMachineTemplate.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate *infrav1beta1.VSphereMachineTemplate, templateVariables map[string]apiextensionsv1.JSON, isControlPlane bool) error {
-	// patch vSphereTemplate
+func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate runtime.Object, templateVariables map[string]apiextensionsv1.JSON, isControlPlane bool) error {
+	imageName, err := calculateImageName(templateVariables, isControlPlane)
+	if err != nil {
+		return err
+	}
 
-	var err error
-	vsphereMachineTemplate.Spec.Template.Spec.Template, err = calculateImageName(templateVariables, isControlPlane)
+	switch vsphereMachineTemplate := vsphereMachineTemplate.(type) {
+	case *infrav1beta1.VSphereMachineTemplate:
+		vsphereMachineTemplate.Spec.Template.Spec.Template = imageName
+	case *infrav1.VSphereMachineTemplate:
+		vsphereMachineTemplate.Spec.Template.Spec.Template = imageName
+	}
 
 	return err
 }

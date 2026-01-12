@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.13.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251223/core-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20260112/core-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -67,7 +67,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "v1.13.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251223/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20260112/bootstrap-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -107,7 +107,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "v1.13.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251223/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20260112/control-plane-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -192,10 +192,6 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-conformance-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-ownerrefs-finalizers-supervisor.yaml"
           - sourcePath: "../data/shared/capv/main/metadata.yaml"
-        replacements:
-          # Disable KUBE_FEATURE_WatchListClient for now in e2e tests because Service informers don't work with vcsim.
-          - old: "- name: KUBE_FEATURE_WatchListClient\n          value: \"true\""
-            new: "- name: KUBE_FEATURE_WatchListClient\n          value: \"false\""
       - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.15}"
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.15}/infrastructure-components.yaml"
         type: "url"

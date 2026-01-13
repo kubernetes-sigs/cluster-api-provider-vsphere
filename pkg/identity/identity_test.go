@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
@@ -47,6 +48,9 @@ var _ = Describe("GetCredentials", func() {
 				GenerateName: "cluster-",
 				Namespace:    ns.Name,
 			},
+			Spec: infrav1.VSphereClusterSpec{
+				Server: "test-server",
+			},
 		}
 
 		Expect(k8sclient.Create(ctx, cluster)).To(Succeed())
@@ -67,7 +71,7 @@ var _ = Describe("GetCredentials", func() {
 		It("should return true if cluster spec identity Ref is not nil", func() {
 			credentialSecret := createSecret(cluster.Namespace)
 			cluster.Spec = infrav1.VSphereClusterSpec{
-				IdentityRef: &infrav1.VSphereIdentityReference{
+				IdentityRef: infrav1.VSphereIdentityReference{
 					Kind: infrav1.SecretKind,
 					Name: credentialSecret.Name,
 				},
@@ -79,10 +83,11 @@ var _ = Describe("GetCredentials", func() {
 		It("should find and return credentials from a secret within same namespace", func() {
 			credentialSecret := createSecret(cluster.Namespace)
 			cluster.Spec = infrav1.VSphereClusterSpec{
-				IdentityRef: &infrav1.VSphereIdentityReference{
+				IdentityRef: infrav1.VSphereIdentityReference{
 					Kind: infrav1.SecretKind,
 					Name: credentialSecret.Name,
 				},
+				Server: "test-server",
 			}
 			Expect(k8sclient.Update(ctx, cluster)).To(Succeed())
 			creds, err := GetCredentials(ctx, k8sclient, cluster, manager.DefaultPodNamespace)
@@ -94,10 +99,11 @@ var _ = Describe("GetCredentials", func() {
 		It("should error if secret is not in the same namespace as the cluster", func() {
 			credentialSecret := createSecret(manager.DefaultPodNamespace)
 			cluster.Spec = infrav1.VSphereClusterSpec{
-				IdentityRef: &infrav1.VSphereIdentityReference{
+				IdentityRef: infrav1.VSphereIdentityReference{
 					Kind: infrav1.SecretKind,
 					Name: credentialSecret.Name,
 				},
+				Server: "test-server",
 			}
 			Expect(k8sclient.Update(ctx, cluster)).To(Succeed())
 
@@ -120,10 +126,11 @@ var _ = Describe("GetCredentials", func() {
 			Expect(k8sclient.Update(ctx, ns)).To(Succeed())
 
 			cluster.Spec = infrav1.VSphereClusterSpec{
-				IdentityRef: &infrav1.VSphereIdentityReference{
+				IdentityRef: infrav1.VSphereIdentityReference{
 					Kind: infrav1.VSphereClusterIdentityKind,
 					Name: identity.Name,
 				},
+				Server: "test-server",
 			}
 			Expect(k8sclient.Update(ctx, cluster)).To(Succeed())
 
@@ -150,10 +157,11 @@ var _ = Describe("GetCredentials", func() {
 			Expect(k8sclient.Update(ctx, ns)).To(Succeed())
 
 			cluster.Spec = infrav1.VSphereClusterSpec{
-				IdentityRef: &infrav1.VSphereIdentityReference{
+				IdentityRef: infrav1.VSphereIdentityReference{
 					Kind: infrav1.VSphereClusterIdentityKind,
 					Name: identity.Name,
 				},
+				Server: "test-server",
 			}
 			Expect(k8sclient.Update(ctx, cluster)).To(Succeed())
 
@@ -166,10 +174,11 @@ var _ = Describe("GetCredentials", func() {
 			identity := createIdentity(credentialSecret.Name)
 
 			cluster.Spec = infrav1.VSphereClusterSpec{
-				IdentityRef: &infrav1.VSphereIdentityReference{
+				IdentityRef: infrav1.VSphereIdentityReference{
 					Kind: infrav1.VSphereClusterIdentityKind,
 					Name: identity.Name,
 				},
+				Server: "test-server",
 			}
 			Expect(k8sclient.Update(ctx, cluster)).To(Succeed())
 
@@ -180,7 +189,7 @@ var _ = Describe("GetCredentials", func() {
 		It("should error if identity isn't Ready", func() {
 			credentialSecret := createSecret(manager.DefaultPodNamespace)
 			identity := createIdentity(credentialSecret.Name)
-			identity.Status.Ready = false
+			identity.Status.Ready = ptr.To(false)
 			Expect(k8sclient.Status().Update(ctx, identity)).To(Succeed())
 
 			labels := ns.Labels
@@ -192,10 +201,11 @@ var _ = Describe("GetCredentials", func() {
 			Expect(k8sclient.Update(ctx, ns)).To(Succeed())
 
 			cluster.Spec = infrav1.VSphereClusterSpec{
-				IdentityRef: &infrav1.VSphereIdentityReference{
+				IdentityRef: infrav1.VSphereIdentityReference{
 					Kind: infrav1.VSphereClusterIdentityKind,
 					Name: identity.Name,
 				},
+				Server: "test-server",
 			}
 			Expect(k8sclient.Update(ctx, cluster)).To(Succeed())
 
@@ -224,6 +234,9 @@ var _ = Describe("validateInputs", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "cluster-",
 				Namespace:    ns.Name,
+			},
+			Spec: infrav1.VSphereClusterSpec{
+				Server: "test-server",
 			},
 		}
 		Expect(k8sclient.Create(ctx, cluster)).To(Succeed())
@@ -284,7 +297,7 @@ func createIdentity(secretName string) *infrav1.VSphereClusterIdentity {
 		},
 	}
 	Expect(k8sclient.Create(ctx, identity)).To(Succeed())
-	identity.Status.Ready = true
+	identity.Status.Ready = ptr.To(true)
 	Expect(k8sclient.Status().Update(ctx, identity)).To(Succeed())
 	return identity
 }

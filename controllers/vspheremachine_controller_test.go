@@ -91,7 +91,9 @@ var _ = Describe("VsphereMachineReconciler", func() {
 					},
 				},
 			},
-			Spec: infrav1.VSphereClusterSpec{},
+			Spec: infrav1.VSphereClusterSpec{
+				Server: "test-server",
+			},
 		}
 		Expect(testEnv.Create(ctx, infraCluster)).To(Succeed())
 
@@ -144,7 +146,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 					Template: "ubuntu-k9s-1.19",
 					Network: infrav1.NetworkSpec{
 						Devices: []infrav1.NetworkDeviceSpec{
-							{NetworkName: "network-1", DHCP4: true},
+							{NetworkName: "network-1", DHCP4: ptr.To(true)},
 						},
 					},
 				},
@@ -264,7 +266,9 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 				},
 			},
 		},
-		Spec: infrav1.VSphereClusterSpec{},
+		Spec: infrav1.VSphereClusterSpec{
+			Server: "test-server",
+		},
 	}
 
 	capiMachine := &clusterv1.Machine{
@@ -324,7 +328,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 				Template: "ubuntu-k9s-1.19",
 				Network: infrav1.NetworkSpec{
 					Devices: []infrav1.NetworkDeviceSpec{
-						{NetworkName: "network-1", DHCP4: true},
+						{NetworkName: "network-1", DHCP4: ptr.To(true)},
 					},
 				},
 			},
@@ -372,7 +376,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 					Template: "ubuntu-k9s-1.19",
 					Network: infrav1.NetworkSpec{
 						Devices: []infrav1.NetworkDeviceSpec{
-							{NetworkName: "network-1", DHCP4: true},
+							{NetworkName: "network-1", DHCP4: ptr.To(true)},
 						},
 					},
 				},

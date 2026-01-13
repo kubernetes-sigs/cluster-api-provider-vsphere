@@ -192,10 +192,10 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			},
 		})()
 		fakeVMSvc := new(fake_svc.VMService)
-		fakeVMSvc.On("ReconcileVM", mock.Anything).Return(infrav1.VirtualMachine{
+		fakeVMSvc.On("ReconcileVM", mock.Anything).Return(services.VirtualMachine{
 			Name:     vsphereVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
-			State:    infrav1.VirtualMachineStatePending,
+			State:    services.VirtualMachineStatePending,
 			Network:  nil,
 		}, nil)
 		r := setupReconciler(fakeVMSvc)
@@ -219,16 +219,16 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	t.Run("Waiting for IP addr allocation", func(t *testing.T) {
 		create(infrav1.NetworkSpec{
 			Devices: []infrav1.NetworkDeviceSpec{
-				{NetworkName: "nw-1", DHCP4: true},
+				{NetworkName: "nw-1", DHCP4: ptr.To(true)},
 			},
 		})()
 		fakeVMSvc := new(fake_svc.VMService)
-		fakeVMSvc.On("ReconcileVM", mock.Anything).Return(infrav1.VirtualMachine{
+		fakeVMSvc.On("ReconcileVM", mock.Anything).Return(services.VirtualMachine{
 			Name:     vsphereVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
-			State:    infrav1.VirtualMachineStateReady,
+			State:    services.VirtualMachineStateReady,
 			Network: []infrav1.NetworkStatus{{
-				Connected:   true,
+				Connected:   ptr.To(true),
 				IPAddrs:     []string{}, // empty array to show waiting for IP address
 				MACAddr:     "blah-mac",
 				NetworkName: vsphereVM.Spec.Network.Devices[0].NetworkName,
@@ -271,12 +271,12 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vsphereVM.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
 		fakeVMSvc := new(fake_svc.VMService)
-		fakeVMSvc.On("DestroyVM", mock.Anything).Return(reconcile.Result{}, infrav1.VirtualMachine{
+		fakeVMSvc.On("DestroyVM", mock.Anything).Return(reconcile.Result{}, services.VirtualMachine{
 			Name:     vsphereVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
-			State:    infrav1.VirtualMachineStateNotFound,
+			State:    services.VirtualMachineStateNotFound,
 			Network: []infrav1.NetworkStatus{{
-				Connected:   true,
+				Connected:   ptr.To(true),
 				IPAddrs:     []string{}, // empty array to show waiting for IP address
 				MACAddr:     "blah-mac",
 				NetworkName: vsphereVM.Spec.Network.Devices[0].NetworkName,
@@ -311,13 +311,13 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 	}{
 		{
 			name:       "for one n/w device with DHCP set to true",
-			devices:    []infrav1.NetworkDeviceSpec{{DHCP4: true, NetworkName: "nw-1"}},
+			devices:    []infrav1.NetworkDeviceSpec{{DHCP4: ptr.To(true), NetworkName: "nw-1"}},
 			shouldWait: false,
 		},
 		{
 			name: "for multiple n/w devices with DHCP set and unset",
 			devices: []infrav1.NetworkDeviceSpec{
-				{DHCP4: true, NetworkName: "nw-1"},
+				{DHCP4: ptr.To(true), NetworkName: "nw-1"},
 				{NetworkName: "nw-2"},
 			},
 			shouldWait: true,
@@ -348,7 +348,7 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 		{
 			name: "for one n/w devices with SkipIPAllocation set",
 			devices: []infrav1.NetworkDeviceSpec{
-				{NetworkName: "nw-1", SkipIPAllocation: true},
+				{NetworkName: "nw-1", SkipIPAllocation: ptr.To(true)},
 			},
 			shouldWait: false,
 		},
@@ -356,7 +356,7 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 			name: "for multiple n/w devices with SkipIPAllocation set for the second one",
 			devices: []infrav1.NetworkDeviceSpec{
 				{NetworkName: "nw-1", IPAddrs: []string{"192.168.1.2/32"}},
-				{NetworkName: "nw-2", SkipIPAllocation: true},
+				{NetworkName: "nw-2", SkipIPAllocation: ptr.To(true)},
 			},
 			shouldWait: false,
 		},
@@ -364,7 +364,7 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 			name: "for multiple n/w devices with SkipIPAllocation set only for one",
 			devices: []infrav1.NetworkDeviceSpec{
 				{NetworkName: "nw-1"},
-				{NetworkName: "nw-2", SkipIPAllocation: true},
+				{NetworkName: "nw-2", SkipIPAllocation: ptr.To(true)},
 			},
 			shouldWait: true,
 		},
@@ -414,7 +414,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 			Namespace: "test",
 		},
 		Spec: infrav1.VSphereClusterSpec{
-			IdentityRef: &infrav1.VSphereIdentityReference{
+			IdentityRef: infrav1.VSphereIdentityReference{
 				Kind: infrav1.SecretKind,
 				Name: secret.Name,
 			},
@@ -587,10 +587,10 @@ func Test_reconcile(t *testing.T) {
 		t.Run("when info cannot be fetched", func(t *testing.T) {
 			t.Run("when anti affinity feature gate is turned off", func(t *testing.T) {
 				fakeVMSvc := new(fake_svc.VMService)
-				fakeVMSvc.On("ReconcileVM", mock.Anything).Return(infrav1.VirtualMachine{
+				fakeVMSvc.On("ReconcileVM", mock.Anything).Return(services.VirtualMachine{
 					Name:     vsphereVM.Name,
 					BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
-					State:    infrav1.VirtualMachineStateReady,
+					State:    services.VirtualMachineStateReady,
 				}, nil)
 				r := setupReconciler(fakeVMSvc, initObjs...)
 				_, err := r.reconcile(ctx, &capvcontext.VMContext{
@@ -625,10 +625,10 @@ func Test_reconcile(t *testing.T) {
 			objsWithHierarchy := initObjs
 			objsWithHierarchy = append(objsWithHierarchy, createMachineOwnerHierarchy(machine)...)
 			fakeVMSvc := new(fake_svc.VMService)
-			fakeVMSvc.On("ReconcileVM", mock.Anything).Return(infrav1.VirtualMachine{
+			fakeVMSvc.On("ReconcileVM", mock.Anything).Return(services.VirtualMachine{
 				Name:     vsphereVM.Name,
 				BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
-				State:    infrav1.VirtualMachineStateReady,
+				State:    services.VirtualMachineStateReady,
 				VMRef:    "VirtualMachine:vm-129",
 			}, nil)
 
@@ -653,10 +653,10 @@ func Test_reconcile(t *testing.T) {
 		deletedVM.Finalizers = append(deletedVM.Finalizers, "keep-this-for-the-test")
 
 		fakeVMSvc := new(fake_svc.VMService)
-		fakeVMSvc.On("DestroyVM", mock.Anything).Return(reconcile.Result{}, infrav1.VirtualMachine{
+		fakeVMSvc.On("DestroyVM", mock.Anything).Return(reconcile.Result{}, services.VirtualMachine{
 			Name:     deletedVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
-			State:    infrav1.VirtualMachineStateNotFound,
+			State:    services.VirtualMachineStateNotFound,
 		}, nil)
 
 		initObjs := []client.Object{vsphereCluster, machine, deletedVM}

@@ -22,7 +22,9 @@ import (
 
 // VSphereClusterTemplateSpec defines the desired state of VSphereClusterTemplate.
 type VSphereClusterTemplateSpec struct {
-	Template VSphereClusterTemplateResource `json:"template"`
+	// template defines the desired state of VSphereClusterTemplate.
+	// +required
+	Template VSphereClusterTemplateResource `json:"template,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -31,10 +33,15 @@ type VSphereClusterTemplateSpec struct {
 
 // VSphereClusterTemplate is the Schema for the vsphereclustertemplates API.
 type VSphereClusterTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec VSphereClusterTemplateSpec `json:"spec,omitempty"`
+	// spec is the desired state of VSphereClusterTemplate.
+	// +optional
+	Spec VSphereClusterTemplateSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -51,6 +58,9 @@ func init() {
 }
 
 // VSphereClusterTemplateResource describes the data for creating a VSphereCluster from a template.
+// +kubebuilder:validation:MinProperties=1
 type VSphereClusterTemplateResource struct {
-	Spec VSphereClusterSpec `json:"spec"`
+	// spec is the desired state of VSphereClusterTemplateResource.
+	// +optional
+	Spec VSphereClusterSpec `json:"spec,omitempty,omitzero"`
 }

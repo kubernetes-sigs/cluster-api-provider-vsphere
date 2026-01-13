@@ -21,9 +21,11 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
@@ -50,7 +52,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereClusterTemplate{},
 		Spoke:       &VSphereClusterTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterTemplateFuzzFuncs},
 	}))
 	t.Run("for VSphereClusterIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -68,7 +70,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereFailureDomain{},
 		Spoke:       &VSphereFailureDomain{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereFailureDomainFuzzFuncs},
 	}))
 	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -86,7 +88,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereVM{},
 		Spoke:       &VSphereVM{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereVMFuzzFuncs},
 	}))
 }
 
@@ -94,6 +96,7 @@ func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVSphereClusterStatus,
 		hubVSphereFailureDomain,
+		spokeVSphereClusterSpec,
 		spokeVSphereClusterStatus,
 	}
 }
@@ -133,6 +136,14 @@ func hubVSphereFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 	in.ControlPlane = ptr.To(c.Bool())
 }
 
+func spokeVSphereClusterSpec(in *VSphereClusterSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.IdentityRef != nil && reflect.DeepEqual(in.IdentityRef, &VSphereIdentityReference{}) {
+		in.IdentityRef = nil
+	}
+}
+
 func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
@@ -140,6 +151,12 @@ func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeVSphereClusterSpec,
 	}
 }
 
@@ -197,6 +214,25 @@ func spokeVSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, c randfil
 	}
 }
 
+func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeVSphereFailureDomainSpec,
+	}
+}
+
+func spokeVSphereFailureDomainSpec(in *VSphereFailureDomainSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.Topology.Hosts != nil {
+		if reflect.DeepEqual(in.Topology.Hosts, &FailureDomainHosts{}) {
+			in.Topology.Hosts = nil
+		}
+	}
+
+	if in.Topology.ComputeCluster != nil && *in.Topology.ComputeCluster == "" {
+		in.Topology.ComputeCluster = nil
+	}
+}
+
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVSphereMachineStatus,
@@ -220,10 +256,36 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 	if in.ProviderID != nil && *in.ProviderID == "" {
 		in.ProviderID = nil
 	}
+
+	if in.FailureDomain != nil && *in.FailureDomain == "" {
+		in.FailureDomain = nil
+	}
+
+	if in.NamingStrategy != nil && in.NamingStrategy.Template != nil && *in.NamingStrategy.Template == "" {
+		in.NamingStrategy.Template = nil
+	}
+
+	if in.GuestSoftPowerOffTimeout != nil {
+		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
 }
 
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeVSphereMachineSpec,
+	}
+}
+
+func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeVSphereVMSpec,
+	}
+}
+
+func spokeVSphereVMSpec(in *VSphereVMSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.GuestSoftPowerOffTimeout != nil {
+		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }

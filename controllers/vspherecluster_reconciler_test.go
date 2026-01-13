@@ -84,7 +84,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Namespace:    "default",
 				},
 				Spec: infrav1.VSphereClusterSpec{
-					IdentityRef: &infrav1.VSphereIdentityReference{
+					IdentityRef: infrav1.VSphereIdentityReference{
 						Kind: infrav1.SecretKind,
 						Name: secret.Name,
 					},
@@ -206,10 +206,11 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Namespace:    "default",
 				},
 				Spec: infrav1.VSphereClusterSpec{
-					IdentityRef: &infrav1.VSphereIdentityReference{
+					IdentityRef: infrav1.VSphereIdentityReference{
 						Kind: infrav1.SecretKind,
 						Name: secret.Name,
 					},
+					Server: "test-server",
 				},
 			}
 
@@ -280,10 +281,11 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				}},
 			},
 			Spec: infrav1.VSphereClusterSpec{
-				IdentityRef: &infrav1.VSphereIdentityReference{
+				IdentityRef: infrav1.VSphereIdentityReference{
 					Kind: infrav1.SecretKind,
 					Name: "foo",
 				},
+				Server: "test-server",
 			},
 		}
 
@@ -319,6 +321,9 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				Finalizers: []string{infrav1.ClusterFinalizer},
 				Name:       "vsphere-test1",
 				Namespace:  "default",
+			},
+			Spec: infrav1.VSphereClusterSpec{
+				Server: "test-server",
 			},
 		}
 

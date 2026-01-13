@@ -355,26 +355,30 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereFailureDomainSpec defines the desired state of VSphereFailureDomain.
+            description: spec is the desired state of VSphereFailureDomain.
             properties:
               region:
-                description: Region defines the name and type of a region
+                description: region defines the name and type of a region
                 properties:
                   autoConfigure:
                     description: |-
-                      AutoConfigure tags the Type which is specified in the Topology
+                      autoConfigure tags the Type which is specified in the Topology
 
                       Deprecated: This field is going to be removed in a future release.
                     type: boolean
                   name:
-                    description: Name is the name of the tag that represents this
+                    description: name is the name of the tag that represents this
                       failure domain
+                    maxLength: 1024
+                    minLength: 1
                     type: string
                   tagCategory:
-                    description: TagCategory is the category used for the tag
+                    description: tagCategory is the category used for the tag
+                    maxLength: 1024
+                    minLength: 1
                     type: string
                   type:
-                    description: Type is the type of failure domain, the current values
+                    description: type is the type of failure domain, the current values
                       are "Datacenter", "ComputeCluster" and "HostGroup"
                     enum:
                     - Datacenter
@@ -387,36 +391,46 @@ spec:
                 - type
                 type: object
               topology:
-                description: Topology describes a given failure domain using vSphere
+                description: topology describes a given failure domain using vSphere
                   constructs
                 properties:
                   computeCluster:
-                    description: ComputeCluster as the failure domain
+                    description: computeCluster as the failure domain
+                    maxLength: 2048
+                    minLength: 1
                     type: string
                   datacenter:
-                    description: Datacenter as the failure domain.
+                    description: datacenter as the failure domain.
+                    maxLength: 2048
+                    minLength: 1
                     type: string
                   datastore:
                     description: |-
-                      Datastore is the name or inventory path of the datastore in which the
+                      datastore is the name or inventory path of the datastore in which the
                       virtual machine is created/located.
+                    maxLength: 2048
+                    minLength: 1
                     type: string
                   hosts:
-                    description: Hosts has information required for placement of machines
+                    description: hosts has information required for placement of machines
                       on VSphere hosts.
                     properties:
                       hostGroupName:
-                        description: HostGroupName is the name of the Host group
+                        description: hostGroupName is the name of the Host group
+                        maxLength: 2048
+                        minLength: 1
                         type: string
                       vmGroupName:
-                        description: VMGroupName is the name of the VM group
+                        description: vmGroupName is the name of the VM group
+                        maxLength: 2048
+                        minLength: 1
                         type: string
                     required:
                     - hostGroupName
                     - vmGroupName
                     type: object
                   networkConfigurations:
-                    description: NetworkConfigurations is a list of network configurations
+                    description: networkConfigurations is a list of network configurations
                       within this failure domain.
                     items:
                       description: |-
@@ -425,7 +439,7 @@ spec:
                       properties:
                         addressesFromPools:
                           description: |-
-                            AddressesFromPools is a list of IPAddressPools that should be assigned
+                            addressesFromPools is a list of IPAddressPools that should be assigned
                             to IPAddressClaims. The machine's cloud-init metadata will be populated
                             with IPAddresses fulfilled by an IPAM provider.
                           items:
@@ -450,14 +464,16 @@ spec:
                             - name
                             type: object
                             x-kubernetes-map-type: atomic
+                          maxItems: 128
                           type: array
+                          x-kubernetes-list-type: atomic
                         dhcp4:
-                          description: DHCP4 is a flag that indicates whether or not
+                          description: dhcp4 is a flag that indicates whether or not
                             to use DHCP for IPv4.
                           type: boolean
                         dhcp4Overrides:
                           description: |-
-                            DHCP4Overrides allows for the control over several DHCP behaviors.
+                            dhcp4Overrides allows for the control over several DHCP behaviors.
                             Overrides will only be applied when the corresponding DHCP flag is set.
                             Only configured values will be sent, omitted values will default to
                             distribution defaults.
@@ -466,59 +482,64 @@ spec:
                           properties:
                             hostname:
                               description: |-
-                                Hostname is the name which will be sent to the DHCP server instead of
+                                hostname is the name which will be sent to the DHCP server instead of
                                 the machine's hostname.
+                              maxLength: 1024
                               type: string
                             routeMetric:
                               description: |-
-                                RouteMetric is used to prioritize routes for devices. A lower metric for
+                                routeMetric is used to prioritize routes for devices. A lower metric for
                                 an interface will have a higher priority.
+                              format: int32
+                              minimum: 0
                               type: integer
                             sendHostname:
                               description: |-
-                                SendHostname when `true`, the hostname of the machine will be sent to the
+                                sendHostname when `true`, the hostname of the machine will be sent to the
                                 DHCP server.
                               type: boolean
                             useDNS:
                               description: |-
-                                UseDNS when `true`, the DNS servers in the DHCP server will be used and
+                                useDNS when `true`, the DNS servers in the DHCP server will be used and
                                 take precedence.
                               type: boolean
                             useDomains:
                               description: |-
-                                UseDomains can take the values `true`, `false`, or `route`. When `true`,
+                                useDomains can take the values `true`, `false`, or `route`. When `true`,
                                 the domain name from the DHCP server will be used as the DNS search
                                 domain for this device. When `route`, the domain name from the DHCP
                                 response will be used for routing DNS only, not for searching.
+                              maxLength: 128
                               type: string
                             useHostname:
                               description: |-
-                                UseHostname when `true`, the hostname from the DHCP server will be set
+                                useHostname when `true`, the hostname from the DHCP server will be set
                                 as the transient hostname of the machine.
                               type: boolean
                             useMTU:
                               description: |-
-                                UseMTU when `true`, the MTU from the DHCP server will be set as the
+                                useMTU when `true`, the MTU from the DHCP server will be set as the
                                 MTU of the device.
                               type: boolean
                             useNTP:
                               description: |-
-                                UseNTP when `true`, the NTP servers from the DHCP server will be used
+                                useNTP when `true`, the NTP servers from the DHCP server will be used
                                 by systemd-timesyncd and take precedence.
                               type: boolean
                             useRoutes:
                               description: |-
-                                UseRoutes when `true`, the routes from the DHCP server will be installed
+                                useRoutes when `true`, the routes from the DHCP server will be installed
                                 in the routing table.
+                              maxLength: 128
                               type: string
                           type: object
                         dhcp6:
-                          description: DHCP6 is a flag that indicates whether or not
+                          description: dhcp6 is a flag that indicates whether or not
                             to use DHCP for IPv6.
                           type: boolean
                         dhcp6Overrides:
                           description: |-
-                            DHCP6Overrides allows for the control over several DHCP behaviors.
+                            dhcp6Overrides allows for the control over several DHCP behaviors.
                             Overrides will only be applied when the corresponding DHCP flag is set.
                             Only configured values will be sent, omitted values will default to
                             distribution defaults.
@@ -527,105 +548,129 @@ spec:
                           properties:
                             hostname:
                               description: |-
-                                Hostname is the name which will be sent to the DHCP server instead of
+                                hostname is the name which will be sent to the DHCP server instead of
                                 the machine's hostname.
+                              maxLength: 1024
                               type: string
                             routeMetric:
                               description: |-
-                                RouteMetric is used to prioritize routes for devices. A lower metric for
+                                routeMetric is used to prioritize routes for devices. A lower metric for
                                 an interface will have a higher priority.
+                              format: int32
+                              minimum: 0
                               type: integer
                             sendHostname:
                               description: |-
-                                SendHostname when `true`, the hostname of the machine will be sent to the
+                                sendHostname when `true`, the hostname of the machine will be sent to the
                                 DHCP server.
                               type: boolean
                             useDNS:
                               description: |-
-                                UseDNS when `true`, the DNS servers in the DHCP server will be used and
+                                useDNS when `true`, the DNS servers in the DHCP server will be used and
                                 take precedence.
                               type: boolean
                             useDomains:
                               description: |-
-                                UseDomains can take the values `true`, `false`, or `route`. When `true`,
+                                useDomains can take the values `true`, `false`, or `route`. When `true`,
                                 the domain name from the DHCP server will be used as the DNS search
                                 domain for this device. When `route`, the domain name from the DHCP
                                 response will be used for routing DNS only, not for searching.
+                              maxLength: 128
                               type: string
                             useHostname:
                               description: |-
-                                UseHostname when `true`, the hostname from the DHCP server will be set
+                                useHostname when `true`, the hostname from the DHCP server will be set
                                 as the transient hostname of the machine.
                               type: boolean
                             useMTU:
                               description: |-
-                                UseMTU when `true`, the MTU from the DHCP server will be set as the
+                                useMTU when `true`, the MTU from the DHCP server will be set as the
                                 MTU of the device.
                               type: boolean
                             useNTP:
                               description: |-
-                                UseNTP when `true`, the NTP servers from the DHCP server will be used
+                                useNTP when `true`, the NTP servers from the DHCP server will be used
                                 by systemd-timesyncd and take precedence.
                               type: boolean
                             useRoutes:
                               description: |-
-                                UseRoutes when `true`, the routes from the DHCP server will be installed
+                                useRoutes when `true`, the routes from the DHCP server will be installed
                                 in the routing table.
+                              maxLength: 128
                               type: string
                           type: object
                         nameservers:
                           description: |-
-                            Nameservers is a list of IPv4 and/or IPv6 addresses used as DNS
+                            nameservers is a list of IPv4 and/or IPv6 addresses used as DNS
                             nameservers.
                             Please note that Linux allows only three nameservers (https://linux.die.net/man/5/resolv.conf).
                           items:
+                            maxLength: 64
+                            minLength: 1
                             type: string
+                          maxItems: 128
                           type: array
+                          x-kubernetes-list-type: atomic
                         networkName:
-                          description: NetworkName is the network name for this machine's
+                          description: networkName is the network name for this machine's
                             VM.
+                          maxLength: 2048
+                          minLength: 1
                           type: string
                         searchDomains:
                           description: |-
-                            SearchDomains is a list of search domains used when resolving IP
+                            searchDomains is a list of search domains used when resolving IP
                             addresses with DNS.
                           items:
+                            maxLength: 1024
+                            minLength: 1
                             type: string
+                          maxItems: 128
                           type: array
+                          x-kubernetes-list-type: atomic
                       required:
                       - networkName
                       type: object
+                    maxItems: 128
                     type: array
                     x-kubernetes-list-map-keys:
                     - networkName
                     x-kubernetes-list-type: map
                   networks:
-                    description: Networks is the list of networks within this failure
+                    description: networks is the list of networks within this failure
                       domain
                     items:
+                      maxLength: 2048
+                      minLength: 1
                       type: string
+                    maxItems: 128
                     type: array
+                    x-kubernetes-list-type: atomic
                 required:
                 - datacenter
                 type: object
               zone:
-                description: Zone defines the name and type of a zone
+                description: zone defines the name and type of a zone
                 properties:
                   autoConfigure:
                     description: |-
-                      AutoConfigure tags the Type which is specified in the Topology
+                      autoConfigure tags the Type which is specified in the Topology
 
                       Deprecated: This field is going to be removed in a future release.
                     type: boolean
                   name:
-                    description: Name is the name of the tag that represents this
+                    description: name is the name of the tag that represents this
                       failure domain
+                    maxLength: 1024
+                    minLength: 1
                     type: string
                   tagCategory:
-                    description: TagCategory is the category used for the tag
+                    description: tagCategory is the category used for the tag
+                    maxLength: 1024
+                    minLength: 1
                     type: string
                   type:
-                    description: Type is the type of failure domain, the current values
+                    description: type is the type of failure domain, the current values
                       are "Datacenter", "ComputeCluster" and "HostGroup"
                     enum:
                     - Datacenter
@@ -642,6 +687,8 @@ spec:
             - topology
             - zone
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

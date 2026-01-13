@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -55,12 +56,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when cluster modules already exist",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     false,
+					ControlPlane:     ptr.To(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -97,7 +98,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when one cluster modules exist",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
@@ -123,12 +124,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when cluster modules do not exist anymore",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     false,
+					ControlPlane:     ptr.To(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -153,12 +154,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when cluster modules already exist but vCenter returns an error",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     false,
+					ControlPlane:     ptr.To(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -183,12 +184,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when one cluster modules exists and for the other we get an error",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     false,
+					ControlPlane:     ptr.To(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -213,12 +214,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when one cluster modules does not exist and for the other we get an error",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     false,
+					ControlPlane:     ptr.To(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -251,7 +252,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].TargetObjectName).To(gomega.Equal("md"))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(mdUUID))
-				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeFalse())
+				g.Expect(ptr.Deref(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane, false)).To(gomega.BeFalse())
 
 				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
 				g.Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
@@ -271,7 +272,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].TargetObjectName).To(gomega.Equal("kcp"))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(kcpUUID))
-				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeTrue())
+				g.Expect(ptr.Deref(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane, false)).To(gomega.BeTrue())
 
 				g.Expect(deprecatedv1beta1conditions.Has(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
 				g.Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
@@ -306,7 +307,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].TargetObjectName).To(gomega.Equal("kcp"))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(kcpUUID))
-				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeTrue())
+				g.Expect(ptr.Deref(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane, false)).To(gomega.BeTrue())
 			},
 		},
 		{
@@ -318,7 +319,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
@@ -330,7 +331,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].TargetObjectName).To(gomega.Equal("kcp"))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(kcpUUID))
-				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeTrue())
+				g.Expect(ptr.Deref(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane, false)).To(gomega.BeTrue())
 			},
 		},
 		{
@@ -342,12 +343,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     false,
+					ControlPlane:     ptr.To(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -360,7 +361,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].TargetObjectName).To(gomega.Equal("kcp"))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(kcpUUID))
-				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeTrue())
+				g.Expect(ptr.Deref(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane, false)).To(gomega.BeTrue())
 			},
 		},
 		{
@@ -372,12 +373,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     true,
+					ControlPlane:     ptr.To(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     false,
+					ControlPlane:     ptr.To(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},

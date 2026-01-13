@@ -379,7 +379,7 @@ func (r *clusterReconciler) reconcileVCenterConnectivity(ctx context.Context, cl
 		WithServer(clusterCtx.VSphereCluster.Spec.Server).
 		WithThumbprint(clusterCtx.VSphereCluster.Spec.Thumbprint)
 
-	if clusterCtx.VSphereCluster.Spec.IdentityRef != nil {
+	if clusterCtx.VSphereCluster.Spec.IdentityRef.IsDefined() {
 		creds, err := identity.GetCredentials(ctx, r.Client, clusterCtx.VSphereCluster, r.ControllerManagerContext.Namespace)
 		if err != nil {
 			return nil, pkgerrors.Wrap(err, "failed to get credentials from IdentityRef")
@@ -493,7 +493,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 }
 
 func (r *clusterReconciler) reconcileClusterModules(ctx context.Context, clusterCtx *capvcontext.ClusterContext) (reconcile.Result, error) {
-	if feature.Gates.Enabled(feature.NodeAntiAffinity) && !clusterCtx.VSphereCluster.Spec.DisableClusterModule {
+	if feature.Gates.Enabled(feature.NodeAntiAffinity) && !ptr.Deref(clusterCtx.VSphereCluster.Spec.DisableClusterModule, false) {
 		return r.clusterModuleReconciler.Reconcile(ctx, clusterCtx)
 	}
 	return reconcile.Result{}, nil

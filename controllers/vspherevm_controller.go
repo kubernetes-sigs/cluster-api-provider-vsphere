@@ -234,8 +234,8 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	}
 
 	failureDomain := machine.Spec.FailureDomain
-	if failureDomain == "" && vsphereMachine.Spec.FailureDomain != nil {
-		failureDomain = *vsphereMachine.Spec.FailureDomain
+	if failureDomain == "" && vsphereMachine.Spec.FailureDomain != "" {
+		failureDomain = vsphereMachine.Spec.FailureDomain
 	}
 
 	var vsphereFailureDomain *infrav1.VSphereFailureDomain
@@ -274,7 +274,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		// NOTE: This is required because v1beta2 conditions comply to guideline requiring conditions to be set at the
 		// first reconcile.
 		if c := v1beta2conditions.Get(vmContext.VSphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition); c != nil {
-			if vmContext.VSphereVM.Status.Ready {
+			if ptr.Deref(vmContext.VSphereVM.Status.Ready, false) {
 				v1beta2conditions.Set(vmContext.VSphereVM, metav1.Condition{
 					Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 					Status: metav1.ConditionTrue,
@@ -359,7 +359,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 // This logic was moved to a smaller function outside the main Reconcile() loop
 // for the ease of testing.
 func (r vmReconciler) reconcile(ctx context.Context, vmCtx *capvcontext.VMContext, input fetchClusterModuleInput) (reconcile.Result, error) {
-	if feature.Gates.Enabled(feature.NodeAntiAffinity) && !input.VSphereCluster.Spec.DisableClusterModule {
+	if feature.Gates.Enabled(feature.NodeAntiAffinity) && !ptr.Deref(input.VSphereCluster.Spec.DisableClusterModule, false) {
 		clusterModuleInfo, err := r.fetchClusterModuleInfo(ctx, input)
 		// If cluster module information cannot be fetched for a VM being deleted,
 		// we should not block VM deletion since the cluster module is updated
@@ -406,8 +406,8 @@ func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VM
 	}
 
 	// Requeue the operation until the VM is "notfound".
-	if vm.State != infrav1.VirtualMachineStateNotFound {
-		log.Info(fmt.Sprintf("VM state is %q, waiting for %q", vm.State, infrav1.VirtualMachineStateNotFound))
+	if vm.State != services.VirtualMachineStateNotFound {
+		log.Info(fmt.Sprintf("VM state is %q, waiting for %q", vm.State, services.VirtualMachineStateNotFound))
 		return reconcile.Result{}, nil
 	}
 
@@ -495,8 +495,8 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	}
 
 	// Do not proceed until the backend VM is marked ready.
-	if vm.State != infrav1.VirtualMachineStateReady {
-		log.Info(fmt.Sprintf("VM state is %q, waiting for %q", vm.State, infrav1.VirtualMachineStateReady))
+	if vm.State != services.VirtualMachineStateReady {
+		log.Info(fmt.Sprintf("VM state is %q, waiting for %q", vm.State, services.VirtualMachineStateReady))
 		if !vmCtx.VSphereVM.Status.RetryAfter.IsZero() {
 			return reconcile.Result{RequeueAfter: time.Until(vmCtx.VSphereVM.Status.RetryAfter.Time)}, nil
 		}
@@ -535,7 +535,7 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	}
 
 	// Once the network is online the VM is considered ready.
-	vmCtx.VSphereVM.Status.Ready = true
+	vmCtx.VSphereVM.Status.Ready = ptr.To(true)
 	v1beta1conditions.MarkTrue(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)
 	v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 		Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
@@ -554,12 +554,12 @@ func (r vmReconciler) isWaitingForStaticIPAllocation(vmCtx *capvcontext.VMContex
 	devices := vmCtx.VSphereVM.Spec.Network.Devices
 	for _, dev := range devices {
 		// Ignore device if SkipIPAllocation is set.
-		if dev.SkipIPAllocation {
+		if ptr.Deref(dev.SkipIPAllocation, false) {
 			continue
 		}
 
 		// Ignore device if it is configured to use DHCP.
-		if dev.DHCP4 || dev.DHCP6 {
+		if ptr.Deref(dev.DHCP4, false) || ptr.Deref(dev.DHCP6, false) {
 			continue
 		}
 
@@ -572,7 +572,7 @@ func (r vmReconciler) isWaitingForStaticIPAllocation(vmCtx *capvcontext.VMContex
 	return false
 }
 
-func (r vmReconciler) reconcileNetwork(vmCtx *capvcontext.VMContext, vm infrav1.VirtualMachine) {
+func (r vmReconciler) reconcileNetwork(vmCtx *capvcontext.VMContext, vm services.VirtualMachine) {
 	vmCtx.VSphereVM.Status.Network = vm.Network
 	ipAddrs := make([]string, 0, len(vm.Network))
 	for _, netStatus := range vmCtx.VSphereVM.Status.Network {
@@ -689,7 +689,7 @@ func (r vmReconciler) retrieveVcenterSession(ctx context.Context, vsphereVM *inf
 		return session.GetOrCreate(ctx, params)
 	}
 
-	if vsphereCluster.Spec.IdentityRef != nil {
+	if vsphereCluster.Spec.IdentityRef.IsDefined() {
 		creds, err := identity.GetCredentials(ctx, r.Client, vsphereCluster, r.ControllerManagerContext.Namespace)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get credentials from IdentityRef")

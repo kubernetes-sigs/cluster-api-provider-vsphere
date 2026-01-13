@@ -23,20 +23,20 @@ import (
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
 
 type VMService struct {
 	mock.Mock
 }
 
-func (v *VMService) ReconcileVM(_ context.Context, vmCtx *capvcontext.VMContext) (infrav1.VirtualMachine, error) {
+func (v *VMService) ReconcileVM(_ context.Context, vmCtx *capvcontext.VMContext) (services.VirtualMachine, error) {
 	args := v.Called(vmCtx)
-	return args.Get(0).(infrav1.VirtualMachine), args.Error(1)
+	return args.Get(0).(services.VirtualMachine), args.Error(1)
 }
 
-func (v *VMService) DestroyVM(_ context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, infrav1.VirtualMachine, error) {
+func (v *VMService) DestroyVM(_ context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, services.VirtualMachine, error) {
 	args := v.Called(vmCtx)
-	return args.Get(0).(reconcile.Result), args.Get(1).(infrav1.VirtualMachine), args.Error(2)
+	return args.Get(0).(reconcile.Result), args.Get(1).(services.VirtualMachine), args.Error(2)
 }

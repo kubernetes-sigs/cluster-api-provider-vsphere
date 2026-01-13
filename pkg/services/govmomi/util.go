@@ -28,6 +28,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
@@ -517,7 +518,7 @@ func waitForIPAddresses(
 						}
 					case gonet.ParseIP(discoveredIP).To4() != nil:
 						// An IPv4 address...
-						if deviceSpec.DHCP4 {
+						if ptr.Deref(deviceSpec.DHCP4, false) {
 							// Has an IPv4 lease been discovered yet?
 							if _, ok := macToHasIPv4Lease[mac]; !ok {
 								log.Info("Discovered IP address",
@@ -529,7 +530,7 @@ func waitForIPAddresses(
 						}
 					default:
 						// An IPv6 address..
-						if deviceSpec.DHCP6 {
+						if ptr.Deref(deviceSpec.DHCP6, false) {
 							// Has an IPv6 lease been discovered yet?
 							if _, ok := macToHasIPv6Lease[mac]; !ok {
 								log.Info("Discovered IP address",
@@ -549,7 +550,7 @@ func waitForIPAddresses(
 		for i, deviceSpec := range virtualMachineCtx.VSphereVM.Spec.Network.Devices {
 			// If the device spec has SkipIPAllocation set true then
 			// the wait is not required
-			if deviceSpec.SkipIPAllocation {
+			if ptr.Deref(deviceSpec.SkipIPAllocation, false) {
 				continue
 			}
 
@@ -563,7 +564,7 @@ func waitForIPAddresses(
 			}
 			// If the device spec requires DHCP4 then the Wait is not
 			// over if there is no IPv4 lease.
-			if deviceSpec.DHCP4 {
+			if ptr.Deref(deviceSpec.DHCP4, false) {
 				if _, ok := macToHasIPv4Lease[mac]; !ok {
 					log.Info("The VM is missing the requested IP address",
 						"addressType", "dhcp4")
@@ -572,7 +573,7 @@ func waitForIPAddresses(
 			}
 			// If the device spec requires DHCP6 then the Wait is not
 			// over if there is no IPv6 lease.
-			if deviceSpec.DHCP6 {
+			if ptr.Deref(deviceSpec.DHCP6, false) {
 				if _, ok := macToHasIPv6Lease[mac]; !ok {
 					log.Info("The VM is missing the requested IP address",
 						"addressType", "dhcp6")

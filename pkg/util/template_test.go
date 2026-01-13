@@ -21,21 +21,20 @@ import (
 
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
-	"k8s.io/utils/ptr"
 )
 
 func Test_GenerateMachineNameFromTemplate(t *testing.T) {
 	tests := []struct {
 		name        string
 		machineName string
-		template    *string
+		template    string
 		want        []gomegatypes.GomegaMatcher
 		wantErr     bool
 	}{
 		{
 			name:        "return machineName if template is nil",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v",
-			template:    nil,
+			template:    "",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v"),
 			},
@@ -43,7 +42,7 @@ func Test_GenerateMachineNameFromTemplate(t *testing.T) {
 		{
 			name:        "template which doesn't respect max length: trim to max length",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v", // 41 characters
-			template:    ptr.To[string]("{{ .machine.name }}-{{ .machine.name }}"),
+			template:    "{{ .machine.name }}-{{ .machine.name }}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v-quick-start-d34gt4-md"), // 63 characters
 			},
@@ -51,7 +50,7 @@ func Test_GenerateMachineNameFromTemplate(t *testing.T) {
 		{
 			name:        "template for 20 characters: keep machine name if name has 20 characters",
 			machineName: "quick-md-8nxwc-gfd5v", // 20 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-md-8nxwc-gfd5v"), // 20 characters
 			},
@@ -59,7 +58,7 @@ func Test_GenerateMachineNameFromTemplate(t *testing.T) {
 		{
 			name:        "template for 20 characters: trim to 20 characters if name has more than 20 characters",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v", // 41 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d3-gfd5v"), // 20 characters
 			},
@@ -67,7 +66,7 @@ func Test_GenerateMachineNameFromTemplate(t *testing.T) {
 		{
 			name:        "template for 20 characters: trim to 19 characters if name has more than 20 characters and last character of prefix is -",
 			machineName: "quick-start-d-34gt4-md-0-wqc85-8nxwc-gfd5v", // 42 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d-gfd5v"), // 19 characters
 			},
@@ -75,7 +74,7 @@ func Test_GenerateMachineNameFromTemplate(t *testing.T) {
 		{
 			name:        "template with a prefix and only 5 random character from the machine name",
 			machineName: "quick-start-d-34gt4-md-0-wqc85-8nxwc-gfd5v", // 42 characters
-			template:    ptr.To[string]("vm-{{ trunc -5 .machine.name }}"),
+			template:    "vm-{{ trunc -5 .machine.name }}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("vm-gfd5v"), // 8 characters
 			},

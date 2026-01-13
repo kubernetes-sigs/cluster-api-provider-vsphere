@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -127,10 +128,10 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 			}
 		}
 		// check if DHCP is enabled
-		if vsphereVM.Spec.Network.Devices[i].DHCP4 {
+		if ptr.Deref(vsphereVM.Spec.Network.Devices[i].DHCP4, false) {
 			waitForIPv4 = true
 		}
-		if vsphereVM.Spec.Network.Devices[i].DHCP6 {
+		if ptr.Deref(vsphereVM.Spec.Network.Devices[i].DHCP6, false) {
 			waitForIPv6 = true
 		}
 	}

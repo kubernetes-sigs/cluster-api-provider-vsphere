@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
-	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
@@ -56,8 +55,8 @@ func TestObjectFunc(t *testing.T) {
 
 	topology := infrav1.Topology{
 		Datacenter:     defaultDatacenter.Name(),
-		ComputeCluster: ptr.To(defaultDatacenter.Name() + "_C0"),
-		Hosts:          &infrav1.FailureDomainHosts{HostGroupName: TestHostGroup},
+		ComputeCluster: defaultDatacenter.Name() + "_C0",
+		Hosts:          infrav1.FailureDomainHosts{HostGroupName: TestHostGroup},
 	}
 
 	testCases := []struct {

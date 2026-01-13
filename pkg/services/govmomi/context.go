@@ -22,13 +22,14 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
 
 type virtualMachineContext struct {
 	capvcontext.VMContext
 	Ref       types.ManagedObjectReference
 	Obj       *object.VirtualMachine
-	State     *infrav1.VirtualMachine
+	State     *services.VirtualMachine
 	IPAMState map[string]infrav1.NetworkDeviceSpec
 }
 

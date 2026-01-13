@@ -61,9 +61,9 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 		return errors.Wrapf(err, "failed to reconcile failure domain: zone is not configured correctly")
 	}
 
-	if computeCluster := vsphereFailureDomain.Spec.Topology.ComputeCluster; computeCluster != nil {
+	if computeCluster := vsphereFailureDomain.Spec.Topology.ComputeCluster; computeCluster != "" {
 		if err := r.reconcileComputeCluster(ctx, deploymentZoneCtx, vsphereFailureDomain); err != nil {
-			return errors.Wrapf(err, "failed to reconcile failure domain: compute cluster %s is not configured correctly", *computeCluster)
+			return errors.Wrapf(err, "failed to reconcile failure domain: compute cluster %s is not configured correctly", computeCluster)
 		}
 	}
 
@@ -150,8 +150,8 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 		}
 	}
 
-	if hostPlacementInfo := topology.Hosts; hostPlacementInfo != nil {
-		rule, err := cluster.VerifyAffinityRule(ctx, deploymentZoneCtx, *topology.ComputeCluster, hostPlacementInfo.HostGroupName, hostPlacementInfo.VMGroupName)
+	if hostPlacementInfo := topology.Hosts; hostPlacementInfo.IsDefined() {
+		rule, err := cluster.VerifyAffinityRule(ctx, deploymentZoneCtx, topology.ComputeCluster, hostPlacementInfo.HostGroupName, hostPlacementInfo.VMGroupName)
 		if err != nil {
 			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.HostsMisconfiguredReason, clusterv1.ConditionSeverityError, "vm host affinity does not exist")
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
@@ -173,18 +173,18 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 
 func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain) error {
 	computeCluster := vsphereFailureDomain.Spec.Topology.ComputeCluster
-	if computeCluster == nil {
+	if computeCluster == "" {
 		return nil
 	}
 
-	ccr, err := deploymentZoneCtx.AuthSession.Finder.ClusterComputeResource(ctx, *computeCluster)
+	ccr, err := deploymentZoneCtx.AuthSession.Finder.ClusterComputeResource(ctx, computeCluster)
 	if err != nil {
-		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ComputeClusterNotFoundReason, clusterv1.ConditionSeverityError, "compute cluster %s not found", *computeCluster)
+		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ComputeClusterNotFoundReason, clusterv1.ConditionSeverityError, "compute cluster %s not found", computeCluster)
 		conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
 			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereDeploymentZoneFailureDomainComputeClusterNotFoundV1Beta2Reason,
-			Message: fmt.Sprintf("compute cluster %s not found", *computeCluster),
+			Message: fmt.Sprintf("compute cluster %s not found", computeCluster),
 		})
 		return errors.Wrap(err, "compute cluster not found")
 	}
@@ -214,7 +214,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Con
 				Reason:  infrav1.VSphereDeploymentZoneFailureDomainResourcePoolNotFoundV1Beta2Reason,
 				Message: "resource pool is not owned by compute cluster",
 			})
-			return errors.Errorf("compute cluster %s does not own resource pool %s", *computeCluster, resourcePool)
+			return errors.Errorf("compute cluster %s does not own resource pool %s", computeCluster, resourcePool)
 		}
 	}
 	return nil

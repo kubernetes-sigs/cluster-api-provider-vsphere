@@ -77,12 +77,9 @@ func (webhook *VSphereVM) ValidateCreate(_ context.Context, objValue *infrav1.VS
 	if objValue.Spec.OS == infrav1.Windows && len(objValue.Name) > 15 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("name"), objValue.Name, "name has to be less than 16 characters for Windows VM"))
 	}
-	if spec.GuestSoftPowerOffTimeout != nil {
+	if spec.GuestSoftPowerOffTimeoutSeconds != 0 {
 		if spec.PowerOffMode != infrav1.VirtualMachinePowerOpModeTrySoft {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
-		}
-		if spec.GuestSoftPowerOffTimeout.Duration <= 0 {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeoutSeconds, "should not be set in templates unless the powerOffMode is trySoft"))
 		}
 	}
 	return nil, AggregateObjErrors(objValue.GroupVersionKind().GroupKind(), objValue.Name, allErrs)
@@ -92,12 +89,9 @@ func (webhook *VSphereVM) ValidateCreate(_ context.Context, objValue *infrav1.VS
 func (webhook *VSphereVM) ValidateUpdate(_ context.Context, oldTyped, newTyped *infrav1.VSphereVM) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
-	if newTyped.Spec.GuestSoftPowerOffTimeout != nil {
+	if newTyped.Spec.GuestSoftPowerOffTimeoutSeconds != 0 {
 		if newTyped.Spec.PowerOffMode != infrav1.VirtualMachinePowerOpModeTrySoft {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), newTyped.Spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
-		}
-		if newTyped.Spec.GuestSoftPowerOffTimeout.Duration <= 0 {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), newTyped.Spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), newTyped.Spec.GuestSoftPowerOffTimeoutSeconds, "should not be set in templates unless the powerOffMode is trySoft"))
 		}
 	}
 
@@ -114,7 +108,7 @@ func (webhook *VSphereVM) ValidateUpdate(_ context.Context, oldTyped, newTyped *
 	oldVSphereVMSpec := oldVSphereVM["spec"].(map[string]interface{})
 
 	// Allow changes to bootstrapRef, thumbprint, powerOffMode, guestSoftPowerOffTimeout.
-	keys := []string{"bootstrapRef", "thumbprint", "powerOffMode", "guestSoftPowerOffTimeout"}
+	keys := []string{"bootstrapRef", "thumbprint", "powerOffMode", "guestSoftPowerOffTimeoutSeconds"}
 	// Allow changes to os only if the old spec has empty OS field.
 	if oldTyped.Spec.OS == "" {
 		keys = append(keys, "os")

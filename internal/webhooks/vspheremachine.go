@@ -74,12 +74,9 @@ func (webhook *VSphereMachine) ValidateCreate(_ context.Context, obj *infrav1.VS
 		}
 	}
 
-	if spec.GuestSoftPowerOffTimeout != nil {
+	if spec.GuestSoftPowerOffTimeoutSeconds != 0 {
 		if spec.PowerOffMode != infrav1.VirtualMachinePowerOpModeTrySoft {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
-		}
-		if spec.GuestSoftPowerOffTimeout.Duration <= 0 {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeoutSeconds, "should not be set in templates unless the powerOffMode is trySoft"))
 		}
 	}
 	pciErrs := validatePCIDevices(spec.PciDevices)
@@ -92,12 +89,9 @@ func (webhook *VSphereMachine) ValidateCreate(_ context.Context, obj *infrav1.VS
 func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTyped *infrav1.VSphereMachine) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
-	if newTyped.Spec.GuestSoftPowerOffTimeout != nil {
+	if newTyped.Spec.GuestSoftPowerOffTimeoutSeconds != 0 {
 		if newTyped.Spec.PowerOffMode != infrav1.VirtualMachinePowerOpModeTrySoft {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), newTyped.Spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
-		}
-		if newTyped.Spec.GuestSoftPowerOffTimeout.Duration <= 0 {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), newTyped.Spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), newTyped.Spec.GuestSoftPowerOffTimeoutSeconds, "should not be set in templates unless the powerOffMode is trySoft"))
 		}
 	}
 
@@ -114,7 +108,7 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTy
 	newVSphereMachineSpec := newVSphereMachine["spec"].(map[string]interface{})
 	oldVSphereMachineSpec := oldVSphereMachine["spec"].(map[string]interface{})
 
-	allowChangeKeys := []string{"providerID", "powerOffMode", "guestSoftPowerOffTimeout"}
+	allowChangeKeys := []string{"providerID", "powerOffMode", "guestSoftPowerOffTimeoutSeconds"}
 	for _, key := range allowChangeKeys {
 		delete(oldVSphereMachineSpec, key)
 		delete(newVSphereMachineSpec, key)

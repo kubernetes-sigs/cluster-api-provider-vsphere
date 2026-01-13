@@ -210,18 +210,18 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereClusterTemplateSpec defines the desired state of VSphereClusterTemplate.
+            description: spec is the desired state of VSphereClusterTemplate.
             properties:
               template:
-                description: VSphereClusterTemplateResource describes the data for
-                  creating a VSphereCluster from a template.
+                description: template defines the desired state of VSphereClusterTemplate.
+                minProperties: 1
                 properties:
                   spec:
-                    description: VSphereClusterSpec defines the desired state of VSphereCluster.
+                    description: spec is the desired state of VSphereClusterTemplateResource.
                     properties:
                       clusterModules:
                         description: |-
-                          ClusterModules hosts information regarding the anti-affinity vSphere constructs
+                          clusterModules hosts information regarding the anti-affinity vSphere constructs
                           for each of the objects responsible for creation of VM objects belonging to the cluster.
                         items:
                           description: |-
@@ -230,25 +230,31 @@ spec:
                           properties:
                             controlPlane:
                               description: |-
-                                ControlPlane indicates whether the referred object is responsible for control plane nodes.
+                                controlPlane indicates whether the referred object is responsible for control plane nodes.
                                 Currently, only the KubeadmControlPlane objects have this flag set to true.
                                 Only a single object in the slice can have this value set to true.
                               type: boolean
                             moduleUUID:
-                              description: ModuleUUID is the unique identifier of
+                              description: moduleUUID is the unique identifier of
                                 the `ClusterModule` used by the object.
+                              maxLength: 2048
+                              minLength: 1
                               type: string
                             targetObjectName:
                               description: |-
-                                TargetObjectName points to the object that uses the Cluster Module information to enforce
+                                targetObjectName points to the object that uses the Cluster Module information to enforce
                                 anti-affinity amongst its descendant VM objects.
+                              maxLength: 253
+                              minLength: 1
                               type: string
                           required:
                           - controlPlane
                           - moduleUUID
                           - targetObjectName
                           type: object
+                        maxItems: 512
                         type: array
+                        x-kubernetes-list-type: atomic
                       controlPlaneEndpoint:
                         description: controlPlaneEndpoint represents the endpoint
                           used to communicate with the control plane.
@@ -270,13 +276,13 @@ spec:
                         type: object
                       disableClusterModule:
                         description: |-
-                          DisableClusterModule is used to explicitly turn off the ClusterModule feature.
+                          disableClusterModule is used to explicitly turn off the ClusterModule feature.
                           This should work along side NodeAntiAffinity feature flag.
                           If the NodeAntiAffinity feature flag is turned off, this will be disregarded.
                         type: boolean
                       failureDomainSelector:
                         description: |-
-                          FailureDomainSelector is the label selector to use for failure domain selection
+                          failureDomainSelector is the label selector to use for failure domain selection
                           for the control plane nodes of the cluster.
                           If not set (`nil`), selecting failure domains will be disabled.
                           An empty value (`{}`) selects all existing failure domains.
@@ -327,18 +333,19 @@ spec:
                         x-kubernetes-map-type: atomic
                       identityRef:
                         description: |-
-                          IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+                          identityRef is a reference to either a Secret or VSphereClusterIdentity that contains
                           the identity to use when reconciling the cluster.
                         properties:
                           kind:
-                            description: Kind of the identity. Can either be VSphereClusterIdentity
+                            description: kind of the identity. Can either be VSphereClusterIdentity
                               or Secret
                             enum:
                             - VSphereClusterIdentity
                             - Secret
                             type: string
                           name:
-                            description: Name of the identity.
+                            description: name of the identity.
+                            maxLength: 253
                             minLength: 1
                             type: string
                         required:
@@ -346,15 +353,19 @@ spec:
                         - name
                         type: object
                       server:
-                        description: Server is the address of the vSphere endpoint.
+                        description: server is the address of the vSphere endpoint.
+                        maxLength: 1024
+                        minLength: 1
                         type: string
                       thumbprint:
-                        description: Thumbprint is the colon-separated SHA-1 checksum
+                        description: thumbprint is the colon-separated SHA-1 checksum
                           of the given vCenter server's host certificate
+                        maxLength: 1024
+                        minLength: 1
                         type: string
+                    required:
+                    - server
                     type: object
-                required:
-                - spec
                 type: object
             required:
             - template

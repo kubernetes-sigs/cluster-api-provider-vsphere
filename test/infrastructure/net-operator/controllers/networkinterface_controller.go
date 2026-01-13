@@ -75,6 +75,7 @@ func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		original := networkInterface.DeepCopy()
 
+		networkInterface.Status.IPAssignmentMode = netopv1alpha1.NetworkInterfaceIPAssignmentModeDHCP
 		networkInterface.Status.NetworkID = distributedPortGroup.Reference().Value
 		networkInterface.Status.Conditions = []netopv1alpha1.NetworkInterfaceCondition{
 			{

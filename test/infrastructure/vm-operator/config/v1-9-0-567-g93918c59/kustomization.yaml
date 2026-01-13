@@ -12,14 +12,14 @@ resources:
   # Those are copies of files from config/crd/external-crds in the vm-operator project
   # IMPORTANT! networkinterfaces requires the addition the status subresource. As soon as this is fixed in the
   # vm-operator code base, we can get rid of this manual change
-- external-crds/availability-zones.yaml
+- external-crds/topology.tanzu.vmware.com_availabilityzones.yaml
+- external-crds/topology.tanzu.vmware.com_zones.yaml
 - external-crds/imageregistry.vmware.com_clustercontentlibraryitems.yaml
 - external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
 - external-crds/netoperator.vmware.com_networkinterfaces.yaml
-- external-crds/cnsnodevmattachment-crd.yaml
-- external-crds/zones.yaml
-- external-crds/storagepolicyquotas.yaml
-- external-crds/storagepolicyusages.yaml
+- external-crds/cns.vmware.com_cnsnodevmattachments.yaml
+- external-crds/cns.vmware.com_storagepolicyquotas.yaml
+- external-crds/cns.vmware.com_storagepolicyusages.yaml
 
 patchesStrategicMerge:
 # Set image names / version to use.

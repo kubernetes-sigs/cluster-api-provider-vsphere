@@ -65,6 +65,7 @@ config/base/vsphere_tmp
 
 # tmp files
 *.tmp
+tmp
 
 # Sed backup files
 *-e

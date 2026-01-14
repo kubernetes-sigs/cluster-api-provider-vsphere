@@ -43,3 +43,14 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - vmoperator.vmware.com
+  resources:
+  - virtualmachines
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

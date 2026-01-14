@@ -256,7 +256,7 @@ func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster 
 		return ctrl.Result{}, nil
 	}
 
-	original := virtualMachine.DeepCopyObject().(client.Object)
+	original := virtualMachine.DeepCopy()
 	controllerutil.RemoveFinalizer(virtualMachine, vcsimv1.VMFinalizer)
 
 	patch := client.MergeFrom(original)

@@ -1,7 +1,3 @@
-# This patch derives from vm-operator config/wcp/vmoperator/manager_env_var_patch.yaml, but with
-# - VSPHERE_NETWORKING = true and NETWORK_PROVIDER = VSPHERE_NETWORK as suggested by the vm-operator maintainers.
-# - Replace all the <..> placeholders as per config/local (including drop PRIVILEGED_USERS).
-# - Also make sure we are not overriding the KUBERNETES_SERVICE_HOST/PORT to use local host.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

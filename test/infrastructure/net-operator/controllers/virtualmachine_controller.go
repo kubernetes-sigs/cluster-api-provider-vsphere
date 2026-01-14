@@ -89,7 +89,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	virtualMachine.SetAnnotations(annotations)
 	if err := r.Client.Patch(ctx, virtualMachine, client.MergeFrom(o)); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to patch %s", klog.KObj(virtualMachine))
+		return ctrl.Result{}, errors.Wrapf(err, "failed to patch VirtualMachine %s", klog.KObj(virtualMachine))
 	}
 
 	log.Info("Triggering VirtualMachine reconciliation to speed up initial provisioning", "VirtualMachine", klog.KObj(virtualMachine))

@@ -235,7 +235,7 @@ VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
 # note: this is the commit from 1.8.6 tag
 # VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
 # VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
-# note: this is the commit from 1.9.0 tag
+# note: this is the commit we are also importing in go.mod (replace with the actual tag as soon as a tagged release is available)
 VM_OPERATOR_COMMIT ?= 93918c59a71918f6395fd319fa4dd5b9a3f57e24
 VM_OPERATOR_VERSION ?= v1.9.0-567-g93918c59
 VM_OPERATOR_ALL_ARCH = amd64 arm64
@@ -932,14 +932,13 @@ checkout-vm-operator:
 		fi \
 	fi
 
-PHONY: generate-manifests-vm-operator
+.PHONY: generate-manifests-vm-operator
 generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator ## Build the vm-operator manifest yaml file
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	$(MAKE) generate-manifests-vm-operator-$(VM_OPERATOR_VERSION)
 
 generate-manifests-vm-operator-v1.8.6-0-gde75746a:
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
-	# sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
 	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
 generate-manifests-vm-operator-v1.9.0-567-g93918c59:
@@ -947,7 +946,6 @@ generate-manifests-vm-operator-v1.9.0-567-g93918c59:
 	make kustomize-wcp
 	@cd "$(ROOT_DIR)"
 	cp "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/local-deployment.yaml" "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
-	# sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
 	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
 .PHONY: docker-build-all-vm-operator

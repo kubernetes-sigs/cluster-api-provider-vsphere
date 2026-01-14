@@ -307,7 +307,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 	// Create a Zone if running a VM Operator version that requires this CRD
 	// Note: this is required when FSS_WCP_WORKLOAD_DOMAIN_ISOLATION is set to true.
-	// Note: currently we are simulating only a single node setup.
+	// Note: currently we are simulating only a single zone setup.
 	zoneCRD := &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "zones.topology.tanzu.vmware.com",

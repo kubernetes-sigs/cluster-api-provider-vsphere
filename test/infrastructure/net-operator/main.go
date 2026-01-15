@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -76,11 +77,13 @@ var (
 	logOptions                  = logs.NewOptions()
 	// net operator specific flags.
 	networkInterfaceConcurrency int
+	virtualMachineConcurrency   int
 )
 
 func init() {
 	// scheme used for operating on the management cluster.
 	_ = corev1.AddToScheme(scheme)
+	_ = vmoprv1.AddToScheme(scheme)
 	_ = netopv1alpha1.AddToScheme(scheme)
 }
 
@@ -114,6 +117,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&networkInterfaceConcurrency, "network-interface-concurrency", 10,
 		"Number of NetworkInterface to process simultaneously")
+
+	fs.IntVar(&virtualMachineConcurrency, "virtual-machine-concurrency", 10,
+		"Number of VirtualMachine to process simultaneously")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -263,6 +269,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, _ bool) {
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(networkInterfaceConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkInterfaceReconciler")
+		os.Exit(1)
+	}
+
+	if err := (&controllers.VirtualMachineReconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(ctx, mgr, concurrency(virtualMachineConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VirtualMachineReconciler")
 		os.Exit(1)
 	}
 }

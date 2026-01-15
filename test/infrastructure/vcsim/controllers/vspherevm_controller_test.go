@@ -55,6 +55,7 @@ var (
 func init() {
 	// scheme used for operating on the management cluster.
 	_ = clusterv1.AddToScheme(scheme)
+	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
 	_ = vmwarev1.AddToScheme(scheme)
 	_ = vmoprv1.AddToScheme(scheme)

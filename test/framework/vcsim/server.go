@@ -49,11 +49,6 @@ func Create(ctx context.Context, c client.Client) error {
 		return err
 	}
 
-	if _, err := Get(ctx, c); err != nil {
-		// Try best effort deletion of the unused VCenterSimulator before returning an error.
-		_ = Delete(ctx, c, false)
-		return err
-	}
 	return nil
 }
 

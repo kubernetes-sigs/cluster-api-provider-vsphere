@@ -247,6 +247,16 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
+      - name: v1.9.0-567-g93918c59
+        # Use manifest from source files
+        value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-v1.9.0-567-g93918c59.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/vmoperator/v1.9/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
 
   - name: net-operator
     type: RuntimeExtensionProvider # net-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.

@@ -23,8 +23,6 @@ import (
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,19 +57,6 @@ func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(networkInterface, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Always attempt to Patch the NetworkInterface object and status after each reconciliation.
-	defer func() {
-		if err := patchHelper.Patch(ctx, networkInterface); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, err})
-		}
-	}()
-
 	if networkInterface.Status.NetworkID == "" {
 		s, err := vmoperator.GetVCenterSession(ctx, r.Client)
 		if err != nil {
@@ -88,6 +73,9 @@ func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get DistributedPortGroup %s", distributedPortGroupName)
 		}
 
+		original := networkInterface.DeepCopy()
+
+		networkInterface.Status.IPAssignmentMode = netopv1alpha1.NetworkInterfaceIPAssignmentModeDHCP
 		networkInterface.Status.NetworkID = distributedPortGroup.Reference().Value
 		networkInterface.Status.Conditions = []netopv1alpha1.NetworkInterfaceCondition{
 			{
@@ -97,6 +85,11 @@ func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		// NOTE: we are not setting networkInterface.Status.IPConfigs because we are using dhcp to assign ip in supervisor tests (or the vmIP reconciler with vcsim).
+
+		patch := client.MergeFrom(original)
+		if err := r.Client.Status().Patch(ctx, networkInterface, patch); err != nil {
+			return ctrl.Result{}, err
+		}
 
 		log.Info("Reconciling NetworkInterface status simulating successful net-operator reconcile")
 	}

@@ -128,7 +128,12 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 
 		// Enable additional providers depending on testMode and testTarget.
 		if testMode == SupervisorTestMode {
-			runtimeExtensionProviders = append(runtimeExtensionProviders, "vm-operator", "net-operator")
+			// Use latest vm-operator or the vm-operator version defined in the VM_OPERATOR_VERSION env var.
+			vmOperator := "vm-operator"
+			if e2eConfig.HasVariable("VM_OPERATOR_VERSION") {
+				vmOperator = fmt.Sprintf("%s:%s", vmOperator, e2eConfig.MustGetVariable("VM_OPERATOR_VERSION"))
+			}
+			runtimeExtensionProviders = append(runtimeExtensionProviders, vmOperator, "net-operator")
 		}
 		if testTarget == VCSimTestTarget {
 			runtimeExtensionProviders = append(runtimeExtensionProviders, "vcsim")
@@ -232,8 +237,14 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 func createVCSimServer(managementClusterProxy framework.ClusterProxy) {
 	Byf("Creating a vcsim server")
 	Eventually(func() error {
-		return vspherevcsim.Create(ctx, managementClusterProxy.GetClient())
-	}, time.Minute, 3*time.Second).ShouldNot(HaveOccurred(), "Failed to create VCenterSimulator")
+		if err := vspherevcsim.Create(ctx, managementClusterProxy.GetClient()); err != nil && !apierrors.IsAlreadyExists(err) {
+			return err
+		}
+		if _, err := vspherevcsim.Get(ctx, managementClusterProxy.GetClient()); err != nil {
+			return err
+		}
+		return nil
+	}, 2*time.Minute, 5*time.Second).ShouldNot(HaveOccurred(), "Failed to create VCenterSimulator")
 }
 
 func allocateIPAddresses(managementClusterProxy framework.ClusterProxy, options *setupOptions) (vsphereip.AddressManager, vsphereip.AddressClaims, map[string]string) {

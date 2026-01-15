@@ -197,7 +197,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 			DeviceChange:      deviceSpecs,
 			ExtraConfig:       extraConfig,
 			NumCPUs:           numCPUs,
-			NumCoresPerSocket: numCoresPerSocket,
+			NumCoresPerSocket: ptr.To(numCoresPerSocket),
 			MemoryMB:          memMiB,
 			VAppConfigRemoved: &vappConfigRemoved,
 		},

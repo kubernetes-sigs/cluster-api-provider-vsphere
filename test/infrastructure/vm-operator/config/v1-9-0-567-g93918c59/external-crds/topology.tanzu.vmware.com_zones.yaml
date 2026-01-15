@@ -1,0 +1,405 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: zones.topology.tanzu.vmware.com
+spec:
+  conversion:
+    strategy: None
+  group: topology.tanzu.vmware.com
+  names:
+    kind: Zone
+    listKind: ZoneList
+    plural: zones
+    singular: zone
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            Zone is the schema for the Zone resource for the vSphere topology API.
+            
+            
+            A Zone is the zone the k8s namespace is confined to. That is workloads will
+            be limited to the Zones in the namespace.  For more information about
+            availability zones, refer to:
+            https://kubernetes.io/docs/setup/best-practices/multiple-zones/
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: |-
+                ZoneSpec contains identifying information about the
+                vSphere resources used to represent a Kubernetes namespace on individual
+                vSphere Zones.
+              properties:
+                allowedClusterComputeResourceMoIDs:
+                  description: |-
+                    AllowedClusterComputeResourceMoIDs are the managed object IDs of the vSphere
+                    ClusterComputeResources in this vSphere Zone on which workloads in this Supervisor
+                    Namespace can be placed on. If empty, all the vSphere Clusters in the vSphere Zone are
+                    candidates to place the workloads in this vSphere Namespace.
+                  items:
+                    type: string
+                  type: array
+                availabilityZoneReference:
+                  description: |-
+                    Zone is a reference to the cluster scoped AvailabilityZone this
+                    Zone is derived from.
+                  properties:
+                    apiVersion:
+                      description: |-
+                        APIVersion defines the versioned schema of this reference to the cluster scoped
+                        AvailabilityZone object.
+                      type: string
+                    name:
+                      description: Name is the name of  the cluster scoped AvailabilityZone
+                        to refer to.
+                      type: string
+                  required:
+                    - apiVersion
+                    - name
+                  type: object
+                cpu:
+                  description: |-
+                    Desired CPU limit and reservation (in hertz) for the namespace in this zone,
+                    in addition to the limits specified as part of reserved virtual
+                    machine classes.
+                  properties:
+                    limit:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        The utilization of zone will not exceed this limit, even
+                        if there are available resources.
+                        If unset, then there is no fixed limit on resource usage.
+                        Units are hertz for CPU and bytes for memory.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    reservation:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        Amount of resource that is guaranteed available to the zone.
+                        Units are hertz for CPU and bytes for memory.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                  type: object
+                disallowUnreservedDirectPathUsage:
+                  description: |-
+                    Determines whether workloads that don't use a reserved Virtual Machine class
+                    instance can use a DirectPath device.
+                  type: boolean
+                managedVMs:
+                  description: |-
+                    ManagedVMs contains ResourcePool and folder moIDs to represent managedVMs
+                    entity within the namespace
+                  properties:
+                    clusterMoIDs:
+                      description: |-
+                        ClusterMoIDs are the managed object IDs of the vSphere Clusters in an
+                        individual vSphere Zone. A zone may be comprised of multiple Clusters.
+                      items:
+                        type: string
+                      type: array
+                    folderMoID:
+                      description: |-
+                        FolderMoID is the managed object ID of the vSphere Folder for a
+                        Namespace.
+                      type: string
+                    poolMoIDs:
+                      description: |-
+                        PoolMoIDs are the managed object ID of the vSphere ResourcePools
+                        in an individual vSphere Zone. A zone may be comprised of
+                        multiple ResourcePools.
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                memory:
+                  description: |-
+                    Desired Memory limit and reservation (in bytes) for the namespace in this zone,
+                    in addition to the limits specified as part of reserved virtual
+                    machine classes.
+                  properties:
+                    limit:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        The utilization of zone will not exceed this limit, even
+                        if there are available resources.
+                        If unset, then there is no fixed limit on resource usage.
+                        Units are hertz for CPU and bytes for memory.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    reservation:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        Amount of resource that is guaranteed available to the zone.
+                        Units are hertz for CPU and bytes for memory.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                  type: object
+                namespace:
+                  description: Namespace contains ResourcePool and folder moIDs to represent
+                    the namespace
+                  properties:
+                    clusterMoIDs:
+                      description: |-
+                        ClusterMoIDs are the managed object IDs of the vSphere Clusters in an
+                        individual vSphere Zone. A zone may be comprised of multiple Clusters.
+                      items:
+                        type: string
+                      type: array
+                    folderMoID:
+                      description: |-
+                        FolderMoID is the managed object ID of the vSphere Folder for a
+                        Namespace.
+                      type: string
+                    poolMoIDs:
+                      description: |-
+                        PoolMoIDs are the managed object ID of the vSphere ResourcePools
+                        in an individual vSphere Zone. A zone may be comprised of
+                        multiple ResourcePools.
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                vSpherePods:
+                  description: |-
+                    VSpherePods contains ResourcePool and folder moIDs to represent vSpherePods
+                    entity within the namespace
+                  properties:
+                    clusterMoIDs:
+                      description: |-
+                        ClusterMoIDs are the managed object IDs of the vSphere Clusters in an
+                        individual vSphere Zone. A zone may be comprised of multiple Clusters.
+                      items:
+                        type: string
+                      type: array
+                    folderMoID:
+                      description: |-
+                        FolderMoID is the managed object ID of the vSphere Folder for a
+                        Namespace.
+                      type: string
+                    poolMoIDs:
+                      description: |-
+                        PoolMoIDs are the managed object ID of the vSphere ResourcePools
+                        in an individual vSphere Zone. A zone may be comprised of
+                        multiple ResourcePools.
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                virtualMachineReservations:
+                  description: |-
+                    Desired number of reserved Virtual Machine class instances that are available for the
+                    namespace in this zone.
+                  items:
+                    description: |-
+                      VirtualMachineClassAllocationInfo describes the definition of allocations
+                      for Virtual Machines of a given class.
+                    properties:
+                      count:
+                        description: Number of instances of given Virtual Machine class.
+                        format: int64
+                        type: integer
+                      reservedVmClass:
+                        description: Identifier of the Virtual Machine class used for
+                          allocation.
+                        type: string
+                    required:
+                      - count
+                      - reservedVmClass
+                    type: object
+                  type: array
+              required:
+                - availabilityZoneReference
+              type: object
+            status:
+              description: ZoneStatus defines the observed state of Zone.
+              properties:
+                conditions:
+                  description: Conditions describes the observed conditions of the Zone
+                  items:
+                    description: "Condition contains details for one aspect of the current
+                    state of this API Resource.\n---\nThis struct is intended for
+                    direct use as an array at the field path .status.conditions.  For
+                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
+                    observations of a foo's current state.\n\t    // Known .status.conditions.type
+                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
+                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
+                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                    \   // other fields\n\t}"
+                    properties:
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: |-
+                          message is a human readable message indicating details about the transition.
+                          This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                          with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          Producers of specific condition types may define expected values and meanings for this field,
+                          and whether the values are considered a guaranteed API.
+                          The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description: |-
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          ---
+                          Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                          useful (see .node.status.conditions), the ability to deconflict is important.
+                          The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+                cpu:
+                  description: |-
+                    Realized CPU limit and reservation (in hertz) for the namespace in this zone,
+                    in addition to the limits specified as part of reserved virtual
+                    machine classes.
+                  properties:
+                    limit:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        The utilization of zone will not exceed this limit, even
+                        if there are available resources.
+                        If unset, then there is no fixed limit on resource usage.
+                        Units are hertz for CPU and bytes for memory.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    reservation:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        Amount of resource that is guaranteed available to the zone.
+                        Units are hertz for CPU and bytes for memory.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                  type: object
+                disallowUnreservedDirectPathUsage:
+                  description: |-
+                    Configuration set indicating if workloads that don't use a reserved Virtual Machine class
+                    instance can use a DirectPath device.
+                  type: boolean
+                markedForRemoval:
+                  description: |-
+                    MarkedForRemoval describes if the Zone is marked for removal from the
+                    Namespace.
+                  type: boolean
+                memory:
+                  description: |-
+                    Realized memory limit and reservation (in bytes) for the namespace in this zone,
+                    in addition to the limits specified as part of reserved virtual
+                    machine classes.
+                  properties:
+                    limit:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        The utilization of zone will not exceed this limit, even
+                        if there are available resources.
+                        If unset, then there is no fixed limit on resource usage.
+                        Units are hertz for CPU and bytes for memory.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    reservation:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        Amount of resource that is guaranteed available to the zone.
+                        Units are hertz for CPU and bytes for memory.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                  type: object
+                virtualMachineReservations:
+                  description: |-
+                    Guaranteed number of reserved Virtual Machine class instances that are available for the
+                    namespace in this zone.
+                  items:
+                    description: |-
+                      VirtualMachineClassAllocationInfo describes the definition of allocations
+                      for Virtual Machines of a given class.
+                    properties:
+                      count:
+                        description: Number of instances of given Virtual Machine class.
+                        format: int64
+                        type: integer
+                      reservedVmClass:
+                        description: Identifier of the Virtual Machine class used for
+                          allocation.
+                        type: string
+                    required:
+                      - count
+                      - reservedVmClass
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}

@@ -30,10 +30,18 @@
     kustomize_folder: "/config/supervisor"
 
 # IMPORTANT: run "make vm-operator-manifest-build" before using this "provider" with tilt
-- name: vm-operator
+- name: vm-operator-v1.8.6-0-gde75746a
   config:
-    version: v1.8.6
+    version: v1.8.6-0-gde75746a
     label: VMOP
-    kustomize_folder: "/test/infrastructure/vm-operator/config"
+    kustomize_folder: "/test/infrastructure/vm-operator/config/v1-8-6-0-gde75746a"
+    kustomize_options:
+      - "--load-restrictor=LoadRestrictionsNone"
+
+- name: vm-operator-v1.9.0-567-g93918c59
+  config:
+    version: v1.9.0-567-g93918c59
+    label: VMOP
+    kustomize_folder: "/test/infrastructure/vm-operator/config/v1-9-0-567-g93918c59"
     kustomize_options:
       - "--load-restrictor=LoadRestrictionsNone"

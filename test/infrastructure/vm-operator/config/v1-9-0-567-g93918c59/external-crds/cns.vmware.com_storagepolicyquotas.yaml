@@ -1,0 +1,297 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: storagepolicyquotas.cns.vmware.com
+spec:
+  conversion:
+    strategy: None
+  group: cns.vmware.com
+  names:
+    kind: StoragePolicyQuota
+    listKind: StoragePolicyQuotaList
+    plural: storagepolicyquotas
+    singular: storagepolicyquota
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: StoragePolicyQuota is the Schema for the storagepolicyquotas
+            API
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: StoragePolicyQuotaSpec defines the desired state of StoragePolicyQuota
+              properties:
+                limit:
+                  anyOf:
+                    - type: integer
+                    - type: string
+                  description: |-
+                    Total limit of storage across all types of storage resources
+                    for given storage policy within given namespace
+                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                  x-kubernetes-int-or-string: true
+                storagePolicyId:
+                  description: ID of the storage policy
+                  maxLength: 128
+                  type: string
+                  x-kubernetes-validations:
+                    - message: StoragePolicyId is immutable
+                      rule: self == oldSelf
+              required:
+                - storagePolicyId
+              type: object
+            status:
+              description: StoragePolicyQuotaStatus defines the observed state of StoragePolicyQuota
+              properties:
+                extensions:
+                  description: Storage quota usage details per storage object type for
+                    given storage policy
+                  items:
+                    properties:
+                      extensionName:
+                        description: Name of service extension associated with resource
+                          kind to be provisioned
+                        maxLength: 64
+                        type: string
+                      extensionQuotaUsage:
+                        description: Storage usage details per storage class level for
+                          given object kind
+                        items:
+                          description: SCLevelQuotaStatus gives storage quota usage
+                            per Kubernetes storage class
+                          properties:
+                            scQuotaUsage:
+                              description: Storage quota usage details for given Kubernetes
+                                storage class
+                              properties:
+                                reserved:
+                                  anyOf:
+                                    - type: integer
+                                    - type: string
+                                  description: Storage quota that is reserved for storage
+                                    resource(s) that are being provisioned
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                used:
+                                  anyOf:
+                                    - type: integer
+                                    - type: string
+                                  description: Storage quota that is already used by
+                                    storage resource(s) that have been provisioned
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                              type: object
+                            storageClassName:
+                              description: Name of the Kubernetes StorageClass
+                              maxLength: 64
+                              type: string
+                          required:
+                            - storageClassName
+                          type: object
+                        type: array
+                    required:
+                      - extensionName
+                    type: object
+                  type: array
+                total:
+                  description: Storage quota usage details per storage class level for
+                    given storage policy
+                  items:
+                    description: SCLevelQuotaStatus gives storage quota usage per Kubernetes
+                      storage class
+                    properties:
+                      scQuotaUsage:
+                        description: Storage quota usage details for given Kubernetes
+                          storage class
+                        properties:
+                          reserved:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            description: Storage quota that is reserved for storage
+                              resource(s) that are being provisioned
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          used:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            description: Storage quota that is already used by storage
+                              resource(s) that have been provisioned
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      storageClassName:
+                        description: Name of the Kubernetes StorageClass
+                        maxLength: 64
+                        type: string
+                    required:
+                      - storageClassName
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: false
+      subresources:
+        status: {}
+    - name: v1alpha2
+      schema:
+        openAPIV3Schema:
+          description: StoragePolicyQuota is the Schema for the storagepolicyquotas
+            API
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: StoragePolicyQuotaSpec defines the desired state of StoragePolicyQuota
+              properties:
+                limit:
+                  anyOf:
+                    - type: integer
+                    - type: string
+                  description: |-
+                    Total limit of storage across all types of storage resources
+                    for given storage policy within given namespace
+                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                  x-kubernetes-int-or-string: true
+                storagePolicyId:
+                  description: ID of the storage policy
+                  maxLength: 128
+                  type: string
+                  x-kubernetes-validations:
+                    - message: StoragePolicyId is immutable
+                      rule: self == oldSelf
+              required:
+                - storagePolicyId
+              type: object
+            status:
+              description: StoragePolicyQuotaStatus defines the observed state of StoragePolicyQuota
+              properties:
+                extensions:
+                  description: Storage quota usage details per storage object type for
+                    given storage policy
+                  items:
+                    properties:
+                      extensionName:
+                        description: Name of service extension associated with resource
+                          kind to be provisioned
+                        maxLength: 64
+                        type: string
+                      extensionQuotaUsage:
+                        description: Storage usage details per storage class level for
+                          given object kind
+                        items:
+                          description: SCLevelQuotaStatus gives storage quota usage
+                            per Kubernetes storage class
+                          properties:
+                            scQuotaUsage:
+                              description: Storage quota usage details for given Kubernetes
+                                storage class
+                              properties:
+                                reserved:
+                                  anyOf:
+                                    - type: integer
+                                    - type: string
+                                  description: Storage quota that is reserved for storage
+                                    resource(s) that are being provisioned
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                used:
+                                  anyOf:
+                                    - type: integer
+                                    - type: string
+                                  description: Storage quota that is already used by
+                                    storage resource(s) that have been provisioned
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                              type: object
+                            storageClassName:
+                              description: Name of the Kubernetes StorageClass
+                              maxLength: 64
+                              type: string
+                          required:
+                            - storageClassName
+                          type: object
+                        type: array
+                    required:
+                      - extensionName
+                    type: object
+                  type: array
+                total:
+                  description: Storage quota usage details per storage class level for
+                    given storage policy
+                  items:
+                    description: SCLevelQuotaStatus gives storage quota usage per Kubernetes
+                      storage class
+                    properties:
+                      scQuotaUsage:
+                        description: Storage quota usage details for given Kubernetes
+                          storage class
+                        properties:
+                          reserved:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            description: Storage quota that is reserved for storage
+                              resource(s) that are being provisioned
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          used:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            description: Storage quota that is already used by storage
+                              resource(s) that have been provisioned
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      storageClassName:
+                        description: Name of the Kubernetes StorageClass
+                        maxLength: 64
+                        type: string
+                    required:
+                      - storageClassName
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}

@@ -2,22 +2,17 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.25.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.12.0-rc.0.0.20260112115641-4d332f8b6351
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.12.0-rc.0.0.20260114094338-a7d169df81fb
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.12.0-rc.0.0.20260112115641-4d332f8b6351
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.12.0-rc.0.0.20260114094338-a7d169df81fb
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
-replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v1.9.1-0.20251029150609-93918c59a719
-
-// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-replace github.com/vmware-tanzu/vm-operator/api => github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719
-
 require (
-	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
+	github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719
-	github.com/vmware/govmomi v0.52.0
+	github.com/vmware/govmomi v0.53.0-alpha.0.0.20260109165523-c553d2674d6c
 )
 
 require (
@@ -27,6 +22,7 @@ require (
 	github.com/onsi/gomega v1.38.3
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.10
+	github.com/vmware-tanzu/vm-operator/external/storage-policy-quota v0.0.0-20251226184156-e3c04309d733
 	golang.org/x/crypto v0.46.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.35.0
@@ -143,7 +139,7 @@ require (
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/fastjson v1.6.7 // indirect
-	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505 // indirect
+	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20251029150609-93918c59a719 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.6 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.6 // indirect

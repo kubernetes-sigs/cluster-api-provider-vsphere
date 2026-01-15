@@ -696,6 +696,13 @@ func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *infrav
 		return err
 	}
 
+	if !reflect.DeepEqual(in.NamingStrategy, infrav1.VSphereVMNamingStrategy{}) {
+		out.NamingStrategy = &VSphereVMNamingStrategy{}
+		if err := autoConvert_v1beta2_VSphereVMNamingStrategy_To_v1beta1_VSphereVMNamingStrategy(&in.NamingStrategy, out.NamingStrategy, s); err != nil {
+			return err
+		}
+	}
+
 	if in.GuestSoftPowerOffTimeoutSeconds != 0 {
 		out.GuestSoftPowerOffTimeout = clusterv1.ConvertFromSeconds(&in.GuestSoftPowerOffTimeoutSeconds)
 	}
@@ -705,6 +712,12 @@ func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *infrav
 func Convert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSphereMachineSpec, out *infrav1.VSphereMachineSpec, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in, out, s); err != nil {
 		return err
+	}
+
+	if in.NamingStrategy != nil {
+		if err := autoConvert_v1beta1_VSphereVMNamingStrategy_To_v1beta2_VSphereVMNamingStrategy(in.NamingStrategy, &out.NamingStrategy, s); err != nil {
+			return err
+		}
 	}
 
 	out.GuestSoftPowerOffTimeoutSeconds = ptr.Deref(clusterv1.ConvertToSeconds(in.GuestSoftPowerOffTimeout), 0)

@@ -910,6 +910,7 @@ spec:
                       namingStrategy:
                         description: namingStrategy allows configuring the naming
                           strategy used when calculating the name of the VSphereVM.
+                        minProperties: 1
                         properties:
                           template:
                             description: |-

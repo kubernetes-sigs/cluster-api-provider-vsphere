@@ -971,7 +971,7 @@ func Test_GenerateVSphereVMName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := GenerateVSphereVMName(tt.machineName, &infrav1.VSphereVMNamingStrategy{
+			got, err := GenerateVSphereVMName(tt.machineName, infrav1.VSphereVMNamingStrategy{
 				Template: tt.template,
 			})
 

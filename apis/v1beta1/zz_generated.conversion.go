@@ -2022,15 +2022,7 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	}
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeout requires manual conversion: does not exist in peer-type
-	if in.NamingStrategy != nil {
-		in, out := &in.NamingStrategy, &out.NamingStrategy
-		*out = new(v1beta2.VSphereVMNamingStrategy)
-		if err := Convert_v1beta1_VSphereVMNamingStrategy_To_v1beta2_VSphereVMNamingStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.NamingStrategy = nil
-	}
+	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1.VSphereVMNamingStrategy vs sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereVMNamingStrategy)
 	return nil
 }
 
@@ -2046,15 +2038,7 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 	}
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeoutSeconds requires manual conversion: does not exist in peer-type
-	if in.NamingStrategy != nil {
-		in, out := &in.NamingStrategy, &out.NamingStrategy
-		*out = new(VSphereVMNamingStrategy)
-		if err := Convert_v1beta2_VSphereVMNamingStrategy_To_v1beta1_VSphereVMNamingStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.NamingStrategy = nil
-	}
+	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereVMNamingStrategy vs *sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1.VSphereVMNamingStrategy)
 	return nil
 }
 

@@ -441,9 +441,9 @@ func generateVMObjectName(vimMachineCtx *capvcontext.VIMMachineContext, machineN
 }
 
 // GenerateVSphereVMName generates the name of a VSphereVM based on the naming strategy.
-func GenerateVSphereVMName(machineName string, namingStrategy *infrav1.VSphereVMNamingStrategy) (string, error) {
+func GenerateVSphereVMName(machineName string, namingStrategy infrav1.VSphereVMNamingStrategy) (string, error) {
 	// Per default the name of the VSphereVM should be equal to the Machine name (this is the same as "{{ .machine.name }}")
-	if namingStrategy == nil || namingStrategy.Template == "" {
+	if namingStrategy.Template == "" {
 		// Note: No need to trim to max length in this case as valid Machine names will also be valid VSphereVM names.
 		return machineName, nil
 	}

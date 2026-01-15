@@ -156,10 +156,11 @@ type VSphereMachineSpec struct {
 
 	// namingStrategy allows configuring the naming strategy used when calculating the name of the VSphereVM.
 	// +optional
-	NamingStrategy *VSphereVMNamingStrategy `json:"namingStrategy,omitempty"`
+	NamingStrategy VSphereVMNamingStrategy `json:"namingStrategy,omitempty,omitzero"`
 }
 
 // VSphereVMNamingStrategy defines the naming strategy for the VSphereVMs.
+// +kubebuilder:validation:MinProperties=1
 type VSphereVMNamingStrategy struct {
 	// template defines the template to use for generating the name of the VSphereVM object.
 	// If not defined, it will fall back to `{{ .machine.name }}`.

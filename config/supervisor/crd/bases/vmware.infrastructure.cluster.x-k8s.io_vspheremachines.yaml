@@ -52,37 +52,37 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereMachineSpec defines the desired state of VSphereMachine.
+            description: spec is the desired state of VSphereMachine.
             properties:
               className:
                 description: |-
-                  ClassName is the name of the class used when specifying the underlying
+                  className is the name of the class used when specifying the underlying
                   virtual machine
                 type: string
               failureDomain:
                 description: |-
-                  FailureDomain is the failure domain the machine will be created in.
+                  failureDomain is the failure domain the machine will be created in.
                   Must match a key in the FailureDomains map stored on the cluster object.
                 type: string
               imageName:
                 description: |-
-                  ImageName is the name of the base image used when specifying the
+                  imageName is the name of the base image used when specifying the
                   underlying virtual machine
                 type: string
               minHardwareVersion:
                 description: |-
-                  MinHardwareVersion specifies the desired minimum hardware version
+                  minHardwareVersion specifies the desired minimum hardware version
                   for this VM. Setting this field will ensure that the hardware version
                   of the VM is at least set to the specified value.
                   The expected format of the field is vmx-15.
                 type: string
               namingStrategy:
-                description: NamingStrategy allows configuring the naming strategy
+                description: namingStrategy allows configuring the naming strategy
                   used when calculating the name of the VirtualMachine.
                 properties:
                   template:
                     description: |-
-                      Template defines the template to use for generating the name of the VirtualMachine object.
+                      template defines the template to use for generating the name of the VirtualMachine object.
                       If not defined, it will fall back to `{{ .machine.name }}`.
                       The templating has the following data available:
                       * `.machine.name`: The name of the Machine object.
@@ -302,7 +302,7 @@ spec:
               powerOffMode:
                 default: hard
                 description: |-
-                  PowerOffMode describes the desired behavior when powering off a VM.
+                  powerOffMode describes the desired behavior when powering off a VM.
 
                   There are three, supported power off modes: hard, soft, and
                   trySoft. The first mode, hard, is the equivalent of a physical
@@ -320,17 +320,17 @@ spec:
                 type: string
               providerID:
                 description: |-
-                  ProviderID is the virtual machine's BIOS UUID formatted as
+                  providerID is the virtual machine's BIOS UUID formatted as
                   vsphere://12345678-1234-1234-1234-123456789abc.
                   This is required at runtime by CAPI. Do not remove this field.
                 type: string
               storageClass:
                 description: |-
-                  StorageClass is the name of the storage class used when specifying the
+                  storageClass is the name of the storage class used when specifying the
                   underlying virtual machine.
                 type: string
               volumes:
-                description: Volumes is the set of PVCs to be created and attached
+                description: volumes is the set of PVCs to be created and attached
                   to the VSphereMachine
                 items:
                   description: VSphereMachineVolume defines a PVC attachment.
@@ -342,14 +342,14 @@ spec:
                         - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
-                      description: Capacity is the PVC capacity
+                      description: capacity is the PVC capacity
                       type: object
                     name:
-                      description: 'Name is suffix used to name this PVC as: VSphereMachine.Name
+                      description: 'name is suffix used to name this PVC as: VSphereMachine.Name
                         + "-" + Name'
                       type: string
                     storageClass:
-                      description: StorageClass defaults to VSphereMachineSpec.StorageClass
+                      description: storageClass defaults to VSphereMachineSpec.StorageClass
                       type: string
                   required:
                   - capacity
@@ -361,10 +361,10 @@ spec:
             - imageName
             type: object
           status:
-            description: VSphereMachineStatus defines the observed state of VSphereMachine.
+            description: status is the observed state of VSphereMachine.
             properties:
               addresses:
-                description: Addresses contains the instance associated addresses.
+                description: addresses contains the instance associated addresses.
                 items:
                   description: NodeAddress contains information for the node's address.
                   properties:
@@ -384,7 +384,7 @@ spec:
                 type: array
                 x-kubernetes-list-type: atomic
               conditions:
-                description: Conditions defines current service state of the VSphereMachine.
+                description: conditions defines current service state of the VSphereMachine.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -437,7 +437,7 @@ spec:
                 type: array
               failureMessage:
                 description: |-
-                  FailureMessage will be set in the event that there is a terminal problem
+                  failureMessage will be set in the event that there is a terminal problem
                   reconciling the Machine and will contain a more verbose string suitable
                   for logging and human consumption.
 
@@ -456,7 +456,7 @@ spec:
                 type: string
               failureReason:
                 description: |-
-                  FailureReason will be set in the event that there is a terminal problem
+                  failureReason will be set in the event that there is a terminal problem
                   reconciling the Machine and will contain a succinct value suitable
                   for machine interpretation.
 
@@ -749,7 +749,7 @@ spec:
                 type: object
               ready:
                 description: |-
-                  Ready is true when the provider resource is ready.
+                  ready is true when the provider resource is ready.
                   This is required at runtime by CAPI. Do not remove this field.
                 type: boolean
               v1beta2:
@@ -822,13 +822,13 @@ spec:
                     x-kubernetes-list-type: map
                 type: object
               vmID:
-                description: ID is used to identify the virtual machine.
+                description: vmID is used to identify the virtual machine.
                 type: string
               vmIp:
-                description: IPAddr is the IP address used to access the virtual machine.
+                description: vmIp is the IP address used to access the virtual machine.
                 type: string
               vmstatus:
-                description: VMStatus is used to identify the virtual machine status.
+                description: vmstatus is used to identify the virtual machine status.
                 type: string
             type: object
         type: object

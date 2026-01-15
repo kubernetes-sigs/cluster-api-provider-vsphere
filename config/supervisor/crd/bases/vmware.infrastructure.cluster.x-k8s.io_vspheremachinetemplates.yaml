@@ -40,45 +40,44 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate.
+            description: spec is the desired state of VSphereMachineTemplate.
             properties:
               template:
-                description: VSphereMachineTemplateResource describes the data needed
-                  to create a VSphereMachine from a template.
+                description: template defines the desired state of VSphereMachineTemplate.
                 properties:
                   spec:
-                    description: Spec is the specification of the desired behavior
+                    description: spec is the specification of the desired behavior
                       of the machine.
                     properties:
                       className:
                         description: |-
-                          ClassName is the name of the class used when specifying the underlying
+                          className is the name of the class used when specifying the underlying
                           virtual machine
                         type: string
                       failureDomain:
                         description: |-
-                          FailureDomain is the failure domain the machine will be created in.
+                          failureDomain is the failure domain the machine will be created in.
                           Must match a key in the FailureDomains map stored on the cluster object.
                         type: string
                       imageName:
                         description: |-
-                          ImageName is the name of the base image used when specifying the
+                          imageName is the name of the base image used when specifying the
                           underlying virtual machine
                         type: string
                       minHardwareVersion:
                         description: |-
-                          MinHardwareVersion specifies the desired minimum hardware version
+                          minHardwareVersion specifies the desired minimum hardware version
                           for this VM. Setting this field will ensure that the hardware version
                           of the VM is at least set to the specified value.
                           The expected format of the field is vmx-15.
                         type: string
                       namingStrategy:
-                        description: NamingStrategy allows configuring the naming
+                        description: namingStrategy allows configuring the naming
                           strategy used when calculating the name of the VirtualMachine.
                         properties:
                           template:
                             description: |-
-                              Template defines the template to use for generating the name of the VirtualMachine object.
+                              template defines the template to use for generating the name of the VirtualMachine object.
                               If not defined, it will fall back to `{{ .machine.name }}`.
                               The templating has the following data available:
                               * `.machine.name`: The name of the Machine object.
@@ -299,7 +298,7 @@ spec:
                       powerOffMode:
                         default: hard
                         description: |-
-                          PowerOffMode describes the desired behavior when powering off a VM.
+                          powerOffMode describes the desired behavior when powering off a VM.
 
                           There are three, supported power off modes: hard, soft, and
                           trySoft. The first mode, hard, is the equivalent of a physical
@@ -317,17 +316,17 @@ spec:
                         type: string
                       providerID:
                         description: |-
-                          ProviderID is the virtual machine's BIOS UUID formatted as
+                          providerID is the virtual machine's BIOS UUID formatted as
                           vsphere://12345678-1234-1234-1234-123456789abc.
                           This is required at runtime by CAPI. Do not remove this field.
                         type: string
                       storageClass:
                         description: |-
-                          StorageClass is the name of the storage class used when specifying the
+                          storageClass is the name of the storage class used when specifying the
                           underlying virtual machine.
                         type: string
                       volumes:
-                        description: Volumes is the set of PVCs to be created and
+                        description: volumes is the set of PVCs to be created and
                           attached to the VSphereMachine
                         items:
                           description: VSphereMachineVolume defines a PVC attachment.
@@ -339,14 +338,14 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: Capacity is the PVC capacity
+                              description: capacity is the PVC capacity
                               type: object
                             name:
-                              description: 'Name is suffix used to name this PVC as:
+                              description: 'name is suffix used to name this PVC as:
                                 VSphereMachine.Name + "-" + Name'
                               type: string
                             storageClass:
-                              description: StorageClass defaults to VSphereMachineSpec.StorageClass
+                              description: storageClass defaults to VSphereMachineSpec.StorageClass
                               type: string
                           required:
                           - capacity
@@ -364,8 +363,7 @@ spec:
             - template
             type: object
           status:
-            description: VSphereMachineTemplateStatus defines the observed state of
-              VSphereMachineTemplate.
+            description: status is the observed state of VSphereMachineTemplate.
             properties:
               capacity:
                 additionalProperties:
@@ -375,7 +373,7 @@ spec:
                   pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                   x-kubernetes-int-or-string: true
                 description: |-
-                  Capacity defines the resource capacity for this VSphereMachineTemplate.
+                  capacity defines the resource capacity for this VSphereMachineTemplate.
                   This value is used for autoscaling from zero operations as defined in:
                   https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
                 type: object

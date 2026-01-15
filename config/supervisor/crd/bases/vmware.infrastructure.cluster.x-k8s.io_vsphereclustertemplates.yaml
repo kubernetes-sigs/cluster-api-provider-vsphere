@@ -40,17 +40,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereClusterTemplateSpec defines the desired state of VSphereClusterTemplate.
+            description: spec is the desired state of VSphereClusterTemplate.
             properties:
               template:
-                description: VSphereClusterTemplateResource defines the template structure.
+                description: template defines the desired state of VSphereClusterTemplate.
                 properties:
                   spec:
-                    description: VSphereClusterSpec defines the desired state of VSphereCluster.
+                    description: spec is the desired state of VSphereClusterTemplateResource.
                     properties:
                       controlPlaneEndpoint:
-                        description: APIEndpoint represents a reachable Kubernetes
-                          API endpoint.
+                        description: controlPlaneEndpoint represents the endpoint
+                          used to communicate with the control plane.
                         properties:
                           host:
                             description: host is the hostname on which the API server

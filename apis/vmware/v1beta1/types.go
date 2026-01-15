@@ -18,7 +18,7 @@ package v1beta1
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template.
 type VSphereMachineTemplateResource struct {
-	// Spec is the specification of the desired behavior of the machine.
+	// spec is the specification of the desired behavior of the machine.
 	Spec VSphereMachineSpec `json:"spec"`
 }
 

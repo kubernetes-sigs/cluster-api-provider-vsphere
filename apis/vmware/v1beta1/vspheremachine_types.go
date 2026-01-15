@@ -28,42 +28,42 @@ import (
 
 // VSphereMachineVolume defines a PVC attachment.
 type VSphereMachineVolume struct {
-	// Name is suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
+	// name is suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
 	Name string `json:"name"`
-	// Capacity is the PVC capacity
+	// capacity is the PVC capacity
 	Capacity corev1.ResourceList `json:"capacity"`
-	// StorageClass defaults to VSphereMachineSpec.StorageClass
+	// storageClass defaults to VSphereMachineSpec.StorageClass
 	// +optional
 	StorageClass string `json:"storageClass,omitempty"`
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
 type VSphereMachineSpec struct {
-	// ProviderID is the virtual machine's BIOS UUID formatted as
+	// providerID is the virtual machine's BIOS UUID formatted as
 	// vsphere://12345678-1234-1234-1234-123456789abc.
 	// This is required at runtime by CAPI. Do not remove this field.
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
-	// FailureDomain is the failure domain the machine will be created in.
+	// failureDomain is the failure domain the machine will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
-	// ImageName is the name of the base image used when specifying the
+	// imageName is the name of the base image used when specifying the
 	// underlying virtual machine
 	ImageName string `json:"imageName"`
 
-	// ClassName is the name of the class used when specifying the underlying
+	// className is the name of the class used when specifying the underlying
 	// virtual machine
 	ClassName string `json:"className"`
 
-	// StorageClass is the name of the storage class used when specifying the
+	// storageClass is the name of the storage class used when specifying the
 	// underlying virtual machine.
 	// +optional
 	StorageClass string `json:"storageClass,omitempty"`
 
-	// Volumes is the set of PVCs to be created and attached to the VSphereMachine
+	// volumes is the set of PVCs to be created and attached to the VSphereMachine
 	// +optional
 	Volumes []VSphereMachineVolume `json:"volumes,omitempty"`
 
@@ -71,7 +71,7 @@ type VSphereMachineSpec struct {
 	// +optional
 	Network VSphereMachineNetworkSpec `json:"network,omitempty,omitzero"`
 
-	// PowerOffMode describes the desired behavior when powering off a VM.
+	// powerOffMode describes the desired behavior when powering off a VM.
 	//
 	// There are three, supported power off modes: hard, soft, and
 	// trySoft. The first mode, hard, is the equivalent of a physical
@@ -87,7 +87,7 @@ type VSphereMachineSpec struct {
 	// +kubebuilder:default=hard
 	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
 
-	// MinHardwareVersion specifies the desired minimum hardware version
+	// minHardwareVersion specifies the desired minimum hardware version
 	// for this VM. Setting this field will ensure that the hardware version
 	// of the VM is at least set to the specified value.
 	// The expected format of the field is vmx-15.
@@ -95,7 +95,7 @@ type VSphereMachineSpec struct {
 	// +optional
 	MinHardwareVersion string `json:"minHardwareVersion,omitempty"`
 
-	// NamingStrategy allows configuring the naming strategy used when calculating the name of the VirtualMachine.
+	// namingStrategy allows configuring the naming strategy used when calculating the name of the VirtualMachine.
 	// +optional
 	NamingStrategy *VirtualMachineNamingStrategy `json:"namingStrategy,omitempty"`
 }
@@ -247,7 +247,7 @@ type RouteSpec struct {
 
 // VirtualMachineNamingStrategy defines the naming strategy for the VirtualMachines.
 type VirtualMachineNamingStrategy struct {
-	// Template defines the template to use for generating the name of the VirtualMachine object.
+	// template defines the template to use for generating the name of the VirtualMachine object.
 	// If not defined, it will fall back to `{{ .machine.name }}`.
 	// The templating has the following data available:
 	// * `.machine.name`: The name of the Machine object.
@@ -267,27 +267,27 @@ type VirtualMachineNamingStrategy struct {
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.
 type VSphereMachineStatus struct {
-	// Ready is true when the provider resource is ready.
+	// ready is true when the provider resource is ready.
 	// This is required at runtime by CAPI. Do not remove this field.
 	// +optional
 	Ready bool `json:"ready"`
 
-	// Addresses contains the instance associated addresses.
+	// addresses contains the instance associated addresses.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=10
 	// +listType=atomic
 	// +optional
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
-	// ID is used to identify the virtual machine.
+	// vmID is used to identify the virtual machine.
 	// +optional
 	ID *string `json:"vmID,omitempty"`
 
-	// IPAddr is the IP address used to access the virtual machine.
+	// vmIp is the IP address used to access the virtual machine.
 	// +optional
 	IPAddr string `json:"vmIp,omitempty"`
 
-	// FailureReason will be set in the event that there is a terminal problem
+	// failureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
 	//
@@ -306,7 +306,7 @@ type VSphereMachineStatus struct {
 	// +optional
 	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
 
-	// FailureMessage will be set in the event that there is a terminal problem
+	// failureMessage will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a more verbose string suitable
 	// for logging and human consumption.
 	//
@@ -325,11 +325,11 @@ type VSphereMachineStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// VMStatus is used to identify the virtual machine status.
+	// vmstatus is used to identify the virtual machine status.
 	// +optional
 	VMStatus VirtualMachineState `json:"vmstatus,omitempty"`
 
-	// Conditions defines current service state of the VSphereMachine.
+	// conditions defines current service state of the VSphereMachine.
 	// +optional
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
@@ -366,10 +366,16 @@ type VSphereMachineV1Beta2Status struct {
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
 // +kubebuilder:printcolumn:name="IPAddr",type="string",JSONPath=".status.vmIp",description="IP address"
 type VSphereMachine struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VSphereMachineSpec   `json:"spec,omitempty"`
+	// spec is the desired state of VSphereMachine.
+	Spec VSphereMachineSpec `json:"spec,omitempty"`
+
+	// status is the observed state of VSphereMachine.
 	Status VSphereMachineStatus `json:"status,omitempty"`
 }
 

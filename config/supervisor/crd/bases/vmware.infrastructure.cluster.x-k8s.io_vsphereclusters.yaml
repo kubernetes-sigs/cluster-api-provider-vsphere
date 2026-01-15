@@ -39,10 +39,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereClusterSpec defines the desired state of VSphereCluster.
+            description: spec is the desired state of VSphereCluster.
             properties:
               controlPlaneEndpoint:
-                description: APIEndpoint represents a reachable Kubernetes API endpoint.
+                description: controlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
                 properties:
                   host:
                     description: host is the hostname on which the API server is serving.
@@ -82,10 +83,10 @@ spec:
             - message: field 'network' cannot be added or removed after creation
               rule: has(self.network) == has(oldSelf.network)
           status:
-            description: VSphereClusterStatus defines the observed state of VSphereClusterSpec.
+            description: status is the observed state of VSphereCluster.
             properties:
               conditions:
-                description: Conditions defines current service state of the VSphereCluster.
+                description: conditions defines current service state of the VSphereCluster.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -154,17 +155,17 @@ spec:
                       type: boolean
                   type: object
                 description: |-
-                  FailureDomains is a list of failure domain objects synced from the
+                  failureDomains is a list of failure domain objects synced from the
                   infrastructure provider.
                 type: object
               ready:
                 description: |-
-                  Ready indicates the infrastructure required to deploy this cluster is
+                  ready indicates the infrastructure required to deploy this cluster is
                   ready.
                 type: boolean
               resourcePolicyName:
                 description: |-
-                  ResourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
+                  resourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
                   the cluster, if one exists
                 type: string
               v1beta2:

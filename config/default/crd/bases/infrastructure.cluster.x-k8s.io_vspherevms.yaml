@@ -1549,7 +1549,6 @@ spec:
                 type: array
                 x-kubernetes-list-type: atomic
               powerOffMode:
-                default: hard
                 description: |-
                   powerOffMode describes the desired behavior when powering off a VM.
 

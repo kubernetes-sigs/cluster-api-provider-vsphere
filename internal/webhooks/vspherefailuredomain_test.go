@@ -21,22 +21,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 )
-
-func TestVsphereFailureDomain_Default(t *testing.T) {
-	g := NewWithT(t)
-	m := &infrav1.VSphereFailureDomain{
-		Spec: infrav1.VSphereFailureDomainSpec{},
-	}
-	webhook := &VSphereFailureDomain{}
-	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
-
-	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
-	g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse())
-}
 
 func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 	g := NewWithT(t)
@@ -50,10 +37,9 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 			name: "region failureDomain type is hostGroup",
 			failureDomain: infrav1.VSphereFailureDomain{Spec: infrav1.VSphereFailureDomainSpec{
 				Region: infrav1.FailureDomain{
-					Name:          "foo",
-					Type:          infrav1.HostGroupFailureDomain,
-					TagCategory:   "k8s-bar",
-					AutoConfigure: ptr.To(true),
+					Name:        "foo",
+					Type:        infrav1.HostGroupFailureDomain,
+					TagCategory: "k8s-bar",
 				},
 			}},
 		},

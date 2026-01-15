@@ -360,12 +360,6 @@ spec:
               region:
                 description: region defines the name and type of a region
                 properties:
-                  autoConfigure:
-                    description: |-
-                      autoConfigure tags the Type which is specified in the Topology
-
-                      Deprecated: This field is going to be removed in a future release.
-                    type: boolean
                   name:
                     description: name is the name of the tag that represents this
                       failure domain
@@ -652,12 +646,6 @@ spec:
               zone:
                 description: zone defines the name and type of a zone
                 properties:
-                  autoConfigure:
-                    description: |-
-                      autoConfigure tags the Type which is specified in the Topology
-
-                      Deprecated: This field is going to be removed in a future release.
-                    type: boolean
                   name:
                     description: name is the name of the tag that represents this
                       failure domain

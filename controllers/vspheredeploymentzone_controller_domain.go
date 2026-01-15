@@ -22,7 +22,6 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -32,7 +31,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/cluster"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/metadata"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/taggable"
 )
 
@@ -103,9 +101,6 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileInfraFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain, failureDomain infrav1.FailureDomain) error {
-	if *failureDomain.AutoConfigure {
-		return r.createAndAttachMetadata(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain)
-	}
 	return r.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain)
 }
 
@@ -243,31 +238,4 @@ func (r vsphereDeploymentZoneReconciler) verifyFailureDomain(ctx context.Context
 		}
 	}
 	return nil
-}
-
-func (r vsphereDeploymentZoneReconciler) createAndAttachMetadata(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain, failureDomain infrav1.FailureDomain) error {
-	log := ctrl.LoggerFrom(ctx, "tagName", failureDomain.Name, "tagCategory", failureDomain.TagCategory, "failureDomainType", failureDomain.Type)
-	categoryID, err := metadata.CreateCategory(ctx, deploymentZoneCtx, failureDomain.TagCategory, failureDomain.Type)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create category %s", failureDomain.TagCategory)
-	}
-	err = metadata.CreateTag(ctx, deploymentZoneCtx, failureDomain.Name, categoryID)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create tag %s", failureDomain.Name)
-	}
-
-	objects, err := taggable.GetObjects(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain.Type)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get objects of type %s", failureDomain.Type)
-	}
-
-	var errList []error
-	for _, obj := range objects {
-		log.V(4).Info("Attaching tag to object")
-		err := obj.AttachTag(ctx, failureDomain.Name)
-		if err != nil {
-			errList = append(errList, errors.Wrapf(err, "failed to attach tag %s to object %s", failureDomain.Name, obj))
-		}
-	}
-	return kerrors.NewAggregate(errList)
 }

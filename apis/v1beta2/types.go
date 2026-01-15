@@ -375,11 +375,6 @@ type APIEndpoint struct {
 	Port int32 `json:"port,omitempty"`
 }
 
-// IsZero returns true if either the host or the port are zero values.
-func (v APIEndpoint) IsZero() bool {
-	return v.Host == "" || v.Port == 0
-}
-
 // String returns a formatted version HOST:PORT of this APIEndpoint.
 func (v APIEndpoint) String() string {
 	return fmt.Sprintf("%s:%d", v.Host, v.Port)

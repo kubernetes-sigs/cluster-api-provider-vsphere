@@ -1,0 +1,1140 @@
+/*
+Copyright 2026 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package client
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	. "github.com/onsi/gomega"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
+	conversionmeta "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	vmoprv1alpha2conversion "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha2"
+	vmoprv1alpha5conversion "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha5"
+)
+
+var (
+	ctx       = context.TODO()
+	scheme    = runtime.NewScheme()
+	converter = conversion.NewConverter()
+)
+
+func init() {
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
+
+	utilruntime.Must(vmoprvhub.AddToConverter(converter))
+	utilruntime.Must(vmoprv1alpha2conversion.AddToConverter(converter))
+	utilruntime.Must(vmoprv1alpha5conversion.AddToConverter(converter))
+}
+
+func Test_conversionClient_Get(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.Object
+		wantObj       client.Object
+	}{
+		{
+			name:          "Get VirtualMachine when target version is v1alpha2",
+			targetVersion: vmoprv1alpha2.GroupVersion.Version,
+			obj: &vmoprv1alpha2.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+			},
+			wantObj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha2.GroupVersion.String(),
+				},
+			},
+		},
+		{
+			name:          "Get VirtualMachine when target version is v1alpha5",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprv1alpha5.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+			},
+			wantObj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha5.GroupVersion.String(),
+				},
+			},
+		},
+		{
+			name: "Get non convertible objects",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-n",
+					Namespace: "test-ns",
+				},
+			},
+			wantObj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-n",
+					Namespace: "test-ns",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.obj).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			gvk, err := c.internalClient.GroupVersionKindFor(tt.wantObj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			o, err := c.internalClient.Scheme().New(gvk)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gotObj := o.(client.Object)
+			err = c.Get(ctx, client.ObjectKeyFromObject(tt.obj), gotObj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			tt.wantObj.SetResourceVersion(gotObj.GetResourceVersion())
+			g.Expect(gotObj).To(Equal(tt.wantObj))
+		})
+	}
+}
+
+func Test_conversionClient_List(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		objs          []client.Object
+		wantObjs      []client.Object
+	}{
+		{
+			name:          "List VirtualMachines when target version is v1alpha2",
+			targetVersion: vmoprv1alpha2.GroupVersion.Version,
+			objs: []client.Object{
+				&vmoprv1alpha2.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm1",
+						Namespace: "test-ns",
+					},
+				},
+				&vmoprv1alpha2.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm2",
+						Namespace: "test-ns",
+					},
+				},
+			},
+			wantObjs: []client.Object{
+				&vmoprvhub.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm1",
+						Namespace: "test-ns",
+					},
+					Source: conversionmeta.SourceTypeMeta{
+						APIVersion: vmoprv1alpha2.GroupVersion.String(),
+					},
+				},
+				&vmoprvhub.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm2",
+						Namespace: "test-ns",
+					},
+					Source: conversionmeta.SourceTypeMeta{
+						APIVersion: vmoprv1alpha2.GroupVersion.String(),
+					},
+				},
+			},
+		},
+		{
+			name:          "List VirtualMachines when target version is v1alpha5",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			objs: []client.Object{
+				&vmoprv1alpha5.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm1",
+						Namespace: "test-ns",
+					},
+				},
+				&vmoprv1alpha5.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm2",
+						Namespace: "test-ns",
+					},
+				},
+			},
+			wantObjs: []client.Object{
+				&vmoprvhub.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm1",
+						Namespace: "test-ns",
+					},
+					Source: conversionmeta.SourceTypeMeta{
+						APIVersion: vmoprv1alpha5.GroupVersion.String(),
+					},
+				},
+				&vmoprvhub.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm2",
+						Namespace: "test-ns",
+					},
+					Source: conversionmeta.SourceTypeMeta{
+						APIVersion: vmoprv1alpha5.GroupVersion.String(),
+					},
+				},
+			},
+		},
+		{
+			name: "List non convertible objects",
+			objs: []client.Object{
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-n1",
+						Namespace: "test-ns",
+					},
+				},
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-n2",
+						Namespace: "test-ns",
+					},
+				},
+			},
+			wantObjs: []client.Object{
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-n1",
+						Namespace: "test-ns",
+					},
+				},
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-n2",
+						Namespace: "test-ns",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			c := &conversionClient{
+				internalClient: fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build(),
+				converter:      converter,
+			}
+
+			gvk, err := c.internalClient.GroupVersionKindFor(tt.wantObjs[0])
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gvk.Kind = fmt.Sprintf("%sList", gvk.Kind)
+
+			o, err := c.internalClient.Scheme().New(gvk)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gotObjList := o.(client.ObjectList)
+			err = c.List(ctx, gotObjList)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gotItems, err := meta.ExtractList(gotObjList)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			g.Expect(gotItems).To(HaveLen(len(tt.wantObjs)))
+			for i, wantHubObj := range tt.wantObjs {
+				gotItem := gotItems[i].(client.Object)
+				wantHubObj.SetResourceVersion(gotItem.GetResourceVersion())
+				g.Expect(gotItem).To(Equal(wantHubObj))
+			}
+		})
+	}
+}
+
+func Test_conversionClient_Create(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.Object
+		wantErr       bool
+	}{
+		{
+			name:          "Create VirtualMachine when target version is v1alpha2",
+			targetVersion: vmoprv1alpha2.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+		},
+		{
+			name:          "Create VirtualMachine when target version is v1alpha5",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+		},
+		{
+			name: "Create non convertible objects",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-n",
+					Namespace: "test-ns",
+				},
+			},
+		},
+		{
+			name:          "Accepts Source.APIVersion when equal to target version",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha5.GroupVersion.String(),
+				},
+			},
+		},
+		{
+			name:          "Fails when Source.APIVersion different from target version",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha2.GroupVersion.String(),
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			c := &conversionClient{
+				internalClient: fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter:      converter,
+			}
+
+			objOriginal := tt.obj.DeepCopyObject().(client.Object)
+
+			err := c.Create(ctx, tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(tt.obj.GetResourceVersion()).To(BeEmpty())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(tt.obj.GetResourceVersion()).ToNot(BeEmpty())
+
+			gvk, err := c.internalClient.GroupVersionKindFor(tt.obj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			o, err := c.internalClient.Scheme().New(gvk)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gotObj := o.(client.Object)
+			err = c.Get(ctx, client.ObjectKeyFromObject(tt.obj), gotObj)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(gotObj.GetResourceVersion()).ToNot(BeEmpty())
+			objOriginal.SetResourceVersion(gotObj.GetResourceVersion())
+			if source, err := conversionmeta.GetSource(gotObj); err == nil {
+				g.Expect(source.APIVersion).To(Equal(schema.GroupVersion{Group: gvk.Group, Version: tt.targetVersion}.String()))
+				g.Expect(conversionmeta.SetSource(gotObj, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			}
+			if conversionmeta.HasSource(objOriginal) {
+				g.Expect(conversionmeta.SetSource(objOriginal, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			}
+			g.Expect(gotObj).To(Equal(objOriginal))
+		})
+	}
+}
+
+func Test_conversionClient_Delete(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.Object
+		wantErr       bool
+	}{
+		{
+			name:          "Delete VirtualMachine when target version is v1alpha2",
+			targetVersion: vmoprv1alpha2.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+			},
+		},
+		{
+			name:          "Delete VirtualMachine when target version is v1alpha5",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+			},
+		},
+		{
+			name: "Delete non convertible objects",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-n",
+					Namespace: "test-ns",
+				},
+			},
+		},
+		{
+			name:          "Accepts Source.APIVersion when equal to target version",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha5.GroupVersion.String(),
+				},
+			},
+		},
+		{
+			name:          "Fails when Source.APIVersion different from target version",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha2.GroupVersion.String(),
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			tmpSourceVersion := ""
+			if source, err := conversionmeta.GetSource(tt.obj); err == nil {
+				tmpSourceVersion = source.APIVersion
+				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			}
+
+			err = c.Create(ctx, tt.obj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			if conversionmeta.HasSource(tt.obj) {
+				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})).To(Succeed())
+			}
+
+			err = c.Delete(ctx, tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gvk, err := c.internalClient.GroupVersionKindFor(tt.obj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			o, err := c.internalClient.Scheme().New(gvk)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gotObj := o.(client.Object)
+			err = c.Get(ctx, client.ObjectKeyFromObject(tt.obj), gotObj)
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+	}
+}
+
+func Test_conversionClient_Update(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.Object
+		wantPanic     bool
+	}{
+		{
+			name: "Update non convertible objects",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-n",
+					Namespace: "test-ns",
+				},
+			},
+		},
+		{
+			name:          "Panics for convertible objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+			},
+			wantPanic: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			panicked := make(chan bool)
+			go func() {
+				defer func() {
+					if recover() != nil {
+						panicked <- true
+					}
+				}()
+				err = c.Update(ctx, tt.obj)
+				panicked <- false
+			}()
+			gotPanic := <-panicked
+			if tt.wantPanic != gotPanic {
+				t.Errorf("Expected panic %t but got %t", tt.wantPanic, gotPanic)
+			}
+			if tt.wantPanic {
+				g.Expect(err).ToNot(HaveOccurred())
+				return
+			}
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+	}
+}
+
+func Test_conversionClient_Patch(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.Object
+		modifyFunc    func(client.Object) client.Object
+		wantErr       bool
+	}{
+		{
+			name:          "Patch VirtualMachine when target version is v1alpha2",
+			targetVersion: vmoprv1alpha2.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Spec.ClassName = "another-class"
+				return vm
+			},
+		},
+		{
+			name:          "Patch VirtualMachine when target version is v1alpha5",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Spec.ClassName = "another-class"
+				return vm
+			},
+		},
+		{
+			name:          "Patch non convertible objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-n",
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				n := o.(*corev1.Node)
+				n.Spec.ProviderID = "fpp"
+				return n
+			},
+		},
+		{
+			name:          "Accepts Source.APIVersion when equal to target version",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha5.GroupVersion.String(),
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Spec.ClassName = "another-class"
+				return vm
+			},
+		},
+		{
+			name:          "Fails when Source.APIVersion different from target version",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha2.GroupVersion.String(),
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Spec.ClassName = "another-class"
+				return vm
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			tmpSourceVersion := ""
+			if source, err := conversionmeta.GetSource(tt.obj); err == nil {
+				tmpSourceVersion = source.APIVersion
+				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			}
+
+			err = c.Create(ctx, tt.obj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			if conversionmeta.HasSource(tt.obj) {
+				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})).To(Succeed())
+			}
+
+			objModified := tt.modifyFunc(tt.obj)
+
+			patch := client.MergeFrom(tt.obj)
+			if c.converter.IsConvertible(tt.obj) {
+				patch, err = MergeFrom(c, tt.obj)
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			err = c.Patch(ctx, objModified, patch)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			gvk, err := c.internalClient.GroupVersionKindFor(tt.obj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			o, err := c.internalClient.Scheme().New(gvk)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gotObj := o.(client.Object)
+			err = c.Get(ctx, client.ObjectKeyFromObject(objModified), gotObj)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(gotObj).To(Equal(objModified))
+		})
+	}
+
+	t.Run("Fails with wrong patch type", func(t *testing.T) {
+		g := NewWithT(t)
+
+		converter.SetTargetVersion(vmoprv1alpha5.GroupVersion.Version)
+
+		cc, err := NewWithConverter(
+			fake.NewClientBuilder().WithScheme(scheme).Build(),
+			converter,
+		)
+		g.Expect(err).NotTo(HaveOccurred())
+		c := cc.(*conversionClient)
+
+		obj := &vmoprvhub.VirtualMachine{}
+		objModified := &vmoprvhub.VirtualMachine{}
+
+		err = c.Patch(ctx, objModified, client.MergeFrom(obj))
+		g.Expect(err).To(HaveOccurred())
+	})
+}
+
+func Test_conversionClient_DeleteAllOf(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.Object
+		wantPanic     bool
+	}{
+		{
+			name: "Delete non convertible objects",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-n",
+					Namespace: "test-ns",
+				},
+			},
+		},
+		{
+			name:          "Panics for convertible objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+			},
+			wantPanic: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			panicked := make(chan bool)
+			go func() {
+				defer func() {
+					if recover() != nil {
+						panicked <- true
+					}
+				}()
+				err = c.DeleteAllOf(ctx, tt.obj)
+				panicked <- false
+			}()
+			gotPanic := <-panicked
+			if tt.wantPanic != gotPanic {
+				t.Errorf("Expected panic %t but got %t", tt.wantPanic, gotPanic)
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}
+
+func Test_conversionClient_PatchStatus(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.Object
+		modifyFunc    func(client.Object) client.Object
+		wantErr       bool
+	}{
+		{
+			name:          "Patch VirtualMachine status when target version is v1alpha2",
+			targetVersion: vmoprv1alpha2.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Status.NodeName = "foo"
+				return vm
+			},
+			wantErr: false,
+		},
+		{
+			name:          "Patch VirtualMachine status when target version is v1alpha5",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Status.NodeName = "foo"
+				return vm
+			},
+			wantErr: false,
+		},
+		{
+			name:          "Patch status for non convertible objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-n",
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				n := o.(*corev1.Node)
+				n.Spec.ProviderID = "fpp"
+				return n
+			},
+		},
+		{
+			name:          "Accepts Source.APIVersion when equal to target version",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha5.GroupVersion.String(),
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Spec.ClassName = "another-class"
+				return vm
+			},
+		},
+		{
+			name:          "Fails when Source.APIVersion different from target version",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha2.GroupVersion.String(),
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Spec.ClassName = "another-class"
+				return vm
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&vmoprvhub.VirtualMachine{}, &vmoprv1alpha2.VirtualMachine{}, &vmoprv1alpha5.VirtualMachine{}).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			tmpSourceVersion := ""
+			if source, err := conversionmeta.GetSource(tt.obj); err == nil {
+				tmpSourceVersion = source.APIVersion
+				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			}
+
+			err = c.Create(ctx, tt.obj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			if conversionmeta.HasSource(tt.obj) {
+				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})).To(Succeed())
+			}
+
+			objModified := tt.modifyFunc(tt.obj)
+
+			patch := client.MergeFrom(tt.obj)
+			if c.converter.IsConvertible(tt.obj) {
+				patch, err = MergeFrom(c, tt.obj)
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			err = c.Status().Patch(ctx, objModified, patch)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			gvk, err := c.internalClient.GroupVersionKindFor(tt.obj)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			o, err := c.internalClient.Scheme().New(gvk)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			gotObj := o.(client.Object)
+			err = c.Get(ctx, client.ObjectKeyFromObject(objModified), gotObj)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(gotObj).To(Equal(objModified))
+		})
+	}
+}
+
+func Test_newTargetVersionObjectFor(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.Object
+		wantObj       client.Object
+		wantErr       bool
+	}{
+		{
+			name:          "Create object for v1alpha2",
+			targetVersion: vmoprv1alpha2.GroupVersion.Version,
+			obj:           &vmoprvhub.VirtualMachine{},
+			wantObj:       &vmoprv1alpha2.VirtualMachine{},
+		},
+		{
+			name:          "Create object for v1alpha5",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj:           &vmoprvhub.VirtualMachine{},
+			wantObj:       &vmoprv1alpha5.VirtualMachine{},
+		},
+		{
+			name:    "Fails for non convertible objects",
+			obj:     &corev1.Node{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.obj).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			gotObj, err := c.newTargetVersionObjectFor(tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(gotObj).To(BeNil())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gotObj).To(Equal(tt.wantObj))
+		})
+	}
+}
+
+func Test_newTargetVersionObjectListFor(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           client.ObjectList
+		wantObj       client.ObjectList
+		wantErr       bool
+	}{
+		{
+			name:          "Create object list for v1alpha2",
+			targetVersion: vmoprv1alpha2.GroupVersion.Version,
+			obj:           &vmoprvhub.VirtualMachineList{},
+			wantObj:       &vmoprv1alpha2.VirtualMachineList{},
+		},
+		{
+			name:          "Create object list for v1alpha5",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj:           &vmoprvhub.VirtualMachineList{},
+			wantObj:       &vmoprv1alpha5.VirtualMachineList{},
+		},
+		{
+			name:    "Fails for non convertible objects",
+			obj:     &corev1.NodeList{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			gotObj, err := c.newTargetVersionObjectListFor(tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(gotObj).To(BeNil())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gotObj).To(Equal(tt.wantObj))
+		})
+	}
+}
+
+func Test_newObjectListItemFor(t *testing.T) {
+	tests := []struct {
+		name    string
+		obj     client.ObjectList
+		wantObj client.Object
+	}{
+		{
+			name:    "Create object list item for hub VirtualMachineList",
+			obj:     &vmoprvhub.VirtualMachineList{},
+			wantObj: &vmoprvhub.VirtualMachine{},
+		},
+		{
+			name:    "Create object list item for v1alpha2 VirtualMachineList",
+			obj:     &vmoprv1alpha2.VirtualMachineList{},
+			wantObj: &vmoprv1alpha2.VirtualMachine{},
+		},
+		{
+			name:    "Create object list item for v1alpha5 VirtualMachineList",
+			obj:     &vmoprv1alpha5.VirtualMachineList{},
+			wantObj: &vmoprv1alpha5.VirtualMachine{},
+		},
+		{
+			name:    "Create object list item for non convertible objects",
+			obj:     &corev1.NodeList{},
+			wantObj: &corev1.Node{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			gotObj, err := c.newObjectListItemFor(tt.obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gotObj).To(Equal(tt.wantObj))
+		})
+	}
+}

@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,11 +35,12 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-func getVirtualMachineService(ctx context.Context, clusterCtx *vmware.ClusterContext, _ ctrlclient.Client, cpService CPService) *vmoprv1.VirtualMachineService {
+func getVirtualMachineService(ctx context.Context, clusterCtx *vmware.ClusterContext, _ ctrlclient.Client, cpService CPService) *vmoprvhub.VirtualMachineService {
 	vms, err := cpService.getVMControlPlaneService(ctx, clusterCtx)
 	if apierrors.IsNotFound(err) {
 		return nil
@@ -76,12 +77,14 @@ func updateVMServiceWithVIP(ctx context.Context, clusterCtx *vmware.ClusterConte
 	vmService := getVirtualMachineService(ctx, clusterCtx, c, cpService)
 
 	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-	s := &vmoprv1.VirtualMachineService{}
+	s := &vmoprv1alpha2.VirtualMachineService{}
 	err := c.Get(ctx, ctrlclient.ObjectKeyFromObject(vmService), s)
 	Expect(err).ShouldNot(HaveOccurred())
 
-	s.Status.LoadBalancer.Ingress = []vmoprv1.LoadBalancerIngress{{IP: vip}}
-	err = c.Status().Update(ctx, s)
+	sOriginal := s.DeepCopy()
+	s.Status.LoadBalancer.Ingress = []vmoprv1alpha2.LoadBalancerIngress{{IP: vip}}
+
+	err = c.Status().Patch(ctx, s, ctrlclient.MergeFrom(sOriginal))
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
@@ -97,7 +100,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 		expectReconcileError        bool
 		expectAPIEndpoint           bool
 		expectVMS                   bool
-		expectedType                vmoprv1.VirtualMachineServiceType
+		expectedType                vmoprvhub.VirtualMachineServiceType
 		expectedHost                string
 		expectedPort                int
 		expectedAnnotations         map[string]string
@@ -112,7 +115,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 		c                        ctrlclient.Client
 
 		apiEndpoint *clusterv1beta1.APIEndpoint
-		vms         *vmoprv1.VirtualMachineService
+		vms         *vmoprvhub.VirtualMachineService
 
 		cpService CPService
 	)
@@ -187,7 +190,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectReconcileError = true // VirtualMachineService LB does not yet have VIP assigned
 			expectAPIEndpoint = false
 			expectVMS = true
-			expectedType = vmoprv1.VirtualMachineServiceTypeLoadBalancer
+			expectedType = vmoprvhub.VirtualMachineServiceTypeLoadBalancer
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
 			verifyOutput()
 
@@ -221,7 +224,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectAPIEndpoint = false
 			// A VirtualMachineService is only created once all prerequisites have been met
 			expectVMS = false
-			expectedType = vmoprv1.VirtualMachineServiceTypeLoadBalancer
+			expectedType = vmoprvhub.VirtualMachineServiceTypeLoadBalancer
 
 			// The NetOp network provider looks a Network. If one does not exist, it will fail.
 			By("NetOp NetworkProvider has no Network")
@@ -268,7 +271,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectAPIEndpoint = false
 			// A VirtualMachineService is only created once all prerequisites have been met
 			expectVMS = false
-			expectedType = vmoprv1.VirtualMachineServiceTypeLoadBalancer
+			expectedType = vmoprvhub.VirtualMachineServiceTypeLoadBalancer
 			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
 				Type:    vmwarev1.LoadBalancerReadyCondition,
 				Status:  corev1.ConditionFalse,

@@ -26,7 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -493,7 +493,8 @@ var _ = Describe("Reconciliation tests", func() {
 
 			By("Expect a ResourcePolicy to exist")
 			rpKey := client.ObjectKey{Namespace: infraCluster.GetNamespace(), Name: infraCluster.GetName()}
-			resourcePolicy := &vmoprv1.VirtualMachineSetResourcePolicy{}
+			// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+			resourcePolicy := &vmoprv1alpha2.VirtualMachineSetResourcePolicy{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, rpKey, resourcePolicy)
 			}, time.Second*30).Should(Succeed())
@@ -661,7 +662,8 @@ var _ = Describe("Reconciliation tests", func() {
 			assertEventuallyVMStatus(infraMachineKey, infraMachine, vmwarev1.VirtualMachineStatePending)
 
 			By("Expect the VM to have been successfully created")
-			newVM := &vmoprv1.VirtualMachine{}
+			// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+			newVM := &vmoprv1alpha2.VirtualMachine{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, machineKey, newVM)).Should(Succeed())
 			}, time.Second*10).Should(Succeed())
@@ -673,9 +675,9 @@ var _ = Describe("Reconciliation tests", func() {
 					return err
 				}
 				// These two lines must be initialized as requirements of having valid Status
-				newVM.Status.Volumes = []vmoprv1.VirtualMachineVolumeStatus{}
+				newVM.Status.Volumes = []vmoprv1alpha2.VirtualMachineVolumeStatus{}
 				newVM.Status.Conditions = append(newVM.Status.Conditions, metav1.Condition{
-					Type:               vmoprv1.VirtualMachineConditionCreated,
+					Type:               vmoprv1alpha2.VirtualMachineConditionCreated,
 					Status:             metav1.ConditionTrue,
 					LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
 					Reason:             string(metav1.ConditionTrue),
@@ -692,7 +694,7 @@ var _ = Describe("Reconciliation tests", func() {
 				if err != nil {
 					return err
 				}
-				newVM.Status.PowerState = vmoprv1.VirtualMachinePowerStateOn
+				newVM.Status.PowerState = vmoprv1alpha2.VirtualMachinePowerStateOn
 				return k8sClient.Status().Update(ctx, newVM)
 			}, time.Second*30).Should(Succeed())
 
@@ -706,7 +708,7 @@ var _ = Describe("Reconciliation tests", func() {
 					return err
 				}
 				if newVM.Status.Network == nil {
-					newVM.Status.Network = &vmoprv1.VirtualMachineNetworkStatus{}
+					newVM.Status.Network = &vmoprv1alpha2.VirtualMachineNetworkStatus{}
 				}
 				newVM.Status.Network.PrimaryIP4 = "1.2.3.4"
 				newVM.Status.BiosUUID = "test-bios-uuid"

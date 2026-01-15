@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +42,8 @@ type UnitTestContextForController struct {
 	// Key may be used to lookup Ctx.Cluster with Ctx.Client.Get.
 	Key client.ObjectKey
 
-	VirtualMachineImage      *vmoprv1.VirtualMachineImage
+	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+	VirtualMachineImage      *vmoprv1alpha2.VirtualMachineImage
 	ControllerManagerContext *capvcontext.ControllerManagerContext
 }
 
@@ -78,23 +79,24 @@ func CreatePrototypePrereqs(ctx context.Context, c client.Client) {
 	})
 }
 
-func FakeVirtualMachineClass() *vmoprv1.VirtualMachineClass {
-	return &vmoprv1.VirtualMachineClass{
+func FakeVirtualMachineClass() *vmoprv1alpha2.VirtualMachineClass {
+	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+	return &vmoprv1alpha2.VirtualMachineClass{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-",
 		},
-		Spec: vmoprv1.VirtualMachineClassSpec{
-			Hardware: vmoprv1.VirtualMachineClassHardware{
+		Spec: vmoprv1alpha2.VirtualMachineClassSpec{
+			Hardware: vmoprv1alpha2.VirtualMachineClassHardware{
 				Cpus:   int64(2),
 				Memory: resource.MustParse("4Gi"),
 			},
-			Policies: vmoprv1.VirtualMachineClassPolicies{
-				Resources: vmoprv1.VirtualMachineClassResources{
-					Requests: vmoprv1.VirtualMachineResourceSpec{
+			Policies: vmoprv1alpha2.VirtualMachineClassPolicies{
+				Resources: vmoprv1alpha2.VirtualMachineClassResources{
+					Requests: vmoprv1alpha2.VirtualMachineResourceSpec{
 						Cpu:    resource.MustParse("2Gi"),
 						Memory: resource.MustParse("4Gi"),
 					},
-					Limits: vmoprv1.VirtualMachineResourceSpec{
+					Limits: vmoprv1alpha2.VirtualMachineResourceSpec{
 						Cpu:    resource.MustParse("2Gi"),
 						Memory: resource.MustParse("4Gi"),
 					},

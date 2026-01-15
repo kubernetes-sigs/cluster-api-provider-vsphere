@@ -364,7 +364,8 @@ generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="./apis"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./apis/...
+		paths=./apis/... \
+		paths=./pkg/conversion/api/...
 	$(CONTROLLER_GEN) \
     	object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
     	paths=./$(VCSIM_DIR)/api/...

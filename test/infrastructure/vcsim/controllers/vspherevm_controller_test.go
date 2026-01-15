@@ -22,13 +22,14 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -42,6 +43,7 @@ import (
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -54,18 +56,19 @@ var (
 
 func init() {
 	// scheme used for operating on the management cluster.
-	_ = clusterv1.AddToScheme(scheme)
-	_ = clusterv1beta1.AddToScheme(scheme)
-	_ = infrav1beta1.AddToScheme(scheme)
-	_ = vmwarev1beta1.AddToScheme(scheme)
-	_ = vmoprv1.AddToScheme(scheme)
-	_ = vcsimv1.AddToScheme(scheme)
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1beta1.AddToScheme(scheme))
+	utilruntime.Must(infrav1beta1.AddToScheme(scheme))
+	utilruntime.Must(vmwarev1beta1.AddToScheme(scheme))
+	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(vcsimv1.AddToScheme(scheme))
 
 	// scheme used for operating on the cloud resource.
-	_ = infrav1beta1.AddToScheme(cloudScheme)
-	_ = corev1.AddToScheme(cloudScheme)
-	_ = appsv1.AddToScheme(cloudScheme)
-	_ = rbacv1.AddToScheme(cloudScheme)
+	utilruntime.Must(infrav1beta1.AddToScheme(cloudScheme))
+	utilruntime.Must(corev1.AddToScheme(cloudScheme))
+	utilruntime.Must(appsv1.AddToScheme(cloudScheme))
+	utilruntime.Must(rbacv1.AddToScheme(cloudScheme))
 }
 
 func Test_Reconcile_VSphereVM(t *testing.T) {
@@ -80,27 +83,27 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 			},
 		}
 
-		cluster := &clusterv1.Cluster{
+		cluster := &clusterv1beta1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
 				UID:       "bar",
 			},
-			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: infrav1beta1.GroupVersion.Group,
-					Kind:     "VSphereCluster",
-					Name:     vsphereCluster.Name,
+			Spec: clusterv1beta1.ClusterSpec{
+				InfrastructureRef: &corev1.ObjectReference{
+					APIVersion: infrav1beta1.GroupVersion.String(),
+					Kind:       "VSphereCluster",
+					Name:       vsphereCluster.Name,
 				},
 			},
 		}
 
-		machine := &clusterv1.Machine{
+		machine := &clusterv1beta1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
 				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: cluster.Name,
+					clusterv1beta1.ClusterNameLabel: cluster.Name,
 				},
 			},
 		}
@@ -111,7 +114,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 				Name:      "baz",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: clusterv1.GroupVersion.String(),
+						APIVersion: clusterv1beta1.GroupVersion.String(),
 						Kind:       "Machine",
 						Name:       machine.Name,
 						UID:        machine.UID,
@@ -202,31 +205,31 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 			},
 		}
 
-		cluster := &clusterv1.Cluster{
+		cluster := &clusterv1beta1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
 				UID:       "bar",
 			},
-			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: infrav1beta1.GroupVersion.Group,
-					Kind:     "VSphereCluster",
-					Name:     vsphereCluster.Name,
+			Spec: clusterv1beta1.ClusterSpec{
+				InfrastructureRef: &corev1.ObjectReference{
+					APIVersion: infrav1beta1.GroupVersion.Group,
+					Kind:       "VSphereCluster",
+					Name:       vsphereCluster.Name,
 				},
 			},
 		}
 
-		machine := &clusterv1.Machine{
+		machine := &clusterv1beta1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
 				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: cluster.Name,
+					clusterv1beta1.ClusterNameLabel: cluster.Name,
 				},
 			},
-			Spec: clusterv1.MachineSpec{
-				Bootstrap: clusterv1.Bootstrap{
+			Spec: clusterv1beta1.MachineSpec{
+				Bootstrap: clusterv1beta1.Bootstrap{
 					DataSecretName: ptr.To("foo"), // this unblocks node provisioning
 				},
 			},
@@ -238,7 +241,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 				Name:      "bar",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: clusterv1.GroupVersion.String(),
+						APIVersion: clusterv1beta1.GroupVersion.String(),
 						Kind:       "Machine",
 						Name:       machine.Name,
 						UID:        machine.UID,

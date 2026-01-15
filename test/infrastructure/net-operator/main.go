@@ -29,11 +29,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -52,6 +54,8 @@ import (
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/net-operator/controllers"
 )
 
@@ -82,9 +86,11 @@ var (
 
 func init() {
 	// scheme used for operating on the management cluster.
-	_ = corev1.AddToScheme(scheme)
-	_ = vmoprv1.AddToScheme(scheme)
-	_ = netopv1alpha1.AddToScheme(scheme)
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
+	utilruntime.Must(netopv1alpha1.AddToScheme(scheme))
 }
 
 // InitFlags initializes the flags.
@@ -272,8 +278,16 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, _ bool) {
 		os.Exit(1)
 	}
 
+	cc, err := conversionclient.New(mgr.GetClient())
+	if err != nil {
+		setupLog.Error(err, "failed to create a conversion client")
+		os.Exit(1)
+	}
+
 	if err := (&controllers.VirtualMachineReconciler{
-		Client: mgr.GetClient(),
+		// NOTE: use a client that can handle conversions from API versions that exist in the supervisor
+		// and the internal hub version used in the reconciler.
+		Client: cc,
 	}).SetupWithManager(ctx, mgr, concurrency(virtualMachineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VirtualMachineReconciler")
 		os.Exit(1)

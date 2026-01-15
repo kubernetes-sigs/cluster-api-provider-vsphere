@@ -27,11 +27,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -43,6 +45,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
 	vspherelog "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/log"
@@ -343,20 +346,22 @@ func initScheme() *runtime.Scheme {
 	framework.TryAddDefaultSchemes(sc)
 
 	if testTarget == VCSimTestTarget {
-		_ = vcsimv1.AddToScheme(sc)
+		utilruntime.Must(vcsimv1.AddToScheme(sc))
 	}
 
 	if testMode == GovmomiTestMode {
-		_ = infrav1.AddToScheme(sc)
+		utilruntime.Must(infrav1.AddToScheme(sc))
 	}
 
 	if testMode == SupervisorTestMode {
-		_ = corev1.AddToScheme(sc)
-		_ = storagev1.AddToScheme(sc)
-		_ = topologyv1.AddToScheme(sc)
-		_ = vmoprv1.AddToScheme(sc)
-		_ = vmwarev1.AddToScheme(sc)
-		_ = spqv1.AddToScheme(sc)
+		utilruntime.Must(corev1.AddToScheme(sc))
+		utilruntime.Must(storagev1.AddToScheme(sc))
+		utilruntime.Must(topologyv1.AddToScheme(sc))
+		utilruntime.Must(vmoprvhub.AddToScheme(sc))
+		utilruntime.Must(vmoprv1alpha2.AddToScheme(sc))
+		utilruntime.Must(vmoprv1alpha5.AddToScheme(sc))
+		utilruntime.Must(vmwarev1.AddToScheme(sc))
+		utilruntime.Must(spqv1.AddToScheme(sc))
 	}
 	return sc
 }

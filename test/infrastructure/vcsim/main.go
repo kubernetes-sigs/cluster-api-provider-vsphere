@@ -28,7 +28,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -39,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -62,6 +64,8 @@ import (
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers"
 )
@@ -98,25 +102,27 @@ var (
 
 func init() {
 	// scheme used for operating on the management cluster.
-	_ = corev1.AddToScheme(scheme)
-	_ = clusterv1beta1.AddToScheme(scheme)
-	_ = infrav1beta1.AddToScheme(scheme)
-	_ = vcsimv1.AddToScheme(scheme)
-	_ = topologyv1.AddToScheme(scheme)
-	_ = vmoprv1.AddToScheme(scheme)
-	_ = storagev1.AddToScheme(scheme)
-	_ = vmwarev1beta1.AddToScheme(scheme)
-	_ = apiextensionsv1.AddToScheme(scheme)
-	_ = spqv1.AddToScheme(scheme)
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1beta1.AddToScheme(scheme))
+	utilruntime.Must(infrav1beta1.AddToScheme(scheme))
+	utilruntime.Must(vcsimv1.AddToScheme(scheme))
+	utilruntime.Must(topologyv1.AddToScheme(scheme))
+	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
+	utilruntime.Must(storagev1.AddToScheme(scheme))
+	utilruntime.Must(vmwarev1beta1.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(spqv1.AddToScheme(scheme))
 
 	// scheme used for operating in memory.
-	_ = corev1.AddToScheme(inmemoryScheme)
-	_ = appsv1.AddToScheme(inmemoryScheme)
-	_ = rbacv1.AddToScheme(inmemoryScheme)
-	_ = infrav1beta1.AddToScheme(inmemoryScheme)
-	_ = storagev1.AddToScheme(inmemoryScheme)
-	_ = apiextensionsv1.AddToScheme(inmemoryScheme)
-	_ = policyv1.AddToScheme(inmemoryScheme)
+	utilruntime.Must(corev1.AddToScheme(inmemoryScheme))
+	utilruntime.Must(appsv1.AddToScheme(inmemoryScheme))
+	utilruntime.Must(rbacv1.AddToScheme(inmemoryScheme))
+	utilruntime.Must(infrav1beta1.AddToScheme(inmemoryScheme))
+	utilruntime.Must(storagev1.AddToScheme(inmemoryScheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(inmemoryScheme))
+	utilruntime.Must(policyv1.AddToScheme(inmemoryScheme))
 }
 
 // InitFlags initializes the flags.
@@ -337,9 +343,17 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		os.Exit(1)
 	}
 
+	cc, err := conversionclient.New(mgr.GetClient())
+	if err != nil {
+		setupLog.Error(err, "failed to create a conversion client")
+		os.Exit(1)
+	}
+
 	// Setup reconcilers
 	if err := (&controllers.VCenterSimulatorReconciler{
-		Client:           mgr.GetClient(),
+		// NOTE: use a client that can handle conversions from API versions that exist in the supervisor
+		// and the internal hub version used in the reconciler.
+		Client:           cc,
 		SupervisorMode:   supervisorMode,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(vCenterSimulatorConcurrency)); err != nil {
@@ -360,7 +374,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 
 	if supervisorMode {
 		if err := (&controllers.VirtualMachineReconciler{
-			Client:           mgr.GetClient(),
+			// NOTE: use a client that can handle conversions from API versions that exist in the supervisor
+			// and the internal hub version used in the reconciler.
+			Client:           cc,
 			InMemoryManager:  inmemoryManager,
 			APIServerMux:     apiServerMux,
 			WatchFilterValue: watchFilterValue,
@@ -370,7 +386,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		}
 
 		if err := (&controllers.VMOperatorDependenciesReconciler{
-			Client:           mgr.GetClient(),
+			// NOTE: use a client that can handle conversions from API versions that exist in the supervisor
+			// and the internal hub version used in the reconciler.
+			Client:           cc,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(vmOperatorDependenciesConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "VMOperatorDependenciesReconciler")

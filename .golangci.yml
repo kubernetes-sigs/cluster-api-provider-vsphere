@@ -114,9 +114,26 @@ linters:
           alias: vmwarev1beta1
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2
           alias: vmwarev1
-        # VMware Operator
+        # Conversions
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client
+          alias: conversionclient
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta
+          alias: conversionmeta
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub
+          alias: vmoprvhub
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha2
+          alias: vmoprv1alpha2conversion
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha5
+          alias: vmoprv1alpha5conversion
+        # VM Operator
         - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha2
-          alias: vmoprv1
+          alias: vmoprv1alpha2
+        - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha2/common
+          alias: vmoprv1alpha2common
+        - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha5
+          alias: vmoprv1alpha5
+        - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha5/common
+          alias: vmoprv1alpha5common
         # NSX Operator
         - pkg: github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1
           alias: nsxvpcv1

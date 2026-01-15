@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -35,6 +34,8 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 )
 
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -49,11 +50,17 @@ func AddVSphereMachineTemplateControllerToManager(ctx context.Context, controlle
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vspheremachinetemplate")
 
+	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
+	vmClass, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachineClass{})
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&vmwarev1.VSphereMachineTemplate{}).
 		WithOptions(options).
 		Watches(
-			&vmoprv1.VirtualMachineClass{},
+			vmClass,
 			handler.EnqueueRequestsFromMapFunc(r.enqueueVirtualMachineClassToVSphereMachineTemplateRequests),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerContext.WatchFilterValue)).
@@ -80,7 +87,7 @@ func (r *vSphereMachineTemplateReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	// Fetch the VirtualMachineClass
-	vmClass := &vmoprv1.VirtualMachineClass{}
+	vmClass := &vmoprvhub.VirtualMachineClass{}
 	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: vSphereMachineTemplate.Spec.Template.Spec.ClassName}, vmClass); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to get VirtualMachineClass %q for VSphereMachineTemplate", vSphereMachineTemplate.Spec.Template.Spec.ClassName)
 	}

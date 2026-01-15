@@ -74,8 +74,8 @@ type VCenterSimulatorReconciler struct {
 
 // +kubebuilder:rbac:groups=vcsim.infrastructure.cluster.x-k8s.io,resources=vcentersimulators,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=vcsim.infrastructure.cluster.x-k8s.io,resources=vcentersimulators/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=topology.tanzu.vmware.com,resources=availabilityzones,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups=topology.tanzu.vmware.com,resources=zones,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups=topology.tanzu.vmware.com,resources=availabilityzones,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=topology.tanzu.vmware.com,resources=zones,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachineclasses,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachineimages,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachineimages/status,verbs=get;update;patch

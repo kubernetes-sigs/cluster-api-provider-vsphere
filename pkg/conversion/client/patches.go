@@ -1,0 +1,120 @@
+/*
+Copyright 2026 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package client
+
+import (
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+// MergeFromWithOptions creates a Patch that patches using the merge-patch strategy with the given object as base.
+// See MergeFrom for more details.
+func MergeFromWithOptions(c client.Client, obj client.Object, opts ...client.MergeFromOption) (client.Patch, error) {
+	cc, ok := c.(*conversionClient)
+	if !ok {
+		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
+	}
+
+	_, err := cc.converter.TargetGroupVersionKindFor(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	options := &client.MergeFromOptions{}
+	for _, opt := range opts {
+		opt.ApplyToMergeFrom(options)
+	}
+
+	return &conversionMergePatch{
+		from:    obj,
+		client:  cc,
+		options: opts,
+	}, nil
+}
+
+// MergeFrom creates a Patch that patches using the merge-patch strategy with the given object as base.
+// When required, the generated patch performs conversion for both/one of the original or the target object.
+func MergeFrom(c client.Client, obj client.Object) (client.Patch, error) {
+	cc, ok := c.(*conversionClient)
+	if !ok {
+		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
+	}
+
+	_, err := cc.converter.TargetGroupVersionKindFor(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return &conversionMergePatch{
+		from:   obj,
+		client: cc,
+	}, nil
+}
+
+type conversionMergePatch struct {
+	client *conversionClient
+
+	from    client.Object
+	options []client.MergeFromOption
+}
+
+// conversionClient must implement client.Patch.
+var _ client.Patch = &conversionMergePatch{}
+
+// Type is the PatchType of the patch.
+func (p *conversionMergePatch) Type() types.PatchType {
+	return types.MergePatchType
+}
+
+// Data is the raw data representing the patch.
+// Note: obj can be either an object to be converted or an object already converted.
+func (p *conversionMergePatch) Data(obj client.Object) ([]byte, error) {
+	fromObj, err := p.client.newTargetVersionObjectFor(p.from)
+	if err != nil {
+		return nil, err
+	}
+	if err := p.client.converter.Convert(p.from, fromObj); err != nil {
+		return nil, errors.Wrapf(err, "failed to convert original %s to target version while computing patch data", klog.KObj(p.from))
+	}
+
+	toObj := obj
+	if p.client.converter.IsConvertible(obj) {
+		toObj, err = p.client.newTargetVersionObjectFor(obj)
+		if err != nil {
+			return nil, err
+		}
+		if err := p.client.converter.Convert(obj, toObj); err != nil {
+			return nil, errors.Wrapf(err, "failed to convert modified %s to target version while computing patch data", klog.KObj(obj))
+		}
+	}
+
+	gvkFrom, err := p.client.GroupVersionKindFor(fromObj)
+	if err != nil {
+		return nil, err
+	}
+	gvkTo, err := p.client.GroupVersionKindFor(toObj)
+	if err != nil {
+		return nil, err
+	}
+	if gvkFrom != gvkTo {
+		return nil, errors.Errorf("cannot generate patch data between %s and %s", gvkFrom, gvkTo)
+	}
+
+	return client.MergeFromWithOptions(fromObj, p.options...).Data(toObj)
+}

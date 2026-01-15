@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,6 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
@@ -210,7 +212,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 		name                                  string
 		mds                                   []clusterv1.MachineDeployment
 		singleZoneName                        string
-		existingVMG                           *vmoprv1.VirtualMachineGroup
+		existingVMG                           *vmoprvhub.VirtualMachineGroup
 		virtualMachineNameToMachineDeployment map[string]string
 		want                                  map[string]string
 	}{
@@ -234,7 +236,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "zone2", 1), // failure domain explicitly set
 			},
 			singleZoneName: "",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone1", // Previously md1 was assigned to zone1
@@ -252,17 +254,17 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
 			singleZoneName: "",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone1", // Placement decision for md1 already reported into annotation
 					},
 				},
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+				Status: vmoprvhub.VirtualMachineGroupStatus{
+					Members: []vmoprvhub.VirtualMachineGroupMemberStatus{
 						{
 							Name: "m1-vm",
-							Placement: &vmoprv1.VirtualMachinePlacementStatus{
+							Placement: &vmoprvhub.VirtualMachinePlacementStatus{
 								Zone: "zone2", // Note: this should never happen (different placement decision than what is in the annotation), but using this value to validate that the mapping used is the one from the annotation.
 							},
 						},
@@ -282,22 +284,22 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
 			singleZoneName: "",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						// Placement decision for md1 not yet reported into annotation
 					},
 				},
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+				Status: vmoprvhub.VirtualMachineGroupStatus{
+					Members: []vmoprvhub.VirtualMachineGroupMemberStatus{
 						{
 							Name: "m1-vm",
-							Placement: &vmoprv1.VirtualMachinePlacementStatus{
+							Placement: &vmoprvhub.VirtualMachinePlacementStatus{
 								Zone: "zone1",
 							},
 							Conditions: []metav1.Condition{
 								{
-									Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
+									Type:   vmoprvhub.VirtualMachineGroupMemberConditionPlacementReady,
 									Status: metav1.ConditionTrue,
 								},
 							},
@@ -332,13 +334,13 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
 			singleZoneName: "",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						// Placement decision for md1 not yet reported into annotation
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{},
+				Spec: vmoprvhub.VirtualMachineGroupSpec{},
 				// Status empty
 			},
 			virtualMachineNameToMachineDeployment: nil,
@@ -350,19 +352,19 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
 			singleZoneName: "",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						// Placement decision for md1 not yet reported into annotation
 					},
 				},
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+				Status: vmoprvhub.VirtualMachineGroupStatus{
+					Members: []vmoprvhub.VirtualMachineGroupMemberStatus{
 						{
 							Name: "m1-vm",
 							Conditions: []metav1.Condition{
 								{
-									Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
+									Type:   vmoprvhub.VirtualMachineGroupMemberConditionPlacementReady,
 									Status: metav1.ConditionFalse, // placement not completed yet
 								},
 							},
@@ -398,18 +400,18 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
 			singleZoneName: "zone1",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						// Placement decision for md1 not yet reported into annotation
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						// Placement decision for md1 machines not yet started
 					},
 				},
-				Status: vmoprv1.VirtualMachineGroupStatus{},
+				Status: vmoprvhub.VirtualMachineGroupStatus{},
 			},
 			virtualMachineNameToMachineDeployment: map[string]string{
 				"m1-vm": "md1",
@@ -424,16 +426,16 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
 			singleZoneName: "zone1",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						// Placement decision for md1 not yet reported into annotation
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{
 									Name: "m1-vm", // placement decision started
 								},
@@ -441,7 +443,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 						},
 					},
 				},
-				Status: vmoprv1.VirtualMachineGroupStatus{},
+				Status: vmoprvhub.VirtualMachineGroupStatus{},
 			},
 			virtualMachineNameToMachineDeployment: map[string]string{
 				"m1-vm": "md1",
@@ -456,16 +458,16 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
 			singleZoneName: "zone1",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						// Placement decision for md1 not yet reported into annotation
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{
 									Name: "m1-vm", // placement decision started
 								},
@@ -473,16 +475,16 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 						},
 					},
 				},
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+				Status: vmoprvhub.VirtualMachineGroupStatus{
+					Members: []vmoprvhub.VirtualMachineGroupMemberStatus{
 						{
 							Name: "m1-vm",
-							Placement: &vmoprv1.VirtualMachinePlacementStatus{
+							Placement: &vmoprvhub.VirtualMachinePlacementStatus{
 								Zone: "zone2", // Intentionally picking a different zone to make sure this is the one used.
 							},
 							Conditions: []metav1.Condition{
 								{
-									Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
+									Type:   vmoprvhub.VirtualMachineGroupMemberConditionPlacementReady,
 									Status: metav1.ConditionTrue,
 								},
 							},
@@ -503,16 +505,16 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
 			singleZoneName: "zone1",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone3", // Intentionally picking a different zone to make sure this is the one used.
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{
 									Name: "m1-vm", // placement decision started
 								},
@@ -520,16 +522,16 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 						},
 					},
 				},
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+				Status: vmoprvhub.VirtualMachineGroupStatus{
+					Members: []vmoprvhub.VirtualMachineGroupMemberStatus{
 						{
 							Name: "m1-vm",
-							Placement: &vmoprv1.VirtualMachinePlacementStatus{
+							Placement: &vmoprvhub.VirtualMachinePlacementStatus{
 								Zone: "zone2", // Intentionally picking a different zone to make sure this is not the one used.
 							},
 							Conditions: []metav1.Condition{
 								{
-									Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
+									Type:   vmoprvhub.VirtualMachineGroupMemberConditionPlacementReady,
 									Status: metav1.ConditionTrue,
 								},
 							},
@@ -550,16 +552,16 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				*createMD("md1", "test-cluster", "zone4", 1), // Intentionally picking a different zone to make sure this is the one used.
 			},
 			singleZoneName: "zone1",
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone3", // Intentionally picking a different zone to make sure this is not the one used.
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{
 									Name: "m1-vm", // placement decision started
 								},
@@ -567,16 +569,16 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 						},
 					},
 				},
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+				Status: vmoprvhub.VirtualMachineGroupStatus{
+					Members: []vmoprvhub.VirtualMachineGroupMemberStatus{
 						{
 							Name: "m1-vm",
-							Placement: &vmoprv1.VirtualMachinePlacementStatus{
+							Placement: &vmoprvhub.VirtualMachinePlacementStatus{
 								Zone: "zone2", // Intentionally picking a different zone to make sure this is not the one used.
 							},
 							Conditions: []metav1.Condition{
 								{
-									Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
+									Type:   vmoprvhub.VirtualMachineGroupMemberConditionPlacementReady,
 									Status: metav1.ConditionTrue,
 								},
 							},
@@ -612,8 +614,8 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 		name            string
 		mds             []clusterv1.MachineDeployment
 		vSphereMachines []vmwarev1.VSphereMachine
-		existingVMG     *vmoprv1.VirtualMachineGroup
-		want            *vmoprv1.VirtualMachineGroup
+		existingVMG     *vmoprvhub.VirtualMachineGroup
+		want            *vmoprvhub.VirtualMachineGroup
 	}{
 		// Compute new VirtualMachineGroup (start initial placement)
 		{
@@ -630,7 +632,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				*createVSphereMachine("m4", cluster.Name, "md3", "zone1"),
 			},
 			existingVMG: nil,
-			want: &vmoprv1.VirtualMachineGroup{
+			want: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
@@ -650,10 +652,10 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 						},
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3-vm", Kind: "VirtualMachine"},
@@ -680,7 +682,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				*createVSphereMachine("m6", cluster.Name, "md3", "zone1"),
 				*createVSphereMachine("m7", cluster.Name, "md4", "zone2"),
 			},
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
@@ -702,10 +704,10 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 						},
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"}, // Deleted after VMG creation
 								{Name: "m3-vm", Kind: "VirtualMachine"}, // Deleted after VMG creation (the entire md2 was deleted).
@@ -717,7 +719,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				},
 				// Not setting status for sake of simplicity (also we are simulating when placing decision is not yet completed)
 			},
-			want: &vmoprv1.VirtualMachineGroup{
+			want: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
@@ -741,10 +743,10 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 						},
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"}, // existing before, still existing
 								// "m2-vm" was deleted
 								// "m3-vm" was deleted
@@ -774,7 +776,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				*createVSphereMachine("m6", cluster.Name, "md3", "zone1"),
 				*createVSphereMachine("m7", cluster.Name, "md4", "zone2"),
 			},
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
@@ -797,10 +799,10 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 						},
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"}, // Deleted after VMG creation
 								{Name: "m3-vm", Kind: "VirtualMachine"}, // Deleted after VMG creation (the entire md2 was deleted).
@@ -812,7 +814,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				},
 				// Not setting status for sake of simplicity (in a real VMG, after the placement decision status should have members)
 			},
-			want: &vmoprv1.VirtualMachineGroup{
+			want: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
@@ -836,10 +838,10 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 						},
 					},
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"}, // existing before, still existing
 								// "m2-vm" was deleted
 								// "m3-vm" was deleted
@@ -884,9 +886,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 		cluster         *clusterv1.Cluster
 		mds             []clusterv1.MachineDeployment
 		vSphereMachines []vmwarev1.VSphereMachine
-		existingVMG     *vmoprv1.VirtualMachineGroup
-		wantResult      ctrl.Result
-		wantVMG         *vmoprv1.VirtualMachineGroup
+		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+		existingVMG *vmoprv1alpha2.VirtualMachineGroup
+		wantResult  ctrl.Result
+		wantVMG     *vmoprvhub.VirtualMachineGroup
 	}{
 		// Before initial placement
 		{
@@ -941,7 +944,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 			},
 			existingVMG: nil,
 			wantResult:  ctrl.Result{},
-			wantVMG: &vmoprv1.VirtualMachineGroup{
+			wantVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -951,10 +954,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -978,7 +981,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
 				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
 			},
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -988,10 +991,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprv1alpha2.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1001,7 +1004,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				},
 			},
 			wantResult: ctrl.Result{},
-			wantVMG: &vmoprv1.VirtualMachineGroup{
+			wantVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1011,10 +1014,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1042,7 +1045,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createVSphereMachine("m6", clusterInitialized.Name, "md3", "", withCustomNamingStrategy()), // new
 				*createVSphereMachine("m7", clusterInitialized.Name, "md4", "zone3"),                        // new
 			},
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1052,10 +1055,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprv1alpha2.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1065,7 +1068,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				},
 			},
 			wantResult: ctrl.Result{},
-			wantVMG: &vmoprv1.VirtualMachineGroup{
+			wantVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1076,10 +1079,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								// "m4-vm" not added, placement decision for md1 not yet completed
@@ -1111,7 +1114,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// m6 deleted
 				// m7 deleted
 			},
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1122,10 +1125,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprv1alpha2.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								// "m4-vm" not added, placement decision for md1 not yet completed
@@ -1139,7 +1142,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				},
 			},
 			wantResult: ctrl.Result{},
-			wantVMG: &vmoprv1.VirtualMachineGroup{
+			wantVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1150,10 +1153,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								// "m4-vm" deleted (it was never added)
@@ -1181,7 +1184,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
 				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
 			},
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1192,10 +1195,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprv1alpha2.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1206,7 +1209,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// Not setting status for sake of simplicity (in a real VMG, after the placement decision status should have members)
 			},
 			wantResult: ctrl.Result{},
-			wantVMG: &vmoprv1.VirtualMachineGroup{
+			wantVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1217,10 +1220,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1247,7 +1250,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createVSphereMachine("m5", clusterInitialized.Name, "md2", "zone1"), // new
 				*createVSphereMachine("m6", clusterInitialized.Name, "md3", "zone2"), // new
 			},
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1258,10 +1261,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprv1alpha2.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1272,7 +1275,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// Not setting status for sake of simplicity (in a real VMG, after the placement decision status should have members)
 			},
 			wantResult: ctrl.Result{},
-			wantVMG: &vmoprv1.VirtualMachineGroup{
+			wantVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1284,10 +1287,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1316,7 +1319,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// m5 deleted
 				// m5 deleted
 			},
-			existingVMG: &vmoprv1.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1328,10 +1331,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprv1alpha2.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1345,7 +1348,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// Not setting status for sake of simplicity (in a real VMG, after the placement decision status should have members)
 			},
 			wantResult: ctrl.Result{},
-			wantVMG: &vmoprv1.VirtualMachineGroup{
+			wantVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1357,10 +1360,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1.GroupMember{
+							Members: []vmoprvhub.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1389,7 +1392,8 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				objects = append(objects, &vSphereMachine)
 			}
 
-			c := fake.NewClientBuilder().WithObjects(objects...).WithScheme(scheme.Scheme).Build()
+			c, err := conversionclient.New(fake.NewClientBuilder().WithObjects(objects...).WithScheme(scheme.Scheme).Build())
+			g.Expect(err).ToNot(HaveOccurred())
 			r := &VirtualMachineGroupReconciler{
 				Client: c,
 			}
@@ -1397,9 +1401,8 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.wantResult))
 
-			vmg := &vmoprv1.VirtualMachineGroup{}
+			vmg := &vmoprvhub.VirtualMachineGroup{}
 			err = r.Client.Get(ctx, client.ObjectKeyFromObject(tt.cluster), vmg)
-
 			if tt.wantVMG == nil {
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 				return

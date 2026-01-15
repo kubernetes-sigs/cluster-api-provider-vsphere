@@ -28,14 +28,17 @@ import (
 
 	perrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	"gopkg.in/fsnotify.v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -65,6 +68,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
@@ -109,7 +114,16 @@ var (
 	defaultSyncPeriod       = manager.DefaultSyncPeriod
 	defaultLeaderElectionID = manager.DefaultLeaderElectionID
 	defaultPodName          = manager.DefaultPodName
+
+	scheme *runtime.Scheme
 )
+
+func init() {
+	scheme = runtime.NewScheme()
+
+	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
+}
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
@@ -330,6 +344,22 @@ func main() {
 	req, _ := labels.NewRequirement(vmoperator.ClusterSelectorKey, selection.Exists, nil)
 	virtualMachineCacheSelector := labels.NewSelector().Add(*req)
 
+	var vm runtime.Object
+	if isSupervisorCRDLoaded {
+		// Get vm-operator native types in the preferred version for cache filters.
+		vmGVK, err := conversionclient.DefaultConverter.TargetGroupVersionKindFor(&vmoprvhub.VirtualMachine{})
+		if err != nil {
+			setupLog.Error(err, "Unable to start manager")
+			os.Exit(1)
+		}
+
+		vm, err = scheme.New(vmGVK)
+		if err != nil {
+			setupLog.Error(err, "Unable to start manager")
+			os.Exit(1)
+		}
+	}
+
 	managerOpts.Cache = cache.Options{
 		DefaultNamespaces: watchNamespaces,
 		SyncPeriod:        &syncPeriod,
@@ -337,7 +367,8 @@ func main() {
 			byObject := map[client.Object]cache.ByObject{}
 			if isSupervisorCRDLoaded {
 				// Note: Only VirtualMachines with the cluster name label are cached (vmopmachine.go sets this label).
-				byObject[&vmoprv1.VirtualMachine{}] = cache.ByObject{
+				// NOTE: use vm-operator native types for cache filters (the reconciler uses the internal hub version).
+				byObject[vm.(client.Object)] = cache.ByObject{
 					Label: virtualMachineCacheSelector,
 				}
 			}

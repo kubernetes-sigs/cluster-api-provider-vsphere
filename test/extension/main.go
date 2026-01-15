@@ -32,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -94,18 +95,18 @@ var (
 
 func init() {
 	// Adds to the scheme all the API types we used by the test extension.
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = apiextensionsv1.AddToScheme(scheme)
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 
-	_ = clusterv1.AddToScheme(scheme)
-	_ = bootstrapv1.AddToScheme(scheme)
-	_ = controlplanev1.AddToScheme(scheme)
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(bootstrapv1.AddToScheme(scheme))
+	utilruntime.Must(controlplanev1.AddToScheme(scheme))
 
-	_ = infrav1.AddToScheme(scheme)
-	_ = vmwarev1.AddToScheme(scheme)
+	utilruntime.Must(infrav1.AddToScheme(scheme))
+	utilruntime.Must(vmwarev1.AddToScheme(scheme))
 
 	// Register the RuntimeHook types into the catalog.
-	_ = runtimehooksv1.AddToCatalog(catalog)
+	utilruntime.Must(runtimehooksv1.AddToCatalog(catalog))
 }
 
 // InitFlags initializes the flags.

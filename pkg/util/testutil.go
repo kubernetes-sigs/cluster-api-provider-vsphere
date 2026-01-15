@@ -18,11 +18,12 @@ package util
 
 import (
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -33,6 +34,8 @@ import (
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 )
 
 const (
@@ -142,18 +145,30 @@ func CreateVSphereMachine(machineName, clusterName, className, imageName, storag
 
 func createScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = vmwarev1.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
-	_ = topologyv1.AddToScheme(scheme)
-	_ = vmoprv1.AddToScheme(scheme)
-	_ = netopv1.AddToScheme(scheme)
-	_ = ncpv1.AddToScheme(scheme)
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(vmwarev1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(topologyv1.AddToScheme(scheme))
+	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(netopv1.AddToScheme(scheme))
+	utilruntime.Must(ncpv1.AddToScheme(scheme))
 	return scheme
 }
 
 func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerManagerContext) {
 	scheme := createScheme()
+
+	cc, err := conversionclient.New(fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
+		&vmoprvhub.VirtualMachineService{},
+		&vmoprvhub.VirtualMachine{},
+		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+		&vmoprv1alpha2.VirtualMachineService{},
+		&vmoprv1alpha2.VirtualMachine{},
+	).Build())
+	if err != nil {
+		panic(err)
+	}
 
 	// Build the cluster context.
 	return &vmware.ClusterContext{
@@ -162,10 +177,9 @@ func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.V
 		}, &capvcontext.ControllerManagerContext{
 			Logger: klog.Background().WithName("controller-manager-logger"),
 			Scheme: scheme,
-			Client: fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
-				&vmoprv1.VirtualMachineService{},
-				&vmoprv1.VirtualMachine{},
-			).Build(),
+			// NOTE: use a client that can handle conversions from API versions that exist in the supervisor
+			// and the internal hub version used in the reconciler.
+			Client: cc,
 		}
 }
 

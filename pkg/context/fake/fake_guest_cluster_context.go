@@ -20,6 +20,7 @@ import (
 	"context"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -46,7 +47,7 @@ func NewGuestClusterContext(ctx context.Context, clusterCtx *vmware.ClusterConte
 
 func NewFakeGuestClusterClient(initObjects ...client.Object) client.Client {
 	scheme := scheme.Scheme
-	_ = apiextensionsv1.AddToScheme(scheme)
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 
 	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(initObjects...).Build()
 }

@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	capi_util "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -46,7 +46,8 @@ func TestRPService(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(name).To(Equal(clusterName))
 
-		resourcePolicy := &vmoprv1.VirtualMachineSetResourcePolicy{}
+		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+		resourcePolicy := &vmoprv1alpha2.VirtualMachineSetResourcePolicy{}
 		err = rpService.Client.Get(ctx, client.ObjectKey{
 			Namespace: clusterCtx.Cluster.Namespace,
 			Name:      clusterCtx.Cluster.Name,

@@ -229,6 +229,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	conditionsTrackerOriginal := conditionsTracker.DeepCopy()
 	// Always attempt to Patch the VSphereVM + conditionsTracker object and status after each reconciliation.
 	defer func() {
 		// NOTE: Patch on VSphereVM will only add/remove a finalizer.
@@ -237,7 +238,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		// NOTE: Patch on conditionsTracker will only track of provisioning process of the fake node, etcd, api server, etc.
-		if err := inmemoryClient.Update(ctx, conditionsTracker); err != nil {
+		if err := inmemoryClient.Patch(ctx, conditionsTracker, client.MergeFrom(conditionsTrackerOriginal)); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()

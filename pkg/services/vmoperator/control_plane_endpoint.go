@@ -252,10 +252,10 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 	} else if !reflect.DeepEqual(originalVMService, vmService) {
 		patch, err := conversionclient.MergeFrom(s.Client, originalVMService)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to create patch for VirtualMachineService object")
 		}
 		if err := s.Client.Patch(ctx, vmService, patch); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to patch VirtualMachineService object")
 		}
 	}
 

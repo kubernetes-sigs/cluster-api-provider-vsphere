@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/api/hub"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/test/api/hub"
 )
 
 // A test type.

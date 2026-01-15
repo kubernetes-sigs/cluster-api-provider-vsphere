@@ -28,9 +28,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	conversionmeta "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/api/hub"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/api/v1alpha5"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/test/api/hub"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/test/api/v1alpha5"
 )
+
+// Note: test API types are defined in pkg/conversion/internal/test/api, however some types
+// are intentionally been defined in this file e.g. to test when same type is already registered.
 
 var (
 	hubGroupVersion = schema.GroupVersion{Group: "vmoperator.vmware.com", Version: "hub"}
@@ -132,8 +135,14 @@ func Test_converter_AddTypes(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "Fails for empty group",
+			gv:      schema.GroupVersion{Group: "", Version: "foo"},
+			obj:     &hub.A{},
+			wantErr: true,
+		},
+		{
 			name:    "Fails for empty version",
-			gv:      schema.GroupVersion{},
+			gv:      schema.GroupVersion{Group: "foo", Version: ""},
 			obj:     &hub.A{},
 			wantErr: true,
 		},
@@ -228,10 +237,18 @@ func TestConverter_AddConversion(t *testing.T) {
 			wantDstGvk: v1alpha5GroupVersion.WithKind("A"),
 		},
 		{
+			name:    "Fails for empty group",
+			gvSrc:   hubGroupVersion,
+			src:     &hub.A{},
+			gvDst:   schema.GroupVersion{Group: "", Version: "foo"},
+			dst:     &v1alpha5.A{},
+			wantErr: true,
+		},
+		{
 			name:    "Fails for empty version",
 			gvSrc:   hubGroupVersion,
 			src:     &hub.A{},
-			gvDst:   schema.GroupVersion{},
+			gvDst:   schema.GroupVersion{Group: "foo", Version: ""},
 			dst:     &v1alpha5.A{},
 			wantErr: true,
 		},
@@ -419,7 +436,6 @@ func Test_converter_Convert(t *testing.T) {
 				},
 			},
 			dst:     &v1alpha5.A{},
-			wantDst: &v1alpha5.A{Foo: "bar"},
 			wantErr: true,
 		},
 		{
@@ -513,11 +529,6 @@ func Test_converter_IsConvertible(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "Return false for a type a convertible object can convert to",
-			obj:  &v1alpha5.A{},
-			want: false,
-		},
-		{
 			name: "Return false for nil type",
 			obj:  nil,
 			want: false,
@@ -572,7 +583,6 @@ func Test_converter_TargetGroupVersionKindFor(t *testing.T) {
 				return c
 			}(),
 			obj:     &hub.A{},
-			wantGvk: v1alpha5GroupVersion.WithKind("A"),
 			wantErr: true,
 		},
 		{

@@ -44,6 +44,17 @@ func (sb *ConverterBuilder) AddTypes(gv schema.GroupVersion, types ...runtime.Ob
 }
 
 // AddConversion adds to the Converter functions to be used when converting objects from one version to another.
+// For instance, adding conversion from vmoprhub.VirtualMachine to vmoprv1alpha2.VirtualMachine will look like
+//
+// converterBuilder.AddConversion(
+//
+//	&vmoprvhub.VirtualMachine{},
+//	vmoprv1alpha2.GroupVersion.Version, &vmoprv1alpha2.VirtualMachine{},
+//	convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine, convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine,
+//
+// )
+//
+// More examples can be found in pkg/conversion/api/vmoperator.
 func (sb *ConverterBuilder) AddConversion(hub runtime.Object, version string, spoke runtime.Object, srcToDst, dstToSrc any) {
 	*sb = append(*sb, func(s *Converter) error {
 		return s.AddConversion(hub, version, spoke, srcToDst, dstToSrc)

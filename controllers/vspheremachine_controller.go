@@ -107,7 +107,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 		vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to create watch object for VirtualMachine")
 		}
 
 		return ctrl.NewControllerManagedBy(mgr).

@@ -184,10 +184,10 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 	}
 	patch, err := conversionclient.MergeFromWithOptions(r.Client, currentVMG, client.MergeFromWithOptimisticLock{})
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to generate VMG patch")
+		return reconcile.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachineGroup object")
 	}
 	if err := r.Client.Patch(ctx, updatedVMG, patch); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to patch VMG")
+		return reconcile.Result{}, errors.Wrapf(err, "failed to patch VirtualMachineGroup object")
 	}
 	return reconcile.Result{}, nil
 }

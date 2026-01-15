@@ -100,10 +100,10 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 	} else if !reflect.DeepEqual(originalResourcePolicy, vmResourcePolicy) {
 		patch, err := conversionclient.MergeFrom(s.Client, originalResourcePolicy)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to create patch for VirtualMachineSetResourcePolicy object")
 		}
 		if err := s.Client.Patch(ctx, vmResourcePolicy, patch); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to patch VirtualMachineSetResourcePolicy object")
 		}
 	}
 

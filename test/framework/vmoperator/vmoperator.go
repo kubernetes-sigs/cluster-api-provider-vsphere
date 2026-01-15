@@ -694,11 +694,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			retryError = nil
 			patch, err := conversionclient.MergeFrom(c, virtualMachineImage)
 			if err != nil {
-				retryError = errors.Wrapf(err, "failed to patch vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
+				retryError = errors.Wrapf(err, "failed to create patch for VirtualMachineImage object")
 				return false, nil
 			}
 			if err := c.Status().Patch(ctx, virtualMachineImageReconciled, patch); err != nil {
-				retryError = errors.Wrapf(err, "failed to patch vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
+				retryError = errors.Wrapf(err, "failed to patch VirtualMachineImage object")
 				return false, nil
 			}
 			log.Info("Patched vm-operator VirtualMachineImage", "VirtualMachineImage", klog.KObj(virtualMachineImage))

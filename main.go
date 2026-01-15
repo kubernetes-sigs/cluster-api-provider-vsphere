@@ -38,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -114,16 +113,7 @@ var (
 	defaultSyncPeriod       = manager.DefaultSyncPeriod
 	defaultLeaderElectionID = manager.DefaultLeaderElectionID
 	defaultPodName          = manager.DefaultPodName
-
-	scheme *runtime.Scheme
 )
-
-func init() {
-	scheme = runtime.NewScheme()
-
-	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
-	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
-}
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
@@ -349,13 +339,23 @@ func main() {
 		// Get vm-operator native types in the preferred version for cache filters.
 		vmGVK, err := conversionclient.DefaultConverter.TargetGroupVersionKindFor(&vmoprvhub.VirtualMachine{})
 		if err != nil {
-			setupLog.Error(err, "Unable to start manager")
+			setupLog.Error(err, "Unable to start manager; failed to get object for VirtualMachine cache filter")
+			os.Exit(1)
+		}
+
+		scheme := runtime.NewScheme()
+		if err := vmoprv1alpha2.AddToScheme(scheme); err != nil {
+			setupLog.Error(err, "Unable to start manager; failed register v1alpha2 version for vm-operator API types")
+			os.Exit(1)
+		}
+		if err := vmoprv1alpha5.AddToScheme(scheme); err != nil {
+			setupLog.Error(err, "Unable to start manager; failed register v1alpha5 version for vm-operator API types")
 			os.Exit(1)
 		}
 
 		vm, err = scheme.New(vmGVK)
 		if err != nil {
-			setupLog.Error(err, "Unable to start manager")
+			setupLog.Error(err, "Unable to start manager; failed to create object for VirtualMachine cache filter")
 			os.Exit(1)
 		}
 	}

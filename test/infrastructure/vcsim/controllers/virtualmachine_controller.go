@@ -266,11 +266,11 @@ func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster 
 
 	patch, err := conversionclient.MergeFrom(r.Client, original)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
 	}
 
 	if err := r.Client.Patch(ctx, virtualMachine, patch); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to patch VirtualMachine object")
 	}
 	return ctrl.Result{}, nil
 }
@@ -325,7 +325,7 @@ func (r *VirtualMachineReconciler) SetupWithManager(_ context.Context, mgr ctrl.
 	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 	vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create watch object for VirtualMachine")
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
@@ -355,11 +355,11 @@ func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 
 	patch, err := conversionclient.MergeFrom(c, original)
 	if err != nil {
-		return false, err
+		return false, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
 	}
 
 	if err := c.Patch(ctx, o, patch); err != nil {
-		return false, err
+		return false, errors.Wrapf(err, "failed to patch VirtualMachine object")
 	}
 
 	return true, nil

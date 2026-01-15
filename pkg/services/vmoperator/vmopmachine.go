@@ -679,10 +679,10 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	} else if !reflect.DeepEqual(originalVM, vmOperatorVM) {
 		patch, err := conversionclient.MergeFrom(v.Client, originalVM)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create patch for VirtualMachine object")
 		}
 		if err := v.Client.Patch(ctx, vmOperatorVM, patch); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch VirtualMachine object")
 		}
 	}
 

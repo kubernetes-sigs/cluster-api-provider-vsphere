@@ -213,7 +213,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 			},
 			Spec: clusterv1beta1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: infrav1beta1.GroupVersion.Group,
+					APIVersion: infrav1beta1.GroupVersion.String(),
 					Kind:       "VSphereCluster",
 					Name:       vsphereCluster.Name,
 				},

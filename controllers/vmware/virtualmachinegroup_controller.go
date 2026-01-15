@@ -19,6 +19,7 @@ package vmware
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -50,7 +51,7 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 	vmGroup, err := conversionclient.WatchObject(reconciler.Client, &vmoprvhub.VirtualMachineGroup{})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create watch object for VirtualMachineGroup")
 	}
 
 	builder := ctrl.NewControllerManagedBy(mgr).

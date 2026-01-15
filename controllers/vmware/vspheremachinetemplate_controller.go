@@ -53,7 +53,7 @@ func AddVSphereMachineTemplateControllerToManager(ctx context.Context, controlle
 	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 	vmClass, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachineClass{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create watch object for VirtualMachineClass")
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).

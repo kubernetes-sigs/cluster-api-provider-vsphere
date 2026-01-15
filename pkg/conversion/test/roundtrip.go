@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
@@ -41,7 +42,7 @@ type RoundTripTestInput struct {
 	Hub   client.Object
 	Spoke client.Object
 
-	FuzzerFuncs []any
+	FuzzerFuncs []fuzzer.FuzzerFuncs
 }
 
 // RoundTripTest returns a new testing function to be used in tests to make sure conversions between
@@ -54,12 +55,16 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 				t.Fatalf("Hub type must have the source field")
 			}
 
-			fuzzer := conversionutil.GetFuzzer(input.Scheme, func(_ runtimeserializer.CodecFactory) []any {
-				return append(input.FuzzerFuncs, func(in *conversionmeta.SourceTypeMeta, _ randfill.Continue) {
-					// Ensure SourceTypeMeta is not set by the fuzzer.
-					in.APIVersion = ""
-				})
+			funcs := append(input.FuzzerFuncs, func(_ runtimeserializer.CodecFactory) []interface{} {
+				return []interface{}{
+					func(in *conversionmeta.SourceTypeMeta, _ randfill.Continue) {
+						// Ensure SourceTypeMeta is not set by the fuzzer.
+						in.APIVersion = ""
+					},
+				}
 			})
+
+			fuzzer := conversionutil.GetFuzzer(input.Scheme, funcs...)
 
 			spokeGVK, err := input.Converter.GroupVersionKindFor(input.Spoke)
 			if err != nil {
@@ -74,17 +79,17 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 				// First convert hub to spoke
 				spoke := input.Spoke.DeepCopyObject()
 				if err := input.Converter.Convert(hubBefore, spoke); err != nil {
-					t.Fatalf("error calling ConvertFromHub: %v", err)
+					t.Fatalf("error calling Convert from hub to spoke: %v", err)
 				}
 
 				// Convert spoke back to hub and check if the resulting hub is equal to the hub before the round trip
 				hubAfter := input.Hub.DeepCopyObject()
 				if err := input.Converter.Convert(spoke, hubAfter); err != nil {
-					t.Fatalf("error calling ConvertTo: %v", err)
+					t.Fatalf("error calling Convert from spoke to hub: %v", err)
 				}
 
 				if source, err := conversionmeta.GetSource(hubAfter); err != nil || source.APIVersion != spokeGVK.GroupVersion().String() {
-					t.Fatal("ConvertTo is expected to set Convertible.APIVersion")
+					t.Fatal("Convert is expected to set Convertible.APIVersion")
 				}
 				if err := conversionmeta.SetSource(hubAfter, conversionmeta.SourceTypeMeta{}); err != nil {
 					t.Fatal(err.Error())

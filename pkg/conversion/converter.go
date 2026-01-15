@@ -67,6 +67,10 @@ func (s *Converter) SetTargetVersion(v string) {
 
 // AddTypes adds to the converter types that require conversion.
 func (s *Converter) AddTypes(gv schema.GroupVersion, types ...runtime.Object) error {
+	if gv.Group == "" {
+		return errors.Errorf("invalid group, group cannot be empty")
+	}
+
 	if gv.Version == "" {
 		return errors.Errorf("invalid version, version cannot be empty")
 	}
@@ -117,107 +121,121 @@ func (s *Converter) Recognizes(gvk schema.GroupVersionKind) bool {
 }
 
 // AddConversion adds to the Converter functions to be used when converting objects from one version to another.
-func (s *Converter) AddConversion(src runtime.Object, version string, dst runtime.Object, srcToDst, dstToSrc any) error {
-	gvkSrc, err := s.GroupVersionKindFor(src)
+// For instance, adding conversion from vmoprhub.VirtualMachine to vmoprv1alpha2.VirtualMachine will look like
+//
+// converter.AddConversion(
+//
+//	&vmoprvhub.VirtualMachine{},
+//	vmoprv1alpha2.GroupVersion.Version, &vmoprv1alpha2.VirtualMachine{},
+//	convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine, convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine,
+//
+// )
+//
+// More examples can be found in pkg/conversion/api/vmoperator.
+func (s *Converter) AddConversion(src runtime.Object, dstVersion string, dst runtime.Object, srcToDstFunc, dstToSrcFunc any) error {
+	srcGVK, err := s.GroupVersionKindFor(src)
 	if err != nil {
 		return err
 	}
-	tSrc := s.gvkToType[gvkSrc]
+	srcType := s.gvkToType[srcGVK]
 
-	if strings.HasSuffix(gvkSrc.Kind, "List") {
+	if strings.HasSuffix(srcGVK.Kind, "List") {
 		return errors.New("invalid source type, source type for a conversion cannot have the List suffix")
 	}
 
-	tDst, err := objType(dst)
+	dstType, err := objType(dst)
 	if err != nil {
 		return err
 	}
 
-	gvkDst := schema.GroupVersionKind{
-		Group:   gvkSrc.Group,
-		Version: version,
-		Kind:    tDst.Name(),
+	dstGVK := schema.GroupVersionKind{
+		Group:   srcGVK.Group,
+		Version: dstVersion,
+		Kind:    dstType.Name(),
 	}
-	if gvkDst.Version == "" {
+	if dstGVK.Group == "" {
+		return errors.Errorf("invalid group, group cannot be empty")
+	}
+	if dstGVK.Version == "" {
 		return errors.New("invalid version, version cannot be empty")
 	}
 
-	if gvkDst.Version == gvkSrc.Version {
-		return errors.New("invalid version, target version for a conversion cannot be the same registered for the source object")
+	if dstGVK.Version == srcGVK.Version {
+		return errors.New("invalid version, target version for a conversion cannot be the equal to the version registered for the source object")
 	}
 
-	if gvkSrc.Kind != gvkDst.Kind {
-		return errors.New("invalid destination type, destination type for a conversion must be of the same kind of the source object")
+	if srcGVK.Kind != dstGVK.Kind {
+		return errors.New("invalid destination type, destination type for a conversion must be of the same kind as the source object")
 	}
 
-	if oldT, found := s.gvkToType[gvkDst]; found && oldT != tDst {
-		return errors.Errorf("double registration of different types for %v: old=%v.%v, new=%v.%v", gvkDst, oldT.PkgPath(), oldT.Name(), tDst.PkgPath(), tDst.Name())
+	if oldT, found := s.gvkToType[dstGVK]; found && oldT != dstType {
+		return errors.Errorf("double registration of different types for %v: old=%v.%v, new=%v.%v", dstGVK, oldT.PkgPath(), oldT.Name(), dstType.PkgPath(), dstType.Name())
 	}
 
-	if oldGvk, found := s.typeToGVK[tDst]; found && oldGvk != gvkDst {
-		return errors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", tDst.PkgPath(), tDst.Name(), oldGvk, gvkDst)
+	if oldGVK, found := s.typeToGVK[dstType]; found && oldGVK != dstGVK {
+		return errors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", dstType.PkgPath(), dstType.Name(), oldGVK, dstGVK)
 	}
 
-	if err := conversionFuncIsValid(tSrc, tDst, srcToDst); err != nil {
-		return errors.Wrapf(err, "invalid conversion function from %v to %v", gvkSrc, gvkDst.Version)
+	if err := conversionFuncIsValid(srcType, dstType, srcToDstFunc); err != nil {
+		return errors.Wrapf(err, "invalid conversion function from %v to %v", srcGVK, dstGVK.Version)
 	}
 
-	if err := conversionFuncIsValid(tDst, tSrc, dstToSrc); err != nil {
-		return errors.Wrapf(err, "invalid conversion function from %v to %v", gvkDst, gvkSrc.Version)
+	if err := conversionFuncIsValid(dstType, srcType, dstToSrcFunc); err != nil {
+		return errors.Wrapf(err, "invalid conversion function from %v to %v", dstGVK, srcGVK.Version)
 	}
 
-	s.gvkToType[gvkDst] = tDst
-	s.gvkConvertibleTypes[gvkDst] = false
-	s.typeToGVK[tDst] = gvkDst
+	s.gvkToType[dstGVK] = dstType
+	s.gvkConvertibleTypes[dstGVK] = false
+	s.typeToGVK[dstType] = dstGVK
 
-	if s.conversionFuncs[gvkSrc] == nil {
-		s.conversionFuncs[gvkSrc] = map[schema.GroupVersionKind]reflect.Value{}
+	if s.conversionFuncs[srcGVK] == nil {
+		s.conversionFuncs[srcGVK] = map[schema.GroupVersionKind]reflect.Value{}
 	}
 
-	srcToDstV := reflect.ValueOf(srcToDst)
-	if oldC, found := s.conversionFuncs[gvkSrc][gvkDst]; found && oldC != srcToDstV {
-		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", gvkSrc, gvkDst.Version)
+	srcToDstFuncV := reflect.ValueOf(srcToDstFunc)
+	if oldC, found := s.conversionFuncs[srcGVK][dstGVK]; found && oldC != srcToDstFuncV {
+		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", srcGVK, dstGVK.Version)
 	}
-	s.conversionFuncs[gvkSrc][gvkDst] = srcToDstV
+	s.conversionFuncs[srcGVK][dstGVK] = srcToDstFuncV
 
-	dstToSrcV := reflect.ValueOf(dstToSrc)
-	if s.conversionFuncs[gvkDst] == nil {
-		s.conversionFuncs[gvkDst] = map[schema.GroupVersionKind]reflect.Value{}
+	dstToSrcFuncV := reflect.ValueOf(dstToSrcFunc)
+	if s.conversionFuncs[dstGVK] == nil {
+		s.conversionFuncs[dstGVK] = map[schema.GroupVersionKind]reflect.Value{}
 	}
-	if oldC, found := s.conversionFuncs[gvkDst][gvkSrc]; found && oldC != dstToSrcV {
-		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", gvkDst, gvkSrc.Version)
+	if oldC, found := s.conversionFuncs[dstGVK][srcGVK]; found && oldC != dstToSrcFuncV {
+		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", dstGVK, srcGVK.Version)
 	}
-	s.conversionFuncs[gvkDst][gvkSrc] = dstToSrcV
+	s.conversionFuncs[dstGVK][srcGVK] = dstToSrcFuncV
 
 	return nil
 }
 
 // Convert converts an object into another with the same kind, but a different version.
 func (s *Converter) Convert(src runtime.Object, dst runtime.Object) error {
-	gvkSrc, err := s.GroupVersionKindFor(src)
+	srcGVK, err := s.GroupVersionKindFor(src)
 	if err != nil {
 		return err
 	}
 
-	gvkDst, err := s.GroupVersionKindFor(dst)
+	dstGVK, err := s.GroupVersionKindFor(dst)
 	if err != nil {
 		return err
 	}
 
-	if s.gvkConvertibleTypes[gvkSrc] {
+	if s.gvkConvertibleTypes[srcGVK] {
 		source, err := conversionmeta.GetSource(src)
 		if err != nil {
 			return err
 		}
 
-		if source.APIVersion != "" && source.APIVersion != gvkDst.GroupVersion().String() {
-			return errors.Errorf("objects with kind %s and source.APIVersion %s cannot be converted to %s", gvkSrc.Kind, source.APIVersion, gvkDst.Version)
+		if source.APIVersion != "" && source.APIVersion != dstGVK.GroupVersion().String() {
+			return errors.Errorf("objects with kind %s and source.APIVersion %s cannot be converted to %s", srcGVK.Kind, source.APIVersion, dstGVK.Version)
 		}
 	}
 
-	conversionFunc, ok := s.conversionFuncs[gvkSrc][gvkDst]
+	conversionFunc, ok := s.conversionFuncs[srcGVK][dstGVK]
 	if !ok {
-		return errors.Errorf("no conversion registered from %s to %s", gvkSrc, gvkDst)
+		return errors.Errorf("no conversion registered from %s to %s", srcGVK, dstGVK)
 	}
 
 	args := []reflect.Value{
@@ -231,8 +249,8 @@ func (s *Converter) Convert(src runtime.Object, dst runtime.Object) error {
 		return results[0].Interface().(error)
 	}
 
-	if s.gvkConvertibleTypes[gvkDst] {
-		if err := conversionmeta.SetSource(dst, conversionmeta.SourceTypeMeta{APIVersion: gvkSrc.GroupVersion().String()}); err != nil {
+	if s.gvkConvertibleTypes[dstGVK] {
+		if err := conversionmeta.SetSource(dst, conversionmeta.SourceTypeMeta{APIVersion: srcGVK.GroupVersion().String()}); err != nil {
 			return err
 		}
 	}
@@ -249,6 +267,7 @@ func (s *Converter) IsConvertible(obj runtime.Object) bool {
 }
 
 // TargetGroupVersionKindFor returns the GroupVersionKind for the given object converted to the target version.
+// Note: This func should only be called with types that require conversion.
 func (s *Converter) TargetGroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
 	gvk, err := s.GroupVersionKindFor(obj)
 	if err != nil {
@@ -299,6 +318,8 @@ func (s *Converter) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersion
 
 var errorType = reflect.TypeFor[error]()
 
+// conversionFuncIsValid validates conversion func signature.
+// A valid func signature takes in input source and destination type and return and error, func(src A, dst B) error.
 func conversionFuncIsValid(tSrc, tDst reflect.Type, f any) error {
 	errFor := func(msg string) error {
 		return errors.Errorf("conversion func must be a func(%s.%s, %s.%s) error, %s", tSrc.PkgPath(), tSrc.Name(), tDst.PkgPath(), tDst.Name(), msg)

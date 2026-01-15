@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -390,18 +389,6 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("DiscoverVariables called")
 
-	vars := []clusterv1beta1.ClusterClassVariable{}
-
-	for _, in := range clusterclass.GetClusterClassVariables(req.Settings["testMode"] == "govmomi") {
-		out := clusterv1beta1.ClusterClassVariable{}
-		if err := clusterv1beta1.Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(&in, &out, nil); err != nil {
-			resp.Status = runtimehooksv1.ResponseStatusFailure
-			resp.Message = fmt.Sprintf("Failed to Convert ClusterClass variable %q to v1beta1", in.Name)
-			return
-		}
-		vars = append(vars, out)
-	}
-
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
-	resp.Variables = vars
+	resp.Variables = clusterclass.GetClusterClassVariables(req.Settings["testMode"] == "govmomi")
 }

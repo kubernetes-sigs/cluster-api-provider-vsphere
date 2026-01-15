@@ -200,6 +200,9 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: clusterv1\.(Condition|Conditions|ConditionSeverity|ConditionType) is deprecated'
         # Excludes for controller-runtime deprecations that we should migrate away from sooner or later
       - linters:
           - staticcheck

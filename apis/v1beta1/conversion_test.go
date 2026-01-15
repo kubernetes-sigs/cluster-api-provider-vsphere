@@ -156,8 +156,15 @@ func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
 
 func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubVSphereClusterTemplateResource,
 		spokeVSphereClusterSpec,
 	}
+}
+
+func hubVSphereClusterTemplateResource(in *infrav1.VSphereClusterTemplateResource, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
 
 func VSphereClusterIdentityFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

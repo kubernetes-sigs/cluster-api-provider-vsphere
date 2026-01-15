@@ -22,7 +22,6 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -30,18 +29,15 @@ import (
 )
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-vspherefailuredomain,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherefailuredomains,versions=v1beta2,name=validation.vspherefailuredomain.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
-// +kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-vspherefailuredomain,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherefailuredomains,verbs=create;update,versions=v1beta2,name=default.vspherefailuredomain.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 // VSphereFailureDomain implements a validation and defaulting webhook for VSphereFailureDomain.
 type VSphereFailureDomain struct{}
 
 var _ admission.Validator[*infrav1.VSphereFailureDomain] = &VSphereFailureDomain{}
-var _ admission.Defaulter[*infrav1.VSphereFailureDomain] = &VSphereFailureDomain{}
 
 func (webhook *VSphereFailureDomain) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereFailureDomain{}).
 		WithValidator(webhook).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		Complete()
 }
 
@@ -93,17 +89,4 @@ func (webhook *VSphereFailureDomain) ValidateUpdate(_ context.Context, oldTyped,
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *VSphereFailureDomain) ValidateDelete(_ context.Context, _ *infrav1.VSphereFailureDomain) (admission.Warnings, error) {
 	return nil, nil
-}
-
-// Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *VSphereFailureDomain) Default(_ context.Context, typedObj *infrav1.VSphereFailureDomain) error {
-	if typedObj.Spec.Zone.AutoConfigure == nil {
-		typedObj.Spec.Zone.AutoConfigure = ptr.To(false)
-	}
-
-	if typedObj.Spec.Region.AutoConfigure == nil {
-		typedObj.Spec.Region.AutoConfigure = ptr.To(false)
-	}
-
-	return nil
 }

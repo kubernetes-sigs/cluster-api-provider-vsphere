@@ -66,12 +66,6 @@ type FailureDomain struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	TagCategory string `json:"tagCategory,omitempty"`
-
-	// autoConfigure tags the Type which is specified in the Topology
-	//
-	// Deprecated: This field is going to be removed in a future release.
-	// +optional
-	AutoConfigure *bool `json:"autoConfigure,omitempty"`
 }
 
 // Topology describes a given failure domain using vSphere constructs.

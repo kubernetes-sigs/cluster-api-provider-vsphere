@@ -44,7 +44,7 @@ var _ admission.Defaulter[*infrav1.VSphereVM] = &VSphereVM{}
 func (webhook *VSphereVM) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereVM{}).
 		WithValidator(webhook).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithDefaulter(webhook).
 		Complete()
 }
 

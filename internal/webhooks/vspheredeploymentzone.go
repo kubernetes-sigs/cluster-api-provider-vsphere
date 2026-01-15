@@ -35,7 +35,7 @@ var _ admission.Defaulter[*infrav1.VSphereDeploymentZone] = &VSphereDeploymentZo
 
 func (webhook *VSphereDeploymentZone) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereDeploymentZone{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithDefaulter(webhook).
 		Complete()
 }
 

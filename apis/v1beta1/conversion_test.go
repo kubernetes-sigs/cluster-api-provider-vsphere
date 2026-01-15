@@ -279,6 +279,8 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 	if in.GuestSoftPowerOffTimeout != nil {
 		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+
+	in.Network.PreferredAPIServerCIDR = "" // field has been dropped in v1beta2
 }
 
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -299,4 +301,6 @@ func spokeVSphereVMSpec(in *VSphereVMSpec, c randfill.Continue) {
 	if in.GuestSoftPowerOffTimeout != nil {
 		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+
+	in.Network.PreferredAPIServerCIDR = "" // field has been dropped in v1beta2
 }

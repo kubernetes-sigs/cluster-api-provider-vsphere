@@ -438,15 +438,6 @@ type NetworkSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=512
 	Routes []NetworkRouteSpec `json:"routes,omitempty"`
-
-	// preferredAPIServerCidr is the preferred CIDR for the Kubernetes API
-	// server endpoint on this machine
-	// +optional
-	//
-	// Deprecated: This field is going to be removed in a future release.
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=1024
-	PreferredAPIServerCIDR string `json:"preferredAPIServerCidr,omitempty"`
 }
 
 // NetworkDeviceSpec defines the network configuration for a virtual machine's

@@ -790,6 +790,14 @@ func Convert_v1beta1_VSphereVMSpec_To_v1beta2_VSphereVMSpec(in *VSphereVMSpec, o
 	return nil
 }
 
+func Convert_v1beta1_NetworkSpec_To_v1beta2_NetworkSpec(in *NetworkSpec, out *infrav1.NetworkSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_NetworkSpec_To_v1beta2_NetworkSpec(in, out, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Convert_v1_Condition_To_v1beta1_Condition(_ *metav1.Condition, _ *clusterv1beta1.Condition, _ apimachineryconversion.Scope) error {
 	// NOTE: v1beta2 conditions should not be automatically converted into legacy (v1beta1) conditions.
 	return nil

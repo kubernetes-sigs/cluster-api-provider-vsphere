@@ -1418,15 +1418,6 @@ spec:
                     maxItems: 128
                     type: array
                     x-kubernetes-list-type: atomic
-                  preferredAPIServerCidr:
-                    description: |-
-                      preferredAPIServerCidr is the preferred CIDR for the Kubernetes API
-                      server endpoint on this machine
-
-                      Deprecated: This field is going to be removed in a future release.
-                    maxLength: 1024
-                    minLength: 1
-                    type: string
                   routes:
                     description: |-
                       routes is a list of optional, static routes applied to the virtual

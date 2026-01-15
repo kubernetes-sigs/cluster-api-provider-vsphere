@@ -1,32 +1,5 @@
 ---
 apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingWebhookConfiguration
-metadata:
-  name: mutating-webhook-configuration
-webhooks:
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vspheremachine
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.vspheremachine.vmware.infrastructure.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - vmware.infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - vspheremachines
-  sideEffects: None
----
-apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: validating-webhook-configuration

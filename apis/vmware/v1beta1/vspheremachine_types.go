@@ -360,7 +360,7 @@ type VSphereMachineV1Beta2Status struct {
 //
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vspheremachines,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Zone",type="string",JSONPath=".spec.failureDomain",description="Zone"
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"

@@ -50,7 +50,7 @@ type ProviderServiceAccountStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=providerserviceaccounts,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="VSphereCluster",type=string,JSONPath=.spec.ref.name
 // +kubebuilder:printcolumn:name="TargetNamespace",type=string,JSONPath=.spec.targetNamespace

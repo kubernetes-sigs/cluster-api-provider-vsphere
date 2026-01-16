@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/kubevip"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
@@ -249,17 +249,17 @@ func newVSphereCluster() infrav1.VSphereCluster {
 	}
 }
 
-func newVMWareCluster() vmwarev1.VSphereCluster {
-	return vmwarev1.VSphereCluster{
+func newVMWareCluster() vmwarev1beta1.VSphereCluster {
+	return vmwarev1beta1.VSphereCluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: vmwarev1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&vmwarev1.VSphereCluster{}),
+			APIVersion: vmwarev1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&vmwarev1beta1.VSphereCluster{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      env.ClusterNameVar,
 			Namespace: env.NamespaceVar,
 		},
-		Spec: vmwarev1.VSphereClusterSpec{
+		Spec: vmwarev1beta1.VSphereClusterSpec{
 			ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{
 				Host: env.ControlPlaneEndpointHostVar,
 				Port: 6443,
@@ -331,19 +331,19 @@ func defaultVirtualMachineSpec() infrav1.VSphereMachineSpec {
 	}
 }
 
-func newVMWareMachineTemplate(templateName string) vmwarev1.VSphereMachineTemplate {
-	return vmwarev1.VSphereMachineTemplate{
+func newVMWareMachineTemplate(templateName string) vmwarev1beta1.VSphereMachineTemplate {
+	return vmwarev1beta1.VSphereMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      templateName,
 			Namespace: env.NamespaceVar,
 		},
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: vmwarev1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&vmwarev1.VSphereMachineTemplate{}),
+			APIVersion: vmwarev1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&vmwarev1beta1.VSphereMachineTemplate{}),
 		},
-		Spec: vmwarev1.VSphereMachineTemplateSpec{
-			Template: vmwarev1.VSphereMachineTemplateResource{
-				Spec: vmwarev1.VSphereMachineSpec{
+		Spec: vmwarev1beta1.VSphereMachineTemplateSpec{
+			Template: vmwarev1beta1.VSphereMachineTemplateResource{
+				Spec: vmwarev1beta1.VSphereMachineSpec{
 					ImageName:    env.VSphereMachineClassImageVar,
 					ClassName:    env.VSphereMachineClassVar,
 					StorageClass: env.VSphereMachineStorageClassVar,

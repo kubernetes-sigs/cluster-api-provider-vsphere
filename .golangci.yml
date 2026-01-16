@@ -111,6 +111,8 @@ linters:
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2
           alias: infrav1
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
+          alias: vmwarev1beta1
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2
           alias: vmwarev1
         # VMware Operator
         - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha2

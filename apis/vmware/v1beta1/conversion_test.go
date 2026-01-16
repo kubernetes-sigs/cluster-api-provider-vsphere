@@ -69,7 +69,30 @@ func TestFuzzyConversion(t *testing.T) {
 }
 
 func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
+	return []interface{}{
+		hubVSphereClusterStatus,
+		spokeVSphereClusterStatus,
+	}
+}
+
+func hubVSphereClusterStatus(in *vmwarev1.VSphereClusterStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &vmwarev1.VSphereClusterV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
 }
 
 func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

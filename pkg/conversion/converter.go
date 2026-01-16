@@ -40,8 +40,8 @@ type Converter struct {
 	// typeToGVK allows to find the gkv for a given go object.
 	typeToGVK map[reflect.Type]schema.GroupVersionKind
 
-	// gvkConvertibleTypes allows to figure out if an object is a convertible type or not.
-	gvkConvertibleTypes map[schema.GroupVersionKind]bool
+	// gvkHubTypes allows to figure out if an object is a hub type or not.
+	gvkHubTypes map[schema.GroupVersionKind]bool
 
 	// conversionFuncs stores func to convert objects with a given gvk to another.
 	conversionFuncs map[schema.GroupVersionKind]map[schema.GroupVersionKind]ConvertFunc
@@ -53,10 +53,10 @@ type Converter struct {
 // NewConverter returns a Converter.
 func NewConverter() *Converter {
 	s := &Converter{
-		gvkToType:           map[schema.GroupVersionKind]reflect.Type{},
-		typeToGVK:           map[reflect.Type]schema.GroupVersionKind{},
-		gvkConvertibleTypes: map[schema.GroupVersionKind]bool{},
-		conversionFuncs:     map[schema.GroupVersionKind]map[schema.GroupVersionKind]ConvertFunc{},
+		gvkToType:       map[schema.GroupVersionKind]reflect.Type{},
+		typeToGVK:       map[reflect.Type]schema.GroupVersionKind{},
+		gvkHubTypes:     map[schema.GroupVersionKind]bool{},
+		conversionFuncs: map[schema.GroupVersionKind]map[schema.GroupVersionKind]ConvertFunc{},
 		targetVersionSelector: func(_ schema.GroupKind) string {
 			panic("targetVersionSelector not set")
 		},
@@ -69,8 +69,8 @@ func (s *Converter) SetTargetVersion(v string) {
 	s.targetVersionSelector = func(_ schema.GroupKind) string { return v }
 }
 
-// AddTypes adds to the converter types that require conversion.
-func (s *Converter) AddTypes(gv schema.GroupVersion, types ...runtime.Object) error {
+// AddHubTypes adds to the converter hub types that require conversion.
+func (s *Converter) AddHubTypes(gv schema.GroupVersion, types ...runtime.Object) error {
 	if gv.Group == "" {
 		return errors.Errorf("invalid group, group cannot be empty")
 	}
@@ -100,18 +100,17 @@ func (s *Converter) AddTypes(gv schema.GroupVersion, types ...runtime.Object) er
 		}
 
 		s.gvkToType[gvk] = t
-		s.gvkConvertibleTypes[gvk] = true
+		s.gvkHubTypes[gvk] = true
 		s.typeToGVK[t] = gvk
 	}
 	return nil
 }
 
-// AllKnownTypes returns the all known types.
-// Note: only convertible types are included.
-func (s *Converter) AllKnownTypes() map[schema.GroupVersionKind]reflect.Type {
+// AllKnownHubTypes returns the all known hub types.
+func (s *Converter) AllKnownHubTypes() map[schema.GroupVersionKind]reflect.Type {
 	r := map[schema.GroupVersionKind]reflect.Type{}
-	for gvk, isConvertible := range s.gvkConvertibleTypes {
-		if isConvertible {
+	for gvk, isHub := range s.gvkHubTypes {
+		if isHub {
 			r[gvk] = s.gvkToType[gvk]
 		}
 	}
@@ -137,74 +136,77 @@ func (s *Converter) Recognizes(gvk schema.GroupVersionKind) bool {
 // )
 //
 // AddConversionBuilder provides a convenient and typed way to perform this operation. More examples can be found in pkg/conversion/api/vmoperator.
-func (s *Converter) AddConversion(src runtime.Object, dstVersion string, dst runtime.Object, srcToDstFunc, dstToSrcFunc ConvertFunc) error {
-	srcGVK, err := s.GroupVersionKindFor(src)
+func (s *Converter) AddConversion(hub runtime.Object, spokeVersion string, spoke runtime.Object, hubToSpokeFunc, spokeToHubFunc ConvertFunc) error {
+	hubGVK, err := s.GroupVersionKindFor(hub)
 	if err != nil {
 		return err
 	}
 
-	if strings.HasSuffix(srcGVK.Kind, "List") {
+	if strings.HasSuffix(hubGVK.Kind, "List") {
 		return errors.New("invalid source type, source type for a conversion cannot have the List suffix")
 	}
 
-	dstType, err := objType(dst)
+	spokeType, err := objType(spoke)
 	if err != nil {
 		return err
 	}
 
-	dstGVK := schema.GroupVersionKind{
-		Group:   srcGVK.Group,
-		Version: dstVersion,
-		Kind:    dstType.Name(),
+	spokeGVK := schema.GroupVersionKind{
+		Group:   hubGVK.Group,
+		Version: spokeVersion,
+		Kind:    spokeType.Name(),
 	}
-	if dstGVK.Group == "" {
+	if spokeGVK.Group == "" {
 		return errors.Errorf("invalid group, group cannot be empty")
 	}
-	if dstGVK.Version == "" {
+	if spokeGVK.Version == "" {
 		return errors.New("invalid version, version cannot be empty")
 	}
 
-	if dstGVK.Version == srcGVK.Version {
-		return errors.New("invalid version, target version for a conversion cannot be the equal to the version registered for the source object")
+	if spokeGVK.Version == hubGVK.Version {
+		return errors.New("invalid version, spokeVersion for a conversion cannot be the equal to the version registered for the hub object")
 	}
 
-	if srcGVK.Kind != dstGVK.Kind {
-		return errors.New("invalid destination type, destination type for a conversion must be of the same kind as the source object")
+	if hubGVK.Kind != spokeGVK.Kind {
+		return errors.New("invalid spoke type, spoke type for a conversion must be of the same kind as the hub object")
 	}
 
-	if oldT, found := s.gvkToType[dstGVK]; found && oldT != dstType {
-		return errors.Errorf("double registration of different types for %v: old=%v.%v, new=%v.%v", dstGVK, oldT.PkgPath(), oldT.Name(), dstType.PkgPath(), dstType.Name())
+	if oldT, found := s.gvkToType[spokeGVK]; found && oldT != spokeType {
+		return errors.Errorf("double registration of different types for %v: old=%v.%v, new=%v.%v", spokeGVK, oldT.PkgPath(), oldT.Name(), spokeType.PkgPath(), spokeType.Name())
 	}
 
-	if oldGVK, found := s.typeToGVK[dstType]; found && oldGVK != dstGVK {
-		return errors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", dstType.PkgPath(), dstType.Name(), oldGVK, dstGVK)
+	if oldGVK, found := s.typeToGVK[spokeType]; found && oldGVK != spokeGVK {
+		return errors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", spokeType.PkgPath(), spokeType.Name(), oldGVK, spokeGVK)
 	}
 
-	s.gvkToType[dstGVK] = dstType
-	s.gvkConvertibleTypes[dstGVK] = false
-	s.typeToGVK[dstType] = dstGVK
+	s.gvkToType[spokeGVK] = spokeType
+	s.gvkHubTypes[spokeGVK] = false
+	s.typeToGVK[spokeType] = spokeGVK
 
-	if s.conversionFuncs[srcGVK] == nil {
-		s.conversionFuncs[srcGVK] = map[schema.GroupVersionKind]ConvertFunc{}
+	if s.conversionFuncs[hubGVK] == nil {
+		s.conversionFuncs[hubGVK] = map[schema.GroupVersionKind]ConvertFunc{}
 	}
 
-	if oldC, found := s.conversionFuncs[srcGVK][dstGVK]; found && reflect.ValueOf(oldC) != reflect.ValueOf(srcToDstFunc) {
-		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", srcGVK, dstGVK.Version)
+	if oldC, found := s.conversionFuncs[hubGVK][spokeGVK]; found && reflect.ValueOf(oldC) != reflect.ValueOf(hubToSpokeFunc) {
+		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", hubGVK, spokeGVK.Version)
 	}
-	s.conversionFuncs[srcGVK][dstGVK] = srcToDstFunc
+	s.conversionFuncs[hubGVK][spokeGVK] = hubToSpokeFunc
 
-	if s.conversionFuncs[dstGVK] == nil {
-		s.conversionFuncs[dstGVK] = map[schema.GroupVersionKind]ConvertFunc{}
+	if s.conversionFuncs[spokeGVK] == nil {
+		s.conversionFuncs[spokeGVK] = map[schema.GroupVersionKind]ConvertFunc{}
 	}
-	if oldC, found := s.conversionFuncs[dstGVK][srcGVK]; found && reflect.ValueOf(oldC) != reflect.ValueOf(dstToSrcFunc) {
-		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", dstGVK, srcGVK.Version)
+	if oldC, found := s.conversionFuncs[spokeGVK][hubGVK]; found && reflect.ValueOf(oldC) != reflect.ValueOf(spokeToHubFunc) {
+		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", spokeGVK, hubGVK.Version)
 	}
-	s.conversionFuncs[dstGVK][srcGVK] = dstToSrcFunc
+	s.conversionFuncs[spokeGVK][hubGVK] = spokeToHubFunc
 
 	return nil
 }
 
 // Convert converts an object into another with the same kind, but a different version.
+// Note:
+// - If src is a hub type, dst must be one of the corresponding spoke types.
+// - If src is a spoke type, dst must be the corresponding hub type.
 func (s *Converter) Convert(ctx context.Context, src runtime.Object, dst runtime.Object) error {
 	srcGVK, err := s.GroupVersionKindFor(src)
 	if err != nil {
@@ -216,9 +218,9 @@ func (s *Converter) Convert(ctx context.Context, src runtime.Object, dst runtime
 		return err
 	}
 
-	if s.gvkConvertibleTypes[srcGVK] {
-		convertible, _ := src.(conversionmeta.Convertible)
-		source := convertible.GetSource()
+	if s.gvkHubTypes[srcGVK] {
+		hub, _ := src.(conversionmeta.Convertible)
+		source := hub.GetSource()
 
 		if source.APIVersion != "" && source.APIVersion != dstGVK.GroupVersion().String() {
 			return errors.Errorf("objects with kind %s and source.APIVersion %s cannot be converted to %s", srcGVK.Kind, source.APIVersion, dstGVK.Version)
@@ -234,25 +236,25 @@ func (s *Converter) Convert(ctx context.Context, src runtime.Object, dst runtime
 		return errors.Wrapf(err, "error converting from %s to %s", srcGVK, dstGVK)
 	}
 
-	if s.gvkConvertibleTypes[dstGVK] {
-		convertible, _ := dst.(conversionmeta.Convertible)
-		convertible.SetSource(conversionmeta.SourceTypeMeta{APIVersion: srcGVK.GroupVersion().String()})
+	if s.gvkHubTypes[dstGVK] {
+		hub, _ := dst.(conversionmeta.Convertible)
+		hub.SetSource(conversionmeta.SourceTypeMeta{APIVersion: srcGVK.GroupVersion().String()})
 	}
 	return nil
 }
 
-// IsConvertible return true if an object requires conversion before write and after read.
-func (s *Converter) IsConvertible(obj runtime.Object) bool {
+// IsHub return true if an object is a hub type that requires conversion before write and after read.
+func (s *Converter) IsHub(obj runtime.Object) bool {
 	gvk, err := s.GroupVersionKindFor(obj)
 	if err != nil {
 		return false
 	}
-	return s.gvkConvertibleTypes[gvk]
+	return s.gvkHubTypes[gvk]
 }
 
-// TargetGroupVersionKindFor returns the GroupVersionKind for the given object converted to the target version.
-// Note: This func should only be called with types that require conversion.
-func (s *Converter) TargetGroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
+// SpokeGroupVersionKindFor returns the GroupVersionKind of the target spoke object for the given object.
+// Note: This func should only be called for hub types.
+func (s *Converter) SpokeGroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
 	gvk, err := s.GroupVersionKindFor(obj)
 	if err != nil {
 		return schema.GroupVersionKind{}, err
@@ -264,29 +266,29 @@ func (s *Converter) TargetGroupVersionKindFor(obj runtime.Object) (schema.GroupV
 		gvk.Kind = strings.TrimSuffix(gvk.Kind, "List")
 	}
 
-	if !s.gvkConvertibleTypes[gvk] {
+	if !s.gvkHubTypes[gvk] {
 		return schema.GroupVersionKind{}, errors.Errorf("no type registered for %s", gvk)
 	}
 
-	targetGVK := schema.GroupVersionKind{
+	spokeGVK := schema.GroupVersionKind{
 		Group:   gvk.Group,
 		Version: s.targetVersionSelector(gvk.GroupKind()),
 		Kind:    gvk.Kind,
 	}
 
-	if _, ok := s.conversionFuncs[gvk][targetGVK]; !ok {
-		return schema.GroupVersionKind{}, errors.Errorf("no conversion registered from %s to %s", gvk, targetGVK.Version)
+	if _, ok := s.conversionFuncs[gvk][spokeGVK]; !ok {
+		return schema.GroupVersionKind{}, errors.Errorf("no conversion registered from %s to %s", gvk, spokeGVK.Version)
 	}
 
 	if isList {
-		targetGVK.Kind = fmt.Sprintf("%sList", targetGVK.Kind)
+		spokeGVK.Kind = fmt.Sprintf("%sList", spokeGVK.Kind)
 	}
 
-	return targetGVK, nil
+	return spokeGVK, nil
 }
 
 // GroupVersionKindFor returns the GroupVersionKind for the given object.
-// Note: obj can be either a type that requires conversions or one of the types it can convert to/from.
+// Note: obj can be either a hub type or a spoke type.
 func (s *Converter) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
 	t, err := objType(obj)
 	if err != nil {

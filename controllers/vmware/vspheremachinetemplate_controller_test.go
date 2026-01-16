@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 )
@@ -138,7 +139,10 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 				},
 			}
 
-			c, err := conversionclient.New(fakeClientBuilder.Build())
+			c, err := conversionclient.NewWithConverter(
+				fakeClientBuilder.Build(),
+				conversionapi.DefaultConverter,
+			)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			r := &vSphereMachineTemplateReconciler{

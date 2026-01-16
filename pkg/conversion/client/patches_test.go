@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -39,29 +38,61 @@ func Test_MergeFrom(t *testing.T) {
 	cc, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), converter)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	obj := &vmoprvhub.VirtualMachine{
+	fromHub := &vmoprvhub.VirtualMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-vm",
 			Namespace: "test-ns",
 		},
 	}
 
+	toHub := &vmoprvhub.VirtualMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-vm",
+			Namespace: "test-ns",
+			Labels:    map[string]string{"foo": "bar"},
+		},
+	}
+
+	toSpoke := &vmoprv1alpha5.VirtualMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-vm",
+			Namespace: "test-ns",
+			Labels:    map[string]string{"foo": "bar"},
+		},
+	}
+
 	tests := []struct {
-		name      string
-		c         client.Client
-		obj       client.Object
-		wantPatch *conversionMergePatch
-		wantErr   bool
+		name          string
+		c             client.Client
+		fromObj       client.Object
+		toObj         client.Object
+		wantPatch     *conversionMergePatch
+		wantPatchData string
+		wantErr       bool
 	}{
 		{
-			name: "Creates a patch",
-			c:    cc,
-			obj:  obj,
+			name:    "Creates a patch from an hub object",
+			c:       cc,
+			fromObj: fromHub,
 			wantPatch: &conversionMergePatch{
-				conversionCtx: context.TODO(),
-				from:          obj,
+				conversionCtx: t.Context(),
+				from:          fromHub,
 				client:        cc.(*conversionClient),
 			},
+			toObj:         toHub,
+			wantPatchData: "{\"metadata\":{\"labels\":{\"foo\":\"bar\"}}}",
+		},
+		{
+			name:    "Creates a patch from an spoke object",
+			c:       cc,
+			fromObj: fromHub,
+			wantPatch: &conversionMergePatch{
+				conversionCtx: t.Context(),
+				from:          fromHub,
+				client:        cc.(*conversionClient),
+			},
+			toObj:         toSpoke,
+			wantPatchData: "{\"metadata\":{\"labels\":{\"foo\":\"bar\"}}}",
 		},
 		{
 			name:    "Fails for non conversion client",
@@ -71,7 +102,7 @@ func Test_MergeFrom(t *testing.T) {
 		{
 			name:    "Fails for non convertible objects",
 			c:       cc,
-			obj:     &corev1.Node{},
+			fromObj: &corev1.Node{},
 			wantErr: true,
 		},
 	}
@@ -79,7 +110,7 @@ func Test_MergeFrom(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gotPatch, err := MergeFrom(context.TODO(), tt.c, tt.obj)
+			gotPatch, err := MergeFrom(t.Context(), tt.c, tt.fromObj)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -87,6 +118,10 @@ func Test_MergeFrom(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gotPatch).To(Equal(tt.wantPatch))
 			g.Expect(gotPatch.Type()).To(Equal(types.MergePatchType))
+
+			gotData, err := gotPatch.Data(tt.toObj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gotData).To(Equal([]byte(tt.wantPatchData)))
 		})
 	}
 }

@@ -21,6 +21,7 @@ import (
 
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
@@ -42,6 +43,7 @@ func convert_v1alpha2_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 					})
 				}
 			}
+			bg.PowerOnDelay = bootOrderGroup.PowerOnDelay
 			dst.Spec.BootOrder = append(dst.Spec.BootOrder, bg)
 		}
 	}
@@ -50,11 +52,33 @@ func convert_v1alpha2_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 		for _, member := range src.Status.Members {
 			m := vmoprvhub.VirtualMachineGroupMemberStatus{
 				Name: member.Name,
+				Kind: member.Kind,
+				UID:  member.UID,
 			}
 			if member.Placement != nil {
 				m.Placement = &vmoprvhub.VirtualMachinePlacementStatus{
 					Zone: member.Placement.Zone,
+					Node: member.Placement.Node,
+					Pool: member.Placement.Pool,
 				}
+				if member.Placement.Datastores != nil {
+					m.Placement.Datastores = []vmoprvhub.VirtualMachineGroupPlacementDatastoreStatus{}
+					for _, datastore := range member.Placement.Datastores {
+						d := vmoprvhub.VirtualMachineGroupPlacementDatastoreStatus{
+							Name:                 datastore.Name,
+							ID:                   datastore.ID,
+							URL:                  datastore.URL,
+							SupportedDiskFormats: datastore.SupportedDiskFormats,
+						}
+						if datastore.DiskKey != nil {
+							d.DiskKey = ptr.To(*datastore.DiskKey)
+						}
+						m.Placement.Datastores = append(m.Placement.Datastores, d)
+					}
+				}
+			}
+			if member.PowerState != nil {
+				m.PowerState = ptr.To(vmoprvhub.VirtualMachinePowerState(*member.PowerState))
 			}
 			if member.Conditions != nil {
 				m.Conditions = []metav1.Condition{}
@@ -85,6 +109,7 @@ func convert_hub_VirtualMachineGroup_To_v1alpha2_VirtualMachineGroup(_ context.C
 					})
 				}
 			}
+			bg.PowerOnDelay = bootOrderGroup.PowerOnDelay
 			dst.Spec.BootOrder = append(dst.Spec.BootOrder, bg)
 		}
 	}
@@ -93,11 +118,33 @@ func convert_hub_VirtualMachineGroup_To_v1alpha2_VirtualMachineGroup(_ context.C
 		for _, member := range src.Status.Members {
 			m := vmoprv1alpha2.VirtualMachineGroupMemberStatus{
 				Name: member.Name,
+				Kind: member.Kind,
+				UID:  member.UID,
 			}
 			if member.Placement != nil {
 				m.Placement = &vmoprv1alpha2.VirtualMachinePlacementStatus{
 					Zone: member.Placement.Zone,
+					Node: member.Placement.Node,
+					Pool: member.Placement.Pool,
 				}
+				if member.Placement.Datastores != nil {
+					m.Placement.Datastores = []vmoprv1alpha2.VirtualMachineGroupPlacementDatastoreStatus{}
+					for _, datastore := range member.Placement.Datastores {
+						d := vmoprv1alpha2.VirtualMachineGroupPlacementDatastoreStatus{
+							Name:                 datastore.Name,
+							ID:                   datastore.ID,
+							URL:                  datastore.URL,
+							SupportedDiskFormats: datastore.SupportedDiskFormats,
+						}
+						if datastore.DiskKey != nil {
+							d.DiskKey = ptr.To(*datastore.DiskKey)
+						}
+						m.Placement.Datastores = append(m.Placement.Datastores, d)
+					}
+				}
+			}
+			if member.PowerState != nil {
+				m.PowerState = ptr.To(vmoprv1alpha2.VirtualMachinePowerState(*member.PowerState))
 			}
 			if member.Conditions != nil {
 				m.Conditions = []metav1.Condition{}

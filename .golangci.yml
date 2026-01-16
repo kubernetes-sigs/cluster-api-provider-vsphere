@@ -117,6 +117,8 @@ linters:
         # Conversions
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client
           alias: conversionclient
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api
+          alias: conversionapi
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta
           alias: conversionmeta
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub
@@ -242,6 +244,17 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/api/core/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+        # Exclude for hub types
+      - linters:
+          - revive
+        path: pkg/conversion/api/vmoperator/hub/(.+)_types.go
+        text: 'exported (type|const) (.+) should have comment or be unexported'
+      - linters:
+          - revive
+        path: pkg/conversion/api/vmoperator/hub/(.+)_types.go
+        text: 'exported (type|const) (.+) should have comment \(or a comment on this block\) or be unexported'
+
+
         # CAPV Govmomi aggregates from IPAddressClaims to v1beta1 conditions
       - linters:
           - staticcheck

@@ -34,6 +34,7 @@ import (
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 )
@@ -159,13 +160,16 @@ func createScheme() *runtime.Scheme {
 func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerManagerContext) {
 	scheme := createScheme()
 
-	cc, err := conversionclient.New(fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
-		&vmoprvhub.VirtualMachineService{},
-		&vmoprvhub.VirtualMachine{},
-		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-		&vmoprv1alpha2.VirtualMachineService{},
-		&vmoprv1alpha2.VirtualMachine{},
-	).Build())
+	cc, err := conversionclient.NewWithConverter(
+		fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
+			&vmoprvhub.VirtualMachineService{},
+			&vmoprvhub.VirtualMachine{},
+			// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+			&vmoprv1alpha2.VirtualMachineService{},
+			&vmoprv1alpha2.VirtualMachine{},
+		).Build(),
+		conversionapi.DefaultConverter,
+	)
 	if err != nil {
 		panic(err)
 	}

@@ -14,7 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package client implements a client that can:
-// - convert hub objects to spoke types before write
-// - converts spoke types to hub types after read.
-package client
+// nolint: revive
+package hub
+
+// +kubebuilder:validation:Enum=IDE;NVME;SCSI;SATA
+
+type VirtualControllerType string
+
+const (
+	VirtualControllerTypeIDE  VirtualControllerType = "IDE"
+	VirtualControllerTypeNVME VirtualControllerType = "NVME"
+	VirtualControllerTypeSCSI VirtualControllerType = "SCSI"
+	VirtualControllerTypeSATA VirtualControllerType = "SATA"
+)

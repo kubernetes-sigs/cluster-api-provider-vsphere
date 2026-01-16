@@ -38,6 +38,7 @@ import (
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
@@ -114,7 +115,10 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 		}
 
 		// Controller runtime client
-		crclient, err := conversionclient.New(fake.NewClientBuilder().WithObjects(cluster, vsphereCluster, machine, vSphereMachine, virtualMachine).WithScheme(scheme).Build())
+		crclient, err := conversionclient.NewWithConverter(
+			fake.NewClientBuilder().WithObjects(cluster, vsphereCluster, machine, vSphereMachine, virtualMachine).WithScheme(scheme).Build(),
+			conversionapi.DefaultConverter,
+		)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Start in memory manager & add a resourceGroup for the cluster
@@ -253,7 +257,10 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 		}
 
 		// Controller runtime client
-		crclient, err := conversionclient.New(fake.NewClientBuilder().WithObjects(cluster, vsphereCluster, machine, vSphereMachine, virtualMachine).WithScheme(scheme).Build())
+		crclient, err := conversionclient.NewWithConverter(
+			fake.NewClientBuilder().WithObjects(cluster, vsphereCluster, machine, vSphereMachine, virtualMachine).WithScheme(scheme).Build(),
+			conversionapi.DefaultConverter,
+		)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Start in memory manager & add a resourceGroup for the cluster

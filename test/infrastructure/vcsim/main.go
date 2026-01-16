@@ -64,6 +64,7 @@ import (
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
@@ -343,7 +344,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		os.Exit(1)
 	}
 
-	cc, err := conversionclient.New(mgr.GetClient())
+	cc, err := conversionclient.NewWithConverter(
+		mgr.GetClient(),
+		conversionapi.DefaultConverter,
+	)
 	if err != nil {
 		setupLog.Error(err, "failed to create a conversion client")
 		os.Exit(1)

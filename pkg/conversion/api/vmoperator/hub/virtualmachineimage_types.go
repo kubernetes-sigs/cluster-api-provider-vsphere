@@ -52,6 +52,7 @@ type VirtualMachineImageSpec struct {
 
 // VirtualMachineImageStatus defines the observed state of VirtualMachineImage.
 type VirtualMachineImageStatus struct {
+
 	// +optional
 
 	// Name describes the display name of this image.
@@ -110,23 +111,23 @@ type VirtualMachineImage struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (in *VirtualMachineImage) GetConditions() []metav1.Condition {
-	return in.Status.Conditions
+func (i VirtualMachineImage) GetConditions() []metav1.Condition {
+	return i.Status.Conditions
 }
 
 // SetConditions sets conditions for an API object.
-func (in *VirtualMachineImage) SetConditions(conditions []metav1.Condition) {
-	in.Status.Conditions = conditions
+func (i *VirtualMachineImage) SetConditions(conditions []metav1.Condition) {
+	i.Status.Conditions = conditions
 }
 
 // GetSource returns the Source for this object.
-func (in *VirtualMachineImage) GetSource() conversionmeta.SourceTypeMeta {
-	return in.Source
+func (i *VirtualMachineImage) GetSource() conversionmeta.SourceTypeMeta {
+	return i.Source
 }
 
 // SetSource sets Source for an API object.
-func (in *VirtualMachineImage) SetSource(source conversionmeta.SourceTypeMeta) {
-	in.Source = source
+func (i *VirtualMachineImage) SetSource(source conversionmeta.SourceTypeMeta) {
+	i.Source = source
 }
 
 // +kubebuilder:object:root=true
@@ -139,5 +140,8 @@ type VirtualMachineImageList struct {
 }
 
 func init() {
-	objectTypes = append(objectTypes, &VirtualMachineImage{}, &VirtualMachineImageList{})
+	objectTypes = append(objectTypes,
+		&VirtualMachineImage{},
+		&VirtualMachineImageList{},
+	)
 }

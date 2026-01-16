@@ -46,7 +46,8 @@ func convert_v1alpha2_VirtualMachineService_To_hub_VirtualMachineService(_ conte
 		dst.Status.LoadBalancer.Ingress = []vmoprvhub.LoadBalancerIngress{}
 		for _, ingress := range src.Status.LoadBalancer.Ingress {
 			dst.Status.LoadBalancer.Ingress = append(dst.Status.LoadBalancer.Ingress, vmoprvhub.LoadBalancerIngress{
-				IP: ingress.IP,
+				IP:       ingress.IP,
+				Hostname: ingress.Hostname,
 			})
 		}
 	}
@@ -75,7 +76,8 @@ func convert_hub_VirtualMachineService_To_v1alpha2_VirtualMachineService(_ conte
 		dst.Status.LoadBalancer.Ingress = []vmoprv1alpha2.LoadBalancerIngress{}
 		for _, ingress := range src.Status.LoadBalancer.Ingress {
 			dst.Status.LoadBalancer.Ingress = append(dst.Status.LoadBalancer.Ingress, vmoprv1alpha2.LoadBalancerIngress{
-				IP: ingress.IP,
+				IP:       ingress.IP,
+				Hostname: ingress.Hostname,
 			})
 		}
 	}

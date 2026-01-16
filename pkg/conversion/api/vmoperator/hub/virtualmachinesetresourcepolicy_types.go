@@ -42,10 +42,6 @@ type VirtualMachineSetResourcePolicySpec struct {
 // VirtualMachineSetResourcePolicyStatus defines the observed state of
 // VirtualMachineSetResourcePolicy.
 type VirtualMachineSetResourcePolicyStatus struct {
-	/*
-		ResourcePools  []ResourcePoolStatus         `json:"resourcePools,omitempty"`
-		ClusterModules []VSphereClusterModuleStatus `json:"clustermodules,omitempty"`
-	*/
 }
 
 // +kubebuilder:object:root=true
@@ -64,13 +60,13 @@ type VirtualMachineSetResourcePolicy struct {
 }
 
 // GetSource returns the Source for this object.
-func (in *VirtualMachineSetResourcePolicy) GetSource() conversionmeta.SourceTypeMeta {
-	return in.Source
+func (p *VirtualMachineSetResourcePolicy) GetSource() conversionmeta.SourceTypeMeta {
+	return p.Source
 }
 
 // SetSource sets Source for an API object.
-func (in *VirtualMachineSetResourcePolicy) SetSource(source conversionmeta.SourceTypeMeta) {
-	in.Source = source
+func (p *VirtualMachineSetResourcePolicy) SetSource(source conversionmeta.SourceTypeMeta) {
+	p.Source = source
 }
 
 // +kubebuilder:object:root=true

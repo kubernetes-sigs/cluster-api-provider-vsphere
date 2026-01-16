@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
@@ -1392,7 +1393,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				objects = append(objects, &vSphereMachine)
 			}
 
-			c, err := conversionclient.New(fake.NewClientBuilder().WithObjects(objects...).WithScheme(scheme.Scheme).Build())
+			c, err := conversionclient.NewWithConverter(
+				fake.NewClientBuilder().WithObjects(objects...).WithScheme(scheme.Scheme).Build(),
+				conversionapi.DefaultConverter,
+			)
 			g.Expect(err).ToNot(HaveOccurred())
 			r := &VirtualMachineGroupReconciler{
 				Client: c,

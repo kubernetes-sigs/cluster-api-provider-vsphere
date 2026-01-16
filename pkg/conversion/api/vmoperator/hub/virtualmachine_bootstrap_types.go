@@ -36,6 +36,7 @@ type VirtualMachineBootstrapSpec struct {
 // VirtualMachineBootstrapCloudInitSpec describes the CloudInit configuration
 // used to bootstrap the VM.
 type VirtualMachineBootstrapCloudInitSpec struct {
+
 	// +optional
 
 	// RawCloudConfig describes a key in a Secret resource that contains the

@@ -50,5 +50,5 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 }
 
 func addConvertibleTypes(converter *conversion.Converter) error {
-	return converter.AddTypes(GroupVersion, objectTypes...)
+	return converter.AddHubTypes(GroupVersion, objectTypes...)
 }

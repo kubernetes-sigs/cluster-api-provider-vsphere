@@ -70,13 +70,13 @@ type VirtualMachineClass struct {
 }
 
 // GetSource returns the Source for this object.
-func (in *VirtualMachineClass) GetSource() conversionmeta.SourceTypeMeta {
-	return in.Source
+func (c *VirtualMachineClass) GetSource() conversionmeta.SourceTypeMeta {
+	return c.Source
 }
 
 // SetSource sets Source for an API object.
-func (in *VirtualMachineClass) SetSource(source conversionmeta.SourceTypeMeta) {
-	in.Source = source
+func (c *VirtualMachineClass) SetSource(source conversionmeta.SourceTypeMeta) {
+	c.Source = source
 }
 
 // +kubebuilder:object:root=true

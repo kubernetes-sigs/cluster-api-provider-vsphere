@@ -20,7 +20,10 @@ import (
 	"testing"
 
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/randfill"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
@@ -36,6 +39,9 @@ func TestFuzzyConversion(t *testing.T) {
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachine{},
 		Spoke:     &vmoprv1alpha2.VirtualMachine{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{
+			virtualMachineFuncs,
+		},
 	}))
 	t.Run("for VirtualMachineClass", test.RoundTripTest(test.RoundTripTestInput{
 		Converter: converter,
@@ -62,4 +68,22 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:       &vmoprvhub.VirtualMachineSetResourcePolicy{},
 		Spoke:     &vmoprv1alpha2.VirtualMachineSetResourcePolicy{},
 	}))
+}
+
+func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubPersistentVolumeClaimVolumeSource,
+	}
+}
+
+func hubPersistentVolumeClaimVolumeSource(in *vmoprvhub.PersistentVolumeClaimVolumeSource, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
+	in.ApplicationType = ""
+	in.ControllerBusNumber = nil
+	in.ControllerType = ""
+	in.DiskMode = ""
+	in.SharingMode = ""
+	in.UnitNumber = nil
+	in.UnmanagedVolumeClaim = nil
 }

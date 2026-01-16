@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
-	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
@@ -65,16 +64,14 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 	vsphereFailureDomain := &infrav1.VSphereFailureDomain{
 		Spec: infrav1.VSphereFailureDomainSpec{
 			Region: infrav1.FailureDomain{
-				Name:          "k8s-region-west",
-				Type:          infrav1.DatacenterFailureDomain,
-				TagCategory:   "k8s-region",
-				AutoConfigure: nil,
+				Name:        "k8s-region-west",
+				Type:        infrav1.DatacenterFailureDomain,
+				TagCategory: "k8s-region",
 			},
 			Zone: infrav1.FailureDomain{
-				Name:          "k8s-region-west-2",
-				Type:          infrav1.ComputeClusterFailureDomain,
-				TagCategory:   "k8s-region",
-				AutoConfigure: nil,
+				Name:        "k8s-region-west-2",
+				Type:        infrav1.ComputeClusterFailureDomain,
+				TagCategory: "k8s-region",
 			},
 			Topology: infrav1.Topology{
 				Datacenter:     "DC0",
@@ -142,16 +139,14 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroup
 	vsphereFailureDomain := &infrav1.VSphereFailureDomain{
 		Spec: infrav1.VSphereFailureDomainSpec{
 			Region: infrav1.FailureDomain{
-				Name:          "k8s-region-west",
-				Type:          infrav1.ComputeClusterFailureDomain,
-				TagCategory:   "k8s-region",
-				AutoConfigure: nil,
+				Name:        "k8s-region-west",
+				Type:        infrav1.ComputeClusterFailureDomain,
+				TagCategory: "k8s-region",
 			},
 			Zone: infrav1.FailureDomain{
-				Name:          "k8s-region-west-2",
-				Type:          infrav1.HostGroupFailureDomain,
-				TagCategory:   "k8s-region",
-				AutoConfigure: nil,
+				Name:        "k8s-region-west-2",
+				Type:        infrav1.HostGroupFailureDomain,
+				TagCategory: "k8s-region",
 			},
 			Topology: infrav1.Topology{
 				Datacenter:     "DC0",
@@ -185,140 +180,4 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroup
 	// Since the tag does not belong to the category
 	vsphereFailureDomain.Spec.Zone.TagCategory = "diff-k8s-region"
 	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
-}
-
-func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *testing.T) {
-	simr, err := vcsim.NewBuilder().
-		WithOperations("cluster.group.create -cluster DC0_C0 -name group-one -host DC0_C0_H0 DC0_C0_H1",
-			"cluster.group.create -cluster DC0_C0 -name group-two -host DC0_C0_H2").
-		Build()
-	if err != nil {
-		t.Fatalf("failed to create VC simulator")
-	}
-	t.Cleanup(simr.Destroy)
-
-	controllerManagerContext := fake.NewControllerManagerContext()
-	controllerManagerContext.Username = simr.Username()
-	controllerManagerContext.Password = simr.Password()
-
-	params := session.NewParams().
-		WithServer(simr.ServerURL().Host).
-		WithUserInfo(simr.Username(), simr.Password()).
-		WithDatacenter("*")
-	authSession, err := session.GetOrCreate(ctx, params)
-	NewWithT(t).Expect(err).NotTo(HaveOccurred())
-
-	reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
-
-	tests := []struct {
-		name                     string
-		vsphereFailureDomainSpec infrav1.VSphereFailureDomainSpec
-	}{
-		{
-			name: "create tag + category & attach to datacenter",
-			vsphereFailureDomainSpec: infrav1.VSphereFailureDomainSpec{
-				Region: infrav1.FailureDomain{
-					Name:          "k8s-region-west-1",
-					Type:          infrav1.DatacenterFailureDomain,
-					TagCategory:   "k8s-region",
-					AutoConfigure: nil,
-				},
-				Topology: infrav1.Topology{
-					Datacenter:     "DC0",
-					ComputeCluster: "",
-				},
-			},
-		},
-		{
-			name: "create tag + category & attach to compute cluster",
-			vsphereFailureDomainSpec: infrav1.VSphereFailureDomainSpec{
-				Zone: infrav1.FailureDomain{
-					Name:          "k8s-us-east-1",
-					Type:          infrav1.ComputeClusterFailureDomain,
-					TagCategory:   "k8s-zone",
-					AutoConfigure: nil,
-				},
-				Topology: infrav1.Topology{
-					Datacenter:     "DC0",
-					ComputeCluster: "DC0_C0",
-				},
-			},
-		},
-		{
-			name: "create tag + category & attach to host group",
-			vsphereFailureDomainSpec: infrav1.VSphereFailureDomainSpec{
-				Zone: infrav1.FailureDomain{
-					Name:          "bar",
-					Type:          infrav1.HostGroupFailureDomain,
-					TagCategory:   "foo",
-					AutoConfigure: ptr.To(true),
-				},
-				Topology: infrav1.Topology{
-					Datacenter:     "DC0",
-					ComputeCluster: "DC0_C0",
-					Hosts: infrav1.FailureDomainHosts{
-						HostGroupName: "group-one",
-						VMGroupName:   "vm-group-one",
-					},
-				},
-			},
-		},
-	}
-
-	t.Run(tests[0].name, func(t *testing.T) {
-		g := NewWithT(t)
-		vsphereFailureDomain := &infrav1.VSphereFailureDomain{
-			Spec: tests[0].vsphereFailureDomainSpec,
-		}
-
-		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-			ControllerManagerContext: controllerManagerContext,
-			AuthSession:              authSession,
-		}
-
-		g.Expect(reconciler.createAndAttachMetadata(ctx, deploymentZoneCtx, vsphereFailureDomain, tests[0].vsphereFailureDomainSpec.Region)).NotTo(HaveOccurred())
-		stdout := gbytes.NewBuffer()
-		g.Expect(simr.Run("tags.category.info k8s-region", stdout)).To(Succeed())
-		g.Expect(stdout).To(gbytes.Say("k8s-region"))
-		g.Expect(simr.Run("tags.attached.ls k8s-region-west-1", stdout)).To(Succeed())
-		g.Expect(stdout).To(gbytes.Say("Datacenter"))
-	})
-
-	t.Run(tests[1].name, func(t *testing.T) {
-		g := NewWithT(t)
-		vsphereFailureDomain := &infrav1.VSphereFailureDomain{
-			Spec: tests[1].vsphereFailureDomainSpec,
-		}
-
-		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-			ControllerManagerContext: controllerManagerContext,
-			AuthSession:              authSession,
-		}
-
-		g.Expect(reconciler.createAndAttachMetadata(ctx, deploymentZoneCtx, vsphereFailureDomain, tests[1].vsphereFailureDomainSpec.Zone)).NotTo(HaveOccurred())
-		stdout := gbytes.NewBuffer()
-		g.Expect(simr.Run("tags.category.info k8s-zone", stdout)).To(Succeed())
-		g.Expect(stdout).To(gbytes.Say("k8s-zone"))
-		g.Expect(simr.Run("tags.attached.ls k8s-us-east-1", stdout)).To(Succeed())
-		g.Expect(stdout).To(gbytes.Say("ClusterComputeResource"))
-	})
-
-	t.Run(tests[2].name, func(t *testing.T) {
-		g := NewWithT(t)
-		vsphereFailureDomain := &infrav1.VSphereFailureDomain{
-			Spec: tests[2].vsphereFailureDomainSpec,
-		}
-
-		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-			ControllerManagerContext: controllerManagerContext,
-			AuthSession:              authSession,
-		}
-
-		g.Expect(reconciler.createAndAttachMetadata(ctx, deploymentZoneCtx, vsphereFailureDomain, tests[2].vsphereFailureDomainSpec.Zone)).NotTo(HaveOccurred())
-		stdout := gbytes.NewBuffer()
-		g.Expect(simr.Run("tags.category.info foo", stdout)).To(Succeed())
-		g.Expect(stdout).To(gbytes.Say("foo"))
-		g.Expect(simr.Run("tags.attached.ls bar", stdout)).To(Succeed())
-		g.Expect(stdout).To(gbytes.Say("HostSystem"))
-	})
 }

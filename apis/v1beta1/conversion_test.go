@@ -244,6 +244,7 @@ func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVSphereMachineStatus,
 		spokeVSphereMachineSpec,
+		spokeVSphereMachineStatus,
 	}
 }
 
@@ -281,6 +282,16 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 	}
 }
 
+func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereMachineV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeVSphereMachineSpec,
@@ -289,7 +300,19 @@ func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfa
 
 func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubVSphereVMStatus,
 		spokeVSphereVMSpec,
+		spokeVSphereVMStatus,
+	}
+}
+
+func hubVSphereVMStatus(in *infrav1.VSphereVMStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereVMV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
 	}
 }
 
@@ -298,5 +321,15 @@ func spokeVSphereVMSpec(in *VSphereVMSpec, c randfill.Continue) {
 
 	if in.GuestSoftPowerOffTimeout != nil {
 		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeVSphereVMStatus(in *VSphereVMStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereVMV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
 	}
 }

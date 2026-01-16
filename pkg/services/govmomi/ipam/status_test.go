@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -44,8 +44,8 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		vmCtx                        capvcontext.VMContext
 		ctx                          context.Context
 		networkStatus                []infrav1.NetworkStatus
-		claim1, claim2, claim3       *ipamv1beta1.IPAddressClaim
-		address1, address2, address3 *ipamv1beta1.IPAddress
+		claim1, claim2, claim3       *ipamv1.IPAddressClaim
+		address1, address2, address3 *ipamv1.IPAddress
 		g                            *gomega.WithT
 	)
 
@@ -59,41 +59,41 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		g = gomega.NewWithT(t)
 		namespace := "my-namespace"
 
-		claim1 = &ipamv1beta1.IPAddressClaim{
+		claim1 = &ipamv1.IPAddressClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-0",
 				Namespace: namespace,
 			},
 		}
 
-		claim2 = &ipamv1beta1.IPAddressClaim{
+		claim2 = &ipamv1.IPAddressClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-1",
 				Namespace: namespace,
 			},
 		}
 
-		claim3 = &ipamv1beta1.IPAddressClaim{
+		claim3 = &ipamv1.IPAddressClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-2",
 				Namespace: namespace,
 			},
 		}
 
-		address1 = &ipamv1beta1.IPAddress{
+		address1 = &ipamv1.IPAddress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-0-address0",
 				Namespace: namespace,
 			},
 		}
-		address2 = &ipamv1beta1.IPAddress{
+		address2 = &ipamv1.IPAddress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-1-address1",
 				Namespace: namespace,
 			},
 		}
 
-		address3 = &ipamv1beta1.IPAddress{
+		address3 = &ipamv1.IPAddress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-2-address2",
 				Namespace: namespace,
@@ -150,7 +150,7 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		// Simulate IP provider reconciling one claim
 		g.Expect(vmCtx.Client.Create(ctx, address3)).NotTo(gomega.HaveOccurred())
 
-		ipAddrClaim := &ipamv1beta1.IPAddressClaim{}
+		ipAddrClaim := &ipamv1.IPAddressClaim{}
 		ipAddrClaimKey := apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-2",
@@ -228,8 +228,8 @@ func Test_BuildState(t *testing.T) {
 		ctx                          context.Context
 		vmCtx                        capvcontext.VMContext
 		networkStatus                []infrav1.NetworkStatus
-		claim1, claim2, claim3       *ipamv1beta1.IPAddressClaim
-		address1, address2, address3 *ipamv1beta1.IPAddress
+		claim1, claim2, claim3       *ipamv1.IPAddressClaim
+		address1, address2, address3 *ipamv1.IPAddress
 		g                            *gomega.WithT
 	)
 	type nameservers struct {
@@ -259,58 +259,58 @@ func Test_BuildState(t *testing.T) {
 
 		g = gomega.NewWithT(t)
 
-		claim1 = &ipamv1beta1.IPAddressClaim{
+		claim1 = &ipamv1.IPAddressClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-0",
 				Namespace: "my-namespace",
 			},
 		}
 
-		claim2 = &ipamv1beta1.IPAddressClaim{
+		claim2 = &ipamv1.IPAddressClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-1",
 				Namespace: "my-namespace",
 			},
 		}
 
-		claim3 = &ipamv1beta1.IPAddressClaim{
+		claim3 = &ipamv1.IPAddressClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-2",
 				Namespace: "my-namespace",
 			},
 		}
 
-		address1 = &ipamv1beta1.IPAddress{
+		address1 = &ipamv1.IPAddress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-0-address0",
 				Namespace: "my-namespace",
 			},
-			Spec: ipamv1beta1.IPAddressSpec{
+			Spec: ipamv1.IPAddressSpec{
 				Address: "10.0.0.50",
-				Prefix:  24,
+				Prefix:  ptr.To[int32](24),
 				Gateway: "10.0.0.1",
 			},
 		}
-		address2 = &ipamv1beta1.IPAddress{
+		address2 = &ipamv1.IPAddress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-1-address1",
 				Namespace: "my-namespace",
 			},
-			Spec: ipamv1beta1.IPAddressSpec{
+			Spec: ipamv1.IPAddressSpec{
 				Address: "10.0.1.50",
-				Prefix:  30,
+				Prefix:  ptr.To[int32](30),
 				Gateway: "10.0.0.1",
 			},
 		}
 
-		address3 = &ipamv1beta1.IPAddress{
+		address3 = &ipamv1.IPAddress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-2-address2",
 				Namespace: "my-namespace",
 			},
-			Spec: ipamv1beta1.IPAddressSpec{
+			Spec: ipamv1.IPAddressSpec{
 				Address: "fe80::cccc:12",
-				Prefix:  64,
+				Prefix:  ptr.To[int32](64),
 				Gateway: "fe80::cccc:1",
 			},
 		}
@@ -365,7 +365,7 @@ func Test_BuildState(t *testing.T) {
 		// Simulate IP provider reconciling one claim
 		g.Expect(vmCtx.Client.Create(ctx, address3)).NotTo(gomega.HaveOccurred())
 
-		ipAddrClaim := &ipamv1beta1.IPAddressClaim{}
+		ipAddrClaim := &ipamv1.IPAddressClaim{}
 		ipAddrClaimKey := apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-2",
@@ -444,20 +444,20 @@ func Test_BuildState(t *testing.T) {
 		devMAC0 := "0:0:0:0:a"
 		devMAC1 := "0:0:0:0:b"
 
-		claim := &ipamv1beta1.IPAddressClaim{
+		claim := &ipamv1.IPAddressClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-1-0",
 				Namespace: "my-namespace",
 			},
 		}
-		address := &ipamv1beta1.IPAddress{
+		address := &ipamv1.IPAddress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-1-0-address",
 				Namespace: "my-namespace",
 			},
-			Spec: ipamv1beta1.IPAddressSpec{
+			Spec: ipamv1.IPAddressSpec{
 				Address: "10.0.0.50",
-				Prefix:  24,
+				Prefix:  ptr.To[int32](24),
 				Gateway: "10.0.0.1",
 			},
 		}
@@ -514,7 +514,7 @@ func Test_BuildState(t *testing.T) {
 		// Simulate IP provider reconciling one claim
 		g.Expect(vmCtx.Client.Create(ctx, address)).NotTo(gomega.HaveOccurred())
 
-		ipAddrClaim := &ipamv1beta1.IPAddressClaim{}
+		ipAddrClaim := &ipamv1.IPAddressClaim{}
 		ipAddrClaimKey := apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-1-0",
@@ -563,74 +563,74 @@ func Test_BuildState(t *testing.T) {
 		beforeWithClaimsAndAddressCreated := func() {
 			before()
 
-			claim1 = &ipamv1beta1.IPAddressClaim{
+			claim1 = &ipamv1.IPAddressClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "vsphereVM1-0-0",
 					Namespace: "my-namespace",
 				},
-				Status: ipamv1beta1.IPAddressClaimStatus{
-					AddressRef: corev1.LocalObjectReference{
+				Status: ipamv1.IPAddressClaimStatus{
+					AddressRef: ipamv1.IPAddressReference{
 						Name: "vsphereVM1-0-0",
 					},
 				},
 			}
 
-			claim2 = &ipamv1beta1.IPAddressClaim{
+			claim2 = &ipamv1.IPAddressClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "vsphereVM1-0-1",
 					Namespace: "my-namespace",
 				},
-				Status: ipamv1beta1.IPAddressClaimStatus{
-					AddressRef: corev1.LocalObjectReference{
+				Status: ipamv1.IPAddressClaimStatus{
+					AddressRef: ipamv1.IPAddressReference{
 						Name: "vsphereVM1-0-1",
 					},
 				},
 			}
 
-			claim3 = &ipamv1beta1.IPAddressClaim{
+			claim3 = &ipamv1.IPAddressClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "vsphereVM1-1-0",
 					Namespace: "my-namespace",
 				},
-				Status: ipamv1beta1.IPAddressClaimStatus{
-					AddressRef: corev1.LocalObjectReference{
+				Status: ipamv1.IPAddressClaimStatus{
+					AddressRef: ipamv1.IPAddressReference{
 						Name: "vsphereVM1-1-0",
 					},
 				},
 			}
 
-			address1 = &ipamv1beta1.IPAddress{
+			address1 = &ipamv1.IPAddress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "vsphereVM1-0-0",
 					Namespace: "my-namespace",
 				},
-				Spec: ipamv1beta1.IPAddressSpec{
+				Spec: ipamv1.IPAddressSpec{
 					Address: "10.0.1.50",
-					Prefix:  24,
+					Prefix:  ptr.To[int32](24),
 					Gateway: "10.0.0.1",
 				},
 			}
 
-			address2 = &ipamv1beta1.IPAddress{
+			address2 = &ipamv1.IPAddress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "vsphereVM1-0-1",
 					Namespace: "my-namespace",
 				},
-				Spec: ipamv1beta1.IPAddressSpec{
+				Spec: ipamv1.IPAddressSpec{
 					Address: "10.0.1.51",
-					Prefix:  24,
+					Prefix:  ptr.To[int32](24),
 					Gateway: "10.0.0.1",
 				},
 			}
 
-			address3 = &ipamv1beta1.IPAddress{
+			address3 = &ipamv1.IPAddress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "vsphereVM1-1-0",
 					Namespace: "my-namespace",
 				},
-				Spec: ipamv1beta1.IPAddressSpec{
+				Spec: ipamv1.IPAddressSpec{
 					Address: "11.0.1.50",
-					Prefix:  24,
+					Prefix:  ptr.To[int32](24),
 					Gateway: "11.0.0.1",
 				},
 			}
@@ -714,7 +714,7 @@ func Test_BuildState(t *testing.T) {
 		t.Run("when a provider assigns an IPAddress with an invalid value in the Prefix field", func(_ *testing.T) {
 			beforeWithClaimsAndAddressCreated()
 			// Simulate an invalid prefix address was provided: the prefix is out of bounds
-			address1.Spec.Prefix = 200
+			address1.Spec.Prefix = ptr.To[int32](200)
 			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)

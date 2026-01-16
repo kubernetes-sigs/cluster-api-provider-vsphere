@@ -25,9 +25,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -375,7 +374,7 @@ func Test_VimMachineService_GetHostInfo(t *testing.T) {
 		hostAddr = "1.2.3.4"
 	)
 
-	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus) *infrav1.VSphereVM {
+	getVSphereVM := func(hostAddr string, conditionStatus metav1.ConditionStatus) *infrav1.VSphereVM {
 		return &infrav1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fake.Namespace,
@@ -383,9 +382,9 @@ func Test_VimMachineService_GetHostInfo(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host: hostAddr,
-				Conditions: []clusterv1beta1.Condition{
+				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VMProvisionedCondition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 						Status: conditionStatus,
 					},
 				},
@@ -395,7 +394,7 @@ func Test_VimMachineService_GetHostInfo(t *testing.T) {
 
 	t.Run("fetches host address from the VSphereVM object when VMProvisioned condition is set", func(t *testing.T) {
 		g := NewWithT(t)
-		controllerManagerContext := fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue))
+		controllerManagerContext := fake.NewControllerManagerContext(getVSphereVM(hostAddr, metav1.ConditionTrue))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 		host, err := vimMachineService.GetHostInfo(ctx, machineCtx)
@@ -405,7 +404,7 @@ func Test_VimMachineService_GetHostInfo(t *testing.T) {
 
 	t.Run("returns empty string when VMProvisioned condition is unset", func(t *testing.T) {
 		g := NewWithT(t)
-		controllerManagerContext := fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionFalse))
+		controllerManagerContext := fake.NewControllerManagerContext(getVSphereVM(hostAddr, metav1.ConditionFalse))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 		host, err := vimMachineService.GetHostInfo(ctx, machineCtx)
@@ -420,7 +419,7 @@ func Test_VimMachineService_createOrPatchVSphereVM(t *testing.T) {
 		fakeLongClusterName = "fake-long-clustername"
 	)
 
-	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus) *infrav1.VSphereVM {
+	getVSphereVM := func(hostAddr string, conditionStatus metav1.ConditionStatus) *infrav1.VSphereVM {
 		return &infrav1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fake.Namespace,
@@ -428,9 +427,9 @@ func Test_VimMachineService_createOrPatchVSphereVM(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host: hostAddr,
-				Conditions: []clusterv1beta1.Condition{
+				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VMProvisionedCondition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 						Status: conditionStatus,
 					},
 				},
@@ -468,16 +467,16 @@ func Test_VimMachineService_createOrPatchVSphereVM(t *testing.T) {
 
 	t.Run("returns a renamed VSphereVM object when VSphereMachine OS is Windows", func(t *testing.T) {
 		g := NewWithT(t)
-		controllerManagerContext := fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue), deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
+		controllerManagerContext := fake.NewControllerManagerContext(getVSphereVM(hostAddr, metav1.ConditionTrue), deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.VSphereMachine.Spec.OS = infrav1.Windows
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		failureDomain := "zone-one"
 		machineCtx.Machine.Spec.FailureDomain = failureDomain
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
-		vm, err := vimMachineService.createOrPatchVSphereVM(ctx, machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
+		vm, err := vimMachineService.createOrPatchVSphereVM(ctx, machineCtx, getVSphereVM(hostAddr, metav1.ConditionTrue))
 		vmName := vm.Name
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(vmName).To(Equal("fake-long-rname"))
@@ -485,14 +484,14 @@ func Test_VimMachineService_createOrPatchVSphereVM(t *testing.T) {
 
 	t.Run("returns the same VSphereVM name when VSphereMachine OS is Linux", func(t *testing.T) {
 		g := NewWithT(t)
-		controllerManagerContext := fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue), deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
+		controllerManagerContext := fake.NewControllerManagerContext(getVSphereVM(hostAddr, metav1.ConditionTrue), deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.VSphereMachine.Spec.OS = infrav1.Linux
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
-		vm, err := vimMachineService.createOrPatchVSphereVM(ctx, machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
+		vm, err := vimMachineService.createOrPatchVSphereVM(ctx, machineCtx, getVSphereVM(hostAddr, metav1.ConditionTrue))
 		vmName := vm.Name
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(vmName).To(Equal(fakeLongClusterName))
@@ -505,7 +504,7 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 		fakeLongClusterName = "fake-long-clustername"
 	)
 
-	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus) *infrav1.VSphereVM {
+	getVSphereVM := func(hostAddr string, conditionStatus metav1.ConditionStatus) *infrav1.VSphereVM {
 		return &infrav1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fake.Namespace,
@@ -513,9 +512,9 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host: hostAddr,
-				Conditions: []clusterv1beta1.Condition{
+				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VMProvisionedCondition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 						Status: conditionStatus,
 					},
 				},
@@ -523,7 +522,7 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 		}
 	}
 
-	vsphereVM := getVSphereVM(hostAddr, corev1.ConditionTrue)
+	vsphereVM := getVSphereVM(hostAddr, metav1.ConditionTrue)
 	biosUUID := "42055285-ff20-2c28-965c-05558ea1b4c7"
 
 	t.Run("returns false when VSphereVM biosUUID is not set", func(t *testing.T) {
@@ -532,7 +531,7 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		ok, err := vimMachineService.reconcileProviderID(ctx, machineCtx, vsphereVM)
@@ -546,7 +545,7 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		ok, err := vimMachineService.reconcileProviderID(ctx, machineCtx, vsphereVM)
@@ -561,7 +560,7 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		_, err := vimMachineService.reconcileProviderID(ctx, machineCtx, vsphereVM)
@@ -575,7 +574,7 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 		fakeLongClusterName = "fake-long-clustername"
 	)
 
-	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus, addresses []string, networkStatus []infrav1.NetworkStatus) *infrav1.VSphereVM {
+	getVSphereVM := func(hostAddr string, conditionStatus metav1.ConditionStatus, addresses []string, networkStatus []infrav1.NetworkStatus) *infrav1.VSphereVM {
 		return &infrav1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fake.Namespace,
@@ -583,12 +582,12 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host:      hostAddr,
-				Ready:     ptr.To(conditionStatus == corev1.ConditionTrue),
+				Ready:     ptr.To(conditionStatus == metav1.ConditionTrue),
 				Addresses: addresses,
 				Network:   networkStatus,
-				Conditions: []clusterv1beta1.Condition{
+				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VMProvisionedCondition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 						Status: conditionStatus,
 					},
 				},
@@ -606,11 +605,11 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 
 	t.Run("returns false when VSphereVM addresses and networkStatus are both valid", func(t *testing.T) {
 		g := NewWithT(t)
-		vsphereVM := getVSphereVM(hostAddr, corev1.ConditionTrue, addresses, networkStatus)
+		vsphereVM := getVSphereVM(hostAddr, metav1.ConditionTrue, addresses, networkStatus)
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		ok, err := vimMachineService.reconcileNetwork(ctx, machineCtx, vsphereVM)
@@ -623,11 +622,11 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 	})
 	t.Run("returns true when VSphereVM address is set and network status has no MAC address", func(t *testing.T) {
 		g := NewWithT(t)
-		vsphereVM := getVSphereVM(hostAddr, corev1.ConditionTrue, addresses, networkStatusWithoutMACAddr)
+		vsphereVM := getVSphereVM(hostAddr, metav1.ConditionTrue, addresses, networkStatusWithoutMACAddr)
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		ok, err := vimMachineService.reconcileNetwork(ctx, machineCtx, vsphereVM)
@@ -642,7 +641,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 		fakeLongClusterName = "fake-long-clustername"
 	)
 
-	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus, addresses []string, networkStatus []infrav1.NetworkStatus) *infrav1.VSphereVM {
+	getVSphereVM := func(hostAddr string, conditionStatus metav1.ConditionStatus, addresses []string, networkStatus []infrav1.NetworkStatus) *infrav1.VSphereVM {
 		return &infrav1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fake.Namespace,
@@ -650,16 +649,16 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host:      hostAddr,
-				Ready:     ptr.To(conditionStatus == corev1.ConditionTrue),
+				Ready:     ptr.To(conditionStatus == metav1.ConditionTrue),
 				Addresses: addresses,
 				Network:   networkStatus,
-				Conditions: []clusterv1beta1.Condition{
+				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VMProvisionedCondition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 						Status: conditionStatus,
 					},
 					{
-						Type:   clusterv1beta1.ReadyCondition,
+						Type:   clusterv1.ReadyCondition,
 						Status: conditionStatus,
 					},
 				},
@@ -674,12 +673,12 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 	biosUUID := "42055285-ff20-2c28-965c-05558ea1b4c7"
 	t.Run("completes the reconciliation with an existing resource", func(t *testing.T) {
 		g := NewWithT(t)
-		vsphereVM := getVSphereVM(hostAddr, corev1.ConditionTrue, addresses, networkStatus)
+		vsphereVM := getVSphereVM(hostAddr, metav1.ConditionTrue, addresses, networkStatus)
 		vsphereVM.Spec.BiosUUID = biosUUID
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		requeue, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
@@ -692,7 +691,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 		controllerManagerContext := fake.NewControllerManagerContext()
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		requeue, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
@@ -702,12 +701,12 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 	})
 	t.Run("returns error when the BIOS UUID is invalid", func(t *testing.T) {
 		g := NewWithT(t)
-		vsphereVM := getVSphereVM(hostAddr, corev1.ConditionTrue, addresses, networkStatus)
+		vsphereVM := getVSphereVM(hostAddr, metav1.ConditionTrue, addresses, networkStatus)
 		vsphereVM.Spec.BiosUUID = "abcde"
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		_, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
@@ -715,12 +714,12 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 	})
 	t.Run("requeues when the BIOS UUID is not set", func(t *testing.T) {
 		g := NewWithT(t)
-		vsphereVM := getVSphereVM(hostAddr, corev1.ConditionTrue, addresses, networkStatus)
+		vsphereVM := getVSphereVM(hostAddr, metav1.ConditionTrue, addresses, networkStatus)
 		vsphereVM.Spec.BiosUUID = ""
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		requeue, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
@@ -729,11 +728,11 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 	})
 	t.Run("requeues when VSphereVM is not ready", func(t *testing.T) {
 		g := NewWithT(t)
-		vsphereVM := getVSphereVM(hostAddr, corev1.ConditionFalse, nil, nil)
+		vsphereVM := getVSphereVM(hostAddr, metav1.ConditionFalse, nil, nil)
 		controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 		machineCtx.Machine.SetName(fakeLongClusterName)
-		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+		machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		requeue, err := vimMachineService.ReconcileNormal(ctx, machineCtx)
@@ -748,7 +747,7 @@ func Test_VimMachineService_ReconcileDelete(t *testing.T) {
 		fakeLongClusterName = "fake-long-clustername"
 	)
 
-	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus) *infrav1.VSphereVM {
+	getVSphereVM := func(hostAddr string, conditionStatus metav1.ConditionStatus) *infrav1.VSphereVM {
 		return &infrav1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fakeLongClusterName,
@@ -756,13 +755,13 @@ func Test_VimMachineService_ReconcileDelete(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host: hostAddr,
-				Conditions: []clusterv1beta1.Condition{
+				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VMProvisionedCondition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 						Status: conditionStatus,
 					},
 					{
-						Type:   clusterv1beta1.ReadyCondition,
+						Type:   clusterv1.ReadyCondition,
 						Status: conditionStatus,
 					},
 				},
@@ -770,18 +769,18 @@ func Test_VimMachineService_ReconcileDelete(t *testing.T) {
 		}
 	}
 
-	vsphereVM := getVSphereVM(hostAddr, corev1.ConditionTrue)
+	vsphereVM := getVSphereVM(hostAddr, metav1.ConditionTrue)
 	controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 	machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 	machineCtx.Machine.SetName(fakeLongClusterName)
-	machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+	machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 	vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 	t.Run("deletes VSphereVM", func(t *testing.T) {
 		g := NewWithT(t)
 		err := vimMachineService.ReconcileDelete(ctx, machineCtx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(v1beta1conditions.Get(machineCtx.VSphereMachine, infrav1.VMProvisionedCondition).Status).To(Equal(v1beta1conditions.Get(vsphereVM, clusterv1beta1.ReadyCondition).Status))
+		g.Expect(conditions.Get(machineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition).Status).To(Equal(conditions.Get(vsphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition).Status))
 	})
 }
 
@@ -821,7 +820,7 @@ func Test_VimMachineService_FetchVSphereMachine(t *testing.T) {
 	controllerManagerContext := fake.NewControllerManagerContext(vsphereMachine)
 	machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 	machineCtx.Machine.SetName(fakeLongClusterName)
-	machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+	machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 	vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 	t.Run("fetches VSphereMachine successfully", func(t *testing.T) {
@@ -858,7 +857,7 @@ func Test_VimMachineService_FetchVSphereCluster(t *testing.T) {
 	controllerManagerContext := fake.NewControllerManagerContext(vsphereCluster)
 	machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 	machineCtx.Machine.SetName(fakeLongClusterName)
-	machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+	machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 	vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 	t.Run("fetches VSphereCluster successfully", func(t *testing.T) {
@@ -874,7 +873,7 @@ func Test_VimMachineService_SyncFailureReason(t *testing.T) {
 		fakeLongClusterName = "fake-long-clustername"
 	)
 
-	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus) *infrav1.VSphereVM {
+	getVSphereVM := func(hostAddr string, conditionStatus metav1.ConditionStatus) *infrav1.VSphereVM {
 		return &infrav1.VSphereVM{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fakeLongClusterName,
@@ -882,22 +881,22 @@ func Test_VimMachineService_SyncFailureReason(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host: hostAddr,
-				Conditions: []clusterv1beta1.Condition{
+				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VMProvisionedCondition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 						Status: conditionStatus,
 					},
 				},
-				Ready: ptr.To(conditionStatus == corev1.ConditionTrue),
+				Ready: ptr.To(conditionStatus == metav1.ConditionTrue),
 			},
 		}
 	}
 
-	vsphereVM := getVSphereVM(hostAddr, corev1.ConditionTrue)
+	vsphereVM := getVSphereVM(hostAddr, metav1.ConditionTrue)
 	controllerManagerContext := fake.NewControllerManagerContext(vsphereVM)
 	machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
 	machineCtx.Machine.SetName(fakeLongClusterName)
-	machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
+	machineCtx.Machine.SetLabels(map[string]string{clusterv1.MachineControlPlaneLabel: "fake-control-plane"})
 	vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 	t.Run("syncs failure reason successfully", func(t *testing.T) {

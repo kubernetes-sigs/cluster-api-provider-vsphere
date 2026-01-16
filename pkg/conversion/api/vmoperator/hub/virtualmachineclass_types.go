@@ -69,6 +69,16 @@ type VirtualMachineClass struct {
 	Source conversionmeta.SourceTypeMeta `json:"source,omitempty,omitzero"`
 }
 
+// GetSource returns the Source for this object.
+func (in *VirtualMachineClass) GetSource() conversionmeta.SourceTypeMeta {
+	return in.Source
+}
+
+// SetSource sets Source for an API object.
+func (in *VirtualMachineClass) SetSource(source conversionmeta.SourceTypeMeta) {
+	in.Source = source
+}
+
 // +kubebuilder:object:root=true
 
 // VirtualMachineClassList contains a list of VirtualMachineClass.

@@ -18,6 +18,8 @@ limitations under the License.
 package v1alpha5
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -53,13 +55,13 @@ func (a AList) DeepCopyObject() runtime.Object {
 }
 
 // ConvertAFromHubToV1alpha5 converts A from hub to v1alpha5.
-func ConvertAFromHubToV1alpha5(src *hub.A, dst *A) error {
+func ConvertAFromHubToV1alpha5(_ context.Context, src *hub.A, dst *A) error {
 	dst.Foo = src.Foo
 	return nil
 }
 
 // ConvertAFromV1alpha5ToHub converts A from v1alpha5 to hub.
-func ConvertAFromV1alpha5ToHub(src *A, dst *hub.A) error {
+func ConvertAFromV1alpha5ToHub(_ context.Context, src *A, dst *hub.A) error {
 	dst.Foo = src.Foo
 	return nil
 }

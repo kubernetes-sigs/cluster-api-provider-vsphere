@@ -404,12 +404,12 @@ func Test_conversionClient_Create(t *testing.T) {
 
 			g.Expect(gotObj.GetResourceVersion()).ToNot(BeEmpty())
 			objOriginal.SetResourceVersion(gotObj.GetResourceVersion())
-			if source, err := conversionmeta.GetSource(gotObj); err == nil {
-				g.Expect(source.APIVersion).To(Equal(schema.GroupVersion{Group: gvk.Group, Version: tt.targetVersion}.String()))
-				g.Expect(conversionmeta.SetSource(gotObj, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			if convertible, isConvertible := gotObj.(conversionmeta.Convertible); isConvertible {
+				g.Expect(convertible.GetSource().APIVersion).To(Equal(schema.GroupVersion{Group: gvk.Group, Version: tt.targetVersion}.String()))
+				convertible.SetSource(conversionmeta.SourceTypeMeta{})
 			}
-			if conversionmeta.HasSource(objOriginal) {
-				g.Expect(conversionmeta.SetSource(objOriginal, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			if convertible, isConvertible := objOriginal.(conversionmeta.Convertible); isConvertible {
+				convertible.SetSource(conversionmeta.SourceTypeMeta{})
 			}
 			g.Expect(gotObj).To(Equal(objOriginal))
 		})
@@ -495,16 +495,16 @@ func Test_conversionClient_Delete(t *testing.T) {
 			c := cc.(*conversionClient)
 
 			tmpSourceVersion := ""
-			if source, err := conversionmeta.GetSource(tt.obj); err == nil {
-				tmpSourceVersion = source.APIVersion
-				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			if convertible, isConvertible := tt.obj.(conversionmeta.Convertible); isConvertible {
+				tmpSourceVersion = convertible.GetSource().APIVersion
+				convertible.SetSource(conversionmeta.SourceTypeMeta{})
 			}
 
 			err = c.Create(ctx, tt.obj)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			if conversionmeta.HasSource(tt.obj) {
-				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})).To(Succeed())
+			if convertible, isConvertible := tt.obj.(conversionmeta.Convertible); isConvertible {
+				convertible.SetSource(conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})
 			}
 
 			err = c.Delete(ctx, tt.obj)
@@ -709,23 +709,23 @@ func Test_conversionClient_Patch(t *testing.T) {
 			c := cc.(*conversionClient)
 
 			tmpSourceVersion := ""
-			if source, err := conversionmeta.GetSource(tt.obj); err == nil {
-				tmpSourceVersion = source.APIVersion
-				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			if convertible, isConvertible := tt.obj.(conversionmeta.Convertible); isConvertible {
+				tmpSourceVersion = convertible.GetSource().APIVersion
+				convertible.SetSource(conversionmeta.SourceTypeMeta{})
 			}
 
 			err = c.Create(ctx, tt.obj)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			if conversionmeta.HasSource(tt.obj) {
-				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})).To(Succeed())
+			if convertible, isConvertible := tt.obj.(conversionmeta.Convertible); isConvertible {
+				convertible.SetSource(conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})
 			}
 
 			objModified := tt.modifyFunc(tt.obj)
 
 			patch := client.MergeFrom(tt.obj)
 			if c.converter.IsConvertible(tt.obj) {
-				patch, err = MergeFrom(c, tt.obj)
+				patch, err = MergeFrom(ctx, c, tt.obj)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 
@@ -950,23 +950,23 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 			converter.SetTargetVersion(tt.targetVersion)
 
 			tmpSourceVersion := ""
-			if source, err := conversionmeta.GetSource(tt.obj); err == nil {
-				tmpSourceVersion = source.APIVersion
-				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{})).To(Succeed())
+			if convertible, isConvertible := tt.obj.(conversionmeta.Convertible); isConvertible {
+				tmpSourceVersion = convertible.GetSource().APIVersion
+				convertible.SetSource(conversionmeta.SourceTypeMeta{})
 			}
 
 			err = c.Create(ctx, tt.obj)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			if conversionmeta.HasSource(tt.obj) {
-				g.Expect(conversionmeta.SetSource(tt.obj, conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})).To(Succeed())
+			if convertible, isConvertible := tt.obj.(conversionmeta.Convertible); isConvertible {
+				convertible.SetSource(conversionmeta.SourceTypeMeta{APIVersion: tmpSourceVersion})
 			}
 
 			objModified := tt.modifyFunc(tt.obj)
 
 			patch := client.MergeFrom(tt.obj)
 			if c.converter.IsConvertible(tt.obj) {
-				patch, err = MergeFrom(c, tt.obj)
+				patch, err = MergeFrom(ctx, c, tt.obj)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 

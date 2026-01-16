@@ -18,6 +18,7 @@ limitations under the License.
 package test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -51,8 +52,8 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 		t.Run("hub-spoke-hub", func(t *testing.T) {
-			if !conversionmeta.HasSource(input.Hub) {
-				t.Fatalf("Hub type must have the source field")
+			if _, isConvertible := input.Hub.(conversionmeta.Convertible); !isConvertible {
+				t.Fatal("Hub type must implement sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta/Convertible")
 			}
 
 			funcs := append(input.FuzzerFuncs, func(_ runtimeserializer.CodecFactory) []interface{} {
@@ -78,22 +79,21 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 
 				// First convert hub to spoke
 				spoke := input.Spoke.DeepCopyObject()
-				if err := input.Converter.Convert(hubBefore, spoke); err != nil {
+				if err := input.Converter.Convert(context.TODO(), hubBefore, spoke); err != nil {
 					t.Fatalf("error calling Convert from hub to spoke: %v", err)
 				}
 
 				// Convert spoke back to hub and check if the resulting hub is equal to the hub before the round trip
 				hubAfter := input.Hub.DeepCopyObject()
-				if err := input.Converter.Convert(spoke, hubAfter); err != nil {
+				if err := input.Converter.Convert(context.TODO(), spoke, hubAfter); err != nil {
 					t.Fatalf("error calling Convert from spoke to hub: %v", err)
 				}
 
-				if source, err := conversionmeta.GetSource(hubAfter); err != nil || source.APIVersion != spokeGVK.GroupVersion().String() {
+				convertibleAfter, _ := hubAfter.(conversionmeta.Convertible)
+				if convertibleAfter.GetSource().APIVersion != spokeGVK.GroupVersion().String() {
 					t.Fatal("Convert is expected to set Convertible.APIVersion")
 				}
-				if err := conversionmeta.SetSource(hubAfter, conversionmeta.SourceTypeMeta{}); err != nil {
-					t.Fatal(err.Error())
-				}
+				convertibleAfter.SetSource(conversionmeta.SourceTypeMeta{})
 
 				if !apiequality.Semantic.DeepEqual(hubBefore, hubAfter) {
 					diff := cmp.Diff(hubBefore, hubAfter)

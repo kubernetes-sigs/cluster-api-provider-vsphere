@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -57,8 +58,9 @@ func Test_MergeFrom(t *testing.T) {
 			c:    cc,
 			obj:  obj,
 			wantPatch: &conversionMergePatch{
-				from:   obj,
-				client: cc.(*conversionClient),
+				conversionCtx: context.TODO(),
+				from:          obj,
+				client:        cc.(*conversionClient),
 			},
 		},
 		{
@@ -77,7 +79,7 @@ func Test_MergeFrom(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gotPatch, err := MergeFrom(tt.c, tt.obj)
+			gotPatch, err := MergeFrom(context.TODO(), tt.c, tt.obj)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

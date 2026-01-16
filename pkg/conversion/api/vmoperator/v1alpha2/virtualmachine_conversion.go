@@ -17,16 +17,19 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha2common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
-func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(src *vmoprv1alpha2.VirtualMachine, dst *vmoprvhub.VirtualMachine) error {
+func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, src *vmoprv1alpha2.VirtualMachine, dst *vmoprvhub.VirtualMachine) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.Affinity != nil {
@@ -231,7 +234,7 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(src *vmoprv1alpha2.Vi
 	return nil
 }
 
-func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(src *vmoprvhub.VirtualMachine, dst *vmoprv1alpha2.VirtualMachine) error {
+func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, src *vmoprvhub.VirtualMachine, dst *vmoprv1alpha2.VirtualMachine) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.Affinity != nil {
@@ -435,8 +438,6 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(src *vmoprvhub.Virtua
 
 func init() {
 	converterBuilder.AddConversion(
-		&vmoprvhub.VirtualMachine{},
-		vmoprv1alpha2.GroupVersion.Version, &vmoprv1alpha2.VirtualMachine{},
-		convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine, convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine,
+		conversion.NewAddConversionBuilder(convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine, convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine),
 	)
 }

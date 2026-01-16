@@ -182,7 +182,7 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 	if addedVirtualMachineNames.Len() > 0 || deletedVirtualMachineNames.Len() > 0 {
 		log.Info("Updating VirtualMachineGroup", "addedMembers", nameList(addedVirtualMachineNames.UnsortedList()), "deletedMembers", nameList(deletedVirtualMachineNames.UnsortedList()))
 	}
-	patch, err := conversionclient.MergeFromWithOptions(r.Client, currentVMG, client.MergeFromWithOptimisticLock{})
+	patch, err := conversionclient.MergeFromWithOptions(ctx, r.Client, currentVMG, client.MergeFromWithOptimisticLock{})
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachineGroup object")
 	}

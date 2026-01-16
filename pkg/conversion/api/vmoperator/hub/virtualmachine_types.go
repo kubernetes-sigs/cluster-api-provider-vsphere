@@ -372,13 +372,23 @@ type VirtualMachine struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (vm VirtualMachine) GetConditions() []metav1.Condition {
-	return vm.Status.Conditions
+func (in *VirtualMachine) GetConditions() []metav1.Condition {
+	return in.Status.Conditions
 }
 
 // SetConditions sets conditions for an API object.
-func (vm VirtualMachine) SetConditions(conditions []metav1.Condition) {
-	vm.Status.Conditions = conditions
+func (in *VirtualMachine) SetConditions(conditions []metav1.Condition) {
+	in.Status.Conditions = conditions
+}
+
+// GetSource returns the Source for this object.
+func (in *VirtualMachine) GetSource() conversionmeta.SourceTypeMeta {
+	return in.Source
+}
+
+// SetSource sets Source for an API object.
+func (in *VirtualMachine) SetSource(source conversionmeta.SourceTypeMeta) {
+	in.Source = source
 }
 
 // +kubebuilder:object:root=true

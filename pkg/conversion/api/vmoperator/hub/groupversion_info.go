@@ -35,7 +35,7 @@ var (
 	AddToScheme = schemeBuilder.AddToScheme
 
 	// converterBuilder is used to add go types to the Converter.
-	converterBuilder = conversion.NewConverterBuilder(addConvertibleTypes)
+	converterBuilder = conversion.NewConverterBuilder(GroupVersion, addConvertibleTypes)
 
 	// AddToConverter adds the types in this group-version to the given converter.
 	AddToConverter = converterBuilder.AddToConverter

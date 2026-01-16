@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -25,7 +27,7 @@ import (
 
 // MergeFromWithOptions creates a Patch that patches using the merge-patch strategy with the given object as base.
 // See MergeFrom for more details.
-func MergeFromWithOptions(c client.Client, obj client.Object, opts ...client.MergeFromOption) (client.Patch, error) {
+func MergeFromWithOptions(ctx context.Context, c client.Client, obj client.Object, opts ...client.MergeFromOption) (client.Patch, error) {
 	cc, ok := c.(*conversionClient)
 	if !ok {
 		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
@@ -42,15 +44,16 @@ func MergeFromWithOptions(c client.Client, obj client.Object, opts ...client.Mer
 	}
 
 	return &conversionMergePatch{
-		from:    obj,
-		client:  cc,
-		options: opts,
+		conversionCtx: ctx,
+		from:          obj,
+		client:        cc,
+		options:       opts,
 	}, nil
 }
 
 // MergeFrom creates a Patch that patches using the merge-patch strategy with the given object as base.
 // When required, the generated patch performs conversion for both/one of the original or the target object.
-func MergeFrom(c client.Client, obj client.Object) (client.Patch, error) {
+func MergeFrom(ctx context.Context, c client.Client, obj client.Object) (client.Patch, error) {
 	cc, ok := c.(*conversionClient)
 	if !ok {
 		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
@@ -62,13 +65,15 @@ func MergeFrom(c client.Client, obj client.Object) (client.Patch, error) {
 	}
 
 	return &conversionMergePatch{
-		from:   obj,
-		client: cc,
+		conversionCtx: ctx,
+		from:          obj,
+		client:        cc,
 	}, nil
 }
 
 type conversionMergePatch struct {
-	client *conversionClient
+	conversionCtx context.Context //nolint:containedctx
+	client        *conversionClient
 
 	from    client.Object
 	options []client.MergeFromOption
@@ -89,7 +94,7 @@ func (p *conversionMergePatch) Data(obj client.Object) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := p.client.converter.Convert(p.from, fromObj); err != nil {
+	if err := p.client.converter.Convert(p.conversionCtx, p.from, fromObj); err != nil {
 		return nil, errors.Wrapf(err, "failed to convert original %s to target version while computing patch data", klog.KObj(p.from))
 	}
 
@@ -99,7 +104,7 @@ func (p *conversionMergePatch) Data(obj client.Object) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := p.client.converter.Convert(obj, toObj); err != nil {
+		if err := p.client.converter.Convert(p.conversionCtx, obj, toObj); err != nil {
 			return nil, errors.Wrapf(err, "failed to convert modified %s to target version while computing patch data", klog.KObj(obj))
 		}
 	}

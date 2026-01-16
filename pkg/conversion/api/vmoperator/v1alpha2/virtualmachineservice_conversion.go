@@ -17,12 +17,15 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
-func convert_v1alpha2_VirtualMachineService_To_hub_VirtualMachineService(src *vmoprv1alpha2.VirtualMachineService, dst *vmoprvhub.VirtualMachineService) error {
+func convert_v1alpha2_VirtualMachineService_To_hub_VirtualMachineService(_ context.Context, src *vmoprv1alpha2.VirtualMachineService, dst *vmoprvhub.VirtualMachineService) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.Ports != nil {
@@ -51,7 +54,7 @@ func convert_v1alpha2_VirtualMachineService_To_hub_VirtualMachineService(src *vm
 	return nil
 }
 
-func convert_hub_VirtualMachineService_To_v1alpha2_VirtualMachineService(src *vmoprvhub.VirtualMachineService, dst *vmoprv1alpha2.VirtualMachineService) error {
+func convert_hub_VirtualMachineService_To_v1alpha2_VirtualMachineService(_ context.Context, src *vmoprvhub.VirtualMachineService, dst *vmoprv1alpha2.VirtualMachineService) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.Ports != nil {
@@ -82,8 +85,6 @@ func convert_hub_VirtualMachineService_To_v1alpha2_VirtualMachineService(src *vm
 
 func init() {
 	converterBuilder.AddConversion(
-		&vmoprvhub.VirtualMachineService{},
-		vmoprv1alpha2.GroupVersion.Version, &vmoprv1alpha2.VirtualMachineService{},
-		convert_hub_VirtualMachineService_To_v1alpha2_VirtualMachineService, convert_v1alpha2_VirtualMachineService_To_hub_VirtualMachineService,
+		conversion.NewAddConversionBuilder(convert_hub_VirtualMachineService_To_v1alpha2_VirtualMachineService, convert_v1alpha2_VirtualMachineService_To_hub_VirtualMachineService),
 	)
 }

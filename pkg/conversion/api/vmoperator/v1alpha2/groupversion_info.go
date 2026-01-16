@@ -17,12 +17,14 @@ limitations under the License.
 package v1alpha2
 
 import (
+	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 )
 
 var (
 	// converterBuilder is used to add go types to the Converter.
-	converterBuilder = conversion.NewConverterBuilder()
+	converterBuilder = conversion.NewConverterBuilder(vmoprv1alpha2.GroupVersion)
 
 	// AddToConverter adds the types in this group-version to the given converter.
 	AddToConverter = converterBuilder.AddToConverter

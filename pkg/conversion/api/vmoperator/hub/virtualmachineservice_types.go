@@ -84,14 +84,6 @@ type LoadBalancerIngress struct {
 	// IP is set for load balancer ingress points that are specified by an IP
 	// address.
 	IP string `json:"ip,omitempty"`
-
-	/*
-		// +optional
-
-		// Hostname is set for load balancer ingress points that are specified by a
-		// DNS address.
-		Hostname string `json:"hostname,omitempty"`
-	*/
 }
 
 // VirtualMachineServiceSpec defines the desired state of VirtualMachineService.
@@ -140,6 +132,16 @@ type VirtualMachineService struct {
 	Status VirtualMachineServiceStatus `json:"status,omitempty"`
 
 	Source conversionmeta.SourceTypeMeta `json:"source,omitempty,omitzero"`
+}
+
+// GetSource returns the Source for this object.
+func (in *VirtualMachineService) GetSource() conversionmeta.SourceTypeMeta {
+	return in.Source
+}
+
+// SetSource sets Source for an API object.
+func (in *VirtualMachineService) SetSource(source conversionmeta.SourceTypeMeta) {
+	in.Source = source
 }
 
 // +kubebuilder:object:root=true

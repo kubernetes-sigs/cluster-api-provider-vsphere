@@ -31,14 +31,13 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -194,10 +193,10 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 func (r *ServiceAccountReconciler) patch(ctx context.Context, clusterCtx *vmwarecontext.ClusterContext) error {
 	// NOTE: this controller only owns the ProviderServiceAccountsReady condition on the VSphereCluster object.
 	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
-		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			vmwarev1.ProviderServiceAccountsReadyCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
 		}},
 	)
@@ -207,17 +206,17 @@ func (r *ServiceAccountReconciler) patch(ctx context.Context, clusterCtx *vmware
 func (r *ServiceAccountReconciler) reconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) (_ reconcile.Result, reterr error) {
 	defer func() {
 		if reterr != nil {
-			v1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition, vmwarev1.ProviderServiceAccountsReconciliationFailedReason,
-				clusterv1beta1.ConditionSeverityWarning, "%v", reterr)
-			v1beta2conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
+			deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition, vmwarev1.ProviderServiceAccountsReconciliationFailedReason,
+				clusterv1.ConditionSeverityWarning, "%v", reterr)
+			conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
 				Type:    vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  vmwarev1.VSphereClusterProviderServiceAccountsNotReadyV1Beta2Reason,
 				Message: reterr.Error(),
 			})
 		} else {
-			v1beta1conditions.MarkTrue(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)
-			v1beta2conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
+			deprecatedv1beta1conditions.MarkTrue(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)
+			conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
 				Type:   vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Reason,

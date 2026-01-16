@@ -21,6 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -40,17 +41,17 @@ const (
 const (
 	// VSphereClusterReadyV1Beta2Condition is true if the VSphereCluster's deletionTimestamp is not set, VSphereCluster's
 	// ResourcePolicyReady, NetworkReady, LoadBalancerReady, ProviderServiceAccountsReady and ServiceDiscoveryReady conditions are true.
-	VSphereClusterReadyV1Beta2Condition = clusterv1beta1.ReadyV1Beta2Condition
+	VSphereClusterReadyV1Beta2Condition = clusterv1.ReadyCondition
 
 	// VSphereClusterReadyV1Beta2Reason surfaces when the VSphereCluster readiness criteria is met.
-	VSphereClusterReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+	VSphereClusterReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// VSphereClusterNotReadyV1Beta2Reason surfaces when the VSphereCluster readiness criteria is not met.
-	VSphereClusterNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+	VSphereClusterNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 
 	// VSphereClusterReadyUnknownV1Beta2Reason surfaces when at least one VSphereCluster readiness criteria is unknown
 	// and no VSphereCluster readiness criteria is not met.
-	VSphereClusterReadyUnknownV1Beta2Reason = clusterv1beta1.ReadyUnknownV1Beta2Reason
+	VSphereClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
 )
 
 // VSphereCluster's ResourcePolicyReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -59,13 +60,13 @@ const (
 	VSphereClusterResourcePolicyReadyV1Beta2Condition = "ResourcePolicyReady"
 
 	// VSphereClusterResourcePolicyReadyV1Beta2Reason surfaces when the ResourcePolicy for a VSphereCluster is ready.
-	VSphereClusterResourcePolicyReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+	VSphereClusterResourcePolicyReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// VSphereClusterResourcePolicyNotReadyV1Beta2Reason surfaces when the ResourcePolicy for a VSphereCluster is not ready.
-	VSphereClusterResourcePolicyNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+	VSphereClusterResourcePolicyNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 
 	// VSphereClusterResourcePolicyReadyDeletingV1Beta2Reason surfaces when the resource policy for a VSphereCluster is being deleted.
-	VSphereClusterResourcePolicyReadyDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
+	VSphereClusterResourcePolicyReadyDeletingV1Beta2Reason = clusterv1.DeletingReason
 )
 
 // VSphereCluster's NetworkReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -74,13 +75,13 @@ const (
 	VSphereClusterNetworkReadyV1Beta2Condition = "NetworkReady"
 
 	// VSphereClusterNetworkReadyV1Beta2Reason surfaces when the network for a VSphereCluster is ready.
-	VSphereClusterNetworkReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+	VSphereClusterNetworkReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// VSphereClusterNetworkNotReadyV1Beta2Reason surfaces when the network for a VSphereCluster is not ready.
-	VSphereClusterNetworkNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+	VSphereClusterNetworkNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 
 	// VSphereClusterNetworkReadyDeletingV1Beta2Reason surfaces when the network for a VSphereCluster is being deleted.
-	VSphereClusterNetworkReadyDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
+	VSphereClusterNetworkReadyDeletingV1Beta2Reason = clusterv1.DeletingReason
 )
 
 // VSphereCluster's LoadBalancerReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -89,16 +90,16 @@ const (
 	VSphereClusterLoadBalancerReadyV1Beta2Condition = "LoadBalancerReady"
 
 	// VSphereClusterLoadBalancerReadyV1Beta2Reason surfaces when the LoadBalancer for a VSphereCluster is ready.
-	VSphereClusterLoadBalancerReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+	VSphereClusterLoadBalancerReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// VSphereClusterLoadBalancerNotReadyV1Beta2Reason surfaces when the LoadBalancer for a VSphereCluster is not ready.
-	VSphereClusterLoadBalancerNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+	VSphereClusterLoadBalancerNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 
 	// VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason surfaces when the LoadBalancer for a VSphereCluster is waiting for an IP to be assigned.
 	VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason = "WaitingForIP"
 
 	// VSphereClusterLoadBalancerDeletingV1Beta2Reason surfaces when the LoadBalancer for a VSphereCluster is being deleted.
-	VSphereClusterLoadBalancerDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
+	VSphereClusterLoadBalancerDeletingV1Beta2Reason = clusterv1.DeletingReason
 )
 
 // VSphereCluster's ProviderServiceAccountsReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -107,10 +108,10 @@ const (
 	VSphereClusterProviderServiceAccountsReadyV1Beta2Condition = "ProviderServiceAccountsReady"
 
 	// VSphereClusterProviderServiceAccountsReadyV1Beta2Reason surfaces when the provider service accounts for a VSphereCluster is ready.
-	VSphereClusterProviderServiceAccountsReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+	VSphereClusterProviderServiceAccountsReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// VSphereClusterProviderServiceAccountsNotReadyV1Beta2Reason surfaces when the provider service accounts for a VSphereCluster is not ready.
-	VSphereClusterProviderServiceAccountsNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+	VSphereClusterProviderServiceAccountsNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 )
 
 // VSphereCluster's ServiceDiscoveryReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -119,10 +120,10 @@ const (
 	VSphereClusterServiceDiscoveryReadyV1Beta2Condition = "ServiceDiscoveryReady"
 
 	// VSphereClusterServiceDiscoveryReadyV1Beta2Reason surfaces when the service discovery for a VSphereCluster is ready.
-	VSphereClusterServiceDiscoveryReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+	VSphereClusterServiceDiscoveryReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason surfaces when the service discovery for a VSphereCluster is not ready.
-	VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+	VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 )
 
 // NSXVPC defines the configuration when the network provider is NSX-VPC.
@@ -167,6 +168,15 @@ type VSphereClusterSpec struct {
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.
 type VSphereClusterStatus struct {
+	// conditions represents the observations of a VSphereCluster's current state.
+	// Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
+	// ProviderServiceAccountsReady, ServiceDiscoveryReady and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// ready indicates the infrastructure required to deploy this cluster is
 	// ready.
 	// +optional
@@ -177,30 +187,32 @@ type VSphereClusterStatus struct {
 	// +optional
 	ResourcePolicyName string `json:"resourcePolicyName,omitempty"`
 
-	// conditions defines current service state of the VSphereCluster.
-	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
-
 	// failureDomains is a list of failure domain objects synced from the
 	// infrastructure provider.
 	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 
-	// v1beta2 groups all the fields that will be added or modified in VSphereCluster's status with the V1Beta2 version.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
-	V1Beta2 *VSphereClusterV1Beta2Status `json:"v1beta2,omitempty"`
+	Deprecated *VSphereClusterDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
-// VSphereClusterV1Beta2Status groups all the fields that will be added or modified in VSphereClusterStatus with the V1Beta2 version.
+// VSphereClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type VSphereClusterV1Beta2Status struct {
-	// conditions represents the observations of a VSphereCluster's current state.
-	// Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
-	// ProviderServiceAccountsReady, ServiceDiscoveryReady and Paused.
+type VSphereClusterDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	V1Beta1 *VSphereClusterV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// VSphereClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereClusterV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the VSphereCluster.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -232,30 +244,33 @@ type VSphereClusterList struct {
 	Items           []VSphereCluster `json:"items"`
 }
 
-// GetConditions returns conditions for VSphereCluster.
-func (r *VSphereCluster) GetConditions() clusterv1beta1.Conditions {
-	return r.Status.Conditions
-}
-
-// SetConditions sets conditions on the VSphereCluster.
-func (r *VSphereCluster) SetConditions(conditions clusterv1beta1.Conditions) {
-	r.Status.Conditions = conditions
-}
-
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (r *VSphereCluster) GetV1Beta2Conditions() []metav1.Condition {
-	if r.Status.V1Beta2 == nil {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (c *VSphereCluster) GetV1Beta1Conditions() clusterv1.Conditions {
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
-	return r.Status.V1Beta2.Conditions
+	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (r *VSphereCluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if r.Status.V1Beta2 == nil {
-		r.Status.V1Beta2 = &VSphereClusterV1Beta2Status{}
+// SetV1Beta1Conditions sets the conditions on this object.
+func (c *VSphereCluster) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &VSphereClusterDeprecatedStatus{}
 	}
-	r.Status.V1Beta2.Conditions = conditions
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &VSphereClusterV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
+}
+
+// GetConditions returns the set of conditions for this object.
+func (c *VSphereCluster) GetConditions() []metav1.Condition {
+	return c.Status.Conditions
+}
+
+// SetConditions sets conditions for an API object.
+func (c *VSphereCluster) SetConditions(conditions []metav1.Condition) {
+	c.Status.Conditions = conditions
 }
 
 func init() {

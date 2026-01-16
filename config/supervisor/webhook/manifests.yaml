@@ -10,7 +10,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachine
+      path: /mutate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vspheremachine
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.vspheremachine.vmware.infrastructure.cluster.x-k8s.io
@@ -18,7 +18,7 @@ webhooks:
   - apiGroups:
     - vmware.infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -37,7 +37,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspherecluster
+      path: /validate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vspherecluster
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.vspherecluster.vmware.infrastructure.cluster.x-k8s.io
@@ -45,7 +45,7 @@ webhooks:
   - apiGroups:
     - vmware.infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -58,7 +58,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachine
+      path: /validate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vspheremachine
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.vspheremachine.vmware.infrastructure.cluster.x-k8s.io
@@ -66,7 +66,7 @@ webhooks:
   - apiGroups:
     - vmware.infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -79,7 +79,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachinetemplate
+      path: /validate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vspheremachinetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.vspheremachinetemplate.vmware.infrastructure.cluster.x-k8s.io
@@ -87,7 +87,7 @@ webhooks:
   - apiGroups:
     - vmware.infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE

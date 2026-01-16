@@ -51,7 +51,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/net-operator/controllers"
 )
 
@@ -222,7 +222,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	// Check for supervisor VSphereCluster and start controller if found
-	gvr := vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
+	gvr := vmwarev1beta1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1beta1.VSphereCluster{}).Elem().Name())
 	supervisorMode, err := isCRDDeployed(mgr, gvr)
 	if err != nil {
 		setupLog.Error(err, "unable to detect supervisor mode")

@@ -42,7 +42,7 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name: "single IPv4 address, no preferred CIDR",
+			name: "single IPv4 address",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
 					Addresses: []clusterv1.MachineAddress{
@@ -57,7 +57,7 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "single IPv6 address, no preferred CIDR",
+			name: "single IPv6 address",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
 					Addresses: []clusterv1.MachineAddress{
@@ -72,7 +72,7 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "multiple IPv4 addresses, only 1 internal, no preferred CIDR",
+			name: "multiple IPv4 addresses, only 1 internal",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
 					Addresses: []clusterv1.MachineAddress{
@@ -95,119 +95,10 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "multiple IPv4 addresses, preferred CIDR set to v4",
-			machine: &infrav1.VSphereMachine{
-				Spec: infrav1.VSphereMachineSpec{
-					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-						Network: infrav1.NetworkSpec{
-							PreferredAPIServerCIDR: "192.168.0.0/16",
-						},
-					},
-				},
-				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1.MachineAddress{
-						{
-							Type:    clusterv1.MachineExternalIP,
-							Address: "192.168.0.1",
-						},
-						{
-							Type:    clusterv1.MachineExternalIP,
-							Address: "172.17.0.1",
-						},
-					},
-				},
-			},
-			ipAddr:      "192.168.0.1",
-			expectedErr: nil,
-		},
-		{
-			name: "multiple IPv4 and IPv6 addresses, preferred CIDR set to v4",
-			machine: &infrav1.VSphereMachine{
-				Spec: infrav1.VSphereMachineSpec{
-					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-						Network: infrav1.NetworkSpec{
-							PreferredAPIServerCIDR: "192.168.0.0/16",
-						},
-					},
-				},
-				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1.MachineAddress{
-						{
-							Type:    clusterv1.MachineExternalIP,
-							Address: "192.168.0.1",
-						},
-						{
-							Type:    clusterv1.MachineExternalIP,
-							Address: "fdf3:35b5:9dad:6e09::0001",
-						},
-					},
-				},
-			},
-			ipAddr:      "192.168.0.1",
-			expectedErr: nil,
-		},
-		{
-			name: "multiple IPv4 and IPv6 addresses, preferred CIDR set to v6",
-			machine: &infrav1.VSphereMachine{
-				Spec: infrav1.VSphereMachineSpec{
-					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-						Network: infrav1.NetworkSpec{
-							PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
-						},
-					},
-				},
-				Status: infrav1.VSphereMachineStatus{
-
-					Addresses: []clusterv1.MachineAddress{
-						{
-							Type:    clusterv1.MachineExternalIP,
-							Address: "192.168.0.1",
-						},
-						{
-							Type:    clusterv1.MachineExternalIP,
-							Address: "fdf3:35b5:9dad:6e09::0001",
-						},
-					},
-				},
-			},
-			ipAddr:      "fdf3:35b5:9dad:6e09::0001",
-			expectedErr: nil,
-		},
-		{
 			name: "no addresses found",
 			machine: &infrav1.VSphereMachine{
-				Spec: infrav1.VSphereMachineSpec{
-					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-						Network: infrav1.NetworkSpec{
-							PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
-						},
-					},
-				},
 				Status: infrav1.VSphereMachineStatus{
 					Addresses: []clusterv1.MachineAddress{},
-				},
-			},
-			ipAddr:      "",
-			expectedErr: util.ErrNoMachineIPAddr,
-		},
-		{
-			name: "no addresses found with preferred CIDR",
-			machine: &infrav1.VSphereMachine{
-				Spec: infrav1.VSphereMachineSpec{
-					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-						Network: infrav1.NetworkSpec{
-							PreferredAPIServerCIDR: "192.168.0.0/16",
-						},
-					},
-				},
-				Status: infrav1.VSphereMachineStatus{
-
-					Addresses: []clusterv1.MachineAddress{
-						{
-							Type:    clusterv1.MachineExternalIP,
-							Address: "10.0.0.1",
-						},
-					},
 				},
 			},
 			ipAddr:      "",

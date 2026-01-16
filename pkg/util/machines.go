@@ -58,24 +58,11 @@ var ErrNoMachineIPAddr = errors.New("no IP addresses found for machine")
 // GetMachinePreferredIPAddress returns the preferred IP address for a
 // VSphereMachine resource.
 func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, error) {
-	var cidr *net.IPNet
-	if cidrString := machine.Spec.Network.PreferredAPIServerCIDR; cidrString != "" {
-		var err error
-		if _, cidr, err = net.ParseCIDR(cidrString); err != nil {
-			return "", errors.New("error parsing preferred API server CIDR")
-		}
-	}
-
 	for _, machineAddr := range machine.Status.Addresses {
 		if machineAddr.Type != clusterv1.MachineExternalIP {
 			continue
 		}
-		if cidr == nil {
-			return machineAddr.Address, nil
-		}
-		if cidr.Contains(net.ParseIP(machineAddr.Address)) {
-			return machineAddr.Address, nil
-		}
+		return machineAddr.Address, nil
 	}
 
 	return "", ErrNoMachineIPAddr

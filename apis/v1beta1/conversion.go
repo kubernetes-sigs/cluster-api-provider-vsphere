@@ -554,6 +554,14 @@ func Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VS
 	return nil
 }
 
+func Convert_v1beta2_VSphereClusterTemplateResource_To_v1beta1_VSphereClusterTemplateResource(in *infrav1.VSphereClusterTemplateResource, out *VSphereClusterTemplateResource, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereClusterTemplateResource_To_v1beta1_VSphereClusterTemplateResource(in, out, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Convert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(in *infrav1.VSphereClusterIdentityStatus, out *VSphereClusterIdentityStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(in, out, s); err != nil {
 		return err

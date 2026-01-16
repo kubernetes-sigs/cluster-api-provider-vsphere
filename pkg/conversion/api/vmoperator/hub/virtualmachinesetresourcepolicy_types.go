@@ -63,6 +63,16 @@ type VirtualMachineSetResourcePolicy struct {
 	Source conversionmeta.SourceTypeMeta `json:"source,omitempty,omitzero"`
 }
 
+// GetSource returns the Source for this object.
+func (in *VirtualMachineSetResourcePolicy) GetSource() conversionmeta.SourceTypeMeta {
+	return in.Source
+}
+
+// SetSource sets Source for an API object.
+func (in *VirtualMachineSetResourcePolicy) SetSource(source conversionmeta.SourceTypeMeta) {
+	in.Source = source
+}
+
 // +kubebuilder:object:root=true
 
 // VirtualMachineSetResourcePolicyList contains a list of VirtualMachineSetResourcePolicy.

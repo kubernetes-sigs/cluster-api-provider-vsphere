@@ -692,7 +692,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		})
 		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 			retryError = nil
-			patch, err := conversionclient.MergeFrom(c, virtualMachineImage)
+			patch, err := conversionclient.MergeFrom(ctx, c, virtualMachineImage)
 			if err != nil {
 				retryError = errors.Wrapf(err, "failed to create patch for VirtualMachineImage object")
 				return false, nil

@@ -17,14 +17,17 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha2common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
-func convert_v1alpha2_VirtualMachineImage_To_hub_VirtualMachineImage(src *vmoprv1alpha2.VirtualMachineImage, dst *vmoprvhub.VirtualMachineImage) error {
+func convert_v1alpha2_VirtualMachineImage_To_hub_VirtualMachineImage(_ context.Context, src *vmoprv1alpha2.VirtualMachineImage, dst *vmoprvhub.VirtualMachineImage) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.ProviderRef != nil {
@@ -53,7 +56,7 @@ func convert_v1alpha2_VirtualMachineImage_To_hub_VirtualMachineImage(src *vmoprv
 	return nil
 }
 
-func convert_hub_VirtualMachineImage_To_v1alpha2_VirtualMachineImage(src *vmoprvhub.VirtualMachineImage, dst *vmoprv1alpha2.VirtualMachineImage) error {
+func convert_hub_VirtualMachineImage_To_v1alpha2_VirtualMachineImage(_ context.Context, src *vmoprvhub.VirtualMachineImage, dst *vmoprv1alpha2.VirtualMachineImage) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.ProviderRef != nil {
@@ -84,8 +87,6 @@ func convert_hub_VirtualMachineImage_To_v1alpha2_VirtualMachineImage(src *vmoprv
 
 func init() {
 	converterBuilder.AddConversion(
-		&vmoprvhub.VirtualMachineImage{},
-		vmoprv1alpha2.GroupVersion.Version, &vmoprv1alpha2.VirtualMachineImage{},
-		convert_hub_VirtualMachineImage_To_v1alpha2_VirtualMachineImage, convert_v1alpha2_VirtualMachineImage_To_hub_VirtualMachineImage,
+		conversion.NewAddConversionBuilder(convert_hub_VirtualMachineImage_To_v1alpha2_VirtualMachineImage, convert_v1alpha2_VirtualMachineImage_To_hub_VirtualMachineImage),
 	)
 }

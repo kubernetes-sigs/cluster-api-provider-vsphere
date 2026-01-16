@@ -264,7 +264,7 @@ func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster 
 	original := virtualMachine.DeepCopy()
 	controllerutil.RemoveFinalizer(virtualMachine, vcsimv1.VMFinalizer)
 
-	patch, err := conversionclient.MergeFrom(r.Client, original)
+	patch, err := conversionclient.MergeFrom(ctx, r.Client, original)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
 	}
@@ -353,7 +353,7 @@ func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 	original := o.DeepCopyObject().(client.Object)
 	controllerutil.AddFinalizer(o, finalizer)
 
-	patch, err := conversionclient.MergeFrom(c, original)
+	patch, err := conversionclient.MergeFrom(ctx, c, original)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
 	}

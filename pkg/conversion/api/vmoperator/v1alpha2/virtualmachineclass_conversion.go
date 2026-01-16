@@ -17,12 +17,15 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
-func convert_v1alpha2_VirtualMachineClass_To_hub_VirtualMachineClass(src *vmoprv1alpha2.VirtualMachineClass, dst *vmoprvhub.VirtualMachineClass) error {
+func convert_v1alpha2_VirtualMachineClass_To_hub_VirtualMachineClass(_ context.Context, src *vmoprv1alpha2.VirtualMachineClass, dst *vmoprvhub.VirtualMachineClass) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	dst.Spec.Hardware = vmoprvhub.VirtualMachineClassHardware{
@@ -33,7 +36,7 @@ func convert_v1alpha2_VirtualMachineClass_To_hub_VirtualMachineClass(src *vmoprv
 	return nil
 }
 
-func convert_hub_VirtualMachineClass_To_v1alpha2_VirtualMachineClass(src *vmoprvhub.VirtualMachineClass, dst *vmoprv1alpha2.VirtualMachineClass) error {
+func convert_hub_VirtualMachineClass_To_v1alpha2_VirtualMachineClass(_ context.Context, src *vmoprvhub.VirtualMachineClass, dst *vmoprv1alpha2.VirtualMachineClass) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	dst.Spec.Hardware = vmoprv1alpha2.VirtualMachineClassHardware{
@@ -46,8 +49,6 @@ func convert_hub_VirtualMachineClass_To_v1alpha2_VirtualMachineClass(src *vmoprv
 
 func init() {
 	converterBuilder.AddConversion(
-		&vmoprvhub.VirtualMachineClass{},
-		vmoprv1alpha2.GroupVersion.Version, &vmoprv1alpha2.VirtualMachineClass{},
-		convert_hub_VirtualMachineClass_To_v1alpha2_VirtualMachineClass, convert_v1alpha2_VirtualMachineClass_To_hub_VirtualMachineClass,
+		conversion.NewAddConversionBuilder(convert_hub_VirtualMachineClass_To_v1alpha2_VirtualMachineClass, convert_v1alpha2_VirtualMachineClass_To_hub_VirtualMachineClass),
 	)
 }

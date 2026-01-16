@@ -17,12 +17,15 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
-func convert_v1alpha2_VirtualMachineSetResourcePolicy_To_hub_VirtualMachineSetResourcePolicy(src *vmoprv1alpha2.VirtualMachineSetResourcePolicy, dst *vmoprvhub.VirtualMachineSetResourcePolicy) error {
+func convert_v1alpha2_VirtualMachineSetResourcePolicy_To_hub_VirtualMachineSetResourcePolicy(_ context.Context, src *vmoprv1alpha2.VirtualMachineSetResourcePolicy, dst *vmoprvhub.VirtualMachineSetResourcePolicy) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	dst.Spec.ClusterModuleGroups = src.Spec.ClusterModuleGroups
@@ -34,7 +37,7 @@ func convert_v1alpha2_VirtualMachineSetResourcePolicy_To_hub_VirtualMachineSetRe
 	return nil
 }
 
-func convert_hub_VirtualMachineSetResourcePolicy_To_v1alpha2_VirtualMachineSetResourcePolicy(src *vmoprvhub.VirtualMachineSetResourcePolicy, dst *vmoprv1alpha2.VirtualMachineSetResourcePolicy) error {
+func convert_hub_VirtualMachineSetResourcePolicy_To_v1alpha2_VirtualMachineSetResourcePolicy(_ context.Context, src *vmoprvhub.VirtualMachineSetResourcePolicy, dst *vmoprv1alpha2.VirtualMachineSetResourcePolicy) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	dst.Spec.ClusterModuleGroups = src.Spec.ClusterModuleGroups
@@ -48,8 +51,6 @@ func convert_hub_VirtualMachineSetResourcePolicy_To_v1alpha2_VirtualMachineSetRe
 
 func init() {
 	converterBuilder.AddConversion(
-		&vmoprvhub.VirtualMachineSetResourcePolicy{},
-		vmoprv1alpha2.GroupVersion.Version, &vmoprv1alpha2.VirtualMachineSetResourcePolicy{},
-		convert_hub_VirtualMachineSetResourcePolicy_To_v1alpha2_VirtualMachineSetResourcePolicy, convert_v1alpha2_VirtualMachineSetResourcePolicy_To_hub_VirtualMachineSetResourcePolicy,
+		conversion.NewAddConversionBuilder(convert_hub_VirtualMachineSetResourcePolicy_To_v1alpha2_VirtualMachineSetResourcePolicy, convert_v1alpha2_VirtualMachineSetResourcePolicy_To_hub_VirtualMachineSetResourcePolicy),
 	)
 }

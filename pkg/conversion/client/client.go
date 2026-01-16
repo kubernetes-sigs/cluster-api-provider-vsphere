@@ -117,7 +117,7 @@ func (c *conversionClient) Get(ctx context.Context, key client.ObjectKey, obj cl
 	if err := c.internalClient.Get(ctx, key, targetVersionObj, opts...); err != nil {
 		return err
 	}
-	if err := c.converter.Convert(targetVersionObj, obj); err != nil {
+	if err := c.converter.Convert(ctx, targetVersionObj, obj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s from target version while getting it", klog.KObj(targetVersionObj))
 	}
 	return nil
@@ -155,7 +155,7 @@ func (c *conversionClient) List(ctx context.Context, list client.ObjectList, opt
 			return err
 		}
 
-		if err := c.converter.Convert(targetItem, listItem); err != nil {
+		if err := c.converter.Convert(ctx, targetItem, listItem); err != nil {
 			return errors.Wrapf(err, "failed to convert %s from target version while listing it", klog.KObj(listItem))
 		}
 		listObjs = append(listObjs, listItem)
@@ -189,14 +189,14 @@ func (c *conversionClient) Create(ctx context.Context, obj client.Object, opts .
 	if err != nil {
 		return err
 	}
-	if err := c.converter.Convert(obj, targetVersionObj); err != nil {
+	if err := c.converter.Convert(ctx, obj, targetVersionObj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s to target version while creating it", klog.KObj(obj))
 	}
 
 	if err := c.internalClient.Create(ctx, targetVersionObj, opts...); err != nil {
 		return err
 	}
-	if err := c.converter.Convert(targetVersionObj, obj); err != nil {
+	if err := c.converter.Convert(ctx, targetVersionObj, obj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s from target version while creating it", klog.KObj(targetVersionObj))
 	}
 	return nil
@@ -212,7 +212,7 @@ func (c *conversionClient) Delete(ctx context.Context, obj client.Object, opts .
 	if err != nil {
 		return err
 	}
-	if err := c.converter.Convert(obj, targetVersionObj); err != nil {
+	if err := c.converter.Convert(ctx, obj, targetVersionObj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s to target version while deleting it", klog.KObj(obj))
 	}
 
@@ -220,7 +220,7 @@ func (c *conversionClient) Delete(ctx context.Context, obj client.Object, opts .
 		return err
 	}
 
-	if err := c.converter.Convert(targetVersionObj, obj); err != nil {
+	if err := c.converter.Convert(ctx, targetVersionObj, obj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s from target version while deleting it", klog.KObj(targetVersionObj))
 	}
 	return nil
@@ -249,14 +249,14 @@ func (c *conversionClient) Patch(ctx context.Context, obj client.Object, patch c
 	if err != nil {
 		return err
 	}
-	if err := c.converter.Convert(obj, targetVersionObj); err != nil {
+	if err := c.converter.Convert(ctx, obj, targetVersionObj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s to target version while patching it", klog.KObj(obj))
 	}
 
 	if err := c.internalClient.Patch(ctx, targetVersionObj, patch, opts...); err != nil {
 		return err
 	}
-	if err := c.converter.Convert(targetVersionObj, obj); err != nil {
+	if err := c.converter.Convert(ctx, targetVersionObj, obj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s from target version while patching it", klog.KObj(targetVersionObj))
 	}
 	return nil
@@ -327,7 +327,7 @@ func (c conversionSubResourceClient) Patch(ctx context.Context, obj client.Objec
 	if err != nil {
 		return err
 	}
-	if err := c.converter.Convert(obj, targetVersionObj); err != nil {
+	if err := c.converter.Convert(ctx, obj, targetVersionObj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s to target version while patching status on it", klog.KObj(obj))
 	}
 
@@ -335,7 +335,7 @@ func (c conversionSubResourceClient) Patch(ctx context.Context, obj client.Objec
 		return err
 	}
 
-	if err := c.converter.Convert(targetVersionObj, obj); err != nil {
+	if err := c.converter.Convert(ctx, targetVersionObj, obj); err != nil {
 		return errors.Wrapf(err, "failed to convert %s from target version while patching status on it", klog.KObj(targetVersionObj))
 	}
 	return nil

@@ -17,6 +17,7 @@ limitations under the License.
 package conversion
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -27,6 +28,9 @@ import (
 
 	conversionmeta "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta"
 )
+
+// ConvertFunc defines a func that perform conversions.
+type ConvertFunc func(context.Context, runtime.Object, runtime.Object) error
 
 // Converter defines methods for converting API objects.
 type Converter struct {
@@ -40,7 +44,7 @@ type Converter struct {
 	gvkConvertibleTypes map[schema.GroupVersionKind]bool
 
 	// conversionFuncs stores func to convert objects with a given gvk to another.
-	conversionFuncs map[schema.GroupVersionKind]map[schema.GroupVersionKind]reflect.Value
+	conversionFuncs map[schema.GroupVersionKind]map[schema.GroupVersionKind]ConvertFunc
 
 	// targetVersionSelector stores func that selects the target version for conversions.
 	targetVersionSelector func(gk schema.GroupKind) string
@@ -52,7 +56,7 @@ func NewConverter() *Converter {
 		gvkToType:           map[schema.GroupVersionKind]reflect.Type{},
 		typeToGVK:           map[reflect.Type]schema.GroupVersionKind{},
 		gvkConvertibleTypes: map[schema.GroupVersionKind]bool{},
-		conversionFuncs:     map[schema.GroupVersionKind]map[schema.GroupVersionKind]reflect.Value{},
+		conversionFuncs:     map[schema.GroupVersionKind]map[schema.GroupVersionKind]ConvertFunc{},
 		targetVersionSelector: func(_ schema.GroupKind) string {
 			panic("targetVersionSelector not set")
 		},
@@ -81,8 +85,9 @@ func (s *Converter) AddTypes(gv schema.GroupVersion, types ...runtime.Object) er
 			return err
 		}
 
-		if !strings.HasSuffix(t.Name(), "List") && !conversionmeta.HasSource(obj) {
-			return errors.Errorf("all objects must have a source field of type sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta.SourceTypeMeta, %v.%v does not have this field", t.PkgPath(), t.Name())
+		_, isConvertible := obj.(conversionmeta.Convertible)
+		if !strings.HasSuffix(t.Name(), "List") && !isConvertible {
+			return errors.Errorf("all objects must implement sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta.Convertible, %v.%v does not", t.PkgPath(), t.Name())
 		}
 
 		gvk := gv.WithKind(t.Name())
@@ -131,13 +136,12 @@ func (s *Converter) Recognizes(gvk schema.GroupVersionKind) bool {
 //
 // )
 //
-// More examples can be found in pkg/conversion/api/vmoperator.
-func (s *Converter) AddConversion(src runtime.Object, dstVersion string, dst runtime.Object, srcToDstFunc, dstToSrcFunc any) error {
+// AddConversionBuilder provides a convenient and typed way to perform this operation. More examples can be found in pkg/conversion/api/vmoperator.
+func (s *Converter) AddConversion(src runtime.Object, dstVersion string, dst runtime.Object, srcToDstFunc, dstToSrcFunc ConvertFunc) error {
 	srcGVK, err := s.GroupVersionKindFor(src)
 	if err != nil {
 		return err
 	}
-	srcType := s.gvkToType[srcGVK]
 
 	if strings.HasSuffix(srcGVK.Kind, "List") {
 		return errors.New("invalid source type, source type for a conversion cannot have the List suffix")
@@ -176,42 +180,32 @@ func (s *Converter) AddConversion(src runtime.Object, dstVersion string, dst run
 		return errors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", dstType.PkgPath(), dstType.Name(), oldGVK, dstGVK)
 	}
 
-	if err := conversionFuncIsValid(srcType, dstType, srcToDstFunc); err != nil {
-		return errors.Wrapf(err, "invalid conversion function from %v to %v", srcGVK, dstGVK.Version)
-	}
-
-	if err := conversionFuncIsValid(dstType, srcType, dstToSrcFunc); err != nil {
-		return errors.Wrapf(err, "invalid conversion function from %v to %v", dstGVK, srcGVK.Version)
-	}
-
 	s.gvkToType[dstGVK] = dstType
 	s.gvkConvertibleTypes[dstGVK] = false
 	s.typeToGVK[dstType] = dstGVK
 
 	if s.conversionFuncs[srcGVK] == nil {
-		s.conversionFuncs[srcGVK] = map[schema.GroupVersionKind]reflect.Value{}
+		s.conversionFuncs[srcGVK] = map[schema.GroupVersionKind]ConvertFunc{}
 	}
 
-	srcToDstFuncV := reflect.ValueOf(srcToDstFunc)
-	if oldC, found := s.conversionFuncs[srcGVK][dstGVK]; found && oldC != srcToDstFuncV {
+	if oldC, found := s.conversionFuncs[srcGVK][dstGVK]; found && reflect.ValueOf(oldC) != reflect.ValueOf(srcToDstFunc) {
 		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", srcGVK, dstGVK.Version)
 	}
-	s.conversionFuncs[srcGVK][dstGVK] = srcToDstFuncV
+	s.conversionFuncs[srcGVK][dstGVK] = srcToDstFunc
 
-	dstToSrcFuncV := reflect.ValueOf(dstToSrcFunc)
 	if s.conversionFuncs[dstGVK] == nil {
-		s.conversionFuncs[dstGVK] = map[schema.GroupVersionKind]reflect.Value{}
+		s.conversionFuncs[dstGVK] = map[schema.GroupVersionKind]ConvertFunc{}
 	}
-	if oldC, found := s.conversionFuncs[dstGVK][srcGVK]; found && oldC != dstToSrcFuncV {
+	if oldC, found := s.conversionFuncs[dstGVK][srcGVK]; found && reflect.ValueOf(oldC) != reflect.ValueOf(dstToSrcFunc) {
 		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", dstGVK, srcGVK.Version)
 	}
-	s.conversionFuncs[dstGVK][srcGVK] = dstToSrcFuncV
+	s.conversionFuncs[dstGVK][srcGVK] = dstToSrcFunc
 
 	return nil
 }
 
 // Convert converts an object into another with the same kind, but a different version.
-func (s *Converter) Convert(src runtime.Object, dst runtime.Object) error {
+func (s *Converter) Convert(ctx context.Context, src runtime.Object, dst runtime.Object) error {
 	srcGVK, err := s.GroupVersionKindFor(src)
 	if err != nil {
 		return err
@@ -223,10 +217,8 @@ func (s *Converter) Convert(src runtime.Object, dst runtime.Object) error {
 	}
 
 	if s.gvkConvertibleTypes[srcGVK] {
-		source, err := conversionmeta.GetSource(src)
-		if err != nil {
-			return err
-		}
+		convertible, _ := src.(conversionmeta.Convertible)
+		source := convertible.GetSource()
 
 		if source.APIVersion != "" && source.APIVersion != dstGVK.GroupVersion().String() {
 			return errors.Errorf("objects with kind %s and source.APIVersion %s cannot be converted to %s", srcGVK.Kind, source.APIVersion, dstGVK.Version)
@@ -238,21 +230,13 @@ func (s *Converter) Convert(src runtime.Object, dst runtime.Object) error {
 		return errors.Errorf("no conversion registered from %s to %s", srcGVK, dstGVK)
 	}
 
-	args := []reflect.Value{
-		reflect.ValueOf(src),
-		reflect.ValueOf(dst),
-	}
-
-	results := conversionFunc.Call(args)
-
-	if !results[0].IsNil() {
-		return results[0].Interface().(error)
+	if err := conversionFunc(ctx, src, dst); err != nil {
+		return errors.Wrapf(err, "error converting from %s to %s", srcGVK, dstGVK)
 	}
 
 	if s.gvkConvertibleTypes[dstGVK] {
-		if err := conversionmeta.SetSource(dst, conversionmeta.SourceTypeMeta{APIVersion: srcGVK.GroupVersion().String()}); err != nil {
-			return err
-		}
+		convertible, _ := dst.(conversionmeta.Convertible)
+		convertible.SetSource(conversionmeta.SourceTypeMeta{APIVersion: srcGVK.GroupVersion().String()})
 	}
 	return nil
 }
@@ -314,50 +298,6 @@ func (s *Converter) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersion
 		return schema.GroupVersionKind{}, errors.Errorf("no type registered for %s.%s", t.PkgPath(), t.Name())
 	}
 	return gvk, nil
-}
-
-var errorType = reflect.TypeFor[error]()
-
-// conversionFuncIsValid validates conversion func signature.
-// A valid func signature takes in input source and destination type and return and error, func(src A, dst B) error.
-func conversionFuncIsValid(tSrc, tDst reflect.Type, f any) error {
-	errFor := func(msg string) error {
-		return errors.Errorf("conversion func must be a func(%s.%s, %s.%s) error, %s", tSrc.PkgPath(), tSrc.Name(), tDst.PkgPath(), tDst.Name(), msg)
-	}
-
-	errForT := func(t reflect.Type) error {
-		return errFor(fmt.Sprintf("got %v", t))
-	}
-
-	if f == nil {
-		return errFor("got nil")
-	}
-
-	t := reflect.TypeOf(f)
-	if t.Kind() != reflect.Func {
-		return errForT(t)
-	}
-
-	if t.NumIn() != 2 {
-		return errForT(t)
-	}
-
-	if t.In(0) != reflect.PointerTo(tSrc) {
-		return errForT(t)
-	}
-
-	if t.In(1) != reflect.PointerTo(tDst) {
-		return errForT(t)
-	}
-
-	if t.NumOut() != 1 {
-		return errForT(t)
-	}
-
-	if !t.Out(0).Implements(errorType) {
-		return errForT(t)
-	}
-	return nil
 }
 
 func objType(obj runtime.Object) (reflect.Type, error) {

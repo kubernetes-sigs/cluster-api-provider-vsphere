@@ -139,13 +139,23 @@ type VirtualMachineGroup struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (m VirtualMachineGroupMemberStatus) GetConditions() []metav1.Condition {
-	return m.Conditions
+func (in *VirtualMachineGroupMemberStatus) GetConditions() []metav1.Condition {
+	return in.Conditions
 }
 
 // SetConditions sets conditions for an API object.
-func (m *VirtualMachineGroupMemberStatus) SetConditions(conditions []metav1.Condition) {
-	m.Conditions = conditions
+func (in *VirtualMachineGroupMemberStatus) SetConditions(conditions []metav1.Condition) {
+	in.Conditions = conditions
+}
+
+// GetSource returns the Source for this object.
+func (in *VirtualMachineGroup) GetSource() conversionmeta.SourceTypeMeta {
+	return in.Source
+}
+
+// SetSource sets Source for an API object.
+func (in *VirtualMachineGroup) SetSource(source conversionmeta.SourceTypeMeta) {
+	in.Source = source
 }
 
 // +kubebuilder:object:root=true

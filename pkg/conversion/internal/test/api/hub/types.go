@@ -32,24 +32,34 @@ type A struct {
 }
 
 // GetObjectKind implements runtime.Object.
-func (a A) GetObjectKind() schema.ObjectKind {
+func (in A) GetObjectKind() schema.ObjectKind {
 	panic("implement me")
 }
 
 // DeepCopyObject implements runtime.Object.
-func (a A) DeepCopyObject() runtime.Object {
+func (in A) DeepCopyObject() runtime.Object {
 	panic("implement me")
+}
+
+// GetSource returns the Source for this object.
+func (in *A) GetSource() conversionmeta.SourceTypeMeta {
+	return in.Source
+}
+
+// SetSource sets Source for an API object.
+func (in *A) SetSource(source conversionmeta.SourceTypeMeta) {
+	in.Source = source
 }
 
 // AList test type.
 type AList struct{}
 
 // GetObjectKind implements runtime.Object.
-func (a AList) GetObjectKind() schema.ObjectKind {
+func (in AList) GetObjectKind() schema.ObjectKind {
 	panic("implement me")
 }
 
 // DeepCopyObject implements runtime.Object.
-func (a AList) DeepCopyObject() runtime.Object {
+func (in AList) DeepCopyObject() runtime.Object {
 	panic("implement me")
 }

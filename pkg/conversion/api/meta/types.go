@@ -17,13 +17,6 @@ limitations under the License.
 // Package meta defines metadata for the hub version of supervisor's API objects.
 package meta
 
-import (
-	"fmt"
-	"reflect"
-
-	"github.com/pkg/errors"
-)
-
 // SourceTypeMeta defines type meta of the source of this object.
 type SourceTypeMeta struct {
 	// APIVersion defines the versioned schema of this representation of an object.
@@ -34,85 +27,11 @@ type SourceTypeMeta struct {
 	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,2,opt,name=apiVersion"`
 }
 
-var (
-	fieldName = "Source"
-	fieldType = reflect.TypeOf(SourceTypeMeta{})
-)
+// Convertible defines a type with SourceTypeMeta.
+type Convertible interface {
+	// GetSource returns the Source for this object.
+	GetSource() SourceTypeMeta
 
-// HasSource return true if the object has a Source field with type SourceTypeMeta.
-func HasSource(obj any) bool {
-	if obj == nil {
-		return false
-	}
-
-	t := reflect.TypeOf(obj)
-	if t.Kind() != reflect.Ptr {
-		return false
-	}
-	t = t.Elem()
-
-	if t.Kind() != reflect.Struct {
-		return false
-	}
-
-	field, found := t.FieldByName(fieldName)
-	if !found {
-		return false
-	}
-
-	return field.Type == fieldType
-}
-
-// GetSource gets SourceTypeMeta value from the object Source field.
-func GetSource(obj any) (*SourceTypeMeta, error) {
-	field, err := getFieldVal(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	val := field.Interface().(SourceTypeMeta)
-	return &val, nil
-}
-
-// SetSource sets SourceTypeMeta value in the object Source field.
-func SetSource(obj any, source SourceTypeMeta) error {
-	field, err := getFieldVal(obj)
-	if err != nil {
-		return err
-	}
-
-	if !field.CanSet() {
-		return fmt.Errorf("cannot set field %s (it might be unexported)", fieldName)
-	}
-
-	val := reflect.ValueOf(source)
-	field.Set(val)
-	return nil
-}
-
-func getFieldVal(obj any) (*reflect.Value, error) {
-	if obj == nil {
-		return nil, errors.New("all objects must be pointers to structs, got nil")
-	}
-
-	v := reflect.ValueOf(obj)
-	if v.Kind() != reflect.Ptr {
-		return nil, errors.Errorf("all objects must be pointers to structs, got %s", v.Kind())
-	}
-	v = v.Elem()
-
-	if v.Kind() != reflect.Struct {
-		return nil, errors.Errorf("all objects must be pointers to structs, got *%s", v.Kind())
-	}
-
-	fieldVal := v.FieldByName(fieldName)
-	if !fieldVal.IsValid() {
-		return nil, errors.Errorf("field %s not found", fieldName)
-	}
-
-	if fieldVal.Type() != fieldType {
-		return nil, errors.Errorf("field %s is type %v, not %s.%s", fieldName, fieldVal.Type(), fieldType.PkgPath(), fieldType.Name())
-	}
-
-	return &fieldVal, nil
+	// SetSource sets Source for an API object.
+	SetSource(source SourceTypeMeta)
 }

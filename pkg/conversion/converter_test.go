@@ -17,6 +17,7 @@ limitations under the License.
 package conversion
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -38,7 +39,7 @@ import (
 var (
 	hubGroupVersion = schema.GroupVersion{Group: "vmoperator.vmware.com", Version: "hub"}
 
-	hubConverterBuilder = NewConverterBuilder(addConvertibleTypes)
+	hubConverterBuilder = NewConverterBuilder(hubGroupVersion, addConvertibleTypes)
 
 	addHubToConverter = hubConverterBuilder.AddToConverter
 
@@ -56,7 +57,7 @@ func init() {
 var (
 	v1alpha5GroupVersion = schema.GroupVersion{Group: "vmoperator.vmware.com", Version: "v1alpha5"}
 
-	v1alpha5ConverterBuilder = NewConverterBuilder()
+	v1alpha5ConverterBuilder = NewConverterBuilder(v1alpha5GroupVersion)
 
 	AddV1alpha5ToConverter = v1alpha5ConverterBuilder.AddToConverter
 )
@@ -67,9 +68,7 @@ var (
 
 func init() {
 	v1alpha5ConverterBuilder.AddConversion(
-		&hub.A{},
-		v1alpha5GroupVersion.Version, &v1alpha5.A{},
-		v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub,
+		NewAddConversionBuilder(v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub),
 	)
 }
 
@@ -79,32 +78,42 @@ type A struct {
 	Source conversionmeta.SourceTypeMeta
 }
 
-func (a A) GetObjectKind() schema.ObjectKind {
+func (in A) GetObjectKind() schema.ObjectKind {
 	panic("implement me")
 }
 
-func (a A) DeepCopyObject() runtime.Object {
+func (in A) DeepCopyObject() runtime.Object {
 	panic("implement me")
+}
+
+// GetSource returns the Source for this object.
+func (in *A) GetSource() conversionmeta.SourceTypeMeta {
+	return in.Source
+}
+
+// SetSource sets Source for an API object.
+func (in *A) SetSource(source conversionmeta.SourceTypeMeta) {
+	in.Source = source
 }
 
 type B struct {
 }
 
-func (b B) GetObjectKind() schema.ObjectKind {
+func (in B) GetObjectKind() schema.ObjectKind {
 	panic("implement me")
 }
 
-func (b B) DeepCopyObject() runtime.Object {
+func (in B) DeepCopyObject() runtime.Object {
 	panic("implement me")
 }
 
 type BList struct{}
 
-func (b BList) GetObjectKind() schema.ObjectKind {
+func (in BList) GetObjectKind() schema.ObjectKind {
 	panic("implement me")
 }
 
-func (b BList) DeepCopyObject() runtime.Object {
+func (in BList) DeepCopyObject() runtime.Object {
 	panic("implement me")
 }
 
@@ -129,7 +138,7 @@ func Test_converter_AddTypes(t *testing.T) {
 			wantGvk: hubGroupVersion.WithKind("AList"),
 		},
 		{
-			name:    "Fails for types without source field",
+			name:    "Fails for types which are not Convertible",
 			gv:      hubGroupVersion,
 			obj:     &B{},
 			wantErr: true,
@@ -213,14 +222,20 @@ func TestConverter_AddConversion(t *testing.T) {
 	c := NewConverter()
 	utilruntime.Must(addHubToConverter(c))
 
+	convertAFromHubToV1alpha5 := func(ctx context.Context, src runtime.Object, dst runtime.Object) error {
+		return v1alpha5.ConvertAFromHubToV1alpha5(ctx, src.(*hub.A), dst.(*v1alpha5.A))
+	}
+	convertAFromV1alpha5ToHub := func(ctx context.Context, src runtime.Object, dst runtime.Object) error {
+		return v1alpha5.ConvertAFromV1alpha5ToHub(ctx, src.(*v1alpha5.A), dst.(*hub.A))
+	}
 	tests := []struct {
 		name       string
 		gvSrc      schema.GroupVersion
 		src        runtime.Object
 		gvDst      schema.GroupVersion
 		dst        runtime.Object
-		srcToDst   any
-		dstToSrc   any
+		srcToDst   ConvertFunc
+		dstToSrc   ConvertFunc
 		wantSrcGvk schema.GroupVersionKind
 		wantDstGvk schema.GroupVersionKind
 		wantErr    bool
@@ -231,8 +246,8 @@ func TestConverter_AddConversion(t *testing.T) {
 			src:        &hub.A{},
 			gvDst:      v1alpha5GroupVersion,
 			dst:        &v1alpha5.A{},
-			srcToDst:   v1alpha5.ConvertAFromHubToV1alpha5,
-			dstToSrc:   v1alpha5.ConvertAFromV1alpha5ToHub,
+			srcToDst:   convertAFromHubToV1alpha5,
+			dstToSrc:   convertAFromV1alpha5ToHub,
 			wantSrcGvk: hubGroupVersion.WithKind("A"),
 			wantDstGvk: v1alpha5GroupVersion.WithKind("A"),
 		},
@@ -276,26 +291,6 @@ func TestConverter_AddConversion(t *testing.T) {
 			dst:     &B{},
 			wantErr: true,
 		},
-		{
-			name:     "Fails for invalid conversion func",
-			gvSrc:    hubGroupVersion,
-			src:      &hub.A{},
-			gvDst:    v1alpha5GroupVersion,
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A, _ *v1alpha5.A) {},
-			dstToSrc: func(_ *v1alpha5.A, _ *hub.A) error { return nil },
-			wantErr:  true,
-		},
-		{
-			name:     "Fails for invalid conversion func",
-			gvSrc:    hubGroupVersion,
-			src:      &hub.A{},
-			gvDst:    v1alpha5GroupVersion,
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A, _ *v1alpha5.A) error { return nil },
-			dstToSrc: func(_ *v1alpha5.A, _ *hub.A) {},
-			wantErr:  true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -330,10 +325,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddTypes(hubGroupVersion, &hub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 	})
 	t.Run("Fails when a gvk is registered twice for different types", func(t *testing.T) {
@@ -344,10 +339,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddTypes(hubGroupVersion, &hub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &A{}, v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
 		g.Expect(err).To(HaveOccurred())
 	})
 	t.Run("Fails when a type is registered twice for different gvk", func(t *testing.T) {
@@ -358,10 +353,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddTypes(hubGroupVersion, &hub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha2GroupVersion.Version, &v1alpha5.A{}, v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha2GroupVersion.Version, &v1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
 		g.Expect(err).To(HaveOccurred())
 	})
 	t.Run("Fails when the same conversion is registered twice but with a different conversion func", func(t *testing.T) {
@@ -372,10 +367,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddTypes(hubGroupVersion, &hub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, func(_ *hub.A, _ *v1alpha5.A) error { return nil }, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, func(_ context.Context, _ runtime.Object, _ runtime.Object) error { return nil }, convertAFromV1alpha5ToHub)
 		g.Expect(err).To(HaveOccurred())
 	})
 	t.Run("Fails when the same conversion is registered twice but with a different conversion func", func(t *testing.T) {
@@ -386,10 +381,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddTypes(hubGroupVersion, &hub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, v1alpha5.ConvertAFromHubToV1alpha5, v1alpha5.ConvertAFromV1alpha5ToHub)
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, v1alpha5.ConvertAFromHubToV1alpha5, func(_ *v1alpha5.A, _ *hub.A) error { return nil })
+		err = c.AddConversion(&hub.A{}, v1alpha5GroupVersion.Version, &v1alpha5.A{}, convertAFromHubToV1alpha5, func(_ context.Context, _ runtime.Object, _ runtime.Object) error { return nil })
 		g.Expect(err).To(HaveOccurred())
 	})
 }
@@ -454,9 +449,11 @@ func Test_converter_Convert(t *testing.T) {
 				_ = c.AddConversion(
 					&hub.A{},
 					v1alpha5GroupVersion.Version, &v1alpha5.A{},
-					func(_ *hub.A, _ *v1alpha5.A) error {
+					func(_ context.Context, _ runtime.Object, _ runtime.Object) error {
 						return errors.New("fail")
-					}, v1alpha5.ConvertAFromV1alpha5ToHub,
+					}, func(_ context.Context, _ runtime.Object, _ runtime.Object) error {
+						return nil
+					},
 				)
 				return c
 			}(),
@@ -497,7 +494,7 @@ func Test_converter_Convert(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.converter.Convert(tt.src, tt.dst)
+			err := tt.converter.Convert(context.TODO(), tt.src, tt.dst)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -683,100 +680,6 @@ func Test_converter_GroupVersionKindFor(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gvk).To(Equal(tt.wantGvk))
-		})
-	}
-}
-
-func Test_conversionFuncIsValid(t *testing.T) {
-	tests := []struct {
-		name     string
-		src      runtime.Object
-		dst      runtime.Object
-		srcToDst any
-		wantErr  bool
-	}{
-		{
-			name:     "valid conversion function",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A, _ *v1alpha5.A) error { return nil },
-		},
-		{
-			name:     "fails if conversion function is nil",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: nil,
-			wantErr:  true,
-		},
-		{
-			name:     "fails if conversion function with the wrong argument type",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ string, _ *v1alpha5.A) error { return nil },
-			wantErr:  true,
-		},
-		{
-			name:     "fails if conversion function with the wrong argument type",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A, _ string) error { return nil },
-			wantErr:  true,
-		},
-		{
-			name:     "fails if conversion function with no arguments",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func() error { return nil },
-			wantErr:  true,
-		},
-		{
-			name:     "fails if conversion function with less arguments than expected",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A) error { return nil },
-			wantErr:  true,
-		},
-		{
-			name:     "fails if conversion function with more arguments than expected",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A, _ *v1alpha5.A, _ string) error { return nil },
-			wantErr:  true,
-		},
-		{
-			name:     "fails if conversion function with the wrong return type",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A, _ *v1alpha5.A) string { return "" },
-			wantErr:  true,
-		},
-		{
-			name:     "fails if conversion function with more return types than expected",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A, _ *v1alpha5.A) (string, error) { return "", nil },
-			wantErr:  true,
-		},
-		{
-			name:     "fails if conversion function without return type",
-			src:      &hub.A{},
-			dst:      &v1alpha5.A{},
-			srcToDst: func(_ *hub.A, _ *v1alpha5.A) {},
-			wantErr:  true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			tSrc, _ := objType(tt.src)
-			tDst, _ := objType(tt.dst)
-			err := conversionFuncIsValid(tSrc, tDst, tt.srcToDst)
-			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
-				return
-			}
-			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

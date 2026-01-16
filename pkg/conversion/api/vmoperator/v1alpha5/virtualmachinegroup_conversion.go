@@ -17,13 +17,16 @@ limitations under the License.
 package v1alpha5
 
 import (
+	"context"
+
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
-func convert_v1alpha5_VirtualMachineGroup_To_hub_VirtualMachineGroup(src *vmoprv1alpha5.VirtualMachineGroup, dst *vmoprvhub.VirtualMachineGroup) error {
+func convert_v1alpha5_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.Context, src *vmoprv1alpha5.VirtualMachineGroup, dst *vmoprvhub.VirtualMachineGroup) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.BootOrder != nil {
@@ -66,7 +69,7 @@ func convert_v1alpha5_VirtualMachineGroup_To_hub_VirtualMachineGroup(src *vmoprv
 	return nil
 }
 
-func convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup(src *vmoprvhub.VirtualMachineGroup, dst *vmoprv1alpha5.VirtualMachineGroup) error {
+func convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup(_ context.Context, src *vmoprvhub.VirtualMachineGroup, dst *vmoprv1alpha5.VirtualMachineGroup) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.BootOrder != nil {
@@ -111,8 +114,6 @@ func convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup(src *vmoprv
 
 func init() {
 	converterBuilder.AddConversion(
-		&vmoprvhub.VirtualMachineGroup{},
-		vmoprv1alpha5.GroupVersion.Version, &vmoprv1alpha5.VirtualMachineGroup{},
-		convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup, convert_v1alpha5_VirtualMachineGroup_To_hub_VirtualMachineGroup,
+		conversion.NewAddConversionBuilder(convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup, convert_v1alpha5_VirtualMachineGroup_To_hub_VirtualMachineGroup),
 	)
 }

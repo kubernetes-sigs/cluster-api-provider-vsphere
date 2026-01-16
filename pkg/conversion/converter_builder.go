@@ -17,18 +17,23 @@ limitations under the License.
 package conversion
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // ConverterBuilder collects functions that add things to a converter. It's to allow
 // code to compile without explicitly referencing generated types.
-type ConverterBuilder []func(converter *Converter) error
+type ConverterBuilder struct {
+	funcs []func(converter *Converter) error
+	gv    schema.GroupVersion
+}
 
 // AddToConverter applies all the stored functions to the converter. A non-nil error
 // indicates that one function failed and the attempt was abandoned.
 func (sb *ConverterBuilder) AddToConverter(s *Converter) error {
-	for _, f := range *sb {
+	for _, f := range sb.funcs {
 		if err := f(s); err != nil {
 			return err
 		}
@@ -37,9 +42,9 @@ func (sb *ConverterBuilder) AddToConverter(s *Converter) error {
 }
 
 // AddTypes adds to the Converter types that require conversion.
-func (sb *ConverterBuilder) AddTypes(gv schema.GroupVersion, types ...runtime.Object) {
-	*sb = append(*sb, func(s *Converter) error {
-		return s.AddTypes(gv, types...)
+func (sb *ConverterBuilder) AddTypes(types ...runtime.Object) {
+	sb.funcs = append(sb.funcs, func(s *Converter) error {
+		return s.AddTypes(sb.gv, types...)
 	})
 }
 
@@ -48,24 +53,60 @@ func (sb *ConverterBuilder) AddTypes(gv schema.GroupVersion, types ...runtime.Ob
 //
 // converterBuilder.AddConversion(
 //
-//	&vmoprvhub.VirtualMachine{},
-//	vmoprv1alpha2.GroupVersion.Version, &vmoprv1alpha2.VirtualMachine{},
-//	convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine, convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine,
+//	conversion.NewAddConversionBuilder(convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine, convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine),
 //
 // )
 //
 // More examples can be found in pkg/conversion/api/vmoperator.
-func (sb *ConverterBuilder) AddConversion(hub runtime.Object, version string, spoke runtime.Object, srcToDst, dstToSrc any) {
-	*sb = append(*sb, func(s *Converter) error {
-		return s.AddConversion(hub, version, spoke, srcToDst, dstToSrc)
-	})
+func (sb *ConverterBuilder) AddConversion(builder AddConversionBuilder) {
+	sb.funcs = append(sb.funcs, builder.Build(sb.gv.Version))
 }
 
 // NewConverterBuilder returns a ConverterBuilder.
-func NewConverterBuilder(fs ...func(s *Converter) error) ConverterBuilder {
-	cb := ConverterBuilder{}
-	for _, f := range fs {
-		cb = append(cb, f)
+func NewConverterBuilder(gv schema.GroupVersion, fs ...func(s *Converter) error) ConverterBuilder {
+	cb := ConverterBuilder{
+		gv:    gv,
+		funcs: fs,
 	}
 	return cb
+}
+
+// AddConversionBuilder build a func that adds a conversion to a Converter.
+type AddConversionBuilder interface {
+	// Build a func that adds a conversion to a Converter.
+	Build(version string) func(converter *Converter) error
+}
+
+// NewAddConversionBuilder return a AddConversionBuilder.
+func NewAddConversionBuilder[hubObject, spokeObject runtime.Object](
+	convertHubToSpokeFunc func(ctx context.Context, src hubObject, dst spokeObject) error,
+	convertSpokeToHubFunc func(ctx context.Context, src spokeObject, dst hubObject) error,
+) AddConversionBuilder {
+	return &conversionBuilder[hubObject, spokeObject]{
+		convertHubToSpokeFunc: convertHubToSpokeFunc,
+		convertSpokeToHubFunc: convertSpokeToHubFunc,
+	}
+}
+
+type conversionBuilder[hubObject, spokeObject runtime.Object] struct {
+	convertHubToSpokeFunc func(ctx context.Context, src hubObject, dst spokeObject) error
+	convertSpokeToHubFunc func(ctx context.Context, src spokeObject, dst hubObject) error
+}
+
+// Build a func that adds a conversion to a Converter.
+func (c conversionBuilder[hubObject, spokeObject]) Build(version string) func(converter *Converter) error {
+	return func(converter *Converter) error {
+		convertHubToSpokeAnyFunc := func(ctx context.Context, hub runtime.Object, spoke runtime.Object) error {
+			return c.convertHubToSpokeFunc(ctx, hub.(hubObject), spoke.(spokeObject))
+		}
+		convertSpokeToHubAnyFunc := func(ctx context.Context, spoke runtime.Object, hub runtime.Object) error {
+			return c.convertSpokeToHubFunc(ctx, spoke.(spokeObject), hub.(hubObject))
+		}
+		return converter.AddConversion(createZero[hubObject](), version, createZero[spokeObject](), convertHubToSpokeAnyFunc, convertSpokeToHubAnyFunc)
+	}
+}
+
+func createZero[T runtime.Object]() T {
+	var val T
+	return val
 }

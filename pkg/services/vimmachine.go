@@ -229,7 +229,7 @@ func (v *VimMachineService) GetHostInfo(ctx context.Context, machineCtx capvcont
 		return "", err
 	}
 
-	if deprecatedv1beta1conditions.IsTrue(vsphereVM, infrav1.VMProvisionedCondition) {
+	if conditions.IsTrue(vsphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition) {
 		return vsphereVM.Status.Host, nil
 	}
 	log.V(4).Info("Returning empty host info as VMProvisioned condition is not set to true")

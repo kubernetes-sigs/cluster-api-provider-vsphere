@@ -29,7 +29,6 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -231,7 +230,7 @@ func (r vmReconciler) deleteIPAddressClaims(ctx context.Context, vmCtx *capvcont
 	for devIdx, device := range vmCtx.VSphereVM.Spec.Network.Devices {
 		for poolRefIdx := range device.AddressesFromPools {
 			// check if claim exists
-			ipAddrClaim := &ipamv1beta1.IPAddressClaim{}
+			ipAddrClaim := &ipamv1.IPAddressClaim{}
 			ipAddrClaimName := util.IPAddressClaimName(vmCtx.VSphereVM.Name, devIdx, poolRefIdx)
 			ipAddrClaimKey := client.ObjectKey{
 				Namespace: vmCtx.VSphereVM.Namespace,

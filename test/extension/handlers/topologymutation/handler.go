@@ -38,7 +38,7 @@ import (
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/clusterclass"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/kubevip"
 )
@@ -59,7 +59,7 @@ func NewExtensionHandlers() *ExtensionHandlers {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
-	_ = vmwarev1.AddToScheme(scheme)
+	_ = vmwarev1beta1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)
 	return &ExtensionHandlers{
@@ -67,7 +67,7 @@ func NewExtensionHandlers() *ExtensionHandlers {
 		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
 			infrav1.GroupVersion,
 			infrav1beta1.GroupVersion,
-			vmwarev1.GroupVersion,
+			vmwarev1beta1.GroupVersion,
 			controlplanev1.GroupVersion,
 			bootstrapv1.GroupVersion,
 		),
@@ -111,12 +111,12 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 					log.Error(err, "Error patching VSphereMachineTemplate")
 					return errors.Wrap(err, "error patching VSphereMachineTemplate")
 				}
-			case *vmwarev1.VSphereClusterTemplate:
+			case *vmwarev1beta1.VSphereClusterTemplate:
 				if err := patchSupervisorClusterTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching VSphereClusterTemplate")
 					return errors.Wrap(err, "error patching VSphereClusterTemplate")
 				}
-			case *vmwarev1.VSphereMachineTemplate:
+			case *vmwarev1beta1.VSphereMachineTemplate:
 				if err := patchSupervisorMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
 					log.Error(err, "Error patching VSphereMachineTemplate")
 					return errors.Wrap(err, "error patching VSphereMachineTemplate")
@@ -125,7 +125,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			return nil
 		},
 		// Use a merge-patch instead of a JSON patch because WalkTemplates would create
-		// an incompatible patch for vmwarev1.VSphereClusterTemplate because we provide
+		// an incompatible patch for vmwarev1beta1.VSphereClusterTemplate because we provide
 		// an empty template without a set `.spec` and due to omitempty
 		// `.spec.template.spec.controlPlaneEndpoint` does not exist.
 		topologymutation.PatchFormat{Format: runtimehooksv1.JSONMergePatchType},
@@ -302,7 +302,7 @@ func patchGovmomiClusterTemplate(_ context.Context, vsphereCluster runtime.Objec
 
 // patchSupervisorClusterTemplate patches the supervisor VSphereClusterTemplate.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchSupervisorClusterTemplate(_ context.Context, vsphereCluster *vmwarev1.VSphereClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchSupervisorClusterTemplate(_ context.Context, vsphereCluster *vmwarev1beta1.VSphereClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	// patch infraClusterSubstitutions
 	controlPlaneIPAddr, err := topologymutation.GetStringVariable(templateVariables, "controlPlaneIpAddr")
 	if err != nil {
@@ -339,7 +339,7 @@ func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate runti
 
 // patchSupervisorMachineTemplate patches the supervisor VSphereMachineTemplate.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchSupervisorMachineTemplate(_ context.Context, vsphereMachineTemplate *vmwarev1.VSphereMachineTemplate, templateVariables map[string]apiextensionsv1.JSON, isControlPlane bool) error {
+func patchSupervisorMachineTemplate(_ context.Context, vsphereMachineTemplate *vmwarev1beta1.VSphereMachineTemplate, templateVariables map[string]apiextensionsv1.JSON, isControlPlane bool) error {
 	// patch vSphereTemplate
 
 	var err error

@@ -37,91 +37,91 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:           "preferredAPIServerCIDR set on creation ",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "", "", "192.168.0.1/32", []string{}, nil, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "", "", "192.168.0.1/32", []string{}, nil, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "ProviderID set on creation",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "", someProviderID, "", []string{}, nil, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "", someProviderID, "", []string{}, nil, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "IPs are not in CIDR format",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "successful VSphereMachine creation",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete hardware version",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "incorrect hardware version",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-0", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-0", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "empty pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: ""}}, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: ""}}, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "incorrect pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1)}}, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1)}}, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "incorrect pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1)}}, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1)}}, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VendorID: ptr.To[int32](1)}}, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VendorID: ptr.To[int32](1)}}, infrav1.VSphereVMNamingStrategy{}),
 			wantErr:        true,
 		},
 		{
 			name:           "successful VSphereMachine creation with PCI device",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}, infrav1.VSphereVMNamingStrategy{}),
 		},
 		{
 			name:           "successful VSphereMachine creation with vgpu",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}, infrav1.VSphereVMNamingStrategy{}),
 		},
 		{
 			name:           "successful VSphereMachine creation with hardware version set and namingStrategy not set",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, nil),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, infrav1.VSphereVMNamingStrategy{}),
 		},
 		{
 			name:           "successful VSphereMachineTemplate creation with namingStrategy.Template not set",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: ""}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, infrav1.VSphereVMNamingStrategy{Template: ""}),
 		},
 		{
 			name:           "successful VSphereMachineTemplate creation with namingStrategy.template is set to the fallback value",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "{{ .machine.name }}"}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, infrav1.VSphereVMNamingStrategy{Template: "{{ .machine.name }}"}),
 		},
 		{
 			name:           "successful VSphereMachineTemplate creation with namingStrategy.template is set the Windows example",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, infrav1.VSphereVMNamingStrategy{Template: "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"}),
 		},
 		{
 			name:           "failed VSphereMachineTemplate creation with namingStrategy.template is set to an invalid template",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "{{ invalid"}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, infrav1.VSphereVMNamingStrategy{Template: "{{ invalid"}),
 			wantErr:        true,
 		},
 		{
 			name:           "failed VSphereMachineTemplate creation with namingStrategy.template  is set to a valid template that renders an invalid name",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "-{{ .machine.name }}"}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", "", "", []string{}, nil, infrav1.VSphereVMNamingStrategy{Template: "-{{ .machine.name }}"}),
 			wantErr:        true,
 		},
 	}
@@ -149,50 +149,50 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:              "ProviderID cannot be updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, nil),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", "", someProviderID, "", []string{"192.168.0.1/32"}, nil, nil),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "", someProviderID, "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "ip addresses cannot be updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, nil),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", "", someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, nil),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "", someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "server cannot be updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, nil),
-			vsphereMachine:    createVSphereMachineTemplate("baz.com", "", someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, nil),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
+			vsphereMachine:    createVSphereMachineTemplate("baz.com", "", someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "hardware version cannot be updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, nil),
-			vsphereMachine:    createVSphereMachineTemplate("baz.com", "vmx-17", "", "", []string{"192.168.0.1/32"}, nil, nil),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
+			vsphereMachine:    createVSphereMachineTemplate("baz.com", "vmx-17", "", "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "pci devices cannot be updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}, nil),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, []infrav1.PCIDeviceSpec{{VGPUProfile: "new-vgpu"}}, nil),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}, infrav1.VSphereVMNamingStrategy{}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, []infrav1.PCIDeviceSpec{{VGPUProfile: "new-vgpu"}}, infrav1.VSphereVMNamingStrategy{}),
 			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "with hardware version set and not updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, nil),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, nil),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
 			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           false, // explicitly calling out that this is a valid scenario.
 		},
 		{
 			name:              "naming strategy can not be updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, nil),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{}, nil, &infrav1.VSphereVMNamingStrategy{Template: "{{ .machine.name }}"}),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{"192.168.0.1/32"}, nil, infrav1.VSphereVMNamingStrategy{}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", "", "", []string{}, nil, infrav1.VSphereVMNamingStrategy{Template: "{{ .machine.name }}"}),
 			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
@@ -214,7 +214,7 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereMachineTemplate(server, hwVersion string, providerID string, preferredAPIServerCIDR string, ips []string, pciDevices []infrav1.PCIDeviceSpec, vmNamingStrategy *infrav1.VSphereVMNamingStrategy) *infrav1.VSphereMachineTemplate {
+func createVSphereMachineTemplate(server, hwVersion string, providerID string, preferredAPIServerCIDR string, ips []string, pciDevices []infrav1.PCIDeviceSpec, vmNamingStrategy infrav1.VSphereVMNamingStrategy) *infrav1.VSphereMachineTemplate {
 	vsphereMachineTemplate := &infrav1.VSphereMachineTemplate{
 		Spec: infrav1.VSphereMachineTemplateSpec{
 			Template: infrav1.VSphereMachineTemplateResource{

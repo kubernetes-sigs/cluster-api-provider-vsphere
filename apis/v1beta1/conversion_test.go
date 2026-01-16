@@ -265,6 +265,10 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 		in.NamingStrategy.Template = nil
 	}
 
+	if in.NamingStrategy != nil && reflect.DeepEqual(in.NamingStrategy, &VSphereVMNamingStrategy{}) {
+		in.NamingStrategy = nil
+	}
+
 	if in.GuestSoftPowerOffTimeout != nil {
 		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}

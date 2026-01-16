@@ -32,12 +32,13 @@ const (
 
 // VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate.
 type VSphereMachineTemplateSpec struct {
+	// template defines the desired state of VSphereMachineTemplate.
 	Template VSphereMachineTemplateResource `json:"template"`
 }
 
 // VSphereMachineTemplateStatus defines the observed state of VSphereMachineTemplate.
 type VSphereMachineTemplateStatus struct {
-	// Capacity defines the resource capacity for this VSphereMachineTemplate.
+	// capacity defines the resource capacity for this VSphereMachineTemplate.
 	// This value is used for autoscaling from zero operations as defined in:
 	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
 	// +optional
@@ -51,10 +52,16 @@ type VSphereMachineTemplateStatus struct {
 
 // VSphereMachineTemplate is the Schema for the vspheremachinetemplates API.
 type VSphereMachineTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VSphereMachineTemplateSpec   `json:"spec,omitempty"`
+	// spec is the desired state of VSphereMachineTemplate.
+	Spec VSphereMachineTemplateSpec `json:"spec,omitempty"`
+
+	// status is the observed state of VSphereMachineTemplate.
 	Status VSphereMachineTemplateStatus `json:"status,omitempty"`
 }
 

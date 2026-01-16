@@ -156,8 +156,10 @@ func (r *Network) IsDefined() bool {
 // VSphereClusterSpec defines the desired state of VSphereCluster.
 // +kubebuilder:validation:XValidation:rule="has(self.network) == has(oldSelf.network)",message="field 'network' cannot be added or removed after creation"
 type VSphereClusterSpec struct {
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
+
 	// network defines the network configuration for the cluster with different network providers.
 	// +optional
 	Network Network `json:"network,omitempty,omitzero"`
@@ -165,21 +167,21 @@ type VSphereClusterSpec struct {
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.
 type VSphereClusterStatus struct {
-	// Ready indicates the infrastructure required to deploy this cluster is
+	// ready indicates the infrastructure required to deploy this cluster is
 	// ready.
 	// +optional
 	Ready bool `json:"ready"`
 
-	// ResourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
+	// resourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
 	// the cluster, if one exists
 	// +optional
 	ResourcePolicyName string `json:"resourcePolicyName,omitempty"`
 
-	// Conditions defines current service state of the VSphereCluster.
+	// conditions defines current service state of the VSphereCluster.
 	// +optional
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
-	// FailureDomains is a list of failure domain objects synced from the
+	// failureDomains is a list of failure domain objects synced from the
 	// infrastructure provider.
 	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 
@@ -208,10 +210,16 @@ type VSphereClusterV1Beta2Status struct {
 
 // VSphereCluster is the Schema for the VSphereClusters API.
 type VSphereCluster struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VSphereClusterSpec   `json:"spec,omitempty"`
+	// spec is the desired state of VSphereCluster.
+	Spec VSphereClusterSpec `json:"spec,omitempty"`
+
+	// status is the observed state of VSphereCluster.
 	Status VSphereClusterStatus `json:"status,omitempty"`
 }
 

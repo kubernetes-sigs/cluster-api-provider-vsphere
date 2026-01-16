@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -109,7 +108,7 @@ const (
 	// the underlying VM and would require manual intervention to fix the situation.
 	//
 	// NOTE: This condition does not apply to VSphereMachine.
-	PCIDevicesDetachedCondition clusterv1beta1.ConditionType = "PCIDevicesDetached"
+	PCIDevicesDetachedCondition clusterv1.ConditionType = "PCIDevicesDetached"
 
 	// NotFoundReason (Severity=Warning) documents the VSphereVM not having the PCI device attached during VM startup.
 	// This would indicate that the PCI devices were removed out of band by an external entity.
@@ -231,7 +230,7 @@ const (
 const (
 	// GuestSoftPowerOffSucceededCondition documents the status of performing guest initiated
 	// graceful shutdown.
-	GuestSoftPowerOffSucceededCondition clusterv1beta1.ConditionType = "GuestSoftPowerOffSucceeded"
+	GuestSoftPowerOffSucceededCondition clusterv1.ConditionType = "GuestSoftPowerOffSucceeded"
 
 	// GuestSoftPowerOffInProgressReason (Severity=Info) documents that the guest receives
 	// a graceful shutdown request.

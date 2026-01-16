@@ -344,7 +344,6 @@ type VSphereVMStatus struct {
 	Deprecated *VSphereVMDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
-
 // VSphereVMDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereVMDeprecatedStatus struct {

@@ -18,7 +18,6 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/errors"
 )
@@ -184,6 +183,14 @@ type VSphereVMNamingStrategy struct {
 // VSphereMachineStatus defines the observed state of VSphereMachine.
 // +kubebuilder:validation:MinProperties=1
 type VSphereMachineStatus struct {
+	// conditions represents the observations of a VSphereMachine's current state.
+	// Known condition types are Ready, VirtualMachineProvisioned and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// initialization provides observations of the VSphereMachine initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
@@ -202,14 +209,6 @@ type VSphereMachineStatus struct {
 	// +kubebuilder:validation:MaxItems=128
 	Network []NetworkStatus `json:"network,omitempty"`
 
-	// conditions defines current service state of the VSphereMachine.
-	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *VSphereMachineV1Beta2Status `json:"v1beta2,omitempty"`
-
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *VSphereMachineDeprecatedStatus `json:"deprecated,omitempty"`
@@ -222,18 +221,6 @@ type VSphereMachineInitializationStatus struct {
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
 	// +optional
 	Provisioned *bool `json:"provisioned,omitempty"`
-}
-
-// VSphereMachineV1Beta2Status groups all the fields that will be added or modified in VSphereMachineStatus with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type VSphereMachineV1Beta2Status struct {
-	// conditions represents the observations of a VSphereMachine's current state.
-	// Known condition types are Ready, VirtualMachineProvisioned and Paused.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // VSphereMachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
@@ -250,6 +237,13 @@ type VSphereMachineDeprecatedStatus struct {
 // VSphereMachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereMachineV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the VSphereMachine.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
 	// failureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
@@ -324,30 +318,33 @@ type VSphereMachine struct {
 	Status VSphereMachineStatus `json:"status,omitempty,omitzero"`
 }
 
-// GetConditions returns the conditions for a VSphereMachine.
-func (m *VSphereMachine) GetConditions() clusterv1beta1.Conditions {
-	return m.Status.Conditions
-}
-
-// SetConditions sets the conditions on a VSphereMachine.
-func (m *VSphereMachine) SetConditions(conditions clusterv1beta1.Conditions) {
-	m.Status.Conditions = conditions
-}
-
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (m *VSphereMachine) GetV1Beta2Conditions() []metav1.Condition {
-	if m.Status.V1Beta2 == nil {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (c *VSphereMachine) GetV1Beta1Conditions() clusterv1.Conditions {
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
-	return m.Status.V1Beta2.Conditions
+	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (m *VSphereMachine) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if m.Status.V1Beta2 == nil {
-		m.Status.V1Beta2 = &VSphereMachineV1Beta2Status{}
+// SetV1Beta1Conditions sets the conditions on this object.
+func (c *VSphereMachine) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &VSphereMachineDeprecatedStatus{}
 	}
-	m.Status.V1Beta2.Conditions = conditions
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &VSphereMachineV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
+}
+
+// GetConditions returns the set of conditions for this object.
+func (c *VSphereMachine) GetConditions() []metav1.Condition {
+	return c.Status.Conditions
+}
+
+// SetConditions sets conditions for an API object.
+func (c *VSphereMachine) SetConditions(conditions []metav1.Condition) {
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

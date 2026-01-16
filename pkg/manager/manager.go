@@ -33,7 +33,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -76,7 +76,7 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 	utilruntime.Must(netopv1.AddToScheme(opts.Scheme))
 	utilruntime.Must(nsxvpcv1.AddToScheme(opts.Scheme))
 	utilruntime.Must(topologyv1.AddToScheme(opts.Scheme))
-	utilruntime.Must(ipamv1beta1.AddToScheme(opts.Scheme))
+	utilruntime.Must(ipamv1.AddToScheme(opts.Scheme))
 
 	// Build the controller manager.
 	mgr, err := ctrl.NewManager(opts.KubeConfig, opts.Options)

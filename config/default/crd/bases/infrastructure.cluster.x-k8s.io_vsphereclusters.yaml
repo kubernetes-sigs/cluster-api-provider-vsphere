@@ -344,9 +344,9 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
-    - description: Cluster infrastructure is ready for VSphereMachine
-      jsonPath: .status.ready
-      name: Ready
+    - description: VSphereCluster is provisioned
+      jsonPath: .status.initialization.provisioned
+      name: Provisioned
       type: string
     - description: Server is the address of the vSphere endpoint.
       jsonPath: .spec.server
@@ -357,7 +357,7 @@ spec:
       name: ControlPlaneEndpoint
       priority: 1
       type: string
-    - description: Time duration since creation of Machine
+    - description: Time duration since creation of VSphereCluster
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

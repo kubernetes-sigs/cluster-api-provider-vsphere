@@ -21,13 +21,14 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 )
 
 // RPService represents the ability to reconcile a VirtualMachineSetResourcePolicy via vmoperator.
@@ -45,8 +46,8 @@ func (s *RPService) ReconcileResourcePolicy(ctx context.Context, clusterCtx *vmw
 	return resourcePolicy.Name, nil
 }
 
-func (s *RPService) newVirtualMachineSetResourcePolicy(clusterCtx *vmware.ClusterContext) *vmoprv1.VirtualMachineSetResourcePolicy {
-	return &vmoprv1.VirtualMachineSetResourcePolicy{
+func (s *RPService) newVirtualMachineSetResourcePolicy(clusterCtx *vmware.ClusterContext) *vmoprvhub.VirtualMachineSetResourcePolicy {
+	return &vmoprvhub.VirtualMachineSetResourcePolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterCtx.Cluster.Namespace,
 			Name:      clusterCtx.Cluster.Name,
@@ -54,7 +55,7 @@ func (s *RPService) newVirtualMachineSetResourcePolicy(clusterCtx *vmware.Cluste
 	}
 }
 
-func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) (*vmoprv1.VirtualMachineSetResourcePolicy, error) {
+func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) (*vmoprvhub.VirtualMachineSetResourcePolicy, error) {
 	vmResourcePolicy := s.newVirtualMachineSetResourcePolicy(clusterCtx)
 
 	vmResourcePolicyExists := true
@@ -66,8 +67,8 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 	}
 	originalResourcePolicy := vmResourcePolicy.DeepCopy()
 
-	vmResourcePolicy.Spec = vmoprv1.VirtualMachineSetResourcePolicySpec{
-		ResourcePool: vmoprv1.ResourcePoolSpec{
+	vmResourcePolicy.Spec = vmoprvhub.VirtualMachineSetResourcePolicySpec{
+		ResourcePool: vmoprvhub.ResourcePoolSpec{
 			Name: clusterCtx.Cluster.Name,
 		},
 		Folder: clusterCtx.Cluster.Name,
@@ -97,9 +98,12 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 			return nil, err
 		}
 	} else if !reflect.DeepEqual(originalResourcePolicy, vmResourcePolicy) {
-		patch := client.MergeFrom(originalResourcePolicy)
+		patch, err := conversionclient.MergeFrom(ctx, s.Client, originalResourcePolicy)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create patch for VirtualMachineSetResourcePolicy object")
+		}
 		if err := s.Client.Patch(ctx, vmResourcePolicy, patch); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to patch VirtualMachineSetResourcePolicy object")
 		}
 	}
 

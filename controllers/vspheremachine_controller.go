@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -61,6 +60,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	inframanager "sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
@@ -103,6 +104,12 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		r.networkProvider = networkProvider
 		r.VMService = &vmoperator.VmopMachineService{Client: controllerManagerContext.Client, ConfigureControlPlaneVMReadinessProbe: r.networkProvider.SupportsVMReadinessProbe()}
 
+		// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
+		vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
+		if err != nil {
+			return errors.Wrap(err, "failed to create watch object for VirtualMachine")
+		}
+
 		return ctrl.NewControllerManagedBy(mgr).
 			// Watch the controlled, infrastructure resource.
 			For(&vmwarev1.VSphereMachine{}).
@@ -132,7 +139,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			).
 			WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerContext.WatchFilterValue)).
 			// Watch any VirtualMachine resources owned by this VSphereMachine
-			Owns(&vmoprv1.VirtualMachine{}).
+			Owns(vm).
 			Complete(r)
 	}
 
@@ -510,7 +517,7 @@ func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvc
 
 	networkModifier := func(obj runtime.Object) (runtime.Object, error) {
 		// No need to check the type. We know this will be a VirtualMachine
-		vm, _ := obj.(*vmoprv1.VirtualMachine)
+		vm, _ := obj.(*vmoprvhub.VirtualMachine)
 		log.V(3).Info("Applying network config to VM")
 		err := r.networkProvider.ConfigureVirtualMachine(ctx, supervisorMachineCtx.GetClusterContext(), supervisorMachineCtx.VSphereMachine, vm)
 		if err != nil {

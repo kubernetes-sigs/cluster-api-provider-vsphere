@@ -115,11 +115,6 @@ linters:
       text: "optionalfields: field (NumCPUs|NumCoresPerSocket) has a valid zero value"
       linters:
         - kubeapilinter
-    ## TODO: Discuss if we want to drop the default from PowerOffMode field (while avoiding rollouts)
-    - path: "apis/v1beta2/(vspheremachine_types.go|vspherevm_types.go)"
-      text: "forbiddenmarkers: field PowerOffMode has forbidden marker"
-      linters:
-        - kubeapilinter
 
 issues:
   max-same-issues: 0

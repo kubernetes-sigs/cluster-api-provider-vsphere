@@ -40,12 +40,32 @@ const machineTemplateImmutableMsg = "VSphereMachineTemplate spec.template.spec f
 // VSphereMachineTemplate implements a validation webhook for VSphereMachineTemplate.
 type VSphereMachineTemplate struct{}
 
+var _ admission.Defaulter[*infrav1.VSphereMachineTemplate] = &VSphereMachineTemplate{}
 var _ admission.Validator[*infrav1.VSphereMachineTemplate] = &VSphereMachineTemplate{}
 
 func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereMachineTemplate{}).
+		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
+}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
+func (webhook *VSphereMachineTemplate) Default(ctx context.Context, c *infrav1.VSphereMachineTemplate) error {
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected an admission.Request inside context: %v", err))
+	}
+
+	if topology.IsDryRunRequest(req, c) {
+		// In case of dry-run requests from the topology controller, apply defaults from older versions of CAPV
+		// so we do not trigger rollouts when dealing with objects created before dropping those defaults.
+		if c.Spec.Template.Spec.PowerOffMode == "" {
+			c.Spec.Template.Spec.PowerOffMode = infrav1.VirtualMachinePowerOpModeHard
+		}
+	}
+
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.

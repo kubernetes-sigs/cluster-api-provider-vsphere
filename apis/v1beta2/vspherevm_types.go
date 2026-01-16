@@ -209,7 +209,6 @@ type VSphereVMSpec struct {
 	// If omitted, the mode defaults to hard.
 	//
 	// +optional
-	// +kubebuilder:default=hard
 	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
 
 	// guestSoftPowerOffTimeoutSeconds sets the wait timeout for shutdown in the VM guest.

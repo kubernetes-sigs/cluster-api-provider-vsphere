@@ -76,7 +76,8 @@ func (vms *VMService) isSoftPowerOffTimeoutExceeded(vm *infrav1.VSphereVM) bool 
 // triggerSoftPowerOff tries to trigger a soft power off for a VM to shut down the guest.
 // It returns true if the soft power off operation is pending.
 func (vms *VMService) triggerSoftPowerOff(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {
-	if virtualMachineCtx.VSphereVM.Spec.PowerOffMode == infrav1.VirtualMachinePowerOpModeHard {
+	if virtualMachineCtx.VSphereVM.Spec.PowerOffMode == "" || // hard is default
+		virtualMachineCtx.VSphereVM.Spec.PowerOffMode == infrav1.VirtualMachinePowerOpModeHard {
 		// hard power off is expected.
 		return false, nil
 	}

@@ -252,6 +252,9 @@ type VirtualMachineSpec struct {
 	// will result in a validation error.
 	Reserved *VirtualMachineReservedSpec `json:"reserved,omitempty"`
 
+	// +optional
+	// +kubebuilder:validation:Minimum=13
+
 	// MinHardwareVersion describes the desired, minimum hardware version.
 	//
 	// The logic that determines the hardware version is as follows:
@@ -372,23 +375,23 @@ type VirtualMachine struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (in *VirtualMachine) GetConditions() []metav1.Condition {
-	return in.Status.Conditions
+func (vm VirtualMachine) GetConditions() []metav1.Condition {
+	return vm.Status.Conditions
 }
 
 // SetConditions sets conditions for an API object.
-func (in *VirtualMachine) SetConditions(conditions []metav1.Condition) {
-	in.Status.Conditions = conditions
+func (vm *VirtualMachine) SetConditions(conditions []metav1.Condition) {
+	vm.Status.Conditions = conditions
 }
 
 // GetSource returns the Source for this object.
-func (in *VirtualMachine) GetSource() conversionmeta.SourceTypeMeta {
-	return in.Source
+func (vm *VirtualMachine) GetSource() conversionmeta.SourceTypeMeta {
+	return vm.Source
 }
 
 // SetSource sets Source for an API object.
-func (in *VirtualMachine) SetSource(source conversionmeta.SourceTypeMeta) {
-	in.Source = source
+func (vm *VirtualMachine) SetSource(source conversionmeta.SourceTypeMeta) {
+	vm.Source = source
 }
 
 // +kubebuilder:object:root=true

@@ -24,7 +24,5 @@ limitations under the License.
 // Notably:
 // - CAPV hub types are a subset of vm-operator's types, with only the fields that are relevant for CAPV.
 //
-// +k8s:openapi-gen=true
 // +kubebuilder:object:generate=true
-// +groupName=infrastructure.cluster.x-k8s.io
 package hub

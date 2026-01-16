@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -31,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	corev1applyconfigurations "k8s.io/client-go/applyconfigurations/core/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -42,7 +43,6 @@ import (
 )
 
 var (
-	ctx       = context.TODO()
 	scheme    = runtime.NewScheme()
 	converter = conversion.NewConverter()
 )
@@ -104,7 +104,7 @@ func Test_conversionClient_Get(t *testing.T) {
 			},
 		},
 		{
-			name: "Get non convertible objects",
+			name: "Get non hub objects",
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -140,7 +140,7 @@ func Test_conversionClient_Get(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			gotObj := o.(client.Object)
-			err = c.Get(ctx, client.ObjectKeyFromObject(tt.obj), gotObj)
+			err = c.Get(t.Context(), client.ObjectKeyFromObject(tt.obj), gotObj)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			tt.wantObj.SetResourceVersion(gotObj.GetResourceVersion())
@@ -233,7 +233,7 @@ func Test_conversionClient_List(t *testing.T) {
 			},
 		},
 		{
-			name: "List non convertible objects",
+			name: "List non hub objects",
 			objs: []client.Object{
 				&corev1.Node{
 					ObjectMeta: metav1.ObjectMeta{
@@ -284,7 +284,7 @@ func Test_conversionClient_List(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			gotObjList := o.(client.ObjectList)
-			err = c.List(ctx, gotObjList)
+			err = c.List(t.Context(), gotObjList)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			gotItems, err := meta.ExtractList(gotObjList)
@@ -334,7 +334,7 @@ func Test_conversionClient_Create(t *testing.T) {
 			},
 		},
 		{
-			name: "Create non convertible objects",
+			name: "Create non hub objects",
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -373,6 +373,7 @@ func Test_conversionClient_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			ctx := t.Context()
 
 			converter.SetTargetVersion(tt.targetVersion)
 
@@ -444,7 +445,7 @@ func Test_conversionClient_Delete(t *testing.T) {
 			},
 		},
 		{
-			name: "Delete non convertible objects",
+			name: "Delete non hub objects",
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -484,6 +485,7 @@ func Test_conversionClient_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			ctx := t.Context()
 
 			converter.SetTargetVersion(tt.targetVersion)
 
@@ -532,10 +534,10 @@ func Test_conversionClient_Update(t *testing.T) {
 		name          string
 		targetVersion string
 		obj           client.Object
-		wantPanic     bool
+		wantErr       bool
 	}{
 		{
-			name: "Update non convertible objects",
+			name: "Update non hub objects",
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -544,7 +546,7 @@ func Test_conversionClient_Update(t *testing.T) {
 			},
 		},
 		{
-			name:          "Panics for convertible objects",
+			name:          "Return error for hub objects",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &vmoprvhub.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -552,13 +554,14 @@ func Test_conversionClient_Update(t *testing.T) {
 					Namespace: "test-ns",
 				},
 			},
-			wantPanic: true,
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			ctx := t.Context()
 
 			converter.SetTargetVersion(tt.targetVersion)
 
@@ -567,24 +570,12 @@ func Test_conversionClient_Update(t *testing.T) {
 				converter,
 			)
 			g.Expect(err).NotTo(HaveOccurred())
+
 			c := cc.(*conversionClient)
 
-			panicked := make(chan bool)
-			go func() {
-				defer func() {
-					if recover() != nil {
-						panicked <- true
-					}
-				}()
-				err = c.Update(ctx, tt.obj)
-				panicked <- false
-			}()
-			gotPanic := <-panicked
-			if tt.wantPanic != gotPanic {
-				t.Errorf("Expected panic %t but got %t", tt.wantPanic, gotPanic)
-			}
-			if tt.wantPanic {
-				g.Expect(err).ToNot(HaveOccurred())
+			err = c.Update(ctx, tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -637,7 +628,7 @@ func Test_conversionClient_Patch(t *testing.T) {
 			},
 		},
 		{
-			name:          "Patch non convertible objects",
+			name:          "Patch non hub objects",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -647,7 +638,7 @@ func Test_conversionClient_Patch(t *testing.T) {
 			},
 			modifyFunc: func(o client.Object) client.Object {
 				n := o.(*corev1.Node)
-				n.Spec.ProviderID = "fpp"
+				n.Spec.ProviderID = "foo"
 				return n
 			},
 		},
@@ -698,6 +689,7 @@ func Test_conversionClient_Patch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			ctx := t.Context()
 
 			converter.SetTargetVersion(tt.targetVersion)
 
@@ -724,7 +716,7 @@ func Test_conversionClient_Patch(t *testing.T) {
 			objModified := tt.modifyFunc(tt.obj)
 
 			patch := client.MergeFrom(tt.obj)
-			if c.converter.IsConvertible(tt.obj) {
+			if c.converter.IsHub(tt.obj) {
 				patch, err = MergeFrom(ctx, c, tt.obj)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
@@ -752,6 +744,7 @@ func Test_conversionClient_Patch(t *testing.T) {
 
 	t.Run("Fails with wrong patch type", func(t *testing.T) {
 		g := NewWithT(t)
+		ctx := t.Context()
 
 		converter.SetTargetVersion(vmoprv1alpha5.GroupVersion.Version)
 
@@ -775,10 +768,10 @@ func Test_conversionClient_DeleteAllOf(t *testing.T) {
 		name          string
 		targetVersion string
 		obj           client.Object
-		wantPanic     bool
+		wantErr       bool
 	}{
 		{
-			name: "Delete non convertible objects",
+			name: "Delete non hub objects",
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -787,7 +780,7 @@ func Test_conversionClient_DeleteAllOf(t *testing.T) {
 			},
 		},
 		{
-			name:          "Panics for convertible objects",
+			name:          "Return error for hub objects",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &vmoprvhub.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -795,13 +788,14 @@ func Test_conversionClient_DeleteAllOf(t *testing.T) {
 					Namespace: "test-ns",
 				},
 			},
-			wantPanic: true,
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			ctx := t.Context()
 
 			converter.SetTargetVersion(tt.targetVersion)
 
@@ -812,21 +806,49 @@ func Test_conversionClient_DeleteAllOf(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
 
-			panicked := make(chan bool)
-			go func() {
-				defer func() {
-					if recover() != nil {
-						panicked <- true
-					}
-				}()
-				err = c.DeleteAllOf(ctx, tt.obj)
-				panicked <- false
-			}()
-			gotPanic := <-panicked
-			if tt.wantPanic != gotPanic {
-				t.Errorf("Expected panic %t but got %t", tt.wantPanic, gotPanic)
+			err = c.DeleteAllOf(ctx, tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func Test_conversionClient_Apply(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           runtime.ApplyConfiguration
+		wantErr       bool
+	}{
+		{
+			name: "Apply non hub objects",
+			obj:  corev1applyconfigurations.Node("test-vm").WithLabels(map[string]string{"foo": "bar"}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := t.Context()
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter,
+			)
 			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			err = c.Apply(ctx, tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err.Error()).To(ContainSubstring("invalid: fieldManager: Required value: is required for apply patch"))
 		})
 	}
 }
@@ -878,7 +900,7 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:          "Patch status for non convertible objects",
+			name:          "Patch status for non hub objects",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -888,7 +910,7 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 			},
 			modifyFunc: func(o client.Object) client.Object {
 				n := o.(*corev1.Node)
-				n.Spec.ProviderID = "fpp"
+				n.Status.DeclaredFeatures = []string{"foo"}
 				return n
 			},
 		},
@@ -939,6 +961,7 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			ctx := t.Context()
 
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&vmoprvhub.VirtualMachine{}, &vmoprv1alpha2.VirtualMachine{}, &vmoprv1alpha5.VirtualMachine{}).Build(),
@@ -965,7 +988,7 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 			objModified := tt.modifyFunc(tt.obj)
 
 			patch := client.MergeFrom(tt.obj)
-			if c.converter.IsConvertible(tt.obj) {
+			if c.converter.IsHub(tt.obj) {
 				patch, err = MergeFrom(ctx, c, tt.obj)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
@@ -992,6 +1015,43 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 	}
 }
 
+func Test_conversionClient_ApplyStatus(t *testing.T) {
+	tests := []struct {
+		name          string
+		targetVersion string
+		obj           runtime.ApplyConfiguration
+		wantErr       bool
+	}{
+		{
+			name: "Apply non hub objects",
+			obj:  corev1applyconfigurations.Node("test-vm").WithStatus(&corev1applyconfigurations.NodeStatusApplyConfiguration{Phase: ptr.To(corev1.NodeRunning)}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := t.Context()
+
+			converter.SetTargetVersion(tt.targetVersion)
+
+			cc, err := NewWithConverter(
+				fake.NewClientBuilder().WithScheme(scheme).Build(),
+				converter,
+			)
+			g.Expect(err).NotTo(HaveOccurred())
+			c := cc.(*conversionClient)
+
+			err = c.Status().Apply(ctx, tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err.Error()).To(ContainSubstring("invalid: fieldManager: Required value: is required for apply patch"))
+		})
+	}
+}
+
 func Test_newTargetVersionObjectFor(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -1013,7 +1073,7 @@ func Test_newTargetVersionObjectFor(t *testing.T) {
 			wantObj:       &vmoprv1alpha5.VirtualMachine{},
 		},
 		{
-			name:    "Fails for non convertible objects",
+			name:    "Fails for non hub types",
 			obj:     &corev1.Node{},
 			wantErr: true,
 		},
@@ -1031,7 +1091,7 @@ func Test_newTargetVersionObjectFor(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
 
-			gotObj, err := c.newTargetVersionObjectFor(tt.obj)
+			gotObj, err := c.newSpokeObjectFor(tt.obj)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(gotObj).To(BeNil())
@@ -1064,7 +1124,7 @@ func Test_newTargetVersionObjectListFor(t *testing.T) {
 			wantObj:       &vmoprv1alpha5.VirtualMachineList{},
 		},
 		{
-			name:    "Fails for non convertible objects",
+			name:    "Fails for non hub types",
 			obj:     &corev1.NodeList{},
 			wantErr: true,
 		},
@@ -1082,7 +1142,7 @@ func Test_newTargetVersionObjectListFor(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
 
-			gotObj, err := c.newTargetVersionObjectListFor(tt.obj)
+			gotObj, err := c.newSpokeObjectListFor(tt.obj)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(gotObj).To(BeNil())
@@ -1116,7 +1176,7 @@ func Test_newObjectListItemFor(t *testing.T) {
 			wantObj: &vmoprv1alpha5.VirtualMachine{},
 		},
 		{
-			name:    "Create object list item for non convertible objects",
+			name:    "Create object list item for non hub types",
 			obj:     &corev1.NodeList{},
 			wantObj: &corev1.Node{},
 		},

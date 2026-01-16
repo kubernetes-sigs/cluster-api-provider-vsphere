@@ -26,14 +26,15 @@ import (
 )
 
 // MergeFromWithOptions creates a Patch that patches using the merge-patch strategy with the given object as base.
-// See MergeFrom for more details.
+// When required, the generated patch performs conversion for both/one of the original or the target object.
+// Note: obj must be an hub type.
 func MergeFromWithOptions(ctx context.Context, c client.Client, obj client.Object, opts ...client.MergeFromOption) (client.Patch, error) {
 	cc, ok := c.(*conversionClient)
 	if !ok {
 		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
 	}
 
-	_, err := cc.converter.TargetGroupVersionKindFor(obj)
+	_, err := cc.converter.SpokeGroupVersionKindFor(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -53,22 +54,9 @@ func MergeFromWithOptions(ctx context.Context, c client.Client, obj client.Objec
 
 // MergeFrom creates a Patch that patches using the merge-patch strategy with the given object as base.
 // When required, the generated patch performs conversion for both/one of the original or the target object.
+// Note: obj must be an hub type.
 func MergeFrom(ctx context.Context, c client.Client, obj client.Object) (client.Patch, error) {
-	cc, ok := c.(*conversionClient)
-	if !ok {
-		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
-	}
-
-	_, err := cc.converter.TargetGroupVersionKindFor(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	return &conversionMergePatch{
-		conversionCtx: ctx,
-		from:          obj,
-		client:        cc,
-	}, nil
+	return MergeFromWithOptions(ctx, c, obj)
 }
 
 type conversionMergePatch struct {
@@ -79,7 +67,7 @@ type conversionMergePatch struct {
 	options []client.MergeFromOption
 }
 
-// conversionClient must implement client.Patch.
+// conversionMergePatch must implement client.Patch.
 var _ client.Patch = &conversionMergePatch{}
 
 // Type is the PatchType of the patch.
@@ -90,7 +78,7 @@ func (p *conversionMergePatch) Type() types.PatchType {
 // Data is the raw data representing the patch.
 // Note: obj can be either an object to be converted or an object already converted.
 func (p *conversionMergePatch) Data(obj client.Object) ([]byte, error) {
-	fromObj, err := p.client.newTargetVersionObjectFor(p.from)
+	fromObj, err := p.client.newSpokeObjectFor(p.from)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +87,8 @@ func (p *conversionMergePatch) Data(obj client.Object) ([]byte, error) {
 	}
 
 	toObj := obj
-	if p.client.converter.IsConvertible(obj) {
-		toObj, err = p.client.newTargetVersionObjectFor(obj)
+	if p.client.converter.IsHub(obj) {
+		toObj, err = p.client.newSpokeObjectFor(obj)
 		if err != nil {
 			return nil, err
 		}

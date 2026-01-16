@@ -44,7 +44,7 @@ func (sb *ConverterBuilder) AddToConverter(s *Converter) error {
 // AddTypes adds to the Converter types that require conversion.
 func (sb *ConverterBuilder) AddTypes(types ...runtime.Object) {
 	sb.funcs = append(sb.funcs, func(s *Converter) error {
-		return s.AddTypes(sb.gv, types...)
+		return s.AddHubTypes(sb.gv, types...)
 	})
 }
 
@@ -78,31 +78,34 @@ type AddConversionBuilder interface {
 }
 
 // NewAddConversionBuilder return a AddConversionBuilder.
-func NewAddConversionBuilder[hubObject, spokeObject runtime.Object](
-	convertHubToSpokeFunc func(ctx context.Context, src hubObject, dst spokeObject) error,
-	convertSpokeToHubFunc func(ctx context.Context, src spokeObject, dst hubObject) error,
+func NewAddConversionBuilder[hubT, spokeT runtime.Object](
+	hubToSpokeFunc func(ctx context.Context, hub hubT, spoke spokeT) error,
+	spokeToHubFunc func(ctx context.Context, spoke spokeT, hub hubT) error,
 ) AddConversionBuilder {
-	return &conversionBuilder[hubObject, spokeObject]{
-		convertHubToSpokeFunc: convertHubToSpokeFunc,
-		convertSpokeToHubFunc: convertSpokeToHubFunc,
+	return &conversionBuilder[hubT, spokeT]{
+		hubToSpokeFunc: hubToSpokeFunc,
+		spokeToHubFunc: spokeToHubFunc,
 	}
 }
 
-type conversionBuilder[hubObject, spokeObject runtime.Object] struct {
-	convertHubToSpokeFunc func(ctx context.Context, src hubObject, dst spokeObject) error
-	convertSpokeToHubFunc func(ctx context.Context, src spokeObject, dst hubObject) error
+type conversionBuilder[hubT, spokeT runtime.Object] struct {
+	hubToSpokeFunc func(ctx context.Context, hub hubT, spoke spokeT) error
+	spokeToHubFunc func(ctx context.Context, spoke spokeT, hub hubT) error
 }
 
 // Build a func that adds a conversion to a Converter.
 func (c conversionBuilder[hubObject, spokeObject]) Build(version string) func(converter *Converter) error {
 	return func(converter *Converter) error {
-		convertHubToSpokeAnyFunc := func(ctx context.Context, hub runtime.Object, spoke runtime.Object) error {
-			return c.convertHubToSpokeFunc(ctx, hub.(hubObject), spoke.(spokeObject))
-		}
-		convertSpokeToHubAnyFunc := func(ctx context.Context, spoke runtime.Object, hub runtime.Object) error {
-			return c.convertSpokeToHubFunc(ctx, spoke.(spokeObject), hub.(hubObject))
-		}
-		return converter.AddConversion(createZero[hubObject](), version, createZero[spokeObject](), convertHubToSpokeAnyFunc, convertSpokeToHubAnyFunc)
+		return converter.AddConversion(
+			createZero[hubObject](),
+			version, createZero[spokeObject](),
+			func(ctx context.Context, hub runtime.Object, spoke runtime.Object) error {
+				return c.hubToSpokeFunc(ctx, hub.(hubObject), spoke.(spokeObject))
+			},
+			func(ctx context.Context, spoke runtime.Object, hub runtime.Object) error {
+				return c.spokeToHubFunc(ctx, spoke.(spokeObject), hub.(hubObject))
+			},
+		)
 	}
 }
 

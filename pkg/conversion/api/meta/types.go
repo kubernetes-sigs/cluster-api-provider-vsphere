@@ -19,10 +19,7 @@ package meta
 
 // SourceTypeMeta defines type meta of the source of this object.
 type SourceTypeMeta struct {
-	// APIVersion defines the versioned schema of this representation of an object.
-	// Servers should convert recognized schemas to the latest internal value, and
-	// may reject unrecognized values.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+	// APIVersion defines the versioned schema of the source for this object.
 	// +optional
 	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,2,opt,name=apiVersion"`
 }

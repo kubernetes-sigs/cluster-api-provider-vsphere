@@ -67,8 +67,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
-	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
@@ -337,7 +337,7 @@ func main() {
 	var vm runtime.Object
 	if isSupervisorCRDLoaded {
 		// Get vm-operator native types in the preferred version for cache filters.
-		vmGVK, err := conversionclient.DefaultConverter.TargetGroupVersionKindFor(&vmoprvhub.VirtualMachine{})
+		vmGVK, err := conversionapi.DefaultConverter.SpokeGroupVersionKindFor(&vmoprvhub.VirtualMachine{})
 		if err != nil {
 			setupLog.Error(err, "Unable to start manager; failed to get object for VirtualMachine cache filter")
 			os.Exit(1)

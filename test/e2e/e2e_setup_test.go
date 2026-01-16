@@ -36,6 +36,7 @@ import (
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
 	vspherevcsim "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vcsim"
@@ -375,7 +376,10 @@ func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framew
 }
 
 func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
-	c, err := conversionclient.New(managementClusterProxy.GetClient())
+	c, err := conversionclient.NewWithConverter(
+		managementClusterProxy.GetClient(),
+		conversionapi.DefaultConverter,
+	)
 	Expect(err).NotTo(HaveOccurred())
 
 	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcsim"))

@@ -21,18 +21,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// WatchObject creates an object to be used for building controller watches.
-// The generated object is the converted version of the input object.
+// WatchObject creates a spoke object to be used for building controller watches for the corresponding hub type.
 func WatchObject(c client.Client, obj client.Object) (client.Object, error) {
 	cc, ok := c.(*conversionClient)
 	if !ok {
 		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
 	}
 
-	_, err := cc.converter.TargetGroupVersionKindFor(obj)
+	_, err := cc.converter.SpokeGroupVersionKindFor(obj)
 	if err != nil {
 		return nil, err
 	}
 
-	return cc.newTargetVersionObjectFor(obj)
+	return cc.newSpokeObjectFor(obj)
 }

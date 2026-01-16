@@ -18,6 +18,7 @@ package hub
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	conversionmeta "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta"
 )
@@ -47,7 +48,6 @@ type GroupMember struct {
 // VirtualMachineGroupBootOrderGroup describes a boot order group within a
 // VirtualMachineGroup.
 type VirtualMachineGroupBootOrderGroup struct {
-
 	// +optional
 	// +listType=map
 	// +listMapKey=kind
@@ -57,6 +57,15 @@ type VirtualMachineGroupBootOrderGroup struct {
 	// objects that are members of this boot order group. The VM or VM Group
 	// objects must be in the same namespace as this group.
 	Members []GroupMember `json:"members,omitempty"`
+
+	// +optional
+
+	// PowerOnDelay is the amount of time to wait before powering on all the
+	// members of this boot order group.
+	//
+	// If omitted, the members will be powered on immediately when the group's
+	// power state changes to PoweredOn.
+	PowerOnDelay *metav1.Duration `json:"powerOnDelay,omitempty"`
 }
 
 // VirtualMachineGroupSpec defines the desired state of VirtualMachineGroup.
@@ -73,12 +82,53 @@ type VirtualMachineGroupSpec struct {
 	BootOrder []VirtualMachineGroupBootOrderGroup `json:"bootOrder,omitempty"`
 }
 
+// VirtualMachineGroupPlacementDatastoreStatus describes the placement datastores for this member.
+type VirtualMachineGroupPlacementDatastoreStatus struct {
+	// Name describes the name of a datastore.
+	Name string `json:"name"`
+
+	// ID describes the datastore ID.
+	ID string `json:"id,omitempty"`
+
+	// URL describes the datastore URL.
+	URL string `json:"url,omitempty"`
+
+	// +optional
+
+	// SupportedDiskFormat describes the list of disk formats supported by this
+	// datastore.
+	SupportedDiskFormats []string `json:"supportedDiskFormats,omitempty"`
+
+	// +optional
+
+	// DiskKey describes the device key to which this recommendation applies.
+	// When omitted, this recommendation is for the VM's home directory.
+	DiskKey *int32 `json:"diskKey,omitempty"`
+}
+
 // VirtualMachinePlacementStatus describes the placement results for this member.
 type VirtualMachinePlacementStatus struct {
 	// +optional
 
 	// Zone describes the recommended zone for this VM.
 	Zone string `json:"zoneID,omitempty"`
+
+	// +optional
+
+	// Node describes the recommended node for this VM.
+	Node string `json:"node,omitempty"`
+
+	// +optional
+
+	// Pool describes the recommended resource pool for this VM.
+	Pool string `json:"pool,omitempty"`
+
+	// +optional
+
+	// Datastores describe the recommended datastores for this VM.
+	// This includes the recommendations for each of the VM's disks
+	// and files.
+	Datastores []VirtualMachineGroupPlacementDatastoreStatus `json:"datastores,omitempty"`
 }
 
 // VirtualMachineGroupMemberStatus describes the observed status of a group
@@ -87,12 +137,30 @@ type VirtualMachineGroupMemberStatus struct {
 	// Name is the name of this member.
 	Name string `json:"name"`
 
+	// +kubebuilder:validation:Enum=VirtualMachine;VirtualMachineGroup
+
+	// Kind is the kind of this member, which can be either VirtualMachine or
+	// VirtualMachineGroup.
+	Kind string `json:"kind"`
+
+	// +optional
+
+	// UID is the K8s metadata UID of this current member object.
+	UID types.UID `json:"uid,omitempty"`
+
 	// +optional
 
 	// Placement describes the placement results for this member.
 	//
 	// Please note this field is only set for VirtualMachine members.
 	Placement *VirtualMachinePlacementStatus `json:"placement,omitempty"`
+
+	// +optional
+
+	// PowerState describes the observed power state of this member.
+	//
+	// Please note this field is only set for VirtualMachine members.
+	PowerState *VirtualMachinePowerState `json:"powerState,omitempty"`
 
 	// +optional
 
@@ -138,24 +206,24 @@ type VirtualMachineGroup struct {
 	Source conversionmeta.SourceTypeMeta `json:"source,omitempty,omitzero"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (in *VirtualMachineGroupMemberStatus) GetConditions() []metav1.Condition {
-	return in.Conditions
-}
-
-// SetConditions sets conditions for an API object.
-func (in *VirtualMachineGroupMemberStatus) SetConditions(conditions []metav1.Condition) {
-	in.Conditions = conditions
-}
-
 // GetSource returns the Source for this object.
-func (in *VirtualMachineGroup) GetSource() conversionmeta.SourceTypeMeta {
-	return in.Source
+func (vmg *VirtualMachineGroup) GetSource() conversionmeta.SourceTypeMeta {
+	return vmg.Source
 }
 
 // SetSource sets Source for an API object.
-func (in *VirtualMachineGroup) SetSource(source conversionmeta.SourceTypeMeta) {
-	in.Source = source
+func (vmg *VirtualMachineGroup) SetSource(source conversionmeta.SourceTypeMeta) {
+	vmg.Source = source
+}
+
+// GetConditions returns the set of conditions for this object.
+func (m VirtualMachineGroupMemberStatus) GetConditions() []metav1.Condition {
+	return m.Conditions
+}
+
+// SetConditions sets conditions for an API object.
+func (m *VirtualMachineGroupMemberStatus) SetConditions(conditions []metav1.Condition) {
+	m.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

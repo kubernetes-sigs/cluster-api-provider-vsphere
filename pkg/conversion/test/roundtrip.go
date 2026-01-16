@@ -18,10 +18,10 @@ limitations under the License.
 package test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,6 +52,8 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 		t.Run("hub-spoke-hub", func(t *testing.T) {
+			g := gomega.NewWithT(t)
+
 			if _, isConvertible := input.Hub.(conversionmeta.Convertible); !isConvertible {
 				t.Fatal("Hub type must implement sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta/Convertible")
 			}
@@ -79,25 +81,20 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 
 				// First convert hub to spoke
 				spoke := input.Spoke.DeepCopyObject()
-				if err := input.Converter.Convert(context.TODO(), hubBefore, spoke); err != nil {
-					t.Fatalf("error calling Convert from hub to spoke: %v", err)
-				}
+				g.Expect(input.Converter.Convert(t.Context(), hubBefore, spoke)).To(gomega.Succeed(), "error calling Convert from hub to spoke")
 
 				// Convert spoke back to hub and check if the resulting hub is equal to the hub before the round trip
 				hubAfter := input.Hub.DeepCopyObject()
-				if err := input.Converter.Convert(context.TODO(), spoke, hubAfter); err != nil {
-					t.Fatalf("error calling Convert from spoke to hub: %v", err)
-				}
+				g.Expect(input.Converter.Convert(t.Context(), spoke, hubAfter)).To(gomega.Succeed(), "error calling Convert from spoke to hub: %v")
 
 				convertibleAfter, _ := hubAfter.(conversionmeta.Convertible)
-				if convertibleAfter.GetSource().APIVersion != spokeGVK.GroupVersion().String() {
-					t.Fatal("Convert is expected to set Convertible.APIVersion")
-				}
+				g.Expect(convertibleAfter.GetSource().APIVersion).To(gomega.Equal(spokeGVK.GroupVersion().String()), "Convert is expected to set Convertible.APIVersion")
+
 				convertibleAfter.SetSource(conversionmeta.SourceTypeMeta{})
 
 				if !apiequality.Semantic.DeepEqual(hubBefore, hubAfter) {
 					diff := cmp.Diff(hubBefore, hubAfter)
-					t.Fatal(diff)
+					g.Expect(false).To(gomega.BeTrue(), diff)
 				}
 			}
 		})

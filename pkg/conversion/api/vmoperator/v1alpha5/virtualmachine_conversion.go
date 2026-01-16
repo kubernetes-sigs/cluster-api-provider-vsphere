@@ -88,6 +88,9 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 			dst.Spec.Network.Interfaces = []vmoprvhub.VirtualMachineNetworkInterfaceSpec{}
 			for _, iface := range src.Spec.Network.Interfaces {
 				d := vmoprvhub.VirtualMachineNetworkInterfaceSpec{}
+				d.Addresses = iface.Addresses
+				d.DHCP4 = iface.DHCP4
+				d.DHCP6 = iface.DHCP6
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
 				if iface.MTU != nil {
@@ -102,16 +105,21 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 						Name: iface.Network.Name,
 					}
 				}
+				d.GuestDeviceName = iface.GuestDeviceName
 				d.Name = iface.Name
+				d.Nameservers = iface.Nameservers
+				d.MACAddr = iface.MACAddr
 				if iface.Routes != nil {
 					d.Routes = []vmoprvhub.VirtualMachineNetworkRouteSpec{}
 					for _, route := range iface.Routes {
 						d.Routes = append(d.Routes, vmoprvhub.VirtualMachineNetworkRouteSpec{
-							To:  route.To,
-							Via: route.Via,
+							To:     route.To,
+							Via:    route.Via,
+							Metric: route.Metric,
 						})
 					}
 				}
+				d.SearchDomains = iface.SearchDomains
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
 		}
@@ -146,6 +154,29 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 						ReadOnly:  volume.PersistentVolumeClaim.ReadOnly,
 					},
 				}
+				v.PersistentVolumeClaim.ApplicationType = vmoprvhub.VolumeApplicationType(volume.PersistentVolumeClaim.ApplicationType)
+				if volume.PersistentVolumeClaim.ControllerBusNumber != nil {
+					v.PersistentVolumeClaim.ControllerBusNumber = ptr.To(*volume.PersistentVolumeClaim.ControllerBusNumber)
+				}
+				v.PersistentVolumeClaim.ControllerType = vmoprvhub.VirtualControllerType(volume.PersistentVolumeClaim.ControllerType)
+				v.PersistentVolumeClaim.DiskMode = vmoprvhub.VolumeDiskMode(volume.PersistentVolumeClaim.DiskMode)
+				if volume.PersistentVolumeClaim.InstanceVolumeClaim != nil {
+					v.PersistentVolumeClaim.InstanceVolumeClaim = &vmoprvhub.InstanceVolumeClaimVolumeSource{
+						StorageClass: volume.PersistentVolumeClaim.InstanceVolumeClaim.StorageClass,
+						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
+					}
+				}
+				v.PersistentVolumeClaim.SharingMode = vmoprvhub.VolumeSharingMode(volume.PersistentVolumeClaim.SharingMode)
+				if volume.PersistentVolumeClaim.UnitNumber != nil {
+					v.PersistentVolumeClaim.UnitNumber = ptr.To(*volume.PersistentVolumeClaim.UnitNumber)
+				}
+				if volume.PersistentVolumeClaim.UnmanagedVolumeClaim != nil {
+					v.PersistentVolumeClaim.UnmanagedVolumeClaim = &vmoprvhub.UnmanagedVolumeClaimVolumeSource{
+						Type: vmoprvhub.UnmanagedVolumeClaimVolumeType(volume.PersistentVolumeClaim.UnmanagedVolumeClaim.Type),
+						Name: volume.PersistentVolumeClaim.UnmanagedVolumeClaim.Name,
+						UUID: volume.PersistentVolumeClaim.UnmanagedVolumeClaim.UUID,
+					}
+				}
 			}
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
@@ -160,6 +191,7 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 	}
 	if src.Status.Network != nil {
 		dst.Status.Network = &vmoprvhub.VirtualMachineNetworkStatus{}
+		dst.Status.Network.HostName = src.Status.Network.HostName
 		if src.Status.Network.Interfaces != nil {
 			dst.Status.Network.Interfaces = []vmoprvhub.VirtualMachineNetworkInterfaceStatus{}
 			for _, iface := range src.Status.Network.Interfaces {
@@ -289,33 +321,44 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 	dst.Spec.ImageName = src.Spec.ImageName
 	if src.Spec.Network != nil {
 		dst.Spec.Network = &vmoprv1alpha5.VirtualMachineNetworkSpec{}
-		for _, iface := range src.Spec.Network.Interfaces {
-			d := vmoprv1alpha5.VirtualMachineNetworkInterfaceSpec{}
-			d.Gateway4 = iface.Gateway4
-			d.Gateway6 = iface.Gateway6
-			if iface.MTU != nil {
-				d.MTU = ptr.To(*iface.MTU)
-			}
-			if iface.Network != nil {
-				d.Network = &vmoprv1alpha5common.PartialObjectRef{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       iface.Network.Kind,
-						APIVersion: iface.Network.APIVersion,
-					},
-					Name: iface.Network.Name,
+		if src.Spec.Network.Interfaces != nil {
+			dst.Spec.Network.Interfaces = []vmoprv1alpha5.VirtualMachineNetworkInterfaceSpec{}
+			for _, iface := range src.Spec.Network.Interfaces {
+				d := vmoprv1alpha5.VirtualMachineNetworkInterfaceSpec{}
+				d.Addresses = iface.Addresses
+				d.DHCP4 = iface.DHCP4
+				d.DHCP6 = iface.DHCP6
+				d.Gateway4 = iface.Gateway4
+				d.Gateway6 = iface.Gateway6
+				if iface.MTU != nil {
+					d.MTU = ptr.To(*iface.MTU)
 				}
-			}
-			d.Name = iface.Name
-			if iface.Routes != nil {
-				d.Routes = []vmoprv1alpha5.VirtualMachineNetworkRouteSpec{}
-				for _, route := range iface.Routes {
-					d.Routes = append(d.Routes, vmoprv1alpha5.VirtualMachineNetworkRouteSpec{
-						To:  route.To,
-						Via: route.Via,
-					})
+				if iface.Network != nil {
+					d.Network = &vmoprv1alpha5common.PartialObjectRef{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       iface.Network.Kind,
+							APIVersion: iface.Network.APIVersion,
+						},
+						Name: iface.Network.Name,
+					}
 				}
+				d.GuestDeviceName = iface.GuestDeviceName
+				d.Name = iface.Name
+				d.Nameservers = iface.Nameservers
+				d.MACAddr = iface.MACAddr
+				if iface.Routes != nil {
+					d.Routes = []vmoprv1alpha5.VirtualMachineNetworkRouteSpec{}
+					for _, route := range iface.Routes {
+						d.Routes = append(d.Routes, vmoprv1alpha5.VirtualMachineNetworkRouteSpec{
+							To:     route.To,
+							Via:    route.Via,
+							Metric: route.Metric,
+						})
+					}
+				}
+				d.SearchDomains = iface.SearchDomains
+				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
-			dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 		}
 	}
 	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
@@ -348,6 +391,29 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 						ReadOnly:  volume.PersistentVolumeClaim.ReadOnly,
 					},
 				}
+				v.PersistentVolumeClaim.ApplicationType = vmoprv1alpha5.VolumeApplicationType(volume.PersistentVolumeClaim.ApplicationType)
+				if volume.PersistentVolumeClaim.ControllerBusNumber != nil {
+					v.PersistentVolumeClaim.ControllerBusNumber = ptr.To(*volume.PersistentVolumeClaim.ControllerBusNumber)
+				}
+				v.PersistentVolumeClaim.ControllerType = vmoprv1alpha5.VirtualControllerType(volume.PersistentVolumeClaim.ControllerType)
+				v.PersistentVolumeClaim.DiskMode = vmoprv1alpha5.VolumeDiskMode(volume.PersistentVolumeClaim.DiskMode)
+				if volume.PersistentVolumeClaim.InstanceVolumeClaim != nil {
+					v.PersistentVolumeClaim.InstanceVolumeClaim = &vmoprv1alpha5.InstanceVolumeClaimVolumeSource{
+						StorageClass: volume.PersistentVolumeClaim.InstanceVolumeClaim.StorageClass,
+						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
+					}
+				}
+				v.PersistentVolumeClaim.SharingMode = vmoprv1alpha5.VolumeSharingMode(volume.PersistentVolumeClaim.SharingMode)
+				if volume.PersistentVolumeClaim.UnitNumber != nil {
+					v.PersistentVolumeClaim.UnitNumber = ptr.To(*volume.PersistentVolumeClaim.UnitNumber)
+				}
+				if volume.PersistentVolumeClaim.UnmanagedVolumeClaim != nil {
+					v.PersistentVolumeClaim.UnmanagedVolumeClaim = &vmoprv1alpha5.UnmanagedVolumeClaimVolumeSource{
+						Type: vmoprv1alpha5.UnmanagedVolumeClaimVolumeType(volume.PersistentVolumeClaim.UnmanagedVolumeClaim.Type),
+						Name: volume.PersistentVolumeClaim.UnmanagedVolumeClaim.Name,
+						UUID: volume.PersistentVolumeClaim.UnmanagedVolumeClaim.UUID,
+					}
+				}
 			}
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
@@ -363,6 +429,7 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 	dst.Status.NodeName = src.Status.NodeName
 	if src.Status.Network != nil {
 		dst.Status.Network = &vmoprv1alpha5.VirtualMachineNetworkStatus{}
+		dst.Status.Network.HostName = src.Status.Network.HostName
 		if src.Status.Network.Interfaces != nil {
 			dst.Status.Network.Interfaces = []vmoprv1alpha5.VirtualMachineNetworkInterfaceStatus{}
 			for _, iface := range src.Status.Network.Interfaces {

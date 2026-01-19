@@ -571,7 +571,7 @@ func (r *clusterReconciler) controlPlaneMachineToCluster(ctx context.Context, o 
 		return nil
 	}
 
-	if !vsphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
+	if vsphereCluster.Spec.ControlPlaneEndpoint.Host != "" && vsphereCluster.Spec.ControlPlaneEndpoint.Port != 0 {
 		log.V(6).Info("Skipping VSphereCluster reconcile as VSphereCluster control plane endpoint is already set")
 		return nil
 	}

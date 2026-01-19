@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere/packaging
 
 go 1.25.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.12.0-rc.0.0.20260115174141-b1f040ff2b3d
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.12.0-rc.0.0.20260119172148-2807c7a84691
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -16,7 +16,7 @@ require (
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api-provider-vsphere v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.22.1-0.20251219095433-f28fd58a1e31
+	sigs.k8s.io/controller-runtime v0.23.0
 	sigs.k8s.io/kustomize/api v0.18.0
 	sigs.k8s.io/kustomize/kyaml v0.18.1
 	sigs.k8s.io/yaml v1.6.0

@@ -89,8 +89,13 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	annotations[VMKickTimeAnnotation] = reconcileTime.Add(15 * time.Second).Format(time.RFC3339)
 
+	patch, err := conversionclient.MergeFrom(ctx, r.Client, o)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
+	}
+
 	virtualMachine.SetAnnotations(annotations)
-	if err := r.Client.Patch(ctx, virtualMachine, client.MergeFrom(o)); err != nil {
+	if err := r.Client.Patch(ctx, virtualMachine, patch); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to patch VirtualMachine %s", klog.KObj(virtualMachine))
 	}
 

@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// nolint: revive
 package hub
 
 // +kubebuilder:validation:Enum=IDE;NVME;SCSI;SATA

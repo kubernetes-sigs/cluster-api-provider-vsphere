@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"fmt"
+	"net"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -159,11 +161,37 @@ func (r *Network) IsDefined() bool {
 type VSphereClusterSpec struct {
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
 
 	// network defines the network configuration for the cluster with different network providers.
 	// +optional
 	Network Network `json:"network,omitempty,omitzero"`
+}
+
+// APIEndpoint represents a reachable Kubernetes API endpoint.
+// +kubebuilder:validation:MinProperties=1
+type APIEndpoint struct {
+	// host is the hostname on which the API server is serving.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Host string `json:"host,omitempty"`
+
+	// port is the port on which the API server is serving.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port,omitempty"`
+}
+
+// IsZero returns true if both host and port are zero values.
+func (v APIEndpoint) IsZero() bool {
+	return v.Host == "" && v.Port == 0
+}
+
+// String returns a formatted version HOST:PORT of this APIEndpoint.
+func (v APIEndpoint) String() string {
+	return net.JoinHostPort(v.Host, fmt.Sprintf("%d", v.Port))
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.

@@ -225,3 +225,15 @@ func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VS
 	}
 	return nil
 }
+
+func Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *vmwarev1.APIEndpoint, out *clusterv1beta1.APIEndpoint, _ apimachineryconversion.Scope) error {
+	out.Host = in.Host
+	out.Port = in.Port
+	return nil
+}
+
+func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *clusterv1beta1.APIEndpoint, out *vmwarev1.APIEndpoint, _ apimachineryconversion.Scope) error {
+	out.Host = in.Host
+	out.Port = in.Port
+	return nil
+}

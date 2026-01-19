@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -71,7 +70,7 @@ type CPService struct {
 }
 
 // ReconcileControlPlaneEndpointService manages the lifecycle of a control plane endpoint managed by a vmoperator VirtualMachineService.
-func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, clusterCtx *vmware.ClusterContext, netProvider services.NetworkProvider) (*clusterv1beta1.APIEndpoint, error) {
+func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, clusterCtx *vmware.ClusterContext, netProvider services.NetworkProvider) (*vmwarev1.APIEndpoint, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconciling control plane VirtualMachineService for cluster")
 
@@ -312,7 +311,7 @@ func getVMServiceVIP(vmService *vmoprvhub.VirtualMachineService) (string, error)
 	return "", fmt.Errorf("VirtualMachineService LoadBalancer does not have any Ingresses")
 }
 
-func getAPIEndpointFromVIP(vmService *vmoprvhub.VirtualMachineService, vip string) (*clusterv1beta1.APIEndpoint, error) {
+func getAPIEndpointFromVIP(vmService *vmoprvhub.VirtualMachineService, vip string) (*vmwarev1.APIEndpoint, error) {
 	name := controlPlaneServiceAPIServerPortName
 	servicePort := int32(-1)
 	for _, port := range vmService.Spec.Ports {
@@ -326,7 +325,7 @@ func getAPIEndpointFromVIP(vmService *vmoprvhub.VirtualMachineService, vip strin
 		return nil, fmt.Errorf("VirtualMachineService does not have port entry for %q", name)
 	}
 
-	return &clusterv1beta1.APIEndpoint{
+	return &vmwarev1.APIEndpoint{
 		Host: vip,
 		Port: servicePort,
 	}, nil

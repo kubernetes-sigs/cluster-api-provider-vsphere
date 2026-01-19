@@ -371,7 +371,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 
 	// Define a variable to assign the API endpoints of control plane
 	// machines as they are discovered.
-	apiEndpointList := []clusterv1beta1.APIEndpoint{}
+	apiEndpointList := []vmwarev1.APIEndpoint{}
 
 	// Iterate over the cluster's control plane CAPI machines.
 	for _, machine := range machines {
@@ -402,7 +402,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 		// Append the control plane machine's IP address to the list of API
 		// endpoints for this cluster so that they can be read into the
 		// analogous CAPI cluster via an unstructured reader.
-		apiEndpoint := clusterv1beta1.APIEndpoint{
+		apiEndpoint := vmwarev1.APIEndpoint{
 			Host: vsphereMachine.Status.IPAddr,
 			Port: apiEndpointPort,
 		}

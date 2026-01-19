@@ -412,6 +412,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1beta1.APIEndpoint)(nil), (*v1beta2.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(a.(*corev1beta1.APIEndpoint), b.(*v1beta2.APIEndpoint), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*VSphereClusterStatus)(nil), (*v1beta2.VSphereClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(a.(*VSphereClusterStatus), b.(*v1beta2.VSphereClusterStatus), scope)
 	}); err != nil {
@@ -419,6 +424,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*VSphereMachineStatus)(nil), (*v1beta2.VSphereMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(a.(*VSphereMachineStatus), b.(*v1beta2.VSphereMachineStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.APIEndpoint)(nil), (*corev1beta1.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(a.(*v1beta2.APIEndpoint), b.(*corev1beta1.APIEndpoint), scope)
 	}); err != nil {
 		return err
 	}
@@ -798,7 +808,9 @@ func Convert_v1beta2_VSphereClusterList_To_v1beta1_VSphereClusterList(in *v1beta
 }
 
 func autoConvert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in *VSphereClusterSpec, out *v1beta2.VSphereClusterSpec, s conversion.Scope) error {
-	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	if err := Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
+		return err
+	}
 	if err := Convert_v1beta1_Network_To_v1beta2_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
@@ -811,7 +823,9 @@ func Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in *VSpher
 }
 
 func autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *v1beta2.VSphereClusterSpec, out *VSphereClusterSpec, s conversion.Scope) error {
-	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	if err := Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
+		return err
+	}
 	if err := Convert_v1beta2_Network_To_v1beta1_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
@@ -889,7 +903,17 @@ func Convert_v1beta2_VSphereClusterTemplate_To_v1beta1_VSphereClusterTemplate(in
 
 func autoConvert_v1beta1_VSphereClusterTemplateList_To_v1beta2_VSphereClusterTemplateList(in *VSphereClusterTemplateList, out *v1beta2.VSphereClusterTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.VSphereClusterTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.VSphereClusterTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_VSphereClusterTemplate_To_v1beta2_VSphereClusterTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -900,7 +924,17 @@ func Convert_v1beta1_VSphereClusterTemplateList_To_v1beta2_VSphereClusterTemplat
 
 func autoConvert_v1beta2_VSphereClusterTemplateList_To_v1beta1_VSphereClusterTemplateList(in *v1beta2.VSphereClusterTemplateList, out *VSphereClusterTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]VSphereClusterTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]VSphereClusterTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_VSphereClusterTemplate_To_v1beta1_VSphereClusterTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 

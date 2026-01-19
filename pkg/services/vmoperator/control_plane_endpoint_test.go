@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -114,7 +113,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 		controllerManagerContext *capvcontext.ControllerManagerContext
 		c                        ctrlclient.Client
 
-		apiEndpoint *clusterv1beta1.APIEndpoint
+		apiEndpoint *vmwarev1.APIEndpoint
 		vms         *vmoprvhub.VirtualMachineService
 
 		cpService CPService

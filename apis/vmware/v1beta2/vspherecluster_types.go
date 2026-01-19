@@ -22,7 +22,6 @@ import (
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -215,9 +214,13 @@ type VSphereClusterStatus struct {
 	// +optional
 	ResourcePolicyName string `json:"resourcePolicyName,omitempty"`
 
-	// failureDomains is a list of failure domain objects synced from the
-	// infrastructure provider.
-	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
+	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional

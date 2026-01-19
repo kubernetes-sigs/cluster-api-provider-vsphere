@@ -20,6 +20,7 @@ package vmware
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +29,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -239,6 +240,13 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 			err,
 			"unexpected error while discovering failure domains for %s", clusterCtx.VSphereCluster.Name)
 	}
+	// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
+	slices.SortFunc(failureDomains, func(a, b clusterv1.FailureDomain) int {
+		if a.Name < b.Name {
+			return -1
+		}
+		return 1
+	})
 	clusterCtx.VSphereCluster.Status.FailureDomains = failureDomains
 
 	// Reconcile ResourcePolicy before we create the machines. If the ResourcePolicy is not reconciled before we create the Node VMs,
@@ -500,8 +508,8 @@ func (r *ClusterReconciler) ZoneToVSphereClusters(ctx context.Context, o client.
 
 // Returns the failure domain information discovered on the cluster
 // hosting this controller.
-func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string) (clusterv1beta1.FailureDomains, error) {
-	failureDomains := clusterv1beta1.FailureDomains{}
+func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string) ([]clusterv1.FailureDomain, error) {
+	failureDomains := []clusterv1.FailureDomain{}
 	// Determine the source of failure domain based on feature gates NamespaceScopedZones.
 	// If NamespaceScopedZones is enabled, use Zone which is Namespace scoped,otherwise use
 	// Availability Zone which is Cluster scoped.
@@ -517,7 +525,10 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 			if !zone.DeletionTimestamp.IsZero() {
 				continue
 			}
-			failureDomains[zone.Name] = clusterv1beta1.FailureDomainSpec{ControlPlane: true}
+			failureDomains = append(failureDomains, clusterv1.FailureDomain{
+				Name:         zone.Name,
+				ControlPlane: ptr.To(true),
+			})
 		}
 
 		if len(failureDomains) == 0 {
@@ -535,9 +546,10 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 		return nil, nil
 	}
 	for _, az := range availabilityZoneList.Items {
-		failureDomains[az.Name] = clusterv1beta1.FailureDomainSpec{
-			ControlPlane: true,
-		}
+		failureDomains = append(failureDomains, clusterv1.FailureDomain{
+			Name:         az.Name,
+			ControlPlane: ptr.To(true),
+		})
 	}
 
 	return failureDomains, nil

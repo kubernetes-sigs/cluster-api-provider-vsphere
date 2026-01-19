@@ -18,7 +18,6 @@ package vmware
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -29,7 +28,6 @@ import (
 	apirecord "k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -141,7 +139,7 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 	tests := []struct {
 		name        string
 		objects     []client.Object
-		want        clusterv1beta1.FailureDomains
+		want        []clusterv1.FailureDomain
 		wantErr     bool
 		featureGate bool
 	}{
@@ -210,13 +208,15 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 				zone(namespace.Name, "ns-three", false),
 				zone(namespace.Name, "ns-four", true),
 			},
-			want:        failureDomains("ns-one", "ns-two", "ns-three"),
+			want:        failureDomains("ns-one", "ns-three", "ns-two"),
 			wantErr:     false,
 			featureGate: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			r := &ClusterReconciler{
 				Client: fake.NewClientBuilder().
 					WithScheme(scheme).
@@ -229,9 +229,7 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 				t.Errorf("ClusterReconciler.getFailureDomains() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ClusterReconciler.getFailureDomains() = %v, want %v", got, tt.want)
-			}
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -259,12 +257,13 @@ func zone(namespace, name string, deleting bool) *topologyv1.Zone {
 	return z
 }
 
-func failureDomains(names ...string) clusterv1beta1.FailureDomains {
-	fds := clusterv1beta1.FailureDomains{}
+func failureDomains(names ...string) []clusterv1.FailureDomain {
+	fds := []clusterv1.FailureDomain{}
 	for _, name := range names {
-		fds[name] = clusterv1beta1.FailureDomainSpec{
-			ControlPlane: true,
-		}
+		fds = append(fds, clusterv1.FailureDomain{
+			Name:         name,
+			ControlPlane: ptr.To(true),
+		})
 	}
 	return fds
 }

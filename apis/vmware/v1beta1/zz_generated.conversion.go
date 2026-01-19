@@ -851,7 +851,7 @@ func autoConvert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in
 	} else {
 		out.Conditions = nil
 	}
-	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	// WARNING: in.FailureDomains requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta1.FailureDomains vs []sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain)
 	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -870,7 +870,7 @@ func autoConvert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in
 	}
 	out.Ready = in.Ready
 	out.ResourcePolicyName = in.ResourcePolicyName
-	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	// WARNING: in.FailureDomains requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain vs sigs.k8s.io/cluster-api/api/core/v1beta1.FailureDomains)
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

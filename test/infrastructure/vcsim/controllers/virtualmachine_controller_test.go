@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -45,7 +45,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 	t.Run("VirtualMachine not yet provisioned should be ignored", func(t *testing.T) {
 		g := NewWithT(t)
 
-		vsphereCluster := &vmwarev1.VSphereCluster{
+		vsphereCluster := &vmwarev1beta1.VSphereCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
@@ -61,7 +61,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 			Spec: clusterv1beta1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: vmwarev1.GroupVersion.String(),
+					APIVersion: vmwarev1beta1.GroupVersion.String(),
 					Kind:       "VSphereCluster",
 					Name:       vsphereCluster.Name,
 				},
@@ -78,7 +78,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 		}
 
-		vSphereMachine := &vmwarev1.VSphereMachine{
+		vSphereMachine := &vmwarev1beta1.VSphereMachine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "baz",
@@ -99,7 +99,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 				Name:      "bar",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: vmwarev1.GroupVersion.String(),
+						APIVersion: vmwarev1beta1.GroupVersion.String(),
 						Kind:       "VSphereMachine",
 						Name:       vSphereMachine.Name,
 						UID:        vSphereMachine.UID,
@@ -167,7 +167,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 	t.Run("VirtualMachine provisioned gets a node (worker)", func(t *testing.T) {
 		g := NewWithT(t)
 
-		vsphereCluster := &vmwarev1.VSphereCluster{
+		vsphereCluster := &vmwarev1beta1.VSphereCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
@@ -183,7 +183,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 			Spec: clusterv1beta1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: vmwarev1.GroupVersion.String(),
+					APIVersion: vmwarev1beta1.GroupVersion.String(),
 					Kind:       "VSphereCluster",
 					Name:       vsphereCluster.Name,
 				},
@@ -205,7 +205,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 		}
 
-		vSphereMachine := &vmwarev1.VSphereMachine{
+		vSphereMachine := &vmwarev1beta1.VSphereMachine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
@@ -226,7 +226,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 				Name:      "bar",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: vmwarev1.GroupVersion.String(),
+						APIVersion: vmwarev1beta1.GroupVersion.String(),
 						Kind:       "VSphereMachine",
 						Name:       vSphereMachine.Name,
 						UID:        vSphereMachine.UID,

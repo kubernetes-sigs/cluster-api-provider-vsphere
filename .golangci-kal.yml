@@ -105,6 +105,12 @@ linters:
       linters:
         - kubeapilinter
 
+    ## TODO: Excludes until we start fixing v1beta2 supervisor KAL findings
+    - path: "apis/vmware/v1beta2"
+      text: ".*"
+      linters:
+        - kubeapilinter
+
     ## TODO: Excludes that can be removed once we complete the v1beta2 work for CAPV v1.16
     - path: "apis/v1beta2/(vspheremachine_types.go|vspherevm_types)"
       text: "conditions: Conditions field in (VSphereMachineStatus|VSphereVMStatus) must be a slice of metav1.Condition"

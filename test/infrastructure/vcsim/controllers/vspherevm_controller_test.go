@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -57,7 +57,7 @@ func init() {
 	_ = clusterv1.AddToScheme(scheme)
 	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
-	_ = vmwarev1.AddToScheme(scheme)
+	_ = vmwarev1beta1.AddToScheme(scheme)
 	_ = vmoprv1.AddToScheme(scheme)
 	_ = vcsimv1.AddToScheme(scheme)
 

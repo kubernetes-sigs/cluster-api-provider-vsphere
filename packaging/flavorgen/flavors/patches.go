@@ -26,7 +26,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
@@ -185,8 +185,8 @@ func vmWareInfraClusterPatch() clusterv1.ClusterClassPatch {
 		Definitions: []clusterv1.PatchDefinition{
 			{
 				Selector: clusterv1.PatchSelector{
-					APIVersion: vmwarev1.GroupVersion.String(),
-					Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
+					APIVersion: vmwarev1beta1.GroupVersion.String(),
+					Kind:       util.TypeToKind(&vmwarev1beta1.VSphereClusterTemplate{}),
 					MatchResources: clusterv1.PatchSelectorMatch{
 						InfrastructureCluster: ptr.To(true),
 					},

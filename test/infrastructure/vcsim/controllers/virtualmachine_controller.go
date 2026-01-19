@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -39,7 +40,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -82,7 +84,8 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	// Fetch the owner VSphereMachine.
-	vSphereMachine, err := util.GetOwnerVMWareMachine(ctx, r.Client, virtualMachine.ObjectMeta)
+	// Note: Temporarily using a local copy of util.GetOwnerVSphereMachine until this controller can be migrated to v1beta2.
+	vSphereMachine, err := GetOwnerVMWareMachine(ctx, r.Client, virtualMachine.ObjectMeta)
 	// vsphereMachine can be nil in cases where custom mover other than clusterctl
 	// moves the resources without ownerreferences set
 	// in that case nil vsphereMachine can cause panic and CrashLoopBackOff the pod
@@ -130,7 +133,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		Namespace: cluster.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	vsphereCluster := &vmwarev1.VSphereCluster{}
+	vsphereCluster := &vmwarev1beta1.VSphereCluster{}
 	if err := r.Client.Get(ctx, key, vsphereCluster); err != nil {
 		log.Info("VSphereCluster can't be retrieved")
 		return ctrl.Result{}, err
@@ -344,4 +347,27 @@ func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 	}
 
 	return true, nil
+}
+
+// GetOwnerVMWareMachine returns the VSphereMachine owner for the passed object.
+func GetOwnerVMWareMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*vmwarev1beta1.VSphereMachine, error) {
+	for _, ref := range obj.OwnerReferences {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+		if ref.Kind == "VSphereMachine" && gv.Group == vmwarev1.GroupVersion.Group {
+			return getVMWareMachineByName(ctx, c, obj.Namespace, ref.Name)
+		}
+	}
+	return nil, nil
+}
+
+func getVMWareMachineByName(ctx context.Context, c client.Client, namespace, name string) (*vmwarev1beta1.VSphereMachine, error) {
+	m := &vmwarev1beta1.VSphereMachine{}
+	key := client.ObjectKey{Name: name, Namespace: namespace}
+	if err := c.Get(ctx, key, m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }

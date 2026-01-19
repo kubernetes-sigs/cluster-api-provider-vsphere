@@ -47,7 +47,7 @@ type VSphereMachineTemplateStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vspheremachinetemplates,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 
 // VSphereMachineTemplate is the Schema for the vspheremachinetemplates API.

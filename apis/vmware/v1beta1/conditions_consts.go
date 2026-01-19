@@ -56,7 +56,7 @@ const (
 
 // Conditions and condition Reasons for VSphereMachine.
 const (
-	// ConditionType VMProvisionedCondition is shared with infrav1.VSPhereMachine
+	// ConditionType VMProvisionedCondition is shared with infrav1.VSphereMachine
 	// VMCreationFailedReason reports that creating VM CRD or corresponding bootstrap ConfigMap failed.
 	VMCreationFailedReason = "VMCreationFailed"
 	// VMProvisionStartedReason documents (Severity=Info) a Virtual Machine currently is in creation process.

@@ -205,7 +205,7 @@ type VSphereClusterV1Beta2Status struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vsphereclusters,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 
 // VSphereCluster is the Schema for the VSphereClusters API.

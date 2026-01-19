@@ -238,6 +238,9 @@ func spokeVSphereFailureDomainSpec(in *VSphereFailureDomainSpec, c randfill.Cont
 	if in.Topology.ComputeCluster != nil && *in.Topology.ComputeCluster == "" {
 		in.Topology.ComputeCluster = nil
 	}
+
+	in.Region.AutoConfigure = nil // field has been dropped in v1beta2
+	in.Zone.AutoConfigure = nil   // field has been dropped in v1beta2
 }
 
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

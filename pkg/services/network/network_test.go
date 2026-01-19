@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	nsxvpcv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -41,6 +40,7 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -117,7 +117,7 @@ var _ = Describe("Network provider", func() {
 		np               services.NetworkProvider
 		cluster          *clusterv1.Cluster
 		vSphereCluster   *vmwarev1.VSphereCluster
-		vm               *vmoprv1.VirtualMachine
+		vm               *vmoprvhub.VirtualMachine
 		machine          *vmwarev1.VSphereMachine
 		hasLB            bool
 	)
@@ -150,7 +150,7 @@ var _ = Describe("Network provider", func() {
 			},
 		}
 		clusterCtx, _ = util.CreateClusterContext(cluster, vSphereCluster)
-		vm = &vmoprv1.VirtualMachine{
+		vm = &vmoprvhub.VirtualMachine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: dummyNs,
 				Name:      dummyVM,

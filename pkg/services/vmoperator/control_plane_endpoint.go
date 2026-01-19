@@ -22,7 +22,6 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -35,6 +34,8 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
 
@@ -184,8 +185,8 @@ func clusterRoleVMLabels(ctx *vmware.ClusterContext, controlPlane bool) map[stri
 	return result
 }
 
-func newVirtualMachineService(ctx *vmware.ClusterContext) *vmoprv1.VirtualMachineService {
-	return &vmoprv1.VirtualMachineService{
+func newVirtualMachineService(ctx *vmware.ClusterContext) *vmoprvhub.VirtualMachineService {
+	return &vmoprvhub.VirtualMachineService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      controlPlaneVMServiceName(ctx.Cluster.Name),
 			Namespace: ctx.Cluster.Namespace,
@@ -193,9 +194,9 @@ func newVirtualMachineService(ctx *vmware.ClusterContext) *vmoprv1.VirtualMachin
 	}
 }
 
-func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx *vmware.ClusterContext, annotations map[string]string) (*vmoprv1.VirtualMachineService, error) {
+func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx *vmware.ClusterContext, annotations map[string]string) (*vmoprvhub.VirtualMachineService, error) {
 	// Note that the current implementation will only create a VirtualMachineService for a load balanced endpoint
-	serviceType := vmoprv1.VirtualMachineServiceTypeLoadBalancer
+	serviceType := vmoprvhub.VirtualMachineServiceTypeLoadBalancer
 
 	vmService := newVirtualMachineService(clusterCtx)
 
@@ -216,9 +217,9 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 		}
 	}
 	vmService.Annotations = annotations
-	vmService.Spec = vmoprv1.VirtualMachineServiceSpec{
+	vmService.Spec = vmoprvhub.VirtualMachineServiceSpec{
 		Type: serviceType,
-		Ports: []vmoprv1.VirtualMachineServicePort{
+		Ports: []vmoprvhub.VirtualMachineServicePort{
 			{
 				Name:       controlPlaneServiceAPIServerPortName,
 				Protocol:   "TCP",
@@ -249,19 +250,22 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 			return nil, err
 		}
 	} else if !reflect.DeepEqual(originalVMService, vmService) {
-		patch := client.MergeFrom(originalVMService)
+		patch, err := conversionclient.MergeFrom(ctx, s.Client, originalVMService)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create patch for VirtualMachineService object")
+		}
 		if err := s.Client.Patch(ctx, vmService, patch); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to patch VirtualMachineService object")
 		}
 	}
 
 	return vmService, nil
 }
 
-func (s *CPService) getVMControlPlaneService(ctx context.Context, clusterCtx *vmware.ClusterContext) (*vmoprv1.VirtualMachineService, error) {
+func (s *CPService) getVMControlPlaneService(ctx context.Context, clusterCtx *vmware.ClusterContext) (*vmoprvhub.VirtualMachineService, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	vmService := &vmoprv1.VirtualMachineService{}
+	vmService := &vmoprvhub.VirtualMachineService{}
 	vmServiceKey := client.ObjectKey{
 		Namespace: clusterCtx.Cluster.Namespace,
 		Name:      controlPlaneVMServiceName(clusterCtx.Cluster.Name),
@@ -289,8 +293,8 @@ func (s *CPService) getVMControlPlaneService(ctx context.Context, clusterCtx *vm
 	return vmService, nil
 }
 
-func getVMServiceVIP(vmService *vmoprv1.VirtualMachineService) (string, error) {
-	if vmService.Spec.Type != vmoprv1.VirtualMachineServiceTypeLoadBalancer {
+func getVMServiceVIP(vmService *vmoprvhub.VirtualMachineService) (string, error) {
+	if vmService.Spec.Type != vmoprvhub.VirtualMachineServiceTypeLoadBalancer {
 		return "", fmt.Errorf("VirtualMachineService for control plane does not have load balancer")
 	}
 
@@ -307,7 +311,7 @@ func getVMServiceVIP(vmService *vmoprv1.VirtualMachineService) (string, error) {
 	return "", fmt.Errorf("VirtualMachineService LoadBalancer does not have any Ingresses")
 }
 
-func getAPIEndpointFromVIP(vmService *vmoprv1.VirtualMachineService, vip string) (*clusterv1beta1.APIEndpoint, error) {
+func getAPIEndpointFromVIP(vmService *vmoprvhub.VirtualMachineService, vip string) (*clusterv1beta1.APIEndpoint, error) {
 	name := controlPlaneServiceAPIServerPortName
 	servicePort := int32(-1)
 	for _, port := range vmService.Spec.Ports {

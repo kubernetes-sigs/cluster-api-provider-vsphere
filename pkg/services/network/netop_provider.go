@@ -21,8 +21,6 @@ import (
 	"fmt"
 
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
-	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -32,6 +30,7 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
 
@@ -125,18 +124,18 @@ func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx context.Context, clu
 }
 
 // ConfigureVirtualMachine configures the NetworkInterfaces on a VM Operator virtual machine.
-func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clusterCtx *vmware.ClusterContext, machine *vmwarev1.VSphereMachine, vm *vmoprv1.VirtualMachine) error {
+func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clusterCtx *vmware.ClusterContext, machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
 	network, err := np.getClusterNetwork(ctx, clusterCtx)
 	if err != nil {
 		return err
 	}
 
-	vm.Spec.Network = &vmoprv1.VirtualMachineNetworkSpec{}
+	vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
 
 	// Set the VM primary interface
-	vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmoprv1.VirtualMachineNetworkInterfaceSpec{
+	vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmoprvhub.VirtualMachineNetworkInterfaceSpec{
 		Name: PrimaryInterfaceName,
-		Network: &vmoprv1common.PartialObjectRef{
+		Network: &vmoprvhub.PartialObjectRef{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       NetworkGVKNetOperator.Kind,
 				APIVersion: NetworkGVKNetOperator.GroupVersion().String(),

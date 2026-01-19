@@ -21,12 +21,14 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 )
 
 const (
@@ -46,7 +48,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	reconcileTime := time.Now()
 
 	// Fetch the VirtualMachine instance
-	virtualMachine := &vmoprv1.VirtualMachine{}
+	virtualMachine := &vmoprvhub.VirtualMachine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, virtualMachine); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -54,7 +56,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePowerStateOn && virtualMachine.Status.Network != nil && virtualMachine.Status.Network.PrimaryIP4 != "" {
+	if virtualMachine.Status.PowerState == vmoprvhub.VirtualMachinePowerStateOn && virtualMachine.Status.Network != nil && virtualMachine.Status.Network.PrimaryIP4 != "" {
 		return ctrl.Result{}, nil
 	}
 
@@ -87,20 +89,31 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	annotations[VMKickTimeAnnotation] = reconcileTime.Add(15 * time.Second).Format(time.RFC3339)
 
+	patch, err := conversionclient.MergeFrom(ctx, r.Client, o)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
+	}
+
 	virtualMachine.SetAnnotations(annotations)
-	if err := r.Client.Patch(ctx, virtualMachine, client.MergeFrom(o)); err != nil {
+	if err := r.Client.Patch(ctx, virtualMachine, patch); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to patch VirtualMachine %s", klog.KObj(virtualMachine))
 	}
 
-	log.Info("Triggering VirtualMachine reconciliation to speed up initial provisioning", "VirtualMachine", klog.KObj(virtualMachine))
+	log.Info("Triggering VirtualMachine reconciliation to speed up initial provisioning")
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager will add watches for this controller.
 func (r *VirtualMachineReconciler) SetupWithManager(_ context.Context, mgr ctrl.Manager, options controller.Options) error {
-	err := ctrl.NewControllerManagedBy(mgr).
-		For(&vmoprv1.VirtualMachine{}).
+	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
+	vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create watch object for VirtualMachines")
+	}
+
+	err = ctrl.NewControllerManagedBy(mgr).
+		For(vm).
 		WithOptions(options).
 		Complete(r)
 

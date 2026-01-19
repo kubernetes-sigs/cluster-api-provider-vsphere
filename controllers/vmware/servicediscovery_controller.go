@@ -152,7 +152,7 @@ type serviceDiscoveryReconciler struct {
 	clusterCache clustercache.ClusterCache
 }
 
-func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
+func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcile.Request) (ret reconcile.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Get the vspherecluster for this request.
@@ -197,6 +197,14 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	defer func() {
 		if err := r.patch(ctx, clusterContext); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
+		}
+
+		if reterr != nil {
+			// Note: controller-runtime logs a warning if an error is returned in combination with
+			// RequeueAfter / Requeue. Dropping RequeueAfter and Requeue here to avoid this warning
+			// (while preserving Priority).
+			ret.RequeueAfter = 0
+			ret.Requeue = false //nolint:staticcheck // We have to handle Requeue until it is removed
 		}
 	}()
 

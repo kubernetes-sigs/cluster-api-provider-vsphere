@@ -22,7 +22,6 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,6 +42,8 @@ import (
 	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
@@ -70,7 +71,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the VirtualMachine instance
-	virtualMachine := &vmoprv1.VirtualMachine{}
+	virtualMachine := &vmoprvhub.VirtualMachine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, virtualMachine); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -219,9 +220,10 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	// Always attempt to Patch the VSphereVM + conditionsTracker object and status after each reconciliation.
+	conditionsTrackerOriginal := conditionsTracker.DeepCopy()
 	defer func() {
 		// NOTE: Patch on conditionsTracker will only track of provisioning process of the fake node, etcd, api server, etc.
-		if err := inmemoryClient.Update(ctx, conditionsTracker); err != nil {
+		if err := inmemoryClient.Patch(ctx, conditionsTracker, client.MergeFrom(conditionsTrackerOriginal)); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
@@ -235,7 +237,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return r.reconcileNormal(ctx, cluster, machine, virtualMachine, conditionsTracker)
 }
 
-func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
+func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprvhub.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
 	ipReconciler := r.getVMIpReconciler(cluster, virtualMachine)
 	if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
 		return ret, err
@@ -249,7 +251,7 @@ func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster 
 	return ctrl.Result{}, nil
 }
 
-func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
+func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprvhub.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
 	bootstrapReconciler := r.getVMBootstrapReconciler(virtualMachine)
 	if ret, err := bootstrapReconciler.reconcileDelete(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
 		return ret, err
@@ -262,14 +264,18 @@ func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster 
 	original := virtualMachine.DeepCopy()
 	controllerutil.RemoveFinalizer(virtualMachine, vcsimv1.VMFinalizer)
 
-	patch := client.MergeFrom(original)
+	patch, err := conversionclient.MergeFrom(ctx, r.Client, original)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
+	}
+
 	if err := r.Client.Patch(ctx, virtualMachine, patch); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to patch VirtualMachine object")
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1beta1.Cluster, virtualMachine *vmoprv1.VirtualMachine) *vmIPReconciler {
+func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1beta1.Cluster, virtualMachine *vmoprvhub.VirtualMachine) *vmIPReconciler {
 	return &vmIPReconciler{
 		Client: r.Client,
 
@@ -281,7 +287,7 @@ func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1beta1.Clu
 		},
 		IsVMWaitingforIP: func() bool {
 			// A virtualMachine is waiting for an IP when PoweredOn but without an Ip.
-			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePowerStateOn && (virtualMachine.Status.Network == nil || (virtualMachine.Status.Network.PrimaryIP4 == "" && virtualMachine.Status.Network.PrimaryIP6 == ""))
+			return virtualMachine.Status.PowerState == vmoprvhub.VirtualMachinePowerStateOn && (virtualMachine.Status.Network == nil || (virtualMachine.Status.Network.PrimaryIP4 == "" && virtualMachine.Status.Network.PrimaryIP6 == ""))
 		},
 		GetVMPath: func() string {
 			// The vm operator always create VMs under a sub-folder with named like the cluster.
@@ -291,7 +297,7 @@ func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1beta1.Clu
 	}
 }
 
-func (r *VirtualMachineReconciler) getVMBootstrapReconciler(virtualMachine *vmoprv1.VirtualMachine) *vmBootstrapReconciler {
+func (r *VirtualMachineReconciler) getVMBootstrapReconciler(virtualMachine *vmoprvhub.VirtualMachine) *vmBootstrapReconciler {
 	return &vmBootstrapReconciler{
 		Client:          r.Client,
 		InMemoryManager: r.InMemoryManager,
@@ -301,7 +307,7 @@ func (r *VirtualMachineReconciler) getVMBootstrapReconciler(virtualMachine *vmop
 		// thus allowing to use the same vmBootstrapReconciler in both scenarios.
 		IsVMReady: func() bool {
 			// A virtualMachine is ready to provision fake objects hosted on it when PoweredOn, with a primary Ip assigned and BiosUUID is set (bios id is required when provisioning the node to compute the Provider ID).
-			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePowerStateOn && virtualMachine.Status.Network != nil && (virtualMachine.Status.Network.PrimaryIP4 != "" || virtualMachine.Status.Network.PrimaryIP6 != "") && virtualMachine.Status.BiosUUID != ""
+			return virtualMachine.Status.PowerState == vmoprvhub.VirtualMachinePowerStateOn && virtualMachine.Status.Network != nil && (virtualMachine.Status.Network.PrimaryIP4 != "" || virtualMachine.Status.Network.PrimaryIP6 != "") && virtualMachine.Status.BiosUUID != ""
 		},
 		GetProviderID: func() string {
 			// Computes the ProviderID for the node hosted on the virtualMachine
@@ -316,8 +322,14 @@ func (r *VirtualMachineReconciler) getVCenterSession(ctx context.Context) (*sess
 
 // SetupWithManager will add watches for this controller.
 func (r *VirtualMachineReconciler) SetupWithManager(_ context.Context, mgr ctrl.Manager, options controller.Options) error {
-	err := ctrl.NewControllerManagedBy(mgr).
-		For(&vmoprv1.VirtualMachine{}).
+	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
+	vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create watch object for VirtualMachine")
+	}
+
+	err = ctrl.NewControllerManagedBy(mgr).
+		For(vm).
 		WithOptions(options).
 		Complete(r)
 
@@ -341,9 +353,13 @@ func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 	original := o.DeepCopyObject().(client.Object)
 	controllerutil.AddFinalizer(o, finalizer)
 
-	patch := client.MergeFrom(original)
+	patch, err := conversionclient.MergeFrom(ctx, c, original)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
+	}
+
 	if err := c.Patch(ctx, o, patch); err != nil {
-		return false, err
+		return false, errors.Wrapf(err, "failed to patch VirtualMachine object")
 	}
 
 	return true, nil

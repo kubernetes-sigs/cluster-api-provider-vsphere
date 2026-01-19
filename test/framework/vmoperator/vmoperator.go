@@ -26,8 +26,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
-	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	"github.com/vmware/govmomi/pbm"
 	"github.com/vmware/govmomi/vapi/library"
@@ -47,6 +45,8 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
@@ -289,12 +289,13 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		}
 
 		if _, ok := availabilityZone.Spec.Namespaces[config.Namespace]; !ok {
+			originalAvailabilityZone := availabilityZone.DeepCopy()
 			availabilityZone.Spec.Namespaces[config.Namespace] = topologyv1.NamespaceInfo{
 				PoolMoId:   resourcePool.Reference().Value,
 				FolderMoId: folder.Reference().Value,
 			}
-			if err := c.Update(ctx, availabilityZone); err != nil {
-				retryError = errors.Wrapf(err, "failed to update AvailabilityZone %s", availabilityZone.Name)
+			if err := c.Patch(ctx, availabilityZone, client.MergeFrom(originalAvailabilityZone)); err != nil {
+				retryError = errors.Wrapf(err, "failed to patch AvailabilityZone %s", availabilityZone.Name)
 				return false, nil
 			}
 			log.Info("Update vm-operator AvailabilityZone", "AvailabilityZone", klog.KObj(availabilityZone))
@@ -512,6 +513,8 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	if retryError != nil {
 		return retryError
 	}
+
+	originalSupervisorAPIServerVIPService := supervisorAPIServerVIPService.DeepCopy()
 	supervisorAPIServerVIPService.Status = corev1.ServiceStatus{
 		LoadBalancer: corev1.LoadBalancerStatus{Ingress: []corev1.LoadBalancerIngress{
 			// Note: this creates a unusable service. During test no application should try to reach out to this.
@@ -521,7 +524,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	}
 	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 		retryError = nil
-		if err := c.Status().Update(ctx, supervisorAPIServerVIPService); err != nil {
+		if err := c.Status().Patch(ctx, supervisorAPIServerVIPService, client.MergeFrom(originalSupervisorAPIServerVIPService)); err != nil {
 			retryError = errors.Wrapf(err, "failed to update vm-operator service status %s", klog.KObj(supervisorAPIServerVIPService))
 			return false, nil
 		}
@@ -534,13 +537,13 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 	// Create VirtualMachineClass in K8s
 	for _, vmc := range config.Spec.VirtualMachineClasses {
-		vmClass := &vmoprv1.VirtualMachineClass{
+		vmClass := &vmoprvhub.VirtualMachineClass{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      vmc.Name,
 				Namespace: config.Namespace,
 			},
-			Spec: vmoprv1.VirtualMachineClassSpec{
-				Hardware: vmoprv1.VirtualMachineClassHardware{
+			Spec: vmoprvhub.VirtualMachineClassSpec{
+				Hardware: vmoprvhub.VirtualMachineClassHardware{
 					Cpus:   vmc.Cpus,
 					Memory: vmc.Memory,
 				},
@@ -641,13 +644,13 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			libraryItemID = id
 		}
 
-		virtualMachineImage := &vmoprv1.VirtualMachineImage{
+		virtualMachineImage := &vmoprvhub.VirtualMachineImage{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      libraryItem.Name,
 				Namespace: config.Namespace,
 			},
-			Spec: vmoprv1.VirtualMachineImageSpec{
-				ProviderRef: &vmoprv1common.LocalObjectRef{
+			Spec: vmoprvhub.VirtualMachineImageSpec{
+				ProviderRef: &vmoprvhub.LocalObjectRef{
 					Kind: "ContentLibraryItem",
 				},
 			},
@@ -676,10 +679,10 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		virtualMachineImageReconciled := virtualMachineImage.DeepCopy()
 		virtualMachineImageReconciled.Status.Name = virtualMachineImage.Name
 		virtualMachineImageReconciled.Status.ProviderItemID = libraryItemID
-		virtualMachineImageReconciled.Status.ProductInfo = vmoprv1.VirtualMachineImageProductInfo{
+		virtualMachineImageReconciled.Status.ProductInfo = vmoprvhub.VirtualMachineImageProductInfo{
 			FullVersion: item.ProductInfo,
 		}
-		virtualMachineImageReconciled.Status.OSInfo = vmoprv1.VirtualMachineImageOSInfo{
+		virtualMachineImageReconciled.Status.OSInfo = vmoprvhub.VirtualMachineImageOSInfo{
 			Type: item.OSInfo,
 		}
 		meta.SetStatusCondition(&virtualMachineImageReconciled.Status.Conditions, metav1.Condition{
@@ -689,9 +692,13 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		})
 		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 			retryError = nil
-			patch := client.MergeFrom(virtualMachineImage)
+			patch, err := conversionclient.MergeFrom(ctx, c, virtualMachineImage)
+			if err != nil {
+				retryError = errors.Wrapf(err, "failed to create patch for VirtualMachineImage object")
+				return false, nil
+			}
 			if err := c.Status().Patch(ctx, virtualMachineImageReconciled, patch); err != nil {
-				retryError = errors.Wrapf(err, "failed to patch vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
+				retryError = errors.Wrapf(err, "failed to patch VirtualMachineImage object")
 				return false, nil
 			}
 			log.Info("Patched vm-operator VirtualMachineImage", "VirtualMachineImage", klog.KObj(virtualMachineImage))

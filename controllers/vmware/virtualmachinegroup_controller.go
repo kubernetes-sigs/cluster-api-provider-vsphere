@@ -19,7 +19,7 @@ package vmware
 import (
 	"context"
 
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	"github.com/pkg/errors"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -35,6 +35,8 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 )
 
 // AddVirtualMachineGroupControllerToManager adds the VirtualMachineGroup controller to the provided manager.
@@ -46,13 +48,19 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 		Recorder: mgr.GetEventRecorderFor("virtualmachinegroup-controller"),
 	}
 
+	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
+	vmGroup, err := conversionclient.WatchObject(reconciler.Client, &vmoprvhub.VirtualMachineGroup{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to create watch object for VirtualMachineGroup")
+	}
+
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).
 		// Set the controller's name explicitly to virtualmachinegroup.
 		Named("virtualmachinegroup").
 		Watches(
-			&vmoprv1.VirtualMachineGroup{},
+			vmGroup,
 			handler.EnqueueRequestForOwner(mgr.GetScheme(), reconciler.Client.RESTMapper(), &clusterv1.Cluster{}),
 			ctrlbldr.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).

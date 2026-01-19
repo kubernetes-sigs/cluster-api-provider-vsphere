@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -42,6 +41,8 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
@@ -181,16 +182,20 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 	if addedVirtualMachineNames.Len() > 0 || deletedVirtualMachineNames.Len() > 0 {
 		log.Info("Updating VirtualMachineGroup", "addedMembers", nameList(addedVirtualMachineNames.UnsortedList()), "deletedMembers", nameList(deletedVirtualMachineNames.UnsortedList()))
 	}
-	if err := r.Client.Patch(ctx, updatedVMG, client.MergeFromWithOptions(currentVMG, client.MergeFromWithOptimisticLock{})); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to patch VMG")
+	patch, err := conversionclient.MergeFromWithOptions(ctx, r.Client, currentVMG, client.MergeFromWithOptimisticLock{})
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachineGroup object")
+	}
+	if err := r.Client.Patch(ctx, updatedVMG, patch); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to patch VirtualMachineGroup object")
 	}
 	return reconcile.Result{}, nil
 }
 
 // computeVirtualMachineGroup gets the desired VirtualMachineGroup.
-func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster, mds []clusterv1.MachineDeployment, vSphereMachines []vmwarev1.VSphereMachine, singleZoneName string, existingVMG *vmoprv1.VirtualMachineGroup) (*vmoprv1.VirtualMachineGroup, error) {
+func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster, mds []clusterv1.MachineDeployment, vSphereMachines []vmwarev1.VSphereMachine, singleZoneName string, existingVMG *vmoprvhub.VirtualMachineGroup) (*vmoprvhub.VirtualMachineGroup, error) {
 	// Create an empty VirtualMachineGroup
-	vmg := &vmoprv1.VirtualMachineGroup{
+	vmg := &vmoprvhub.VirtualMachineGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        cluster.Name,
 			Namespace:   cluster.Namespace,
@@ -209,7 +214,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 			}
 		}
 	}
-	vmg.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{}}
+	vmg.Spec.BootOrder = []vmoprvhub.VirtualMachineGroupBootOrderGroup{{}}
 
 	// Add cluster label and ownerReference to the cluster.
 	if vmg.Labels == nil {
@@ -256,7 +261,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 	// included in the VirtualMachineGroup for the initial placement decision.
 	if existingVMG == nil {
 		for _, virtualMachineName := range sortedVirtualMachineNames {
-			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprv1.GroupMember{
+			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprvhub.GroupMember{
 				Name: virtualMachineName,
 				Kind: "VirtualMachine",
 			})
@@ -278,7 +283,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 		// If a VirtualMachine is already part of the VirtualMachineGroup, keep it in the VirtualMachineGroup
 		// Note: when a VirtualMachine will be deleted, the corresponding member will be removed (not added anymore by this func)
 		if existingVirtualMachineNames.Has(virtualMachineName) {
-			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprv1.GroupMember{
+			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprvhub.GroupMember{
 				Name: virtualMachineName,
 				Kind: "VirtualMachine",
 			})
@@ -292,7 +297,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 		// this logic defers adding the VirtualMachine in the VirtualMachineGroup to prevent race conditions.
 		md := virtualMachineNameToMachineDeployment[virtualMachineName]
 		if _, isPlaced := machineDeploymentToFailureDomain[md]; isPlaced {
-			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprv1.GroupMember{
+			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprvhub.GroupMember{
 				Name: virtualMachineName,
 				Kind: "VirtualMachine",
 			})
@@ -315,7 +320,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 //
 // Note: In case the failure domain is explicitly assigned by setting spec.template.spec.failureDomain, the mapping always
 // report the latest value for this field (even if there might still be Machines yet to be rolled out to the new failure domain).
-func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clusterv1.MachineDeployment, singleZoneName string, existingVMG *vmoprv1.VirtualMachineGroup, virtualMachineNameToMachineDeployment map[string]string) map[string]string {
+func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clusterv1.MachineDeployment, singleZoneName string, existingVMG *vmoprvhub.VirtualMachineGroup, virtualMachineNameToMachineDeployment map[string]string) map[string]string {
 	log := ctrl.LoggerFrom(ctx)
 
 	machineDeploymentToFailureDomainMapping := map[string]string{}
@@ -362,7 +367,7 @@ func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clust
 			// Consider only VirtualMachineGroup members for which the placement decision has been completed.
 			// Note: given that all the VirtualMachines in a MachineDeployment must be placed in the
 			// same failure domain / zone, the mapping can be inferred as soon as one member is placed.
-			if !conditions.IsTrue(&member, vmoprv1.VirtualMachineGroupMemberConditionPlacementReady) {
+			if !conditions.IsTrue(&member, vmoprvhub.VirtualMachineGroupMemberConditionPlacementReady) {
 				continue
 			}
 			if member.Placement != nil && member.Placement.Zone != "" {
@@ -469,8 +474,8 @@ func shouldCreateVirtualMachineGroup(ctx context.Context, mds []clusterv1.Machin
 	return true
 }
 
-func (r *VirtualMachineGroupReconciler) getVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster) (*vmoprv1.VirtualMachineGroup, error) {
-	vmg := &vmoprv1.VirtualMachineGroup{}
+func (r *VirtualMachineGroupReconciler) getVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster) (*vmoprvhub.VirtualMachineGroup, error) {
+	vmg := &vmoprvhub.VirtualMachineGroup{}
 	if err := r.Client.Get(ctx, client.ObjectKeyFromObject(cluster), vmg); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "failed to get VirtualMachineGroup %s", klog.KObj(vmg))
@@ -515,7 +520,7 @@ func (r *VirtualMachineGroupReconciler) getSingleZoneName(ctx context.Context, c
 	return "", nil
 }
 
-func memberNames(vmg *vmoprv1.VirtualMachineGroup) []string {
+func memberNames(vmg *vmoprvhub.VirtualMachineGroup) []string {
 	names := []string{}
 	if len(vmg.Spec.BootOrder) > 0 {
 		for _, member := range vmg.Spec.BootOrder[0].Members {

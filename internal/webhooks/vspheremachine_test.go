@@ -47,82 +47,77 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name:           "preferredAPIServerCIDR set on creation ",
-			vsphereMachine: createVSphereMachine("foo.com", "", "192.168.0.1/32", []string{}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
-			wantErr:        true,
-		},
-		{
 			name:           "IPs are not in CIDR format",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
 			wantErr:        true,
 		},
 		{
 			name:           "IPs are not valid IPs in CIDR format",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"<nil>/32", "192.168.0.644/33"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"<nil>/32", "192.168.0.644/33"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
 			wantErr:        true,
 		},
 		{
 			name:           "guestSoftPowerOffTimeout should not be set with powerOffMode set to hard",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeHard, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeHard, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
 			wantErr:        true,
 		},
 		{
 			name:           "guestSoftPowerOffTimeout should not be set with powerOffMode set to soft",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeSoft, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeSoft, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
 			wantErr:        true,
 		},
 
 		{
 			name:           "empty pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: ""}}),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: ""}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incorrect pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1)}}),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incorrect pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1)}}),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VendorID: ptr.To[int32](1)}}),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VendorID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "successful VSphereMachine creation with PCI device",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}),
 		},
 		{
 			name:           "successful VSphereMachine creation with vgpu",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}),
 		},
 		{
 			name:           "successful VSphereMachine creation",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
 			wantErr:        false,
 		},
 		{
 			name:           "successful VSphereMachine creation with powerOffMode set to hard",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeHard, 0, nil),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeHard, 0, nil),
 			wantErr:        false,
 		},
 		{
 			name:           "successful VSphereMachine creation with powerOffMode set to soft",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
 			wantErr:        false,
 		},
 		{
 			name:           "successful VSphereMachine creation with powerOffMode set to trySoft and non-default timeout",
-			vsphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 1234, nil),
+			vsphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 1234, nil),
 			wantErr:        false,
 		},
 	}
@@ -150,56 +145,56 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:              "ProviderID can be updated",
-			oldVSphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
-			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			oldVSphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
 			wantErr:           false,
 		},
 		{
 			name:              "updating ips can be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
-			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			oldVSphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, []string{"192.168.0.1/32", "192.168.0.10/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
 			wantErr:           false,
 		},
 		{
 			name:              "updating non-existing IP with invalid ips can not be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", "", "", nil, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
-			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, "", []string{"<nil>/32", "192.168.0.10/33"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			oldVSphereMachine: createVSphereMachine("foo.com", "", nil, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, []string{"<nil>/32", "192.168.0.10/33"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
 			wantErr:           true,
 		},
 		{
 			name:              "updating existing IP with invalid ips can not be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
-			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, "", []string{"<nil>/32", "192.168.0.10/33"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			oldVSphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, []string{"<nil>/32", "192.168.0.10/33"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
 			wantErr:           true,
 		},
 		{
 			name:              "updating server cannot be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
-			vsphereMachine:    createVSphereMachine("bar.com", someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			oldVSphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			vsphereMachine:    createVSphereMachine("bar.com", someProviderID, []string{"192.168.0.1/32", "192.168.0.10/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
 			wantErr:           true,
 		},
 		{
 			name:              "updating pci devices cannot be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}),
-			vsphereMachine:    createVSphereMachine("foo.com", "", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "new-vgpu"}}),
+			oldVSphereMachine: createVSphereMachine("foo.com", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}),
+			vsphereMachine:    createVSphereMachine("foo.com", "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, []infrav1.PCIDeviceSpec{{VGPUProfile: "new-vgpu"}}),
 			wantErr:           true,
 		},
 		{
 			name:              "powerOffMode cannot be updated when new powerOffMode is not valid",
-			oldVSphereMachine: createVSphereMachine("foo.com", someProviderID, "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
-			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeHard, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
+			oldVSphereMachine: createVSphereMachine("foo.com", someProviderID, []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, 0, nil),
+			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeHard, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
 			wantErr:           true,
 		},
 		{
 			name:              "powerOffMode can be updated to hard",
-			oldVSphereMachine: createVSphereMachine("foo.com", someProviderID, "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
-			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeHard, 0, nil),
+			oldVSphereMachine: createVSphereMachine("foo.com", someProviderID, []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
+			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeHard, 0, nil),
 			wantErr:           false,
 		},
 		{
 			name:              "powerOffMode can be updated to soft",
-			oldVSphereMachine: createVSphereMachine("foo.com", someProviderID, "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
-			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, "", []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
+			oldVSphereMachine: createVSphereMachine("foo.com", someProviderID, []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, infrav1.GuestSoftPowerOffDefaultTimeoutSeconds, nil),
+			vsphereMachine:    createVSphereMachine("foo.com", someProviderID, []string{"192.168.0.1/32"}, infrav1.VirtualMachinePowerOpModeSoft, 0, nil),
 			wantErr:           false,
 		},
 	}
@@ -216,14 +211,13 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereMachine(server string, providerID string, preferredAPIServerCIDR string, ips []string, powerOffMode infrav1.VirtualMachinePowerOpMode, guestSoftPowerOffTimeout int32, pciDevices []infrav1.PCIDeviceSpec) *infrav1.VSphereMachine {
+func createVSphereMachine(server string, providerID string, ips []string, powerOffMode infrav1.VirtualMachinePowerOpMode, guestSoftPowerOffTimeout int32, pciDevices []infrav1.PCIDeviceSpec) *infrav1.VSphereMachine {
 	VSphereMachine := &infrav1.VSphereMachine{
 		Spec: infrav1.VSphereMachineSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
 				Server: server,
 				Network: infrav1.NetworkSpec{
-					PreferredAPIServerCIDR: preferredAPIServerCIDR,
-					Devices:                []infrav1.NetworkDeviceSpec{},
+					Devices: []infrav1.NetworkDeviceSpec{},
 				},
 				PciDevices: pciDevices,
 			},

@@ -73,9 +73,6 @@ func (webhook *VSphereMachineTemplate) ValidateCreate(ctx context.Context, obj *
 	var allErrs field.ErrorList
 	spec := obj.Spec.Template.Spec
 
-	if spec.Network.PreferredAPIServerCIDR != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "PreferredAPIServerCIDR"), spec.Network.PreferredAPIServerCIDR, "cannot be set, as it will be removed and is no longer used"))
-	}
 	if spec.ProviderID != "" {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "providerID"), "cannot be set in templates"))
 	}

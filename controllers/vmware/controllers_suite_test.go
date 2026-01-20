@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
-	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -75,7 +75,7 @@ func setup(ctx context.Context) (*helpers.TestEnvironment, clustercache.ClusterC
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmoprvhub.AddToScheme(scheme.Scheme))
-	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme.Scheme))
+	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme.Scheme))
 	utilruntime.Must(topologyv1.AddToScheme(scheme.Scheme))
 
 	testEnv := helpers.NewTestEnvironment(ctx)

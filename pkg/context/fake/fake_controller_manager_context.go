@@ -17,7 +17,7 @@ limitations under the License.
 package fake
 
 import (
-	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -46,7 +46,7 @@ func NewControllerManagerContext(initObjects ...client.Object) *capvcontext.Cont
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme))
 	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
-	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
 	utilruntime.Must(ipamv1.AddToScheme(scheme))
 
 	clientWithObjects := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(

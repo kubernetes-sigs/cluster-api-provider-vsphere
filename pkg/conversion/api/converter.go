@@ -18,7 +18,7 @@ limitations under the License.
 package api //nolint:revive
 
 import (
-	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
@@ -38,5 +38,5 @@ func init() {
 	utilruntime.Must(vmoprv1alpha5conversion.AddToConverter(DefaultConverter))
 
 	// TODO: Add dynamic selection of target version.
-	DefaultConverter.SetTargetVersion(vmoprv1alpha2.GroupVersion.Version)
+	DefaultConverter.SetTargetVersion(vmoprv1alpha5.GroupVersion.Version)
 }

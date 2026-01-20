@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -888,7 +888,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 		mds             []clusterv1.MachineDeployment
 		vSphereMachines []vmwarev1.VSphereMachine
 		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-		existingVMG *vmoprv1alpha2.VirtualMachineGroup
+		existingVMG *vmoprv1alpha5.VirtualMachineGroup
 		wantResult  ctrl.Result
 		wantVMG     *vmoprvhub.VirtualMachineGroup
 	}{
@@ -982,7 +982,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
 				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
 			},
-			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -992,10 +992,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1alpha2.GroupMember{
+							Members: []vmoprv1alpha5.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1046,7 +1046,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createVSphereMachine("m6", clusterInitialized.Name, "md3", "", withCustomNamingStrategy()), // new
 				*createVSphereMachine("m7", clusterInitialized.Name, "md4", "zone3"),                        // new
 			},
-			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1056,10 +1056,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1alpha2.GroupMember{
+							Members: []vmoprv1alpha5.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1115,7 +1115,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// m6 deleted
 				// m7 deleted
 			},
-			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1126,10 +1126,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1alpha2.GroupMember{
+							Members: []vmoprv1alpha5.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								// "m4-vm" not added, placement decision for md1 not yet completed
@@ -1185,7 +1185,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
 				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
 			},
-			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1196,10 +1196,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1alpha2.GroupMember{
+							Members: []vmoprv1alpha5.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1251,7 +1251,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createVSphereMachine("m5", clusterInitialized.Name, "md2", "zone1"), // new
 				*createVSphereMachine("m6", clusterInitialized.Name, "md3", "zone2"), // new
 			},
-			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1262,10 +1262,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1alpha2.GroupMember{
+							Members: []vmoprv1alpha5.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
@@ -1320,7 +1320,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// m5 deleted
 				// m5 deleted
 			},
-			existingVMG: &vmoprv1alpha2.VirtualMachineGroup{
+			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: clusterInitialized.Namespace,
 					Name:      clusterInitialized.Name,
@@ -1332,10 +1332,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					},
 					// Not setting labels and ownerReferences for sake of simplicity
 				},
-				Spec: vmoprv1alpha2.VirtualMachineGroupSpec{
-					BootOrder: []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{
+				Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
 						{
-							Members: []vmoprv1alpha2.GroupMember{
+							Members: []vmoprv1alpha5.GroupMember{
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},

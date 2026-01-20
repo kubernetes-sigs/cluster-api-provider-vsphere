@@ -8,10 +8,16 @@ resources:
 - ./crds/vmoperator.vmware.com_contentsources.yaml
 - ./crds/vmoperator.vmware.com_virtualmachineclassbindings.yaml
 - ./crds/vmoperator.vmware.com_virtualmachineclasses.yaml
+- ./crds/vmoperator.vmware.com_virtualmachineclassinstances.yaml
+- ./crds/vmoperator.vmware.com_virtualmachinegrouppublishrequests.yaml
+- ./crds/vmoperator.vmware.com_virtualmachinegroups.yaml
+- ./crds/vmoperator.vmware.com_virtualmachineimagecaches.yaml
 - ./crds/vmoperator.vmware.com_virtualmachineimages.yaml
 - ./crds/vmoperator.vmware.com_virtualmachinepublishrequests.yaml
+- ./crds/vmoperator.vmware.com_virtualmachinereplicasets.yaml
 - ./crds/vmoperator.vmware.com_virtualmachines.yaml
 - ./crds/vmoperator.vmware.com_virtualmachineservices.yaml
 - ./crds/vmoperator.vmware.com_virtualmachinesetresourcepolicies.yaml
+- ./crds/vmoperator.vmware.com_virtualmachinesnapshots.yaml
 - ./crds/vmoperator.vmware.com_virtualmachinewebconsolerequests.yaml
 - ./crds/vmoperator.vmware.com_webconsolerequests.yaml

@@ -94,28 +94,23 @@ linters:
 
     ## Excludes for current apiVersions that can be removed once v1beta1 is removed.
     # .status.deprecated.v1beta1.conditions fields are using v1beta1.Condition types.
-    - path: "apis/v1beta2"
+    - path: "apis/v1beta2|apis/vmware/v1beta2"
       text: "Conditions field in .*V1Beta1DeprecatedStatus must be a slice of metav1.Condition"
       linters:
         - kubeapilinter
 
     ## Removal of bool fields of existing types requires further discussion
-    - path: "apis/v1beta2"
+    - path: "apis/v1beta2|apis/vmware/v1beta2"
       text: "nobools"
       linters:
         - kubeapilinter
 
-    ## TODO: Excludes until we start fixing v1beta2 supervisor KAL findings
-    - path: "apis/vmware/v1beta2"
-      text: ".*"
+    ## Ignore nomaps findings on VSphereMachineVolume.capacity and VSphereMachineTemplate.status.capacity
+    - path: "apis/vmware/v1beta2/vspheremachine_types.go|apis/vmware/v1beta2/vspheremachinetemplate_types.go"
+      text: "nomaps: Capacity should not use a map type"
       linters:
         - kubeapilinter
 
-    ## TODO: Excludes that can be removed once we complete the v1beta2 work for CAPV v1.16
-    - path: "apis/v1beta2/(vspheremachine_types.go|vspherevm_types)"
-      text: "conditions: Conditions field in (VSphereMachineStatus|VSphereVMStatus) must be a slice of metav1.Condition"
-      linters:
-        - kubeapilinter
     ## TODO: Think about CPU configuration, context: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/3664
     - path: "apis/v1beta2/types.go"
       text: "optionalfields: field (NumCPUs|NumCoresPerSocket) has a valid zero value"

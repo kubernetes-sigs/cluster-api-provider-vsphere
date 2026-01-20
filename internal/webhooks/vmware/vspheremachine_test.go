@@ -39,32 +39,32 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:              "updating ProviderID can be done",
-			oldVSphereMachine: createVSphereMachine(nil, "tkgs-old-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
-			vsphereMachine:    createVSphereMachine(&fakeProviderID, "tkgs-old-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
+			oldVSphereMachine: createVSphereMachine("", "tkgs-old-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
+			vsphereMachine:    createVSphereMachine(fakeProviderID, "tkgs-old-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
 			wantErr:           false,
 		},
 		{
 			name:              "updating ImageName cannot be done",
-			oldVSphereMachine: createVSphereMachine(nil, "tkgs-old-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
-			vsphereMachine:    createVSphereMachine(nil, "tkgs-new-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
+			oldVSphereMachine: createVSphereMachine("", "tkgs-old-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
+			vsphereMachine:    createVSphereMachine("", "tkgs-new-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
 			wantErr:           true,
 		},
 		{
 			name:              "updating ClassName cannot be done",
-			oldVSphereMachine: createVSphereMachine(nil, "tkgs-imagename", "old-best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
-			vsphereMachine:    createVSphereMachine(nil, "tkgs-imagename", "new-best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
+			oldVSphereMachine: createVSphereMachine("", "tkgs-imagename", "old-best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
+			vsphereMachine:    createVSphereMachine("", "tkgs-imagename", "new-best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
 			wantErr:           true,
 		},
 		{
 			name:              "updating StorageClass cannot be done",
-			oldVSphereMachine: createVSphereMachine(nil, "tkgs-imagename", "best-effort-xsmall", "old-wcpglobalstorageprofile", "vmx-15"),
-			vsphereMachine:    createVSphereMachine(nil, "tkgs-imagename", "best-effort-xsmall", "new-wcpglobalstorageprofile", "vmx-15"),
+			oldVSphereMachine: createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "old-wcpglobalstorageprofile", "vmx-15"),
+			vsphereMachine:    createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "new-wcpglobalstorageprofile", "vmx-15"),
 			wantErr:           true,
 		},
 		{
 			name:              "updating MinHardwareVersion cannot be done",
-			oldVSphereMachine: createVSphereMachine(nil, "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
-			vsphereMachine:    createVSphereMachine(nil, "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-16"),
+			oldVSphereMachine: createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15"),
+			vsphereMachine:    createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-16"),
 			wantErr:           true,
 		},
 	}
@@ -83,7 +83,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereMachine(providerID *string, imageName, className, storageClass, minHardwareVersion string) *vmwarev1.VSphereMachine {
+func createVSphereMachine(providerID string, imageName, className, storageClass, minHardwareVersion string) *vmwarev1.VSphereMachine {
 	vSphereMachine := &vmwarev1.VSphereMachine{
 		Spec: vmwarev1.VSphereMachineSpec{
 			ProviderID:         providerID,

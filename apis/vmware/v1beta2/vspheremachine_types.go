@@ -39,11 +39,12 @@ type VSphereMachineVolume struct {
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
 type VSphereMachineSpec struct {
-	// providerID is the virtual machine's BIOS UUID formatted as
-	// vsphere://12345678-1234-1234-1234-123456789abc.
-	// This is required at runtime by CAPI. Do not remove this field.
+	// providerID is the virtual machine's BIOS UUID formated as
+	// vsphere://12345678-1234-1234-1234-123456789abc
 	// +optional
-	ProviderID *string `json:"providerID,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ProviderID string `json:"providerID,omitempty"`
 
 	// failureDomain is the failure domain the machine will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.

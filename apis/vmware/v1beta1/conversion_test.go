@@ -125,6 +125,7 @@ func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfa
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVSphereMachineStatus,
+		spokeVSphereMachineSpec,
 		spokeVSphereMachineStatus,
 	}
 }
@@ -139,6 +140,14 @@ func hubVSphereMachineStatus(in *vmwarev1.VSphereMachineStatus, c randfill.Conti
 	}
 }
 
+func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.ProviderID != nil && *in.ProviderID == "" {
+		in.ProviderID = nil
+	}
+}
+
 func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
@@ -150,7 +159,9 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 }
 
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
+	return []interface{}{
+		spokeVSphereMachineSpec,
+	}
 }
 
 func ProviderServiceAccountFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

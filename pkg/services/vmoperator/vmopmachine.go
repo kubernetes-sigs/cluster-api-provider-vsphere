@@ -782,8 +782,8 @@ func (v *VmopMachineService) reconcileProviderID(ctx context.Context, supervisor
 	log := ctrl.LoggerFrom(ctx)
 	providerID := fmt.Sprintf("vsphere://%s", vm.Status.BiosUUID)
 
-	if supervisorMachineCtx.VSphereMachine.Spec.ProviderID == nil || *supervisorMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
-		supervisorMachineCtx.VSphereMachine.Spec.ProviderID = &providerID
+	if supervisorMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
+		supervisorMachineCtx.VSphereMachine.Spec.ProviderID = providerID
 		log.Info("Updated providerID", "providerID", providerID)
 	}
 

@@ -1281,7 +1281,9 @@ func Convert_v1beta2_VSphereMachineNetworkStatus_To_v1beta1_VSphereMachineNetwor
 }
 
 func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSphereMachineSpec, out *v1beta2.VSphereMachineSpec, s conversion.Scope) error {
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := metav1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.ImageName = in.ImageName
 	out.ClassName = in.ClassName
@@ -1302,7 +1304,9 @@ func Convert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSpher
 }
 
 func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1beta2.VSphereMachineSpec, out *VSphereMachineSpec, s conversion.Scope) error {
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := metav1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.ImageName = in.ImageName
 	out.ClassName = in.ClassName
@@ -1408,7 +1412,17 @@ func Convert_v1beta2_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(in
 
 func autoConvert_v1beta1_VSphereMachineTemplateList_To_v1beta2_VSphereMachineTemplateList(in *VSphereMachineTemplateList, out *v1beta2.VSphereMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.VSphereMachineTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.VSphereMachineTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_VSphereMachineTemplate_To_v1beta2_VSphereMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1419,7 +1433,17 @@ func Convert_v1beta1_VSphereMachineTemplateList_To_v1beta2_VSphereMachineTemplat
 
 func autoConvert_v1beta2_VSphereMachineTemplateList_To_v1beta1_VSphereMachineTemplateList(in *v1beta2.VSphereMachineTemplateList, out *VSphereMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]VSphereMachineTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]VSphereMachineTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 

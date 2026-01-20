@@ -276,10 +276,10 @@ type VSphereMachineStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// ready is true when the provider resource is ready.
-	// This is required at runtime by CAPI. Do not remove this field.
+	// initialization provides observations of the VSphereMachine initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization VSphereMachineInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// addresses contains the instance associated addresses.
 	// +kubebuilder:validation:MinItems=1
@@ -347,6 +347,15 @@ type VSphereMachineStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *VSphereMachineDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// VSphereMachineInitializationStatus provides observations of the VSphereMachine initialization process.
+// +kubebuilder:validation:MinProperties=1
+type VSphereMachineInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // VSphereMachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

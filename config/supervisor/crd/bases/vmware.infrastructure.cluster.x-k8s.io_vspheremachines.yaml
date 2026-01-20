@@ -1385,6 +1385,18 @@ spec:
                   can be added as events to the Machine object and/or logged in the
                   controller's output.
                 type: string
+              initialization:
+                description: |-
+                  initialization provides observations of the VSphereMachine initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                minProperties: 1
+                properties:
+                  provisioned:
+                    description: |-
+                      provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+                    type: boolean
+                type: object
               network:
                 description: |-
                   network describes the observed state of the VM's network configuration.
@@ -1659,11 +1671,6 @@ spec:
                     type: array
                     x-kubernetes-list-type: atomic
                 type: object
-              ready:
-                description: |-
-                  ready is true when the provider resource is ready.
-                  This is required at runtime by CAPI. Do not remove this field.
-                type: boolean
               vmID:
                 description: vmID is used to identify the virtual machine.
                 type: string

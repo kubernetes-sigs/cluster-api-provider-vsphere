@@ -459,7 +459,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	v.reconcileProviderID(ctx, supervisorMachineCtx, vmOperatorVM)
 
 	// Mark the VSphereMachine as Ready
-	supervisorMachineCtx.VSphereMachine.Status.Ready = true
+	supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
 	deprecatedv1beta1conditions.MarkTrue(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition)
 	conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 		Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,

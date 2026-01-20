@@ -85,6 +85,17 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &vmwarev1.VSphereMachine{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	initialization := vmwarev1.VSphereMachineInitializationStatus{}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, vmwarev1.VSphereMachineInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 	return nil
 }
 
@@ -98,7 +109,7 @@ func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -241,6 +252,9 @@ func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *vm
 			clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 	}
+
+	// Move initialization to old field
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {

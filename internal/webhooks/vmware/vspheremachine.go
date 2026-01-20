@@ -34,7 +34,6 @@ import (
 )
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vspheremachine,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,versions=v1beta2,name=validation.vspheremachine.vmware.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vspheremachine,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,versions=v1beta2,name=default.vspheremachine.vmware.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 // VSphereMachine implements a validation and defaulting webhook for VSphereMachine.
 type VSphereMachine struct {
@@ -43,18 +42,11 @@ type VSphereMachine struct {
 }
 
 var _ admission.Validator[*vmwarev1.VSphereMachine] = &VSphereMachine{}
-var _ admission.Defaulter[*vmwarev1.VSphereMachine] = &VSphereMachine{}
 
 func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &vmwarev1.VSphereMachine{}).
 		WithValidator(webhook).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		Complete()
-}
-
-// Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *VSphereMachine) Default(_ context.Context, _ *vmwarev1.VSphereMachine) error {
-	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.

@@ -44,7 +44,7 @@ var _ admission.Defaulter[*infrav1.VSphereMachine] = &VSphereMachine{}
 func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereMachine{}).
 		WithValidator(webhook).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithDefaulter(webhook).
 		Complete()
 }
 

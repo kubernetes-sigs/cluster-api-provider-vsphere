@@ -872,16 +872,6 @@ func (in *VSphereMachineStatus) DeepCopyInto(out *VSphereMachineStatus) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.FailureReason != nil {
-		in, out := &in.FailureReason, &out.FailureReason
-		*out = new(errors.MachineStatusError)
-		**out = **in
-	}
-	if in.FailureMessage != nil {
-		in, out := &in.FailureMessage, &out.FailureMessage
-		*out = new(string)
-		**out = **in
-	}
 	in.Network.DeepCopyInto(&out.Network)
 	if in.Deprecated != nil {
 		in, out := &in.Deprecated, &out.Deprecated
@@ -1022,6 +1012,16 @@ func (in *VSphereMachineV1Beta1DeprecatedStatus) DeepCopyInto(out *VSphereMachin
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.FailureReason != nil {
+		in, out := &in.FailureReason, &out.FailureReason
+		*out = new(errors.MachineStatusError)
+		**out = **in
+	}
+	if in.FailureMessage != nil {
+		in, out := &in.FailureMessage, &out.FailureMessage
+		*out = new(string)
+		**out = **in
 	}
 }
 

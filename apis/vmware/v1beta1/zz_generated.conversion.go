@@ -33,7 +33,6 @@ import (
 	v1beta2 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	errors "sigs.k8s.io/cluster-api/errors"
 )
 
 func init() {
@@ -1331,8 +1330,8 @@ func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.IPAddr = in.IPAddr
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.VMStatus = v1beta2.VirtualMachineState(in.VMStatus)
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
@@ -1368,8 +1367,6 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.IPAddr = in.IPAddr
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.VMStatus = VirtualMachineState(in.VMStatus)
 	if err := Convert_v1beta2_VSphereMachineNetworkStatus_To_v1beta1_VSphereMachineNetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err

@@ -848,7 +848,7 @@ func (in *VSphereMachineStatus) DeepCopyInto(out *VSphereMachineStatus) {
 	}
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]v1.NodeAddress, len(*in))
+		*out = make([]corev1beta2.MachineAddress, len(*in))
 		copy(*out, *in)
 	}
 	if in.ID != nil {

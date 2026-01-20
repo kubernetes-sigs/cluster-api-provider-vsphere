@@ -32,6 +32,7 @@ import (
 	apisv1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -1323,7 +1324,7 @@ func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1beta
 
 func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VSphereMachineStatus, out *v1beta2.VSphereMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.IPAddr = in.IPAddr
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))

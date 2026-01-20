@@ -767,9 +767,9 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 
 	// Cluster API requires InfrastructureMachineStatus.Addresses to be set
 	if supervisorMachineCtx.VSphereMachine.Status.IPAddr != "" {
-		supervisorMachineCtx.VSphereMachine.Status.Addresses = []corev1.NodeAddress{
+		supervisorMachineCtx.VSphereMachine.Status.Addresses = []clusterv1.MachineAddress{
 			{
-				Type:    corev1.NodeInternalIP,
+				Type:    clusterv1.MachineInternalIP,
 				Address: supervisorMachineCtx.VSphereMachine.Status.IPAddr,
 			},
 		}

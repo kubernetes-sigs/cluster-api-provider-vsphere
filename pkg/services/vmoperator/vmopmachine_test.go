@@ -444,7 +444,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Verify that Cluster API addresses are set
 			By("Verify Cluster API addresses")
 			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses).To(HaveLen(1))
-			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses[0].Type).To(Equal(corev1.NodeInternalIP))
+			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses[0].Type).To(Equal(clusterv1.MachineInternalIP))
 			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses[0].Address).To(Equal(vmIP))
 
 			Expect(vmopVM.Spec.ReadinessProbe).To(BeNil())

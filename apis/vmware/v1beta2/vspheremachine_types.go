@@ -285,7 +285,7 @@ type VSphereMachineStatus struct {
 	// +kubebuilder:validation:MaxItems=10
 	// +listType=atomic
 	// +optional
-	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// vmID is used to identify the virtual machine.
 	// +optional

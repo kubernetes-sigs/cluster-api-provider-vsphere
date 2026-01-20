@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/randfill"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 )
@@ -67,27 +69,61 @@ func TestFuzzyConversion(t *testing.T) {
 }
 
 func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
+	return []interface{}{
+		hubVSphereClusterStatus,
+		spokeVSphereClusterStatus,
+	}
+}
+
+func hubVSphereClusterStatus(in *vmwarev1.VSphereClusterStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &vmwarev1.VSphereClusterV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
 }
 
 func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{}
 }
 
-func VSphereClusterIdentityFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
-}
-
-func VSphereDeploymentZoneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
-}
-
-func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
-}
-
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
+	return []interface{}{
+		hubVSphereMachineStatus,
+		spokeVSphereMachineStatus,
+	}
+}
+
+func hubVSphereMachineStatus(in *vmwarev1.VSphereMachineStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &vmwarev1.VSphereMachineV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &VSphereMachineV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
 }
 
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

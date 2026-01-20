@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
@@ -105,7 +105,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 		expectedPort                int
 		expectedAnnotations         map[string]string
 		expectedClusterRoleVMLabels map[string]string
-		expectedConditions          clusterv1beta1.Conditions
+		expectedConditions          clusterv1.Conditions
 
 		cluster                  *clusterv1.Cluster
 		vsphereCluster           *vmwarev1.VSphereCluster
@@ -164,7 +164,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			}
 
 			for _, expectedCondition := range expectedConditions {
-				c := v1beta1conditions.Get(clusterCtx.VSphereCluster, expectedCondition.Type)
+				c := deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, expectedCondition.Type)
 				Expect(c).NotTo(BeNil())
 				Expect(c.Status).To(Equal(expectedCondition.Status))
 				Expect(c.Reason).To(Equal(expectedCondition.Reason))
@@ -182,7 +182,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectAPIEndpoint = false
 			expectVMS = false
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyNetworkProvider())
-			Expect(v1beta1conditions.Get(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)).To(BeNil())
+			Expect(deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)).To(BeNil())
 			verifyOutput()
 		})
 
@@ -230,7 +230,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			By("NetOp NetworkProvider has no Network")
 			netOpProvider := network.NetOpNetworkProvider(c)
 			// we expect the reconciliation fail because lack of bootstrap data
-			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
+			expectedConditions = append(expectedConditions, clusterv1.Condition{
 				Type:    vmwarev1.LoadBalancerReadyCondition,
 				Status:  corev1.ConditionFalse,
 				Reason:  vmwarev1.LoadBalancerCreationFailedReason,
@@ -272,7 +272,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			// A VirtualMachineService is only created once all prerequisites have been met
 			expectVMS = false
 			expectedType = vmoprvhub.VirtualMachineServiceTypeLoadBalancer
-			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
+			expectedConditions = append(expectedConditions, clusterv1.Condition{
 				Type:    vmwarev1.LoadBalancerReadyCondition,
 				Status:  corev1.ConditionFalse,
 				Reason:  vmwarev1.LoadBalancerCreationFailedReason,

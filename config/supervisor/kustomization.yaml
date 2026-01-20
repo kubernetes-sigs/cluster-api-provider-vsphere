@@ -17,6 +17,29 @@ resources:
   - crd/bases/vmware.infrastructure.cluster.x-k8s.io_providerserviceaccounts.yaml
   - ./webhook
 
+patches:
+  # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
+  # patches here are for enabling the conversion webhook for each CRD
+  - path: crd/patches/webhook_in_providerserviceaccounts.yaml
+  - path: crd/patches/webhook_in_vsphereclusters.yaml
+  - path: crd/patches/webhook_in_vsphereclustertemplates.yaml
+  - path: crd/patches/webhook_in_vspheremachines.yaml
+  - path: crd/patches/webhook_in_vspheremachinetemplates.yaml
+  # +kubebuilder:scaffold:crdkustomizewebhookpatch
+
+  # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
+  # patches here are for enabling the CA injection for each CRD
+  - path: crd/patches/cainjection_in_providerserviceaccounts.yaml
+  - path: crd/patches/cainjection_in_vsphereclusters.yaml
+  - path: crd/patches/cainjection_in_vsphereclustertemplates.yaml
+  - path: crd/patches/cainjection_in_vspheremachines.yaml
+  - path: crd/patches/cainjection_in_vspheremachinetemplates.yaml
+# +kubebuilder:scaffold:crdkustomizecainjectionpatch
+
+# the following config is for teaching kustomize how to do kustomization for CRDs.
+configurations:
+  - kustomizeconfig.yaml
+
 vars:
   - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
     objref:

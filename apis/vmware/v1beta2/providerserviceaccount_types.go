@@ -25,7 +25,8 @@ import (
 // ProviderServiceAccountSpec defines the desired state of ProviderServiceAccount.
 type ProviderServiceAccountSpec struct {
 	// ref specifies the reference to the VSphereCluster for which the ProviderServiceAccount needs to be realized.
-	Ref *corev1.ObjectReference `json:"ref"`
+	// +required
+	Ref *corev1.ObjectReference `json:"ref,omitempty"`
 
 	// rules specifies the privileges that need to be granted to the service account.
 	Rules []rbacv1.PolicyRule `json:"rules"`
@@ -42,6 +43,7 @@ type ProviderServiceAccountSpec struct {
 // ProviderServiceAccountStatus defines the observed state of ProviderServiceAccount.
 type ProviderServiceAccountStatus struct {
 	// ready indicates the ProviderServiceAccount is ready.
+	// +optional
 	Ready bool `json:"ready,omitempty"`
 
 	// errorMsg surfaces an error message (it is not set at the moment).
@@ -66,7 +68,8 @@ type ProviderServiceAccount struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of ProviderServiceAccount.
-	Spec ProviderServiceAccountSpec `json:"spec,omitempty"`
+	// +required
+	Spec ProviderServiceAccountSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

@@ -269,6 +269,7 @@ spec:
             type: object
           spec:
             description: spec is the desired state of VSphereCluster.
+            minProperties: 1
             properties:
               controlPlaneEndpoint:
                 description: controlPlaneEndpoint represents the endpoint used to
@@ -317,6 +318,7 @@ spec:
               rule: has(self.network) == has(oldSelf.network)
           status:
             description: status is the observed state of VSphereCluster.
+            minProperties: 1
             properties:
               conditions:
                 description: |-

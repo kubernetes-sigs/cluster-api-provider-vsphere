@@ -23,7 +23,8 @@ import (
 // VSphereClusterTemplateSpec defines the desired state of VSphereClusterTemplate.
 type VSphereClusterTemplateSpec struct {
 	// template defines the desired state of VSphereClusterTemplate.
-	Template VSphereClusterTemplateResource `json:"template"`
+	// +required
+	Template VSphereClusterTemplateResource `json:"template,omitempty,omitzero"`
 }
 
 //+kubebuilder:object:root=true
@@ -39,7 +40,8 @@ type VSphereClusterTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of VSphereClusterTemplate.
-	Spec VSphereClusterTemplateSpec `json:"spec,omitempty"`
+	// +optional
+	Spec VSphereClusterTemplateSpec `json:"spec,omitempty,omitzero"`
 }
 
 //+kubebuilder:object:root=true
@@ -56,7 +58,9 @@ func init() {
 }
 
 // VSphereClusterTemplateResource defines the template structure.
+// +kubebuilder:validation:MinProperties=1
 type VSphereClusterTemplateResource struct {
 	// spec is the desired state of VSphereClusterTemplateResource.
-	Spec VSphereClusterSpec `json:"spec"`
+	// +optional
+	Spec VSphereClusterSpec `json:"spec,omitempty,omitzero"`
 }

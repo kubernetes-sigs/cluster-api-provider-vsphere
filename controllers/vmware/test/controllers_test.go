@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -56,7 +55,6 @@ import (
 )
 
 const (
-	defaultNamespace    = "default"
 	useLoadBalancer     = true
 	dontUseLoadBalancer = false
 )
@@ -93,15 +91,9 @@ func newInfraMachine(namespace string, machine *clusterv1.Machine) client.Object
 			Name:      machine.Name,
 			Namespace: namespace,
 		},
-	}
-}
-
-// newInfraMachine creates an Infra machine with a generated name.
-func newAnonInfraMachine(namespace string) client.Object {
-	return &vmwarev1.VSphereMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-",
-			Namespace:    namespace,
+		Spec: vmwarev1.VSphereMachineSpec{
+			ImageName: "image-1",
+			ClassName: "class-1",
 		},
 	}
 }
@@ -349,63 +341,6 @@ func prepareClient(isLoadBalanced bool) (cli client.Client, cancelation context.
 	cli, cancelation = initManagerAndBuildClient(networkProvider, false)
 	return
 }
-
-// Cache the type names of the infrastructure cluster and machine.
-var (
-	infraClusterTypeName = reflect.TypeOf(newAnonInfraCluster(defaultNamespace)).Elem().Name()
-	infraMachineTypeName = reflect.TypeOf(newAnonInfraMachine(defaultNamespace)).Elem().Name()
-)
-
-var _ = Describe("Conformance tests", func() {
-	var (
-		k8sClient     client.Client
-		managerCancel context.CancelFunc
-		key           *client.ObjectKey
-		obj           *client.Object
-	)
-
-	// assertObjEventuallyExists is used to assert that eventually obj can be
-	// retrieved from the API server.
-	assertObjEventuallyExists := func() {
-		EventuallyWithOffset(1, func() error {
-			return k8sClient.Get(ctx, *key, *obj)
-		}, time.Second*30).Should(Succeed())
-	}
-
-	JustAfterEach(func() {
-		Expect(k8sClient.Delete(ctx, *obj)).To(Succeed())
-	})
-
-	AfterEach(func() {
-		k8sClient = nil
-		obj = nil
-		key = nil
-	})
-
-	DescribeTable("Check infra cluster spec conformance",
-		func(objectGenerator func(string) client.Object) {
-			k8sClient, managerCancel = prepareClient(false)
-			defer managerCancel()
-
-			ns := deployNamespace(k8sClient)
-			defer dropNamespace(ns, k8sClient)
-
-			targetObject := objectGenerator(ns.Name)
-
-			Expect(k8sClient.Create(ctx, targetObject)).To(Succeed())
-			obj = &targetObject
-			key = &client.ObjectKey{
-				Namespace: targetObject.GetNamespace(),
-				Name:      targetObject.GetName(),
-			}
-
-			assertObjEventuallyExists()
-		},
-		Entry("For infra-cluster "+infraClusterTypeName, newAnonInfraCluster),
-		Entry("For infra-machine "+infraMachineTypeName, newAnonInfraMachine),
-	)
-
-})
 
 var _ = Describe("Reconciliation tests", func() {
 	var (

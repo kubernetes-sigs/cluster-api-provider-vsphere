@@ -131,9 +131,11 @@ spec:
             properties:
               template:
                 description: template defines the desired state of VSphereClusterTemplate.
+                minProperties: 1
                 properties:
                   spec:
                     description: spec is the desired state of VSphereClusterTemplateResource.
+                    minProperties: 1
                     properties:
                       controlPlaneEndpoint:
                         description: controlPlaneEndpoint represents the endpoint
@@ -184,8 +186,6 @@ spec:
                     x-kubernetes-validations:
                     - message: field 'network' cannot be added or removed after creation
                       rule: has(self.network) == has(oldSelf.network)
-                required:
-                - spec
                 type: object
             required:
             - template

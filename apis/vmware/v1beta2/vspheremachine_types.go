@@ -29,9 +29,11 @@ import (
 // VSphereMachineVolume defines a PVC attachment.
 type VSphereMachineVolume struct {
 	// name is suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
+	// +required
 	Name string `json:"name"`
 	// capacity is the PVC capacity
-	Capacity corev1.ResourceList `json:"capacity"`
+	// +required
+	Capacity corev1.ResourceList `json:"capacity,omitempty,omitzero"`
 	// storageClass defaults to VSphereMachineSpec.StorageClass
 	// +optional
 	StorageClass string `json:"storageClass,omitempty"`
@@ -267,6 +269,7 @@ type VirtualMachineNamingStrategy struct {
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.
+// +kubebuilder:validation:MinProperties=1
 type VSphereMachineStatus struct {
 	// conditions represents the observations of a VSphereMachine's current state.
 	// Known condition types are Ready, VirtualMachineProvisioned and Paused.
@@ -403,10 +406,12 @@ type VSphereMachine struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of VSphereMachine.
-	Spec VSphereMachineSpec `json:"spec,omitempty"`
+	// +required
+	Spec VSphereMachineSpec `json:"spec,omitempty,omitzero"`
 
 	// status is the observed state of VSphereMachine.
-	Status VSphereMachineStatus `json:"status,omitempty"`
+	// +optional
+	Status VSphereMachineStatus `json:"status,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

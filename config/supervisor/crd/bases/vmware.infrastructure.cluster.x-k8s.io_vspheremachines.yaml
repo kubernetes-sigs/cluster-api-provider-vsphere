@@ -1184,6 +1184,7 @@ spec:
             type: object
           status:
             description: status is the observed state of VSphereMachine.
+            minProperties: 1
             properties:
               addresses:
                 description: addresses contains the instance associated addresses.
@@ -1685,6 +1686,8 @@ spec:
                 description: vmstatus is used to identify the virtual machine status.
                 type: string
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

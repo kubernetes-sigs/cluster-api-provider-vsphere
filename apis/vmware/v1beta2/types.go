@@ -17,9 +17,11 @@ limitations under the License.
 package v1beta2
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template.
+// +kubebuilder:validation:MinProperties=1
 type VSphereMachineTemplateResource struct {
 	// spec is the specification of the desired behavior of the machine.
-	Spec VSphereMachineSpec `json:"spec"`
+	// +optional
+	Spec VSphereMachineSpec `json:"spec,omitempty,omitzero"`
 }
 
 // VirtualMachineState describes the state of a VM.

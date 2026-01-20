@@ -412,6 +412,7 @@ spec:
             properties:
               template:
                 description: template defines the desired state of VSphereMachineTemplate.
+                minProperties: 1
                 properties:
                   spec:
                     description: spec is the specification of the desired behavior
@@ -725,14 +726,13 @@ spec:
                     - className
                     - imageName
                     type: object
-                required:
-                - spec
                 type: object
             required:
             - template
             type: object
           status:
             description: status is the observed state of VSphereMachineTemplate.
+            minProperties: 1
             properties:
               capacity:
                 additionalProperties:

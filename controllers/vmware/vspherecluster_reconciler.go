@@ -286,7 +286,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 		return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", clusterCtx.VSphereCluster.Name)
 	}
 
-	clusterCtx.VSphereCluster.Status.Ready = true
+	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = ptr.To(true)
 	return nil
 }
 

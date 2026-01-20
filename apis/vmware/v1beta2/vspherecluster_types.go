@@ -204,10 +204,10 @@ type VSphereClusterStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// ready indicates the infrastructure required to deploy this cluster is
-	// ready.
+	// initialization provides observations of the VSphereCluster initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization VSphereClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// resourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
 	// the cluster, if one exists
@@ -225,6 +225,15 @@ type VSphereClusterStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *VSphereClusterDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// VSphereClusterInitializationStatus provides observations of the VSphereCluster initialization process.
+// +kubebuilder:validation:MinProperties=1
+type VSphereClusterInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // VSphereClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

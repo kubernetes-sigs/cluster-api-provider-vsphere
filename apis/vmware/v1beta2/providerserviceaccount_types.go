@@ -40,16 +40,6 @@ type ProviderServiceAccountSpec struct {
 	TargetSecretName string `json:"targetSecretName"`
 }
 
-// ProviderServiceAccountStatus defines the observed state of ProviderServiceAccount.
-type ProviderServiceAccountStatus struct {
-	// ready indicates the ProviderServiceAccount is ready.
-	// +optional
-	Ready bool `json:"ready,omitempty"`
-
-	// errorMsg surfaces an error message (it is not set at the moment).
-	ErrorMsg string `json:"errorMsg,omitempty"`
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=providerserviceaccounts,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion

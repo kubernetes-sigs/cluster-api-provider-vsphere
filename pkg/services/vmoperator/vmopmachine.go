@@ -582,20 +582,19 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 			Key:  "user-data",
 		},
 	}
-	if supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode != "" {
-		var powerOffMode vmoprvhub.VirtualMachinePowerOpMode
-		switch supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode {
-		case vmwarev1.VirtualMachinePowerOpModeHard:
-			powerOffMode = vmoprvhub.VirtualMachinePowerOpModeHard
-		case vmwarev1.VirtualMachinePowerOpModeSoft:
-			powerOffMode = vmoprvhub.VirtualMachinePowerOpModeSoft
-		case vmwarev1.VirtualMachinePowerOpModeTrySoft:
-			powerOffMode = vmoprvhub.VirtualMachinePowerOpModeTrySoft
-		default:
-			return fmt.Errorf("unable to map PowerOffMode %q to vm-operator equivalent", supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode)
-		}
-		vmOperatorVM.Spec.PowerOffMode = powerOffMode
+
+	var powerOffMode vmoprvhub.VirtualMachinePowerOpMode
+	switch supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode {
+	case vmwarev1.VirtualMachinePowerOpModeHard, "": // hard is default
+		powerOffMode = vmoprvhub.VirtualMachinePowerOpModeHard
+	case vmwarev1.VirtualMachinePowerOpModeSoft:
+		powerOffMode = vmoprvhub.VirtualMachinePowerOpModeSoft
+	case vmwarev1.VirtualMachinePowerOpModeTrySoft:
+		powerOffMode = vmoprvhub.VirtualMachinePowerOpModeTrySoft
+	default:
+		return fmt.Errorf("unable to map PowerOffMode %q to vm-operator equivalent", supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode)
 	}
+	vmOperatorVM.Spec.PowerOffMode = powerOffMode
 
 	if vmOperatorVM.Spec.MinHardwareVersion == 0 {
 		vmOperatorVM.Spec.MinHardwareVersion = minHardwareVersion

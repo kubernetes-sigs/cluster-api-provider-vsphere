@@ -87,7 +87,6 @@ type VSphereMachineSpec struct {
 	// If omitted, the mode defaults to hard.
 	//
 	// +optional
-	// +kubebuilder:default=hard
 	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
 
 	// minHardwareVersion specifies the desired minimum hardware version

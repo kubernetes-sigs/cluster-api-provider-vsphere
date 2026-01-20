@@ -1121,7 +1121,6 @@ spec:
                     type: object
                 type: object
               powerOffMode:
-                default: hard
                 description: |-
                   powerOffMode describes the desired behavior when powering off a VM.
 

@@ -19,7 +19,7 @@ spec:
     kind: VSphereCluster
     name: '${CLUSTER_NAME}'
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereCluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -29,7 +29,7 @@ spec:
     host: ${CONTROL_PLANE_ENDPOINT_IP}
     port: ${CONTROL_PLANE_ENDPOINT_PORT:=6443}
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: '${CLUSTER_NAME}'
@@ -42,7 +42,7 @@ spec:
       powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
       storageClass: ${VSPHERE_STORAGE_CLASS}
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-worker

@@ -1,4 +1,4 @@
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereClusterTemplate
 metadata:
   name: '${CLUSTER_CLASS_NAME}'
@@ -15,7 +15,7 @@ spec:
   controlPlane:
     machineInfrastructure:
       templateRef:
-        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
         kind: VSphereMachineTemplate
         name: ${CLUSTER_CLASS_NAME}-template
     templateRef:
@@ -24,7 +24,7 @@ spec:
       name: ${CLUSTER_CLASS_NAME}-controlplane
   infrastructure:
     templateRef:
-      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
       kind: VSphereClusterTemplate
       name: '${CLUSTER_CLASS_NAME}'
   patches:
@@ -92,7 +92,7 @@ spec:
             host: '{{ .controlPlaneIpAddr }}'
             port: {{ .controlPlanePort }}
       selector:
-        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
         kind: VSphereClusterTemplate
         matchResources:
           infrastructureCluster: true
@@ -207,11 +207,11 @@ spec:
       class: ${CLUSTER_CLASS_NAME}-worker
       infrastructure:
         templateRef:
-          apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
           kind: VSphereMachineTemplate
           name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-template
@@ -224,7 +224,7 @@ spec:
       powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
       storageClass: ${VSPHERE_STORAGE_CLASS}
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate

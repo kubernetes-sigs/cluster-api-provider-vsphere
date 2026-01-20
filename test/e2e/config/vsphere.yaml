@@ -162,7 +162,7 @@ providers:
       - name: v1.16.99 # next release
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default
-        contract: v1beta1
+        contract: v1beta2
         files:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-conformance.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-dhcp-overrides.yaml"
@@ -231,8 +231,8 @@ providers:
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/vcsim/config/default
         contract: v1beta1
         files:
-          # Add cluster templates
-        - sourcePath: "../data/shared/capv/main/metadata.yaml"
+          # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
+          - sourcePath: "../data/shared/rx/main/metadata.yaml"
 
   - name: vm-operator
     type: RuntimeExtensionProvider # vm-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
@@ -266,7 +266,8 @@ providers:
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/net-operator/config/default
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/capv/main/metadata.yaml"
+          # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
+          - sourcePath: "../data/shared/rx/main/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -279,7 +280,8 @@ providers:
         value: ../../../../cluster-api-provider-vsphere/test/extension/config/default
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/capv/main/metadata.yaml"
+          # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
+          - sourcePath: "../data/shared/rx/main/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"

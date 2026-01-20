@@ -25,6 +25,7 @@ type VSphereMachineTemplateResource struct {
 }
 
 // VirtualMachineState describes the state of a VM.
+// +kubebuilder:validation:Enum=notfound;created;poweredon;pending;ready;deleting;error
 type VirtualMachineState string
 
 const (

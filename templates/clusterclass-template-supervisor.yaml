@@ -3,9 +3,6 @@ kind: VSphereClusterTemplate
 metadata:
   name: '${CLUSTER_CLASS_NAME}'
   namespace: '${NAMESPACE}'
-spec:
-  template:
-    spec: {}
 ---
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
@@ -85,6 +82,11 @@ spec:
     name: enableSSHIntoNodes
   - definitions:
     - jsonPatches:
+      - op: add
+        path: /spec
+        value:
+          template:
+            spec: {}
       - op: add
         path: /spec/template/spec/controlPlaneEndpoint
         valueFrom:

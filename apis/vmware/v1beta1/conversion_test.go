@@ -146,6 +146,18 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 	if in.ProviderID != nil && *in.ProviderID == "" {
 		in.ProviderID = nil
 	}
+
+	if in.FailureDomain != nil && *in.FailureDomain == "" {
+		in.FailureDomain = nil
+	}
+
+	if in.NamingStrategy != nil && in.NamingStrategy.Template != nil && *in.NamingStrategy.Template == "" {
+		in.NamingStrategy.Template = nil
+	}
+
+	if in.NamingStrategy != nil && reflect.DeepEqual(in.NamingStrategy, &VirtualMachineNamingStrategy{}) {
+		in.NamingStrategy = nil
+	}
 }
 
 func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
@@ -155,6 +167,10 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &VSphereMachineV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+
+	if in.ID != nil && *in.ID == "" {
+		in.ID = nil
 	}
 }
 

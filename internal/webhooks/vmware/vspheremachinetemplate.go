@@ -101,15 +101,14 @@ func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphere
 
 	// Validate namingStrategy
 	namingStrategy := newVSphereMachineTemplate.Spec.Template.Spec.NamingStrategy
-	if namingStrategy != nil &&
-		namingStrategy.Template != nil {
+	if namingStrategy.Template != "" {
 		name, err := vmoperator.GenerateVirtualMachineName("machine", namingStrategy)
 		templateFldPath := field.NewPath("spec", "template", "spec", "namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					templateFldPath,
-					*namingStrategy.Template,
+					namingStrategy.Template,
 					fmt.Sprintf("invalid VirtualMachine name template: %v", err),
 				),
 			)
@@ -119,7 +118,7 @@ func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphere
 				allErrs = append(allErrs,
 					field.Invalid(
 						templateFldPath,
-						*namingStrategy.Template,
+						namingStrategy.Template,
 						fmt.Sprintf("invalid VirtualMachine name template, generated name is not a valid Kubernetes object name: %v", err),
 					),
 				)

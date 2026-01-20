@@ -500,6 +500,8 @@ spec:
                 description: |-
                   resourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
                   the cluster, if one exists
+                maxLength: 253
+                minLength: 1
                 type: string
             type: object
         type: object

@@ -29,15 +29,24 @@ type ProviderServiceAccountSpec struct {
 	Ref *corev1.ObjectReference `json:"ref,omitempty"`
 
 	// rules specifies the privileges that need to be granted to the service account.
-	Rules []rbacv1.PolicyRule `json:"rules"`
+	// +required
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=1024
+	Rules []rbacv1.PolicyRule `json:"rules,omitempty"`
 
 	// targetNamespace is the namespace in the target cluster where the secret containing the generated service account
 	// token needs to be created.
-	TargetNamespace string `json:"targetNamespace"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	TargetNamespace string `json:"targetNamespace,omitempty"`
 
 	// targetSecretName is the name of the secret in the target cluster that contains the generated service account
 	// token.
-	TargetSecretName string `json:"targetSecretName"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	TargetSecretName string `json:"targetSecretName,omitempty"`
 }
 
 // +kubebuilder:object:root=true

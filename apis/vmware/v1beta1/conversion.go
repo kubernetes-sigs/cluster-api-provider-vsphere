@@ -109,6 +109,14 @@ func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
+	if dst.Spec.FailureDomain != nil && *dst.Spec.FailureDomain == "" {
+		dst.Spec.FailureDomain = nil
+	}
+
+	if dst.Status.ID != nil && *dst.Status.ID == "" {
+		dst.Status.ID = nil
+	}
+
 	return utilconversion.MarshalData(src, dst)
 }
 
@@ -129,6 +137,10 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 
 	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
 		dst.Spec.Template.Spec.ProviderID = nil
+	}
+
+	if dst.Spec.Template.Spec.FailureDomain != nil && *dst.Spec.Template.Spec.FailureDomain == "" {
+		dst.Spec.Template.Spec.FailureDomain = nil
 	}
 
 	return nil
@@ -234,6 +246,35 @@ func Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VS
 	if in.Conditions != nil {
 		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
+	return nil
+}
+
+func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *vmwarev1.VSphereMachineSpec, out *VSphereMachineSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(in.NamingStrategy, vmwarev1.VirtualMachineNamingStrategy{}) {
+		out.NamingStrategy = &VirtualMachineNamingStrategy{}
+		if err := autoConvert_v1beta2_VirtualMachineNamingStrategy_To_v1beta1_VirtualMachineNamingStrategy(&in.NamingStrategy, out.NamingStrategy, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Convert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSphereMachineSpec, out *vmwarev1.VSphereMachineSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.NamingStrategy != nil {
+		if err := autoConvert_v1beta1_VirtualMachineNamingStrategy_To_v1beta2_VirtualMachineNamingStrategy(in.NamingStrategy, &out.NamingStrategy, s); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

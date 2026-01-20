@@ -210,11 +210,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			Expect(vsphereMachine).ShouldNot(BeNil())
 			Expect(vsphereMachine.Name).Should(Equal(machineName))
-			if expectedBiosUUID == "" {
-				Expect(vsphereMachine.Status.ID).To(BeNil())
-			} else {
-				Expect(*vsphereMachine.Status.ID).Should(Equal(expectedBiosUUID))
-			}
+			Expect(vsphereMachine.Status.ID).Should(Equal(expectedBiosUUID))
 			Expect(vsphereMachine.Status.IPAddr).Should(Equal(expectedVMIP))
 			Expect(vsphereMachine.Status.VMStatus).Should(Equal(expectedState))
 
@@ -1240,14 +1236,14 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 	tests := []struct {
 		name        string
 		machineName string
-		template    *string
+		template    string
 		want        []gomegatypes.GomegaMatcher
 		wantErr     bool
 	}{
 		{
 			name:        "default template",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v",
-			template:    nil,
+			template:    "",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v"),
 			},
@@ -1255,7 +1251,7 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 		{
 			name:        "template which doesn't respect max length: trim to max length",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v", // 41 characters
-			template:    ptr.To[string]("{{ .machine.name }}-{{ .machine.name }}"),
+			template:    "{{ .machine.name }}-{{ .machine.name }}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v-quick-start-d34gt4-md"), // 63 characters
 			},
@@ -1263,7 +1259,7 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 		{
 			name:        "template for 20 characters: keep machine name if name has 20 characters",
 			machineName: "quick-md-8nxwc-gfd5v", // 20 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-md-8nxwc-gfd5v"), // 20 characters
 			},
@@ -1271,7 +1267,7 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 		{
 			name:        "template for 20 characters: trim to 20 characters if name has more than 20 characters",
 			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v", // 41 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d3-gfd5v"), // 20 characters
 			},
@@ -1279,7 +1275,7 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 		{
 			name:        "template for 20 characters: trim to 19 characters if name has more than 20 characters and last character of prefix is -",
 			machineName: "quick-start-d-34gt4-md-0-wqc85-8nxwc-gfd5v", // 42 characters
-			template:    ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			want: []gomegatypes.GomegaMatcher{
 				Equal("quick-start-d-gfd5v"), // 19 characters
 			},
@@ -1289,7 +1285,7 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := virtualMachineObjectKey(tt.machineName, corev1.NamespaceDefault, &vmwarev1.VirtualMachineNamingStrategy{
+			got, err := virtualMachineObjectKey(tt.machineName, corev1.NamespaceDefault, vmwarev1.VirtualMachineNamingStrategy{
 				Template: tt.template,
 			})
 			if (err != nil) != tt.wantErr {

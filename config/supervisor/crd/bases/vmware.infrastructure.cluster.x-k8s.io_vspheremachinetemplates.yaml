@@ -422,16 +422,22 @@ spec:
                         description: |-
                           className is the name of the class used when specifying the underlying
                           virtual machine
+                        maxLength: 253
+                        minLength: 1
                         type: string
                       failureDomain:
                         description: |-
                           failureDomain is the failure domain the machine will be created in.
-                          Must match a key in the FailureDomains map stored on the cluster object.
+                          Must match a FailureDomain name on the Cluster status.
+                        maxLength: 256
+                        minLength: 1
                         type: string
                       imageName:
                         description: |-
                           imageName is the name of the base image used when specifying the
                           underlying virtual machine
+                        maxLength: 2048
+                        minLength: 1
                         type: string
                       minHardwareVersion:
                         description: |-
@@ -439,10 +445,13 @@ spec:
                           for this VM. Setting this field will ensure that the hardware version
                           of the VM is at least set to the specified value.
                           The expected format of the field is vmx-15.
+                        maxLength: 32
+                        minLength: 1
                         type: string
                       namingStrategy:
                         description: namingStrategy allows configuring the naming
                           strategy used when calculating the name of the VirtualMachine.
+                        minProperties: 1
                         properties:
                           template:
                             description: |-
@@ -460,6 +469,8 @@ spec:
                                 and usually also as the name of the Node object.
                               * Names are automatically truncated at 63 characters. Please note that this can lead to name conflicts,
                                 so we highly recommend to use a template which leads to a name shorter than 63 characters.
+                            maxLength: 1024
+                            minLength: 1
                             type: string
                         type: object
                       network:
@@ -693,6 +704,8 @@ spec:
                         description: |-
                           storageClass is the name of the storage class used when specifying the
                           underlying virtual machine.
+                        maxLength: 253
+                        minLength: 1
                         type: string
                       volumes:
                         description: volumes is the set of PVCs to be created and
@@ -710,17 +723,24 @@ spec:
                               description: capacity is the PVC capacity
                               type: object
                             name:
-                              description: 'name is suffix used to name this PVC as:
-                                VSphereMachine.Name + "-" + Name'
+                              description: |-
+                                name is the suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
+                                Note: Use short values for the name as the max length for PVC names is 253 characters.
+                              maxLength: 253
+                              minLength: 1
                               type: string
                             storageClass:
                               description: storageClass defaults to VSphereMachineSpec.StorageClass
+                              maxLength: 253
+                              minLength: 1
                               type: string
                           required:
                           - capacity
                           - name
                           type: object
+                        maxItems: 1024
                         type: array
+                        x-kubernetes-list-type: atomic
                     required:
                     - className
                     - imageName

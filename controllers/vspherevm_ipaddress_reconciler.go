@@ -53,9 +53,9 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 	log := ctrl.LoggerFrom(ctx)
 
 	var (
-		claims        []deprecatedv1beta1conditions.Getter
-		v1beta2Claims []conditions.Getter
-		errList       []error
+		deprecatedV1beta1Claims []deprecatedv1beta1conditions.Getter
+		claims                  []conditions.Getter
+		errList                 []error
 	)
 
 	for devIdx, device := range vmCtx.VSphereVM.Spec.Network.Devices {
@@ -90,9 +90,9 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 
 			// Since this is eventually used to calculate the status of the
 			// IPAddressClaimed condition for the VSphereVM object.
-			if deprecatedv1beta1conditions.Has(ipAddrClaim, clusterv1.ReadyCondition) {
+			if conditions.Has(ipAddrClaim, clusterv1.ReadyCondition) {
+				deprecatedV1beta1Claims = append(deprecatedV1beta1Claims, ipAddrClaim)
 				claims = append(claims, ipAddrClaim)
-				v1beta2Claims = append(v1beta2Claims, ipAddrClaim)
 			}
 		}
 	}
@@ -121,12 +121,12 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 	if len(claims) == totalClaims {
 		deprecatedv1beta1conditions.SetAggregate(vmCtx.VSphereVM,
 			infrav1.IPAddressClaimedCondition,
-			claims,
+			deprecatedV1beta1Claims,
 			deprecatedv1beta1conditions.AddSourceRef(),
 			deprecatedv1beta1conditions.WithStepCounter())
 
-		if len(v1beta2Claims) > 0 {
-			if err := conditions.SetAggregateCondition(v1beta2Claims, vmCtx.VSphereVM, clusterv1beta1.ReadyV1Beta2Condition, conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)); err != nil {
+		if len(claims) > 0 {
+			if err := conditions.SetAggregateCondition(claims, vmCtx.VSphereVM, clusterv1beta1.ReadyV1Beta2Condition, conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)); err != nil {
 				return errors.Wrap(err, "failed to aggregate Ready condition from IPAddressClaims")
 			}
 		} else {

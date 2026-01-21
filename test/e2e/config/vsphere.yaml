@@ -229,7 +229,6 @@ providers:
       - name: v1.16.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/vcsim/config/default
-        contract: v1beta1
         files:
           # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
           - sourcePath: "../data/shared/rx/main/metadata.yaml"
@@ -241,7 +240,6 @@ providers:
         # Use manifest from source files
         value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-v1.8.6-0-gde75746a.yaml"
         type: "url"
-        contract: v1beta1
         files:
           - sourcePath: "../data/shared/vmoperator/v1.8/metadata.yaml"
         replacements:
@@ -251,7 +249,6 @@ providers:
         # Use manifest from source files
         value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-v1.9.0-567-g93918c59.yaml"
         type: "url"
-        contract: v1beta1
         files:
           - sourcePath: "../data/shared/vmoperator/v1.9/metadata.yaml"
         replacements:
@@ -264,7 +261,6 @@ providers:
       - name: v1.16.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/net-operator/config/default
-        contract: v1beta1
         files:
           # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
           - sourcePath: "../data/shared/rx/main/metadata.yaml"
@@ -278,7 +274,6 @@ providers:
       - name: v1.16.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/extension/config/default
-        contract: v1beta1
         files:
           # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
           - sourcePath: "../data/shared/rx/main/metadata.yaml"

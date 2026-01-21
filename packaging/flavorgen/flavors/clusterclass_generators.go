@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
-	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/clusterclass"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/kubevip"
@@ -71,8 +71,8 @@ func newVMWareClusterClass() clusterv1.ClusterClass {
 		Spec: clusterv1.ClusterClassSpec{
 			Infrastructure: clusterv1.InfrastructureClass{
 				TemplateRef: clusterv1.ClusterClassTemplateReference{
-					APIVersion: vmwarev1beta1.GroupVersion.String(),
-					Kind:       util.TypeToKind(&vmwarev1beta1.VSphereClusterTemplate{}),
+					APIVersion: vmwarev1.GroupVersion.String(),
+					Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
 					Name:       env.ClusterClassNameVar,
 				},
 			},
@@ -110,8 +110,8 @@ func getVMWareControlPlaneClass() clusterv1.ControlPlaneClass {
 		},
 		MachineInfrastructure: clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 			TemplateRef: clusterv1.ClusterClassTemplateReference{
-				APIVersion: vmwarev1beta1.GroupVersion.String(),
-				Kind:       util.TypeToKind(&vmwarev1beta1.VSphereMachineTemplate{}),
+				APIVersion: vmwarev1.GroupVersion.String(),
+				Kind:       util.TypeToKind(&vmwarev1.VSphereMachineTemplate{}),
 				Name:       fmt.Sprintf("%s-template", env.ClusterClassNameVar),
 			},
 		},
@@ -156,9 +156,9 @@ func getVMWareWorkersClass() clusterv1.WorkersClass {
 				},
 				Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
 					TemplateRef: clusterv1.ClusterClassTemplateReference{
-						Kind:       util.TypeToKind(&vmwarev1beta1.VSphereMachineTemplate{}),
+						Kind:       util.TypeToKind(&vmwarev1.VSphereMachineTemplate{}),
 						Name:       fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar),
-						APIVersion: vmwarev1beta1.GroupVersion.String(),
+						APIVersion: vmwarev1.GroupVersion.String(),
 					},
 				},
 			},
@@ -237,19 +237,19 @@ func newVSphereClusterTemplate() infrav1.VSphereClusterTemplate {
 	}
 }
 
-func newVMWareClusterTemplate() vmwarev1beta1.VSphereClusterTemplate {
-	return vmwarev1beta1.VSphereClusterTemplate{
+func newVMWareClusterTemplate() vmwarev1.VSphereClusterTemplate {
+	return vmwarev1.VSphereClusterTemplate{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: vmwarev1beta1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&vmwarev1beta1.VSphereClusterTemplate{}),
+			APIVersion: vmwarev1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      env.ClusterClassNameVar,
 			Namespace: env.NamespaceVar,
 		},
-		Spec: vmwarev1beta1.VSphereClusterTemplateSpec{
-			Template: vmwarev1beta1.VSphereClusterTemplateResource{
-				Spec: vmwarev1beta1.VSphereClusterSpec{},
+		Spec: vmwarev1.VSphereClusterTemplateSpec{
+			Template: vmwarev1.VSphereClusterTemplateResource{
+				Spec: vmwarev1.VSphereClusterSpec{},
 			},
 		},
 	}

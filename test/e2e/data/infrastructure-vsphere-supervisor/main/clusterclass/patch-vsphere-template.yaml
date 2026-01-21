@@ -27,7 +27,7 @@
             ubuntu-2404-kube-v1.35.0
             {{- end -}}
       selector:
-        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
         kind: VSphereMachineTemplate
         matchResources:
           controlPlane: true
@@ -56,7 +56,7 @@
             ubuntu-2404-kube-v1.35.0
             {{- end -}}
       selector:
-        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta2
         kind: VSphereMachineTemplate
         matchResources:
           machineDeploymentClass:

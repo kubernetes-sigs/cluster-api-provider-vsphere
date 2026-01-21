@@ -39,6 +39,7 @@ import (
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/clusterclass"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/kubevip"
 )
@@ -59,6 +60,7 @@ func NewExtensionHandlers() *ExtensionHandlers {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
+	_ = vmwarev1.AddToScheme(scheme)
 	_ = vmwarev1beta1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)
@@ -67,6 +69,7 @@ func NewExtensionHandlers() *ExtensionHandlers {
 		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
 			infrav1.GroupVersion,
 			infrav1beta1.GroupVersion,
+			vmwarev1.GroupVersion,
 			vmwarev1beta1.GroupVersion,
 			controlplanev1.GroupVersion,
 			bootstrapv1.GroupVersion,
@@ -111,12 +114,12 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 					log.Error(err, "Error patching VSphereMachineTemplate")
 					return errors.Wrap(err, "error patching VSphereMachineTemplate")
 				}
-			case *vmwarev1beta1.VSphereClusterTemplate:
+			case *vmwarev1beta1.VSphereClusterTemplate, *vmwarev1.VSphereClusterTemplate:
 				if err := patchSupervisorClusterTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching VSphereClusterTemplate")
 					return errors.Wrap(err, "error patching VSphereClusterTemplate")
 				}
-			case *vmwarev1beta1.VSphereMachineTemplate:
+			case *vmwarev1beta1.VSphereMachineTemplate, *vmwarev1.VSphereMachineTemplate:
 				if err := patchSupervisorMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
 					log.Error(err, "Error patching VSphereMachineTemplate")
 					return errors.Wrap(err, "error patching VSphereMachineTemplate")
@@ -302,7 +305,7 @@ func patchGovmomiClusterTemplate(_ context.Context, vsphereCluster runtime.Objec
 
 // patchSupervisorClusterTemplate patches the supervisor VSphereClusterTemplate.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchSupervisorClusterTemplate(_ context.Context, vsphereCluster *vmwarev1beta1.VSphereClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchSupervisorClusterTemplate(_ context.Context, vsphereCluster runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	// patch infraClusterSubstitutions
 	controlPlaneIPAddr, err := topologymutation.GetStringVariable(templateVariables, "controlPlaneIpAddr")
 	if err != nil {
@@ -313,8 +316,14 @@ func patchSupervisorClusterTemplate(_ context.Context, vsphereCluster *vmwarev1b
 		return err
 	}
 
-	vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Host = controlPlaneIPAddr
-	vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Port = controlPlanePort
+	switch vsphereCluster := vsphereCluster.(type) {
+	case *vmwarev1beta1.VSphereClusterTemplate:
+		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Host = controlPlaneIPAddr
+		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Port = controlPlanePort
+	case *vmwarev1.VSphereClusterTemplate:
+		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Host = controlPlaneIPAddr
+		vsphereCluster.Spec.Template.Spec.ControlPlaneEndpoint.Port = controlPlanePort
+	}
 
 	return nil
 }
@@ -339,11 +348,18 @@ func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate runti
 
 // patchSupervisorMachineTemplate patches the supervisor VSphereMachineTemplate.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchSupervisorMachineTemplate(_ context.Context, vsphereMachineTemplate *vmwarev1beta1.VSphereMachineTemplate, templateVariables map[string]apiextensionsv1.JSON, isControlPlane bool) error {
-	// patch vSphereTemplate
+func patchSupervisorMachineTemplate(_ context.Context, vsphereMachineTemplate runtime.Object, templateVariables map[string]apiextensionsv1.JSON, isControlPlane bool) error {
+	imageName, err := calculateImageName(templateVariables, isControlPlane)
+	if err != nil {
+		return err
+	}
 
-	var err error
-	vsphereMachineTemplate.Spec.Template.Spec.ImageName, err = calculateImageName(templateVariables, isControlPlane)
+	switch vsphereMachineTemplate := vsphereMachineTemplate.(type) {
+	case *vmwarev1beta1.VSphereMachineTemplate:
+		vsphereMachineTemplate.Spec.Template.Spec.ImageName = imageName
+	case *vmwarev1.VSphereMachineTemplate:
+		vsphereMachineTemplate.Spec.Template.Spec.ImageName = imageName
+	}
 
 	return err
 }

@@ -249,6 +249,14 @@ func Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VS
 	return nil
 }
 
+func Convert_v1beta2_VSphereClusterTemplateResource_To_v1beta1_VSphereClusterTemplateResource(in *vmwarev1.VSphereClusterTemplateResource, out *VSphereClusterTemplateResource, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereClusterTemplateResource_To_v1beta1_VSphereClusterTemplateResource(in, out, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *vmwarev1.VSphereMachineSpec, out *VSphereMachineSpec, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in, out, s); err != nil {
 		return err
@@ -338,6 +346,14 @@ func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VS
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
+	return nil
+}
+
+func Convert_v1beta2_VSphereMachineTemplateResource_To_v1beta1_VSphereMachineTemplateResource(in *vmwarev1.VSphereMachineTemplateResource, out *VSphereMachineTemplateResource, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereMachineTemplateResource_To_v1beta1_VSphereMachineTemplateResource(in, out, s); err != nil {
+		return err
+	}
+
 	return nil
 }
 

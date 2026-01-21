@@ -16,9 +16,16 @@ limitations under the License.
 
 package v1beta2
 
+import clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template.
 // +kubebuilder:validation:MinProperties=1
 type VSphereMachineTemplateResource struct {
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
+
 	// spec is the specification of the desired behavior of the machine.
 	// +optional
 	Spec VSphereMachineSpec `json:"spec,omitempty,omitzero"`

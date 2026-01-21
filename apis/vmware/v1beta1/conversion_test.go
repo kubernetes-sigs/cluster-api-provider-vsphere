@@ -119,7 +119,15 @@ func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
 }
 
 func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
+	return []interface{}{
+		hubVSphereClusterTemplateResource,
+	}
+}
+
+func hubVSphereClusterTemplateResource(in *vmwarev1.VSphereClusterTemplateResource, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
 
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -176,8 +184,15 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubVSphereMachineTemplateResource,
 		spokeVSphereMachineSpec,
 	}
+}
+
+func hubVSphereMachineTemplateResource(in *vmwarev1.VSphereMachineTemplateResource, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
 
 func ProviderServiceAccountFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

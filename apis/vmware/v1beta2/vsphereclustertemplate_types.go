@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // VSphereClusterTemplateSpec defines the desired state of VSphereClusterTemplate.
@@ -57,9 +58,14 @@ func init() {
 	objectTypes = append(objectTypes, &VSphereClusterTemplate{}, &VSphereClusterTemplateList{})
 }
 
-// VSphereClusterTemplateResource defines the template structure.
+// VSphereClusterTemplateResource describes the data for creating a VSphereCluster from a template.
 // +kubebuilder:validation:MinProperties=1
 type VSphereClusterTemplateResource struct {
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
+
 	// spec is the desired state of VSphereClusterTemplateResource.
 	// +optional
 	Spec VSphereClusterSpec `json:"spec,omitempty,omitzero"`

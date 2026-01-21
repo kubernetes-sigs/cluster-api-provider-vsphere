@@ -28,12 +28,21 @@ import (
 
 // VSphereMachineVolume defines a PVC attachment.
 type VSphereMachineVolume struct {
-	// name is suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
-	Name string `json:"name"`
+	// name is the suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
+	// Note: Use short values for the name as the max length for PVC names is 253 characters.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name,omitempty"`
+
 	// capacity is the PVC capacity
-	Capacity corev1.ResourceList `json:"capacity"`
+	// +required
+	Capacity corev1.ResourceList `json:"capacity,omitempty,omitzero"`
+
 	// storageClass defaults to VSphereMachineSpec.StorageClass
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	StorageClass string `json:"storageClass,omitempty"`
 }
 
@@ -47,25 +56,37 @@ type VSphereMachineSpec struct {
 	ProviderID string `json:"providerID,omitempty"`
 
 	// failureDomain is the failure domain the machine will be created in.
-	// Must match a key in the FailureDomains map stored on the cluster object.
+	// Must match a FailureDomain name on the Cluster status.
 	// +optional
-	FailureDomain *string `json:"failureDomain,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	FailureDomain string `json:"failureDomain,omitempty"`
 
 	// imageName is the name of the base image used when specifying the
 	// underlying virtual machine
-	ImageName string `json:"imageName"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	ImageName string `json:"imageName,omitempty"`
 
 	// className is the name of the class used when specifying the underlying
 	// virtual machine
-	ClassName string `json:"className"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	ClassName string `json:"className,omitempty"`
 
 	// storageClass is the name of the storage class used when specifying the
 	// underlying virtual machine.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	StorageClass string `json:"storageClass,omitempty"`
 
 	// volumes is the set of PVCs to be created and attached to the VSphereMachine
 	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=1024
 	Volumes []VSphereMachineVolume `json:"volumes,omitempty"`
 
 	// network is the network configuration for the VSphereMachine
@@ -85,7 +106,6 @@ type VSphereMachineSpec struct {
 	// If omitted, the mode defaults to hard.
 	//
 	// +optional
-	// +kubebuilder:default=hard
 	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
 
 	// minHardwareVersion specifies the desired minimum hardware version
@@ -94,11 +114,13 @@ type VSphereMachineSpec struct {
 	// The expected format of the field is vmx-15.
 	//
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=32
 	MinHardwareVersion string `json:"minHardwareVersion,omitempty"`
 
 	// namingStrategy allows configuring the naming strategy used when calculating the name of the VirtualMachine.
 	// +optional
-	NamingStrategy *VirtualMachineNamingStrategy `json:"namingStrategy,omitempty"`
+	NamingStrategy VirtualMachineNamingStrategy `json:"namingStrategy,omitempty,omitzero"`
 }
 
 // VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.
@@ -247,6 +269,7 @@ type RouteSpec struct {
 }
 
 // VirtualMachineNamingStrategy defines the naming strategy for the VirtualMachines.
+// +kubebuilder:validation:MinProperties=1
 type VirtualMachineNamingStrategy struct {
 	// template defines the template to use for generating the name of the VirtualMachine object.
 	// If not defined, it will fall back to `{{ .machine.name }}`.
@@ -263,10 +286,13 @@ type VirtualMachineNamingStrategy struct {
 	// * Names are automatically truncated at 63 characters. Please note that this can lead to name conflicts,
 	//   so we highly recommend to use a template which leads to a name shorter than 63 characters.
 	// +optional
-	Template *string `json:"template,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	Template string `json:"template,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.
+// +kubebuilder:validation:MinProperties=1
 type VSphereMachineStatus struct {
 	// conditions represents the observations of a VSphereMachine's current state.
 	// Known condition types are Ready, VirtualMachineProvisioned and Paused.
@@ -290,10 +316,14 @@ type VSphereMachineStatus struct {
 
 	// vmID is used to identify the virtual machine.
 	// +optional
-	ID *string `json:"vmID,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	ID string `json:"vmID,omitempty"`
 
 	// vmIp is the IP address used to access the virtual machine.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	IPAddr string `json:"vmIp,omitempty"`
 
 	// vmstatus is used to identify the virtual machine status.
@@ -403,10 +433,12 @@ type VSphereMachine struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of VSphereMachine.
-	Spec VSphereMachineSpec `json:"spec,omitempty"`
+	// +required
+	Spec VSphereMachineSpec `json:"spec,omitempty,omitzero"`
 
 	// status is the observed state of VSphereMachine.
-	Status VSphereMachineStatus `json:"status,omitempty"`
+	// +optional
+	Status VSphereMachineStatus `json:"status,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

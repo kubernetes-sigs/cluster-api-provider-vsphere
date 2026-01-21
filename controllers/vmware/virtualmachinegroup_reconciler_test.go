@@ -1453,8 +1453,8 @@ type vSphereMachineOption func(m *vmwarev1.VSphereMachine)
 
 func withCustomNamingStrategy() func(m *vmwarev1.VSphereMachine) {
 	return func(m *vmwarev1.VSphereMachine) {
-		m.Spec.NamingStrategy = &vmwarev1.VirtualMachineNamingStrategy{
-			Template: ptr.To[string]("{{ .machine.name }}-vm"),
+		m.Spec.NamingStrategy = vmwarev1.VirtualMachineNamingStrategy{
+			Template: "{{ .machine.name }}-vm",
 		}
 	}
 }
@@ -1470,7 +1470,7 @@ func createVSphereMachine(name, cluster, md, failureDomain string, options ...vS
 			},
 		},
 		Spec: vmwarev1.VSphereMachineSpec{
-			FailureDomain: &failureDomain,
+			FailureDomain: failureDomain,
 		},
 	}
 	for _, opt := range options {

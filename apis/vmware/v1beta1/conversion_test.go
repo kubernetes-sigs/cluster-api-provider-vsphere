@@ -119,7 +119,15 @@ func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
 }
 
 func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
+	return []interface{}{
+		hubVSphereClusterTemplateResource,
+	}
+}
+
+func hubVSphereClusterTemplateResource(in *vmwarev1.VSphereClusterTemplateResource, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
 
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -146,6 +154,18 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 	if in.ProviderID != nil && *in.ProviderID == "" {
 		in.ProviderID = nil
 	}
+
+	if in.FailureDomain != nil && *in.FailureDomain == "" {
+		in.FailureDomain = nil
+	}
+
+	if in.NamingStrategy != nil && in.NamingStrategy.Template != nil && *in.NamingStrategy.Template == "" {
+		in.NamingStrategy.Template = nil
+	}
+
+	if in.NamingStrategy != nil && reflect.DeepEqual(in.NamingStrategy, &VirtualMachineNamingStrategy{}) {
+		in.NamingStrategy = nil
+	}
 }
 
 func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
@@ -156,12 +176,23 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+
+	if in.ID != nil && *in.ID == "" {
+		in.ID = nil
+	}
 }
 
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubVSphereMachineTemplateResource,
 		spokeVSphereMachineSpec,
 	}
+}
+
+func hubVSphereMachineTemplateResource(in *vmwarev1.VSphereMachineTemplateResource, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
 
 func ProviderServiceAccountFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

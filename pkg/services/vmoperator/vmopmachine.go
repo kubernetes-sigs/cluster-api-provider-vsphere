@@ -330,7 +330,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	// If the failureDomain is explicitly define for a machine, forward this info to the VM.
 	// Note: for consistency, affinity rules will be set on all the VMs, no matter if they are explicitly assigned to a failureDomain or not.
 	if supervisorMachineCtx.Machine.Spec.FailureDomain != "" {
-		supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = ptr.To(supervisorMachineCtx.Machine.Spec.FailureDomain)
+		supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = supervisorMachineCtx.Machine.Spec.FailureDomain
 	}
 
 	// Check for the presence of an existing object
@@ -471,7 +471,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 // virtualMachineObjectKey returns the object key of the VirtualMachine.
 // Part of this is generating the name of the VirtualMachine based on the naming strategy.
-func virtualMachineObjectKey(machineName, machineNamespace string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (*client.ObjectKey, error) {
+func virtualMachineObjectKey(machineName, machineNamespace string, namingStrategy vmwarev1.VirtualMachineNamingStrategy) (*client.ObjectKey, error) {
 	name, err := GenerateVirtualMachineName(machineName, namingStrategy)
 	if err != nil {
 		return nil, err
@@ -484,14 +484,14 @@ func virtualMachineObjectKey(machineName, machineNamespace string, namingStrateg
 }
 
 // GenerateVirtualMachineName generates the name of a VirtualMachine based on the naming strategy.
-func GenerateVirtualMachineName(machineName string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (string, error) {
+func GenerateVirtualMachineName(machineName string, namingStrategy vmwarev1.VirtualMachineNamingStrategy) (string, error) {
 	// Per default the name of the VirtualMachine should be equal to the Machine name (this is the same as "{{ .machine.name }}")
-	if namingStrategy == nil || namingStrategy.Template == nil {
+	if namingStrategy.Template == "" {
 		// Note: No need to trim to max length in this case as valid Machine names will also be valid VirtualMachine names.
 		return machineName, nil
 	}
 
-	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, *namingStrategy.Template)
+	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, namingStrategy.Template)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate name for VirtualMachine")
 	}
@@ -582,20 +582,19 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 			Key:  "user-data",
 		},
 	}
-	if supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode != "" {
-		var powerOffMode vmoprvhub.VirtualMachinePowerOpMode
-		switch supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode {
-		case vmwarev1.VirtualMachinePowerOpModeHard:
-			powerOffMode = vmoprvhub.VirtualMachinePowerOpModeHard
-		case vmwarev1.VirtualMachinePowerOpModeSoft:
-			powerOffMode = vmoprvhub.VirtualMachinePowerOpModeSoft
-		case vmwarev1.VirtualMachinePowerOpModeTrySoft:
-			powerOffMode = vmoprvhub.VirtualMachinePowerOpModeTrySoft
-		default:
-			return fmt.Errorf("unable to map PowerOffMode %q to vm-operator equivalent", supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode)
-		}
-		vmOperatorVM.Spec.PowerOffMode = powerOffMode
+
+	var powerOffMode vmoprvhub.VirtualMachinePowerOpMode
+	switch supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode {
+	case vmwarev1.VirtualMachinePowerOpModeHard, "": // hard is default
+		powerOffMode = vmoprvhub.VirtualMachinePowerOpModeHard
+	case vmwarev1.VirtualMachinePowerOpModeSoft:
+		powerOffMode = vmoprvhub.VirtualMachinePowerOpModeSoft
+	case vmwarev1.VirtualMachinePowerOpModeTrySoft:
+		powerOffMode = vmoprvhub.VirtualMachinePowerOpModeTrySoft
+	default:
+		return fmt.Errorf("unable to map PowerOffMode %q to vm-operator equivalent", supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode)
 	}
+	vmOperatorVM.Spec.PowerOffMode = powerOffMode
 
 	if vmOperatorVM.Spec.MinHardwareVersion == 0 {
 		vmOperatorVM.Spec.MinHardwareVersion = minHardwareVersion
@@ -787,8 +786,8 @@ func (v *VmopMachineService) reconcileProviderID(ctx context.Context, supervisor
 		log.Info("Updated providerID", "providerID", providerID)
 	}
 
-	if supervisorMachineCtx.VSphereMachine.Status.ID == nil || *supervisorMachineCtx.VSphereMachine.Status.ID != vm.Status.BiosUUID {
-		supervisorMachineCtx.VSphereMachine.Status.ID = &vm.Status.BiosUUID
+	if supervisorMachineCtx.VSphereMachine.Status.ID != vm.Status.BiosUUID {
+		supervisorMachineCtx.VSphereMachine.Status.ID = vm.Status.BiosUUID
 		log.Info("Updated VM ID", "vmID", vm.Status.BiosUUID)
 	}
 }
@@ -915,13 +914,13 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 		// Control Plane VMs will still have failureDomain set, and we will set PVC annotation.
 		zonal := len(supervisorMachineCtx.VSphereCluster.Status.FailureDomains) > 1
 
-		if zone := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; zonal && zone != nil {
+		if zone := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; zonal && zone != "" {
 			topology := []map[string]string{
-				{corev1.LabelTopologyZone: *zone},
+				{corev1.LabelTopologyZone: zone},
 			}
 			b, err := json.Marshal(topology)
 			if err != nil {
-				return errors.Errorf("failed to marshal zone topology %q: %s", *zone, err)
+				return errors.Errorf("failed to marshal zone topology %q: %s", zone, err)
 			}
 			pvc.Annotations = map[string]string{
 				"csi.vsphere.volume-requested-topology": string(b),
@@ -1005,9 +1004,9 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 //	this function may return a more diverse topology.
 func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, failureDomain string) map[string]string {
 	// This is for explicit placement.
-	if fd := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; fd != nil && *fd != "" {
+	if fd := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; fd != "" {
 		return map[string]string{
-			corev1.LabelTopologyZone: *fd,
+			corev1.LabelTopologyZone: fd,
 		}
 	}
 	// This is for automatic placement.

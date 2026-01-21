@@ -25,27 +25,28 @@ import (
 // ProviderServiceAccountSpec defines the desired state of ProviderServiceAccount.
 type ProviderServiceAccountSpec struct {
 	// ref specifies the reference to the VSphereCluster for which the ProviderServiceAccount needs to be realized.
-	Ref *corev1.ObjectReference `json:"ref"`
+	// +required
+	Ref *corev1.ObjectReference `json:"ref,omitempty"`
 
 	// rules specifies the privileges that need to be granted to the service account.
-	Rules []rbacv1.PolicyRule `json:"rules"`
+	// +required
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=1024
+	Rules []rbacv1.PolicyRule `json:"rules,omitempty"`
 
 	// targetNamespace is the namespace in the target cluster where the secret containing the generated service account
 	// token needs to be created.
-	TargetNamespace string `json:"targetNamespace"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	TargetNamespace string `json:"targetNamespace,omitempty"`
 
 	// targetSecretName is the name of the secret in the target cluster that contains the generated service account
 	// token.
-	TargetSecretName string `json:"targetSecretName"`
-}
-
-// ProviderServiceAccountStatus defines the observed state of ProviderServiceAccount.
-type ProviderServiceAccountStatus struct {
-	// ready indicates the ProviderServiceAccount is ready.
-	Ready bool `json:"ready,omitempty"`
-
-	// errorMsg surfaces an error message (it is not set at the moment).
-	ErrorMsg string `json:"errorMsg,omitempty"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	TargetSecretName string `json:"targetSecretName,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -66,7 +67,8 @@ type ProviderServiceAccount struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of ProviderServiceAccount.
-	Spec ProviderServiceAccountSpec `json:"spec,omitempty"`
+	// +required
+	Spec ProviderServiceAccountSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

@@ -37,46 +37,46 @@ import (
 func TestVSphereMachineTemplate_Validate(t *testing.T) {
 	tests := []struct {
 		name           string
-		namingStrategy *vmwarev1.VirtualMachineNamingStrategy
+		namingStrategy vmwarev1.VirtualMachineNamingStrategy
 		wantErr        bool
 	}{
 		{
 			name:           "Should succeed if namingStrategy not set",
-			namingStrategy: nil,
+			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{},
 			wantErr:        false,
 		},
 		{
 			name: "Should succeed if namingStrategy.template not set",
-			namingStrategy: &vmwarev1.VirtualMachineNamingStrategy{
-				Template: nil,
+			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+				Template: "",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Should succeed if namingStrategy.template is set to the fallback value",
-			namingStrategy: &vmwarev1.VirtualMachineNamingStrategy{
-				Template: ptr.To[string]("{{ .machine.name }}"),
+			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+				Template: "{{ .machine.name }}",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Should succeed if namingStrategy.template is set to the Windows example",
-			namingStrategy: &vmwarev1.VirtualMachineNamingStrategy{
-				Template: ptr.To[string]("{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}"),
+			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+				Template: "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Should fail if namingStrategy.template is set to an invalid template",
-			namingStrategy: &vmwarev1.VirtualMachineNamingStrategy{
-				Template: ptr.To[string]("{{ invalid"),
+			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+				Template: "{{ invalid",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Should fail if namingStrategy.template is set to a valid template that renders an invalid name",
-			namingStrategy: &vmwarev1.VirtualMachineNamingStrategy{
-				Template: ptr.To[string]("-{{ .machine.name }}"), // Leading - is not valid for names.
+			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+				Template: "-{{ .machine.name }}", // Leading - is not valid for names.
 			},
 			wantErr: true,
 		},

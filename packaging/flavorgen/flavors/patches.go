@@ -194,6 +194,13 @@ func vmWareInfraClusterPatch() clusterv1.ClusterClassPatch {
 				JSONPatches: []clusterv1.JSONPatch{
 					{
 						Op:   "add",
+						Path: "/spec",
+						Value: &apiextensionsv1.JSON{
+							Raw: []byte(`{"template":{"spec":{}}}`),
+						},
+					},
+					{
+						Op:   "add",
 						Path: "/spec/template/spec/controlPlaneEndpoint",
 						ValueFrom: &clusterv1.JSONPatchValue{
 							Template: getControlPlaneEndpointTemplate(),

@@ -157,6 +157,7 @@ func (r *Network) IsDefined() bool {
 
 // VSphereClusterSpec defines the desired state of VSphereCluster.
 // +kubebuilder:validation:XValidation:rule="has(self.network) == has(oldSelf.network)",message="field 'network' cannot be added or removed after creation"
+// +kubebuilder:validation:MinProperties=1
 type VSphereClusterSpec struct {
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
@@ -194,6 +195,7 @@ func (v APIEndpoint) String() string {
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.
+// +kubebuilder:validation:MinProperties=1
 type VSphereClusterStatus struct {
 	// conditions represents the observations of a VSphereCluster's current state.
 	// Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
@@ -212,6 +214,8 @@ type VSphereClusterStatus struct {
 	// resourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
 	// the cluster, if one exists
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	ResourcePolicyName string `json:"resourcePolicyName,omitempty"`
 
 	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
@@ -269,10 +273,12 @@ type VSphereCluster struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of VSphereCluster.
-	Spec VSphereClusterSpec `json:"spec,omitempty"`
+	// +optional
+	Spec VSphereClusterSpec `json:"spec,omitempty,omitzero"`
 
 	// status is the observed state of VSphereCluster.
-	Status VSphereClusterStatus `json:"status,omitempty"`
+	// +optional
+	Status VSphereClusterStatus `json:"status,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

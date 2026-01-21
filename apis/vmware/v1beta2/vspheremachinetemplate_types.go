@@ -33,16 +33,18 @@ const (
 // VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate.
 type VSphereMachineTemplateSpec struct {
 	// template defines the desired state of VSphereMachineTemplate.
-	Template VSphereMachineTemplateResource `json:"template"`
+	// +required
+	Template VSphereMachineTemplateResource `json:"template,omitempty,omitzero"`
 }
 
 // VSphereMachineTemplateStatus defines the observed state of VSphereMachineTemplate.
+// +kubebuilder:validation:MinProperties=1
 type VSphereMachineTemplateStatus struct {
 	// capacity defines the resource capacity for this VSphereMachineTemplate.
 	// This value is used for autoscaling from zero operations as defined in:
 	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
 	// +optional
-	Capacity corev1.ResourceList `json:"capacity,omitempty"`
+	Capacity corev1.ResourceList `json:"capacity,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -59,10 +61,12 @@ type VSphereMachineTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of VSphereMachineTemplate.
-	Spec VSphereMachineTemplateSpec `json:"spec,omitempty"`
+	// +optional
+	Spec VSphereMachineTemplateSpec `json:"spec,omitempty,omitzero"`
 
 	// status is the observed state of VSphereMachineTemplate.
-	Status VSphereMachineTemplateStatus `json:"status,omitempty"`
+	// +optional
+	Status VSphereMachineTemplateStatus `json:"status,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

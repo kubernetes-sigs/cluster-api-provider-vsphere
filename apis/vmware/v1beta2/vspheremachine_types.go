@@ -39,7 +39,7 @@ type VSphereMachineVolume struct {
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
 type VSphereMachineSpec struct {
-	// providerID is the virtual machine's BIOS UUID formated as
+	// providerID is the virtual machine's BIOS UUID formatted as
 	// vsphere://12345678-1234-1234-1234-123456789abc
 	// +optional
 	// +kubebuilder:validation:MinLength=1

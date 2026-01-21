@@ -172,9 +172,13 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 			featureGate: true,
 		},
 		{
-			name:        "Cluster-Wide: should find FailureDomains if only cluster-wide exist",
-			objects:     []client.Object{availabilityZone("c-one")},
-			want:        failureDomains("c-one"),
+			name: "Cluster-Wide: should find FailureDomains if only cluster-wide exist",
+			objects: []client.Object{
+				availabilityZone("c-one"),
+				availabilityZone("c-two"),
+				availabilityZone("c-three"),
+			},
+			want:        failureDomains("c-one", "c-three", "c-two"), // failureDomains are expected to be sorted.
 			wantErr:     false,
 			featureGate: false,
 		},
@@ -208,7 +212,7 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 				zone(namespace.Name, "ns-three", false),
 				zone(namespace.Name, "ns-four", true),
 			},
-			want:        failureDomains("ns-one", "ns-three", "ns-two"),
+			want:        failureDomains("ns-one", "ns-three", "ns-two"), // failureDomains are expected to be sorted.
 			wantErr:     false,
 			featureGate: true,
 		},

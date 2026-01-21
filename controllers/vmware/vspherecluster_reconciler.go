@@ -240,13 +240,6 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 			err,
 			"unexpected error while discovering failure domains for %s", clusterCtx.VSphereCluster.Name)
 	}
-	// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
-	slices.SortFunc(failureDomains, func(a, b clusterv1.FailureDomain) int {
-		if a.Name < b.Name {
-			return -1
-		}
-		return 1
-	})
 	clusterCtx.VSphereCluster.Status.FailureDomains = failureDomains
 
 	// Reconcile ResourcePolicy before we create the machines. If the ResourcePolicy is not reconciled before we create the Node VMs,
@@ -535,6 +528,13 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 			return nil, nil
 		}
 
+		// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
+		slices.SortFunc(failureDomains, func(a, b clusterv1.FailureDomain) int {
+			if a.Name < b.Name {
+				return -1
+			}
+			return 1
+		})
 		return failureDomains, nil
 	}
 	availabilityZoneList := &topologyv1.AvailabilityZoneList{}
@@ -552,5 +552,12 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 		})
 	}
 
+	// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
+	slices.SortFunc(failureDomains, func(a, b clusterv1.FailureDomain) int {
+		if a.Name < b.Name {
+			return -1
+		}
+		return 1
+	})
 	return failureDomains, nil
 }

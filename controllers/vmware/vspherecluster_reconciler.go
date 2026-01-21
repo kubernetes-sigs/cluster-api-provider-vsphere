@@ -20,6 +20,7 @@ package vmware
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +29,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -278,7 +279,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 		return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", clusterCtx.VSphereCluster.Name)
 	}
 
-	clusterCtx.VSphereCluster.Status.Ready = true
+	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = ptr.To(true)
 	return nil
 }
 
@@ -371,7 +372,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 
 	// Define a variable to assign the API endpoints of control plane
 	// machines as they are discovered.
-	apiEndpointList := []clusterv1beta1.APIEndpoint{}
+	apiEndpointList := []vmwarev1.APIEndpoint{}
 
 	// Iterate over the cluster's control plane CAPI machines.
 	for _, machine := range machines {
@@ -402,7 +403,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 		// Append the control plane machine's IP address to the list of API
 		// endpoints for this cluster so that they can be read into the
 		// analogous CAPI cluster via an unstructured reader.
-		apiEndpoint := clusterv1beta1.APIEndpoint{
+		apiEndpoint := vmwarev1.APIEndpoint{
 			Host: vsphereMachine.Status.IPAddr,
 			Port: apiEndpointPort,
 		}
@@ -500,8 +501,8 @@ func (r *ClusterReconciler) ZoneToVSphereClusters(ctx context.Context, o client.
 
 // Returns the failure domain information discovered on the cluster
 // hosting this controller.
-func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string) (clusterv1beta1.FailureDomains, error) {
-	failureDomains := clusterv1beta1.FailureDomains{}
+func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string) ([]clusterv1.FailureDomain, error) {
+	failureDomains := []clusterv1.FailureDomain{}
 	// Determine the source of failure domain based on feature gates NamespaceScopedZones.
 	// If NamespaceScopedZones is enabled, use Zone which is Namespace scoped,otherwise use
 	// Availability Zone which is Cluster scoped.
@@ -517,13 +518,23 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 			if !zone.DeletionTimestamp.IsZero() {
 				continue
 			}
-			failureDomains[zone.Name] = clusterv1beta1.FailureDomainSpec{ControlPlane: true}
+			failureDomains = append(failureDomains, clusterv1.FailureDomain{
+				Name:         zone.Name,
+				ControlPlane: ptr.To(true),
+			})
 		}
 
 		if len(failureDomains) == 0 {
 			return nil, nil
 		}
 
+		// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
+		slices.SortFunc(failureDomains, func(a, b clusterv1.FailureDomain) int {
+			if a.Name < b.Name {
+				return -1
+			}
+			return 1
+		})
 		return failureDomains, nil
 	}
 	availabilityZoneList := &topologyv1.AvailabilityZoneList{}
@@ -535,10 +546,18 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 		return nil, nil
 	}
 	for _, az := range availabilityZoneList.Items {
-		failureDomains[az.Name] = clusterv1beta1.FailureDomainSpec{
-			ControlPlane: true,
-		}
+		failureDomains = append(failureDomains, clusterv1.FailureDomain{
+			Name:         az.Name,
+			ControlPlane: ptr.To(true),
+		})
 	}
 
+	// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
+	slices.SortFunc(failureDomains, func(a, b clusterv1.FailureDomain) int {
+		if a.Name < b.Name {
+			return -1
+		}
+		return 1
+	})
 	return failureDomains, nil
 }

@@ -685,8 +685,9 @@ spec:
                       providerID:
                         description: |-
                           providerID is the virtual machine's BIOS UUID formatted as
-                          vsphere://12345678-1234-1234-1234-123456789abc.
-                          This is required at runtime by CAPI. Do not remove this field.
+                          vsphere://12345678-1234-1234-1234-123456789abc
+                        maxLength: 512
+                        minLength: 1
                         type: string
                       storageClass:
                         description: |-

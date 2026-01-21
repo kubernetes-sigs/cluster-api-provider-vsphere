@@ -22,6 +22,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 
@@ -63,7 +64,7 @@ func (c *SupervisorMachineContext) GetVSphereMachine() capvcontext.VSphereMachin
 
 // GetReady return when the VSphereMachine is ready.
 func (c *SupervisorMachineContext) GetReady() bool {
-	return c.VSphereMachine.Status.Ready
+	return ptr.Deref(c.VSphereMachine.Status.Initialization.Provisioned, false)
 }
 
 // GetObjectMeta returns the metadata for the VSphereMachine from the SupervisorMachineContext.

@@ -459,7 +459,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	v.reconcileProviderID(ctx, supervisorMachineCtx, vmOperatorVM)
 
 	// Mark the VSphereMachine as Ready
-	supervisorMachineCtx.VSphereMachine.Status.Ready = true
+	supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
 	deprecatedv1beta1conditions.MarkTrue(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition)
 	conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 		Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
@@ -767,9 +767,9 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 
 	// Cluster API requires InfrastructureMachineStatus.Addresses to be set
 	if supervisorMachineCtx.VSphereMachine.Status.IPAddr != "" {
-		supervisorMachineCtx.VSphereMachine.Status.Addresses = []corev1.NodeAddress{
+		supervisorMachineCtx.VSphereMachine.Status.Addresses = []clusterv1.MachineAddress{
 			{
-				Type:    corev1.NodeInternalIP,
+				Type:    clusterv1.MachineInternalIP,
 				Address: supervisorMachineCtx.VSphereMachine.Status.IPAddr,
 			},
 		}
@@ -782,8 +782,8 @@ func (v *VmopMachineService) reconcileProviderID(ctx context.Context, supervisor
 	log := ctrl.LoggerFrom(ctx)
 	providerID := fmt.Sprintf("vsphere://%s", vm.Status.BiosUUID)
 
-	if supervisorMachineCtx.VSphereMachine.Spec.ProviderID == nil || *supervisorMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
-		supervisorMachineCtx.VSphereMachine.Spec.ProviderID = &providerID
+	if supervisorMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
+		supervisorMachineCtx.VSphereMachine.Spec.ProviderID = providerID
 		log.Info("Updated providerID", "providerID", providerID)
 	}
 

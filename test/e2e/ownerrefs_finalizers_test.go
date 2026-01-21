@@ -38,7 +38,6 @@ import (
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -394,11 +393,12 @@ func checkSupervisorVSphereClusterFailureDomains(ctx context.Context, proxy fram
 	avalabilityZones := &topologyv1.AvailabilityZoneList{}
 	Expect(proxy.GetClient().List(ctx, avalabilityZones)).To(Succeed())
 
-	wantFailureDomains := clusterv1beta1.FailureDomains{}
+	wantFailureDomains := []clusterv1.FailureDomain{}
 	for _, zone := range avalabilityZones.Items {
-		wantFailureDomains[zone.Name] = clusterv1beta1.FailureDomainSpec{
-			ControlPlane: true,
-		}
+		wantFailureDomains = append(wantFailureDomains, clusterv1.FailureDomain{
+			Name:         zone.Name,
+			ControlPlane: ptr.To(true),
+		})
 	}
 
 	vSphereCluster := &vmwarev1.VSphereCluster{

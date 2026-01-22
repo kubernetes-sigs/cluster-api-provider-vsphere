@@ -106,7 +106,7 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 		// Otherwise, this is a new machine and the VM should be created.
 		// NOTE: We are setting this condition only in case it does not exist, so we avoid to get flickering LastConditionTime
 		// in case of cloning errors or powering on errors.
-		if !deprecatedv1beta1conditions.Has(vmCtx.VSphereVM, infrav1.VMProvisionedCondition) {
+		if !conditions.Has(vmCtx.VSphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition) {
 			deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningReason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 				Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
@@ -292,7 +292,7 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 	}
 
 	// Only set the GuestPowerOffCondition to true when the guest shutdown has been initiated.
-	if deprecatedv1beta1conditions.Has(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition) {
+	if conditions.Has(virtualMachineCtx.VSphereVM, infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition) {
 		deprecatedv1beta1conditions.MarkTrue(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition)
 		conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
 			Type:   infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
@@ -566,7 +566,7 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 		}
 
 		if len(specsToBeAdded) == 0 {
-			if deprecatedv1beta1conditions.Has(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition) {
+			if conditions.Has(virtualMachineCtx.VSphereVM, infrav1.VSphereVMPCIDevicesDetachedV1Beta2Condition) {
 				deprecatedv1beta1conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition)
 
 				conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.VSphereVMPCIDevicesDetachedV1Beta2Condition)

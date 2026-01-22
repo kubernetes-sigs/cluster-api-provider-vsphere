@@ -259,10 +259,10 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 			Name: PrimaryInterfaceName,
 			Network: &vmoprvhub.PartialObjectRef{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       primary.Network.Kind,
-					APIVersion: primary.Network.APIVersion,
+					Kind:       primary.NetworkRef.Kind,
+					APIVersion: primary.NetworkRef.APIVersion,
 				},
-				Name: primary.Network.Name,
+				Name: primary.NetworkRef.Name,
 			},
 			MTU: mtu,
 		}
@@ -297,10 +297,10 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.Vi
 			Name: secondaryInterface.Name,
 			Network: &vmoprvhub.PartialObjectRef{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       secondaryInterface.Network.Kind,
-					APIVersion: secondaryInterface.Network.APIVersion,
+					Kind:       secondaryInterface.NetworkRef.Kind,
+					APIVersion: secondaryInterface.NetworkRef.APIVersion,
 				},
-				Name: secondaryInterface.Network.Name,
+				Name: secondaryInterface.NetworkRef.Name,
 			},
 			MTU:      mtu,
 			Gateway4: "None",

@@ -481,6 +481,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1.TypedLocalObjectReference)(nil), (*v1beta2.IPPoolReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(a.(*corev1.TypedLocalObjectReference), b.(*v1beta2.IPPoolReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*corev1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Condition_To_v1_Condition(a.(*corev1beta1.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
@@ -548,6 +553,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*VSphereVMStatus)(nil), (*v1beta2.VSphereVMStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereVMStatus_To_v1beta2_VSphereVMStatus(a.(*VSphereVMStatus), b.(*v1beta2.VSphereVMStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.IPPoolReference)(nil), (*corev1.TypedLocalObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(a.(*v1beta2.IPPoolReference), b.(*corev1.TypedLocalObjectReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -798,7 +808,17 @@ func autoConvert_v1beta1_NetworkConfiguration_To_v1beta2_NetworkConfiguration(in
 	} else {
 		out.DHCP6Overrides = nil
 	}
-	out.AddressesFromPools = *(*[]corev1.TypedLocalObjectReference)(unsafe.Pointer(&in.AddressesFromPools))
+	if in.AddressesFromPools != nil {
+		in, out := &in.AddressesFromPools, &out.AddressesFromPools
+		*out = make([]v1beta2.IPPoolReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AddressesFromPools = nil
+	}
 	return nil
 }
 
@@ -831,7 +851,17 @@ func autoConvert_v1beta2_NetworkConfiguration_To_v1beta1_NetworkConfiguration(in
 	} else {
 		out.DHCP6Overrides = nil
 	}
-	out.AddressesFromPools = *(*[]corev1.TypedLocalObjectReference)(unsafe.Pointer(&in.AddressesFromPools))
+	if in.AddressesFromPools != nil {
+		in, out := &in.AddressesFromPools, &out.AddressesFromPools
+		*out = make([]corev1.TypedLocalObjectReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AddressesFromPools = nil
+	}
 	return nil
 }
 
@@ -867,7 +897,17 @@ func autoConvert_v1beta1_NetworkDeviceSpec_To_v1beta2_NetworkDeviceSpec(in *Netw
 		out.Routes = nil
 	}
 	out.SearchDomains = *(*[]string)(unsafe.Pointer(&in.SearchDomains))
-	out.AddressesFromPools = *(*[]corev1.TypedLocalObjectReference)(unsafe.Pointer(&in.AddressesFromPools))
+	if in.AddressesFromPools != nil {
+		in, out := &in.AddressesFromPools, &out.AddressesFromPools
+		*out = make([]v1beta2.IPPoolReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AddressesFromPools = nil
+	}
 	if in.DHCP4Overrides != nil {
 		in, out := &in.DHCP4Overrides, &out.DHCP4Overrides
 		*out = new(v1beta2.DHCPOverrides)
@@ -924,7 +964,17 @@ func autoConvert_v1beta2_NetworkDeviceSpec_To_v1beta1_NetworkDeviceSpec(in *v1be
 		out.Routes = nil
 	}
 	out.SearchDomains = *(*[]string)(unsafe.Pointer(&in.SearchDomains))
-	out.AddressesFromPools = *(*[]corev1.TypedLocalObjectReference)(unsafe.Pointer(&in.AddressesFromPools))
+	if in.AddressesFromPools != nil {
+		in, out := &in.AddressesFromPools, &out.AddressesFromPools
+		*out = make([]corev1.TypedLocalObjectReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AddressesFromPools = nil
+	}
 	if in.DHCP4Overrides != nil {
 		in, out := &in.DHCP4Overrides, &out.DHCP4Overrides
 		*out = new(DHCPOverrides)

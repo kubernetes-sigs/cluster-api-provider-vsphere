@@ -22,7 +22,6 @@ import (
 
 	"github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -114,19 +113,19 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 						Devices: []infrav1.NetworkDeviceSpec{
 							{
 								MACAddr: devMAC,
-								AddressesFromPools: []corev1.TypedLocalObjectReference{
+								AddressesFromPools: []infrav1.IPPoolReference{
 									{
-										APIGroup: &myAPIGroup,
+										APIGroup: myAPIGroup,
 										Name:     "my-pool-1",
 										Kind:     "my-pool-kind",
 									},
 									{
-										APIGroup: &myAPIGroup,
+										APIGroup: myAPIGroup,
 										Name:     "my-pool-1",
 										Kind:     "my-pool-kind",
 									},
 									{
-										APIGroup: &myAPIGroup,
+										APIGroup: myAPIGroup,
 										Name:     "my-pool-ipv6",
 										Kind:     "my-pool-kind",
 									},
@@ -329,19 +328,19 @@ func Test_BuildState(t *testing.T) {
 						Devices: []infrav1.NetworkDeviceSpec{
 							{
 								MACAddr: devMAC,
-								AddressesFromPools: []corev1.TypedLocalObjectReference{
+								AddressesFromPools: []infrav1.IPPoolReference{
 									{
-										APIGroup: &myAPIGroup,
+										APIGroup: myAPIGroup,
 										Name:     "my-pool-1",
 										Kind:     "my-pool-kind",
 									},
 									{
-										APIGroup: &myAPIGroup,
+										APIGroup: myAPIGroup,
 										Name:     "my-pool-1",
 										Kind:     "my-pool-kind",
 									},
 									{
-										APIGroup: &myAPIGroup,
+										APIGroup: myAPIGroup,
 										Name:     "my-pool-ipv6",
 										Kind:     "my-pool-kind",
 									},
@@ -475,9 +474,9 @@ func Test_BuildState(t *testing.T) {
 								DHCP4: ptr.To(true),
 							},
 							{
-								AddressesFromPools: []corev1.TypedLocalObjectReference{
+								AddressesFromPools: []infrav1.IPPoolReference{
 									{
-										APIGroup: &myAPIGroup,
+										APIGroup: myAPIGroup,
 										Name:     "my-pool-1",
 										Kind:     "my-pool-kind",
 									},
@@ -646,14 +645,14 @@ func Test_BuildState(t *testing.T) {
 							Devices: []infrav1.NetworkDeviceSpec{
 								{
 									MACAddr: devMAC0,
-									AddressesFromPools: []corev1.TypedLocalObjectReference{
+									AddressesFromPools: []infrav1.IPPoolReference{
 										{
-											APIGroup: &myAPIGroup,
+											APIGroup: myAPIGroup,
 											Name:     "my-pool-1",
 											Kind:     "my-pool-kind",
 										},
 										{
-											APIGroup: &myAPIGroup,
+											APIGroup: myAPIGroup,
 											Name:     "my-pool-2",
 											Kind:     "my-pool-kind",
 										},
@@ -661,9 +660,9 @@ func Test_BuildState(t *testing.T) {
 								},
 								{
 									MACAddr: devMAC1,
-									AddressesFromPools: []corev1.TypedLocalObjectReference{
+									AddressesFromPools: []infrav1.IPPoolReference{
 										{
-											APIGroup: &myAPIGroup,
+											APIGroup: myAPIGroup,
 											Name:     "my-pool-3",
 											Kind:     "my-pool-kind",
 										},

@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -335,9 +334,9 @@ func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
 				Hostname:    ptr.To("hal"),
 				RouteMetric: ptr.To[int32](23456),
 			},
-			AddressesFromPools: []corev1.TypedLocalObjectReference{
+			AddressesFromPools: []infrav1.IPPoolReference{
 				{
-					APIGroup: ptr.To("api-group"),
+					APIGroup: "api-group",
 					Name:     "my-pool-1",
 					Kind:     "my-pool-kind",
 				},
@@ -358,9 +357,9 @@ func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
 				Hostname:    ptr.To("hal"),
 				RouteMetric: ptr.To[int32](23456),
 			},
-			AddressesFromPools: []corev1.TypedLocalObjectReference{
+			AddressesFromPools: []infrav1.IPPoolReference{
 				{
-					APIGroup: ptr.To("api-group"),
+					APIGroup: "api-group",
 					Name:     "my-pool-1",
 					Kind:     "my-pool-kind",
 				},

@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -169,7 +168,7 @@ type NetworkConfiguration struct {
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=128
-	AddressesFromPools []corev1.TypedLocalObjectReference `json:"addressesFromPools,omitempty"`
+	AddressesFromPools []IPPoolReference `json:"addressesFromPools,omitempty"`
 }
 
 // FailureDomainHosts has information required for placement of machines on VSphere hosts.

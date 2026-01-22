@@ -225,6 +225,7 @@ func spokeVSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, c randfil
 func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeVSphereFailureDomainSpec,
+		spokeTypedLocalObjectReference,
 	}
 }
 
@@ -249,6 +250,7 @@ func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubVSphereMachineStatus,
 		spokeVSphereMachineSpec,
 		spokeVSphereMachineStatus,
+		spokeTypedLocalObjectReference,
 	}
 }
 
@@ -301,6 +303,7 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeVSphereMachineSpec,
+		spokeTypedLocalObjectReference,
 	}
 }
 
@@ -310,6 +313,7 @@ func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeVSphereVM,
 		spokeVSphereVMSpec,
 		spokeVSphereVMStatus,
+		spokeTypedLocalObjectReference,
 	}
 }
 
@@ -355,5 +359,12 @@ func spokeVSphereVMStatus(in *VSphereVMStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &VSphereVMV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func spokeTypedLocalObjectReference(in *corev1.TypedLocalObjectReference, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.APIGroup != nil && *in.APIGroup == "" {
+		in.APIGroup = nil
 	}
 }

@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -556,7 +555,7 @@ func mergeNetworkConfigurationInNetworkDeviceSpec(device *infrav1.NetworkDeviceS
 	}
 
 	if len(nc.AddressesFromPools) > 0 {
-		device.AddressesFromPools = make([]corev1.TypedLocalObjectReference, len(nc.AddressesFromPools))
+		device.AddressesFromPools = make([]infrav1.IPPoolReference, len(nc.AddressesFromPools))
 		copy(device.AddressesFromPools, nc.AddressesFromPools)
 	}
 }

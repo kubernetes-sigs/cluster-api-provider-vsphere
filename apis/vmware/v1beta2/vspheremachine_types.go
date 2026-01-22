@@ -422,9 +422,15 @@ type VSphereMachineV1Beta1DeprecatedStatus struct {
 // +kubebuilder:resource:path=vspheremachines,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Zone",type="string",JSONPath=".spec.failureDomain",description="Zone"
-// +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
-// +kubebuilder:printcolumn:name="IPAddr",type="string",JSONPath=".status.vmIp",description="IP address"
+// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
+// +kubebuilder:printcolumn:name="Class",type="string",JSONPath=".spec.className",description="VirtualMachineClass name"
+// +kubebuilder:printcolumn:name="Provider ID",type="string",JSONPath=".spec.providerID",description="Provider ID",priority=10
+// +kubebuilder:printcolumn:name="IP",type="string",JSONPath=`.status.addresses[?(@.type=="InternalIP")].address`,description="IP of the Machine",priority=10
+// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".spec.imageName",description="Image name",priority=10
+// +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
+// +kubebuilder:printcolumn:name="Provisioned",type="string",JSONPath=".status.initialization.provisioned",description="VSphereMachine is provisioned"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.vmstatus",description="VSphereMachine status"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of VSphereMachine"
 type VSphereMachine struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

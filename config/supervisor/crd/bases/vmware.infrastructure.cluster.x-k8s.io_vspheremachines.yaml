@@ -838,18 +838,46 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
-    - description: Zone
-      jsonPath: .spec.failureDomain
-      name: Zone
+    - description: Cluster
+      jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
+      name: Cluster
+      type: string
+    - description: VirtualMachineClass name
+      jsonPath: .spec.className
+      name: Class
       type: string
     - description: Provider ID
       jsonPath: .spec.providerID
-      name: ProviderID
+      name: Provider ID
+      priority: 10
       type: string
-    - description: IP address
-      jsonPath: .status.vmIp
-      name: IPAddr
+    - description: IP of the Machine
+      jsonPath: .status.addresses[?(@.type=="InternalIP")].address
+      name: IP
+      priority: 10
       type: string
+    - description: Image name
+      jsonPath: .spec.imageName
+      name: Image
+      priority: 10
+      type: string
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
+    - description: VSphereMachine is provisioned
+      jsonPath: .status.initialization.provisioned
+      name: Provisioned
+      type: string
+    - description: VSphereMachine status
+      jsonPath: .status.vmstatus
+      name: Phase
+      type: string
+    - description: Time duration since creation of VSphereMachine
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1beta2
     schema:
       openAPIV3Schema:

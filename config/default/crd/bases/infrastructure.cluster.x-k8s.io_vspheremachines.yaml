@@ -918,18 +918,25 @@ spec:
       jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
       name: Cluster
       type: string
+    - description: Provider ID
+      jsonPath: .spec.providerID
+      name: Provider ID
+      priority: 10
+      type: string
+    - description: Template is the name, inventory path, managed object reference
+        or the managed object ID of the template used to clone the VM
+      jsonPath: .spec.template
+      name: Template
+      priority: 10
+      type: string
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
     - description: VSphereMachine is provisioned
       jsonPath: .status.initialization.provisioned
       name: Provisioned
-      type: string
-    - description: VSphereMachine instance ID
-      jsonPath: .spec.providerID
-      name: ProviderID
-      type: string
-    - description: Machine object which owns with this VSphereMachine
-      jsonPath: .metadata.ownerReferences[?(@.kind=="Machine")].name
-      name: Machine
-      priority: 1
       type: string
     - description: Time duration since creation of VSphereMachine
       jsonPath: .metadata.creationTimestamp

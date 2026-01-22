@@ -245,7 +245,29 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1beta2
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
+      name: Cluster
+      type: string
+    - description: API Endpoint
+      jsonPath: .spec.controlPlaneEndpoint.host
+      name: ControlPlane Endpoint
+      type: string
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
+    - description: VSphereCluster is provisioned
+      jsonPath: .status.initialization.provisioned
+      name: Provisioned
+      type: string
+    - description: Time duration since creation of VSphereCluster
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta2
     schema:
       openAPIV3Schema:
         description: VSphereCluster is the Schema for the VSphereClusters API.

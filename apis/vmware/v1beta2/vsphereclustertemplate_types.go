@@ -28,9 +28,11 @@ type VSphereClusterTemplateSpec struct {
 	Template VSphereClusterTemplateResource `json:"template,omitempty,omitzero"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vsphereclustertemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="ClusterClass",type="string",JSONPath=`.metadata.ownerReferences[?(@.kind=="ClusterClass")].name`,description="Name of the ClusterClass owning this template"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of VSphereClusterTemplate"
 
 // VSphereClusterTemplate is the Schema for the vsphereclustertemplates API.
 type VSphereClusterTemplate struct {

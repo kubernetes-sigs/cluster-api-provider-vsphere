@@ -296,9 +296,10 @@ type VSphereMachineV1Beta1DeprecatedStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
+// +kubebuilder:printcolumn:name="Provider ID",type="string",JSONPath=".spec.providerID",description="Provider ID",priority=10
+// +kubebuilder:printcolumn:name="Template",type="string",JSONPath=".spec.template",description="Template is the name, inventory path, managed object reference or the managed object ID of the template used to clone the VM",priority=10
+// +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
 // +kubebuilder:printcolumn:name="Provisioned",type="string",JSONPath=".status.initialization.provisioned",description="VSphereMachine is provisioned"
-// +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="VSphereMachine instance ID"
-// +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this VSphereMachine",priority=1
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of VSphereMachine"
 
 // VSphereMachine is the Schema for the vspheremachines API.

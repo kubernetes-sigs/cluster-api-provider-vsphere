@@ -713,7 +713,20 @@ spec:
         type: object
     served: true
     storage: false
-  - name: v1beta2
+  - additionalPrinterColumns:
+    - description: Name of the ClusterClass owning this template
+      jsonPath: .metadata.ownerReferences[?(@.kind=="ClusterClass")].name
+      name: ClusterClass
+      type: string
+    - description: Name of the Cluster owning this template
+      jsonPath: .metadata.ownerReferences[?(@.kind=="Cluster")].name
+      name: Cluster
+      type: string
+    - description: Time duration since creation of VSphereMachineTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta2
     schema:
       openAPIV3Schema:
         description: VSphereMachineTemplate is the Schema for the vspheremachinetemplates
@@ -1500,3 +1513,4 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}

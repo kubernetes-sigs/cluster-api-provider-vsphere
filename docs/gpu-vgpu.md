@@ -62,7 +62,7 @@ Edit the generated Cluster template (e.g. `out/cluster-template.yaml`) to set th
 
 ```yaml
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-worker

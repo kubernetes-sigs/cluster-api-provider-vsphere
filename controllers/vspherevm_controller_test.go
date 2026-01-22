@@ -256,9 +256,9 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			Devices: []infrav1.NetworkDeviceSpec{
 				{
 					NetworkName: "nw-1",
-					AddressesFromPools: []corev1.TypedLocalObjectReference{
+					AddressesFromPools: []infrav1.IPPoolReference{
 						{
-							APIGroup: &poolAPIGroup,
+							APIGroup: poolAPIGroup,
 							Kind:     "IPAMPools",
 							Name:     "my-ip-pool",
 						},

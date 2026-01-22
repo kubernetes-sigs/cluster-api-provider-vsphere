@@ -22,6 +22,7 @@ import (
 	"slices"
 	"sort"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
@@ -374,6 +375,10 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if src.Spec.BootstrapRef != nil {
+		dst.Spec.BootstrapRef.Name = src.Spec.BootstrapRef.Name
+	}
+
 	if len(src.Spec.Network.Routes) == len(dst.Spec.Network.Routes) {
 		for i, dstRoute := range dst.Spec.Network.Routes {
 			srcRoute := src.Spec.Network.Routes[i]
@@ -439,6 +444,15 @@ func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereVM)
 	if err := Convert_v1beta2_VSphereVM_To_v1beta1_VSphereVM(src, dst, nil); err != nil {
 		return err
+	}
+
+	if src.Spec.BootstrapRef.Name != "" {
+		dst.Spec.BootstrapRef = &corev1.ObjectReference{
+			APIVersion: "v1",
+			Kind:       "Secret",
+			Name:       src.Spec.BootstrapRef.Name,
+			Namespace:  src.Namespace,
+		}
 	}
 
 	return utilconversion.MarshalData(src, dst)
@@ -911,4 +925,20 @@ func Convert_v1beta1_MachineAddress_To_v1beta2_MachineAddress(in *clusterv1beta1
 
 func Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(in *clusterv1.MachineAddress, out *clusterv1beta1.MachineAddress, s apimachineryconversion.Scope) error {
 	return clusterv1beta1.Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(in, out, s)
+}
+
+func Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(in *corev1.TypedLocalObjectReference, out *infrav1.IPPoolReference, _ apimachineryconversion.Scope) error {
+	out.Kind = in.Kind
+	out.Name = in.Name
+	out.APIGroup = ptr.Deref(in.APIGroup, "")
+	return nil
+}
+
+func Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in *infrav1.IPPoolReference, out *corev1.TypedLocalObjectReference, _ apimachineryconversion.Scope) error {
+	out.Kind = in.Kind
+	out.Name = in.Name
+	if in.APIGroup != "" {
+		out.APIGroup = ptr.To(in.APIGroup)
+	}
+	return nil
 }

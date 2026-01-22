@@ -950,29 +950,38 @@ spec:
                                     to IPAddressClaims. The machine's cloud-init metadata will be populated
                                     with IPAddresses fulfilled by an IPAM provider.
                                   items:
-                                    description: |-
-                                      TypedLocalObjectReference contains enough information to let you locate the
-                                      typed referenced object inside the same namespace.
+                                    description: IPPoolReference is a reference to
+                                      an IPPool.
                                     properties:
                                       apiGroup:
                                         description: |-
-                                          APIGroup is the group for the resource being referenced.
-                                          If APIGroup is not specified, the specified Kind must be in the core API group.
-                                          For any other third-party types, APIGroup is required.
+                                          apiGroup of the IPPool.
+                                          apiGroup must be fully qualified domain name.
+                                        maxLength: 253
+                                        minLength: 1
+                                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                         type: string
                                       kind:
-                                        description: Kind is the type of resource
-                                          being referenced
+                                        description: |-
+                                          kind of the IPPool.
+                                          kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                        maxLength: 63
+                                        minLength: 1
+                                        pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                                         type: string
                                       name:
-                                        description: Name is the name of resource
-                                          being referenced
+                                        description: |-
+                                          name of the IPPool.
+                                          name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                        maxLength: 253
+                                        minLength: 1
+                                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                         type: string
                                     required:
+                                    - apiGroup
                                     - kind
                                     - name
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   maxItems: 128
                                   type: array
                                   x-kubernetes-list-type: atomic

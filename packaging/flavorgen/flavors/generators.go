@@ -414,9 +414,9 @@ func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 					NetworkName: env.VSphereNetworkVar,
 					DHCP4:       ptr.To(false),
 					DHCP6:       ptr.To(false),
-					AddressesFromPools: []corev1.TypedLocalObjectReference{
+					AddressesFromPools: []infrav1.IPPoolReference{
 						{
-							APIGroup: ptr.To(env.NodeIPAMPoolAPIGroup),
+							APIGroup: env.NodeIPAMPoolAPIGroup,
 							Kind:     env.NodeIPAMPoolKind,
 							Name:     env.NodeIPAMPoolName,
 						},

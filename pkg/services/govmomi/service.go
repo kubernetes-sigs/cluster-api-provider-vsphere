@@ -694,14 +694,14 @@ func (vms *VMService) getNetworkStatus(ctx context.Context, virtualMachineCtx *v
 func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.VMContext) ([]byte, bootstrapv1.Format, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if vmCtx.VSphereVM.Spec.BootstrapRef == nil {
+	if vmCtx.VSphereVM.Spec.BootstrapRef.Name == "" {
 		log.Info("VM has no bootstrap data")
 		return nil, "", nil
 	}
 
 	secret := &corev1.Secret{}
 	secretKey := apitypes.NamespacedName{
-		Namespace: vmCtx.VSphereVM.Spec.BootstrapRef.Namespace,
+		Namespace: vmCtx.VSphereVM.Namespace,
 		Name:      vmCtx.VSphereVM.Spec.BootstrapRef.Name,
 	}
 	if err := vmCtx.Client.Get(ctx, secretKey, secret); err != nil {

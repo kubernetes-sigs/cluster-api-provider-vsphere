@@ -23,7 +23,6 @@ import (
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -59,11 +58,11 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
 					Network: infrav1.NetworkSpec{
 						Devices: []infrav1.NetworkDeviceSpec{{
-							AddressesFromPools: []corev1.TypedLocalObjectReference{
+							AddressesFromPools: []infrav1.IPPoolReference{
 								poolRef("my-pool-1"),
 							}},
 							{
-								AddressesFromPools: []corev1.TypedLocalObjectReference{
+								AddressesFromPools: []infrav1.IPPoolReference{
 									poolRef("my-pool-2"),
 									poolRef("my-pool-3"),
 								},
@@ -108,7 +107,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: ipamv1.IPAddressClaimSpec{PoolRef: poolRefV1(poolName)},
+				Spec: ipamv1.IPAddressClaimSpec{PoolRef: ipamPoolRef(poolName)},
 				Status: ipamv1.IPAddressClaimStatus{
 					Deprecated: &ipamv1.IPAddressClaimDeprecatedStatus{
 						V1Beta1: &ipamv1.IPAddressClaimV1Beta1DeprecatedStatus{},
@@ -246,7 +245,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 	})
 }
 
-func poolRefV1(name string) ipamv1.IPPoolReference {
+func ipamPoolRef(name string) ipamv1.IPPoolReference {
 	return ipamv1.IPPoolReference{
 		APIGroup: "test.ipam.provider.io/v1",
 		Name:     name,
@@ -254,9 +253,9 @@ func poolRefV1(name string) ipamv1.IPPoolReference {
 	}
 }
 
-func poolRef(name string) corev1.TypedLocalObjectReference {
-	return corev1.TypedLocalObjectReference{
-		APIGroup: ptr.To("test.ipam.provider.io/v1"),
+func poolRef(name string) infrav1.IPPoolReference {
+	return infrav1.IPPoolReference{
+		APIGroup: "test.ipam.provider.io/v1",
 		Name:     name,
 		Kind:     "my-pool-kind",
 	}

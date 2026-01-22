@@ -21,12 +21,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -176,7 +174,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 // from an externally managed IPPool. Ensures that the claim has a reference to the cluster of the VM to
 // support pausing reconciliation.
 // The responsibility of the IP address resolution is handled by an external IPAM provider.
-func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMContext, name string, poolRef corev1.TypedLocalObjectReference) (*ipamv1.IPAddressClaim, bool, error) {
+func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMContext, name string, poolRef infrav1.IPPoolReference) (*ipamv1.IPAddressClaim, bool, error) {
 	claim := &ipamv1.IPAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -200,7 +198,7 @@ func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMConte
 		}
 		claim.Labels[clusterv1.ClusterNameLabel] = vmCtx.VSphereVM.Labels[clusterv1.ClusterNameLabel]
 
-		claim.Spec.PoolRef.APIGroup = ptr.Deref(poolRef.APIGroup, "")
+		claim.Spec.PoolRef.APIGroup = poolRef.APIGroup
 		claim.Spec.PoolRef.Kind = poolRef.Kind
 		claim.Spec.PoolRef.Name = poolRef.Name
 		return nil

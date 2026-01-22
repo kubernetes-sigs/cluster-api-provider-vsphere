@@ -24,6 +24,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -224,6 +225,7 @@ func spokeVSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, c randfil
 func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeVSphereFailureDomainSpec,
+		spokeTypedLocalObjectReference,
 	}
 }
 
@@ -248,6 +250,7 @@ func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubVSphereMachineStatus,
 		spokeVSphereMachineSpec,
 		spokeVSphereMachineStatus,
+		spokeTypedLocalObjectReference,
 	}
 }
 
@@ -300,14 +303,17 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeVSphereMachineSpec,
+		spokeTypedLocalObjectReference,
 	}
 }
 
 func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVSphereVMStatus,
+		spokeVSphereVM,
 		spokeVSphereVMSpec,
 		spokeVSphereVMStatus,
+		spokeTypedLocalObjectReference,
 	}
 }
 
@@ -318,6 +324,21 @@ func hubVSphereVMStatus(in *infrav1.VSphereVMStatus, c randfill.Continue) {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereVMV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
+	}
+}
+
+func spokeVSphereVM(in *VSphereVM, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Spec.BootstrapRef != nil && in.Spec.BootstrapRef.Name != "" { // Only set the fields that we expect to round trip.
+		in.Spec.BootstrapRef = &corev1.ObjectReference{
+			APIVersion: "v1",
+			Kind:       "Secret",
+			Name:       in.Spec.BootstrapRef.Name,
+			Namespace:  in.Namespace,
+		}
+	} else {
+		in.Spec.BootstrapRef = nil
 	}
 }
 
@@ -338,5 +359,12 @@ func spokeVSphereVMStatus(in *VSphereVMStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &VSphereVMV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func spokeTypedLocalObjectReference(in *corev1.TypedLocalObjectReference, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.APIGroup != nil && *in.APIGroup == "" {
+		in.APIGroup = nil
 	}
 }

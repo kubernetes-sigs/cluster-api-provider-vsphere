@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -354,11 +353,8 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachi
 
 		// Instruct the VSphereVM to use the CAPI bootstrap data resource.
 		// TODO: BootstrapRef field should be replaced with BootstrapSecret of type string
-		vm.Spec.BootstrapRef = &corev1.ObjectReference{
-			APIVersion: "v1",
-			Kind:       "Secret",
-			Name:       *vimMachineCtx.Machine.Spec.Bootstrap.DataSecretName,
-			Namespace:  vimMachineCtx.Machine.ObjectMeta.Namespace,
+		vm.Spec.BootstrapRef = infrav1.VSphereVMBootstrapReference{
+			Name: *vimMachineCtx.Machine.Spec.Bootstrap.DataSecretName,
 		}
 
 		// Initialize the VSphereVM's labels map if it is nil.
@@ -559,7 +555,7 @@ func mergeNetworkConfigurationInNetworkDeviceSpec(device *infrav1.NetworkDeviceS
 	}
 
 	if len(nc.AddressesFromPools) > 0 {
-		device.AddressesFromPools = make([]corev1.TypedLocalObjectReference, len(nc.AddressesFromPools))
+		device.AddressesFromPools = make([]infrav1.IPPoolReference, len(nc.AddressesFromPools))
 		copy(device.AddressesFromPools, nc.AddressesFromPools)
 	}
 }

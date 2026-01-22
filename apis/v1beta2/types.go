@@ -19,7 +19,6 @@ package v1beta2
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -533,7 +532,7 @@ type NetworkDeviceSpec struct {
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=128
-	AddressesFromPools []corev1.TypedLocalObjectReference `json:"addressesFromPools,omitempty"`
+	AddressesFromPools []IPPoolReference `json:"addressesFromPools,omitempty"`
 
 	// dhcp4Overrides allows for the control over several DHCP behaviors.
 	// Overrides will only be applied when the corresponding DHCP flag is set.
@@ -558,6 +557,33 @@ type NetworkDeviceSpec struct {
 	// If true, CAPV will not verify IP address allocation.
 	// +optional
 	SkipIPAllocation *bool `json:"skipIPAllocation,omitempty"`
+}
+
+// IPPoolReference is a reference to an IPPool.
+type IPPoolReference struct {
+	// name of the IPPool.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name,omitempty"`
+
+	// kind of the IPPool.
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind,omitempty"`
+
+	// apiGroup of the IPPool.
+	// apiGroup must be fully qualified domain name.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	APIGroup string `json:"apiGroup,omitempty"`
 }
 
 // DHCPOverrides allows for the control over several DHCP behaviors.

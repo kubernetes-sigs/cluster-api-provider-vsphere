@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/errors"
@@ -184,7 +183,7 @@ type VSphereVMSpec struct {
 	// This field is optional in case no bootstrap data is required to create
 	// a VM.
 	// +optional
-	BootstrapRef *corev1.ObjectReference `json:"bootstrapRef,omitempty"`
+	BootstrapRef VSphereVMBootstrapReference `json:"bootstrapRef,omitempty,omitzero"`
 
 	// biosUUID is the VM's BIOS UUID that is assigned at runtime after
 	// the VM has been created.
@@ -221,6 +220,15 @@ type VSphereVMSpec struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=1
 	GuestSoftPowerOffTimeoutSeconds int32 `json:"guestSoftPowerOffTimeoutSeconds,omitempty"`
+}
+
+// VSphereVMBootstrapReference is a reference to a Secret with the bootstrap data.
+type VSphereVMBootstrapReference struct {
+	// name of the Secret being referenced.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name,omitempty"`
 }
 
 // VSphereVMStatus defines the observed state of VSphereVM.

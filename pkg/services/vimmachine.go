@@ -354,11 +354,8 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachi
 
 		// Instruct the VSphereVM to use the CAPI bootstrap data resource.
 		// TODO: BootstrapRef field should be replaced with BootstrapSecret of type string
-		vm.Spec.BootstrapRef = &corev1.ObjectReference{
-			APIVersion: "v1",
-			Kind:       "Secret",
-			Name:       *vimMachineCtx.Machine.Spec.Bootstrap.DataSecretName,
-			Namespace:  vimMachineCtx.Machine.ObjectMeta.Namespace,
+		vm.Spec.BootstrapRef = infrav1.VSphereVMBootstrapReference{
+			Name: *vimMachineCtx.Machine.Spec.Bootstrap.DataSecretName,
 		}
 
 		// Initialize the VSphereVM's labels map if it is nil.

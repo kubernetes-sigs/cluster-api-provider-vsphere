@@ -22,6 +22,7 @@ import (
 	"slices"
 	"sort"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
@@ -374,6 +375,10 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if src.Spec.BootstrapRef != nil {
+		dst.Spec.BootstrapRef.Name = src.Spec.BootstrapRef.Name
+	}
+
 	if len(src.Spec.Network.Routes) == len(dst.Spec.Network.Routes) {
 		for i, dstRoute := range dst.Spec.Network.Routes {
 			srcRoute := src.Spec.Network.Routes[i]
@@ -439,6 +444,15 @@ func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereVM)
 	if err := Convert_v1beta2_VSphereVM_To_v1beta1_VSphereVM(src, dst, nil); err != nil {
 		return err
+	}
+
+	if src.Spec.BootstrapRef.Name != "" {
+		dst.Spec.BootstrapRef = &corev1.ObjectReference{
+			APIVersion: "v1",
+			Kind:       "Secret",
+			Name:       src.Spec.BootstrapRef.Name,
+			Namespace:  src.Namespace,
+		}
 	}
 
 	return utilconversion.MarshalData(src, dst)

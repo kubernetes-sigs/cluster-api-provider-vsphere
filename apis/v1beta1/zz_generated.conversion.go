@@ -2310,7 +2310,7 @@ func autoConvert_v1beta1_VSphereVMSpec_To_v1beta2_VSphereVMSpec(in *VSphereVMSpe
 	if err := Convert_v1beta1_VirtualMachineCloneSpec_To_v1beta2_VirtualMachineCloneSpec(&in.VirtualMachineCloneSpec, &out.VirtualMachineCloneSpec, s); err != nil {
 		return err
 	}
-	out.BootstrapRef = (*corev1.ObjectReference)(unsafe.Pointer(in.BootstrapRef))
+	// WARNING: in.BootstrapRef requires manual conversion: inconvertible types (*k8s.io/api/core/v1.ObjectReference vs sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereVMBootstrapReference)
 	out.BiosUUID = in.BiosUUID
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeout requires manual conversion: does not exist in peer-type
@@ -2321,7 +2321,7 @@ func autoConvert_v1beta2_VSphereVMSpec_To_v1beta1_VSphereVMSpec(in *v1beta2.VSph
 	if err := Convert_v1beta2_VirtualMachineCloneSpec_To_v1beta1_VirtualMachineCloneSpec(&in.VirtualMachineCloneSpec, &out.VirtualMachineCloneSpec, s); err != nil {
 		return err
 	}
-	out.BootstrapRef = (*corev1.ObjectReference)(unsafe.Pointer(in.BootstrapRef))
+	// WARNING: in.BootstrapRef requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereVMBootstrapReference vs *k8s.io/api/core/v1.ObjectReference)
 	out.BiosUUID = in.BiosUUID
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeoutSeconds requires manual conversion: does not exist in peer-type

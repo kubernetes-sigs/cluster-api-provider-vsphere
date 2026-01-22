@@ -24,6 +24,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -306,6 +307,7 @@ func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfa
 func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVSphereVMStatus,
+		spokeVSphereVM,
 		spokeVSphereVMSpec,
 		spokeVSphereVMStatus,
 	}
@@ -318,6 +320,21 @@ func hubVSphereVMStatus(in *infrav1.VSphereVMStatus, c randfill.Continue) {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.VSphereVMV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
+	}
+}
+
+func spokeVSphereVM(in *VSphereVM, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Spec.BootstrapRef != nil && in.Spec.BootstrapRef.Name != "" { // Only set the fields that we expect to round trip.
+		in.Spec.BootstrapRef = &corev1.ObjectReference{
+			APIVersion: "v1",
+			Kind:       "Secret",
+			Name:       in.Spec.BootstrapRef.Name,
+			Namespace:  in.Namespace,
+		}
+	} else {
+		in.Spec.BootstrapRef = nil
 	}
 }
 

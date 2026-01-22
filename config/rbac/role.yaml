@@ -241,6 +241,7 @@ rules:
 - apiGroups:
   - vmoperator.vmware.com
   resources:
+  - clustervirtualmachineimages
   - virtualmachineclasses
   verbs:
   - get

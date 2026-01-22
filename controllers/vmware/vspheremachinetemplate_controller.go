@@ -41,6 +41,7 @@ import (
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachineclasses,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=clustervirtualmachineimages,verbs=get;list;watch
 
 // AddVSphereMachineTemplateControllerToManager adds the machine template controller to the provided
 // manager.
@@ -107,7 +108,71 @@ func (r *vSphereMachineTemplateReconciler) Reconcile(ctx context.Context, req ct
 		vSphereMachineTemplate.Status.Capacity[vmwarev1.VSphereResourceMemory] = vmClass.Spec.Hardware.Memory
 	}
 
+	// retrieve the os and arch info from the ClusterVirtualMachineImage
+	os, arch := getOSAndArchFromClusterVirtualMachineImage(ctx, r.Client, vSphereMachineTemplate.Spec.Template.Spec.ImageName)
+
+	if validOS := normalizeOperatingSystem(os); validOS != "" {
+		vSphereMachineTemplate.Status.NodeInfo.OperatingSystem = validOS
+	}
+	if validArch := normalizeArchitecture(arch); validArch != "" {
+		vSphereMachineTemplate.Status.NodeInfo.Architecture = validArch
+	}
+
 	return reconcile.Result{}, patchHelper.Patch(ctx, vSphereMachineTemplate)
+}
+
+// normalizeOperatingSystem converts the OS string from CVMI to a valid OperatingSystem constant.
+// Returns empty string if the value is not recognized.
+func normalizeOperatingSystem(os string) vmwarev1.OperatingSystem {
+	switch os {
+	case "linux":
+		return vmwarev1.OperatingSystemLinux
+	case "windows":
+		return vmwarev1.OperatingSystemWindows
+	default:
+		return ""
+	}
+}
+
+// normalizeArchitecture converts the architecture string from CVMI to a valid Architecture constant.
+// Returns empty string if the value is not recognized.
+func normalizeArchitecture(arch string) vmwarev1.Architecture {
+	switch arch {
+	case "amd64":
+		return vmwarev1.ArchitectureAmd64
+	case "arm64":
+		return vmwarev1.ArchitectureArm64
+	case "s390x":
+		return vmwarev1.ArchitectureS390x
+	case "ppc64le":
+		return vmwarev1.ArchitecturePpc64le
+	default:
+		return ""
+	}
+}
+
+func getOSAndArchFromClusterVirtualMachineImage(ctx context.Context, c client.Client, imageName string) (string, string) {
+	if imageName == "" {
+		return "", ""
+	}
+	// Try to fetch the ClusterVirtualMachineImage with the given name
+	cvmi := &vmoprvhub.ClusterVirtualMachineImage{}
+	if err := c.Get(ctx, client.ObjectKey{Name: imageName}, cvmi); err != nil {
+		return "", ""
+	}
+
+	// Extract OS type and architecture from vmwareSystemProperties
+	var osType, osArch string
+	for _, prop := range cvmi.Status.VMwareSystemProperties {
+		switch prop.Key {
+		case vmwarev1.VMwareSystemOSTypePropertyKey:
+			osType = prop.Value
+		case vmwarev1.VMwareSystemOSArchPropertyKey:
+			osArch = prop.Value
+		}
+	}
+
+	return osType, osArch
 }
 
 // enqueueVirtualMachineClassToVSphereMachineTemplateRequests returns a list of VSphereMachineTemplate reconcile requests

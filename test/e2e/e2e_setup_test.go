@@ -128,6 +128,12 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			}
 		}
 
+		// Note: Setting runtimeExtensionProviders to an empty array to ensure that the clusterctl upgrade test does not install
+		// any RuntimeExtensionProviders as a fallback.
+		// Note: Today this variable is only used in the clusterctl upgrade test so it only affects the providers
+		// we install in that test.
+		runtimeExtensionProviders = []string{}
+
 		// Enable additional providers depending on testMode and testTarget.
 		if testMode == SupervisorTestMode {
 			// Use latest vm-operator or the vm-operator version defined in the VM_OPERATOR_VERSION env var.

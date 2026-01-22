@@ -27,7 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capiutil "sigs.k8s.io/cluster-api/util"
-	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -47,13 +47,17 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		key    client.ObjectKey
 	)
 
-	isPresentAndFalseWithReason := func(getter deprecatedv1beta1conditions.Getter, condition clusterv1.ConditionType, reason string) bool {
-		ExpectWithOffset(1, testEnv.Get(ctx, key, getter)).To(Succeed())
-		if !deprecatedv1beta1conditions.Has(getter, condition) {
+	isPresentAndFalseWithReason := func(object client.Object, condition string, reason string) bool {
+		ExpectWithOffset(1, testEnv.Get(ctx, key, object)).To(Succeed())
+
+		getter, ok := object.(conditions.Getter)
+		Expect(ok).To(BeTrue())
+
+		if !conditions.Has(getter, condition) {
 			return false
 		}
-		objectCondition := deprecatedv1beta1conditions.Get(getter, condition)
-		return objectCondition.Status == corev1.ConditionFalse &&
+		objectCondition := conditions.Get(getter, condition)
+		return objectCondition.Status == metav1.ConditionFalse &&
 			objectCondition.Reason == reason
 	}
 
@@ -167,7 +171,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			if err := testEnv.Get(ctx, key, infraMachine); err != nil {
 				return false
 			}
-			return isPresentAndFalseWithReason(infraMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason)
+			return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition, infrav1.VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason)
 		}, timeout).Should(BeTrue())
 
 		By("setting the cluster infrastructure to be ready")
@@ -179,7 +183,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		}, timeout).Should(Succeed())
 
 		Eventually(func() bool {
-			return isPresentAndFalseWithReason(infraMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason)
+			return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition, infrav1.VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason)
 		}, timeout).Should(BeFalse())
 	})
 
@@ -197,7 +201,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Expect(testEnv.List(ctx, &vms, client.InNamespace(testNs.Name), client.MatchingLabels{
 					clusterv1.ClusterNameLabel: capiCluster.Name,
 				})).To(Succeed())
-				return isPresentAndFalseWithReason(infraMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason) &&
+				return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition, infrav1.VSphereMachineVirtualMachineWaitingForBootstrapDataV1Beta2Reason) &&
 					len(vms.Items) == 0
 			}, timeout).Should(BeTrue())
 

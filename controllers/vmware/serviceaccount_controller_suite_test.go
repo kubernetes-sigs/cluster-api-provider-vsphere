@@ -27,8 +27,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
@@ -154,12 +153,11 @@ func assertRoleBinding(ctx context.Context, ctrlClient client.Client, namespace,
 }
 
 // assertProviderServiceAccountsCondition asserts the condition on the ProviderServiceAccount CR.
-func assertProviderServiceAccountsCondition(vCluster *vmwarev1.VSphereCluster, status corev1.ConditionStatus, message string, reason string, severity clusterv1.ConditionSeverity) {
-	c := deprecatedv1beta1conditions.Get(vCluster, vmwarev1.ProviderServiceAccountsReadyCondition)
+func assertProviderServiceAccountsCondition(vCluster *vmwarev1.VSphereCluster, status metav1.ConditionStatus, message string, reason string) {
+	c := conditions.Get(vCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition)
 	Expect(c).NotTo(BeNil())
 	Expect(c.Status).To(Equal(status))
 	Expect(c.Reason).To(Equal(reason))
-	Expect(c.Severity).To(Equal(severity))
 	if message == "" {
 		Expect(c.Message).To(BeEmpty())
 	} else {

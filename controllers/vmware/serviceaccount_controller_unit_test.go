@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -62,7 +63,7 @@ func unitTestsReconcileNormal() {
 		It("Should reconcile", func() {
 			By("Not creating any entities")
 			assertNoEntities(ctx, controllerCtx.ControllerManagerContext.Client, namespace)
-			assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
+			assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Reason)
 		})
 	})
 
@@ -92,7 +93,7 @@ func unitTestsReconcileNormal() {
 				assertTargetNamespace(ctx, controllerCtx.GuestClient, testTargetNS, true)
 				By("Creating the target secret in the target namespace")
 				assertTargetSecret(ctx, controllerCtx.GuestClient, testTargetNS, testTargetSecret)
-				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
+				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Reason)
 			})
 		})
 		Context("When serviceaccount secret is modified", func() {
@@ -102,7 +103,7 @@ func unitTestsReconcileNormal() {
 				updateServiceAccountSecretAndReconcileNormal(ctx, controllerCtx, reconciler, vsphereCluster)
 				By("Updating the target secret in the target namespace")
 				assertTargetSecret(ctx, controllerCtx.GuestClient, testTargetNS, testTargetSecret)
-				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
+				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Reason)
 			})
 		})
 		Context("When invalid role exists", func() {
@@ -111,7 +112,7 @@ func unitTestsReconcileNormal() {
 			})
 			It("Should update role", func() {
 				assertRoleWithGetPVC(ctx, controllerCtx.ControllerManagerContext.Client, namespace, vsphereCluster.GetName())
-				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
+				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Reason)
 			})
 		})
 		Context("When invalid rolebinding exists", func() {
@@ -120,7 +121,7 @@ func unitTestsReconcileNormal() {
 			})
 			It("Should update rolebinding", func() {
 				assertRoleBinding(ctx, controllerCtx.ControllerManagerContext.Client, namespace, vsphereCluster.GetName())
-				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
+				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Reason)
 			})
 		})
 	})

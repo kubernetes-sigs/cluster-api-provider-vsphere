@@ -6,7 +6,7 @@ spec:
     groupVersionKind:
       group: infrastructure.cluster.x-k8s.io
       kind: VSphereCluster
-      version: v1beta1
+      version: v1beta2
     labelsFromPath:
       cluster_name:
       - metadata
@@ -25,7 +25,6 @@ spec:
     metrics:
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             paused_value: []
           path:
@@ -38,7 +37,6 @@ spec:
       name: annotation_paused
     - each:
         gauge:
-          labelFromKey: ""
           nilIsZero: false
           path:
           - metadata
@@ -49,7 +47,6 @@ spec:
       name: created
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             identity_reference_kind:
             - spec
@@ -71,7 +68,6 @@ spec:
       name: info
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             owner_is_controller:
             - controller
@@ -107,7 +103,6 @@ spec:
       name: status_condition
     - each:
         gauge:
-          labelFromKey: ""
           labelsFromPath:
             status:
             - status
@@ -127,7 +122,7 @@ spec:
     groupVersionKind:
       group: infrastructure.cluster.x-k8s.io
       kind: VSphereClusterIdentity
-      version: v1beta1
+      version: v1beta2
     labelsFromPath:
       cluster_name:
       - metadata
@@ -146,7 +141,6 @@ spec:
     metrics:
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             paused_value: []
           path:
@@ -159,7 +153,6 @@ spec:
       name: annotation_paused
     - each:
         gauge:
-          labelFromKey: ""
           nilIsZero: false
           path:
           - metadata
@@ -170,7 +163,6 @@ spec:
       name: created
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             name:
             - metadata
@@ -181,7 +173,6 @@ spec:
       name: info
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             owner_is_controller:
             - controller
@@ -217,7 +208,6 @@ spec:
       name: status_condition
     - each:
         gauge:
-          labelFromKey: ""
           labelsFromPath:
             status:
             - status
@@ -237,7 +227,7 @@ spec:
     groupVersionKind:
       group: infrastructure.cluster.x-k8s.io
       kind: VSphereDeploymentZone
-      version: v1beta1
+      version: v1beta2
     labelsFromPath:
       cluster_name:
       - metadata
@@ -256,7 +246,6 @@ spec:
     metrics:
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             paused_value: []
           path:
@@ -269,7 +258,6 @@ spec:
       name: annotation_paused
     - each:
         gauge:
-          labelFromKey: ""
           nilIsZero: false
           path:
           - metadata
@@ -280,7 +268,6 @@ spec:
       name: created
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             name:
             - metadata
@@ -291,7 +278,6 @@ spec:
       name: info
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             owner_is_controller:
             - controller
@@ -327,7 +313,6 @@ spec:
       name: status_condition
     - each:
         gauge:
-          labelFromKey: ""
           labelsFromPath:
             status:
             - status
@@ -347,7 +332,7 @@ spec:
     groupVersionKind:
       group: infrastructure.cluster.x-k8s.io
       kind: VSphereFailureDomain
-      version: v1beta1
+      version: v1beta2
     labelsFromPath:
       cluster_name:
       - metadata
@@ -366,7 +351,6 @@ spec:
     metrics:
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             paused_value: []
           path:
@@ -379,7 +363,6 @@ spec:
       name: annotation_paused
     - each:
         gauge:
-          labelFromKey: ""
           nilIsZero: false
           path:
           - metadata
@@ -390,7 +373,6 @@ spec:
       name: created
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             name:
             - metadata
@@ -401,7 +383,6 @@ spec:
       name: info
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             owner_is_controller:
             - controller
@@ -422,7 +403,7 @@ spec:
     groupVersionKind:
       group: infrastructure.cluster.x-k8s.io
       kind: VSphereMachine
-      version: v1beta1
+      version: v1beta2
     labelsFromPath:
       cluster_name:
       - metadata
@@ -441,7 +422,6 @@ spec:
     metrics:
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             paused_value: []
           path:
@@ -454,7 +434,6 @@ spec:
       name: annotation_paused
     - each:
         gauge:
-          labelFromKey: ""
           nilIsZero: false
           path:
           - metadata
@@ -465,7 +444,6 @@ spec:
       name: created
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             provider_id:
             - spec
@@ -476,7 +454,6 @@ spec:
       name: info
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             owner_is_controller:
             - controller
@@ -494,7 +471,6 @@ spec:
       name: owner
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             address:
             - address
@@ -526,7 +502,6 @@ spec:
       name: status_condition
     - each:
         gauge:
-          labelFromKey: ""
           labelsFromPath:
             status:
             - status
@@ -546,7 +521,7 @@ spec:
     groupVersionKind:
       group: infrastructure.cluster.x-k8s.io
       kind: VSphereVM
-      version: v1beta1
+      version: v1beta2
     labelsFromPath:
       cluster_name:
       - metadata
@@ -565,7 +540,6 @@ spec:
     metrics:
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             paused_value: []
           path:
@@ -578,7 +552,6 @@ spec:
       name: annotation_paused
     - each:
         gauge:
-          labelFromKey: ""
           nilIsZero: false
           path:
           - metadata
@@ -589,7 +562,6 @@ spec:
       name: created
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             bootstrap_reference_kind:
             - spec
@@ -611,7 +583,6 @@ spec:
       name: info
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             owner_is_controller:
             - controller
@@ -629,7 +600,6 @@ spec:
       name: owner
     - each:
         info:
-          labelFromKey: ""
           labelsFromPath:
             address: []
           path:
@@ -658,7 +628,6 @@ spec:
       name: status_condition
     - each:
         gauge:
-          labelFromKey: ""
           labelsFromPath:
             status:
             - status

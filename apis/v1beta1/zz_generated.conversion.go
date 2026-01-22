@@ -31,7 +31,6 @@ import (
 	v1beta2 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	errors "sigs.k8s.io/cluster-api/errors"
 )
 
 func init() {
@@ -2349,8 +2348,8 @@ func autoConvert_v1beta1_VSphereVMStatus_To_v1beta2_VSphereVMStatus(in *VSphereV
 	} else {
 		out.Network = nil
 	}
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
@@ -2400,8 +2399,6 @@ func autoConvert_v1beta2_VSphereVMStatus_To_v1beta1_VSphereVMStatus(in *v1beta2.
 	} else {
 		out.Network = nil
 	}
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.ModuleUUID = (*string)(unsafe.Pointer(in.ModuleUUID))
 	out.VMRef = in.VMRef
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type

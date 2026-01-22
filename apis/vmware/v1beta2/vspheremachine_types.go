@@ -185,10 +185,10 @@ type SecondaryInterfaceSpec struct {
 
 // InterfaceSpec defines properties of a network interface.
 type InterfaceSpec struct {
-	// network is the name of the network resource to which this interface is
+	// networkRef is the name of the network resource to which this interface is
 	// connected.
 	// +required
-	Network InterfaceNetworkReference `json:"network,omitempty,omitzero"`
+	NetworkRef InterfaceNetworkReference `json:"networkRef,omitempty,omitzero"`
 
 	// mtu is the Maximum Transmission Unit size in bytes.
 	//
@@ -214,10 +214,10 @@ func (r *InterfaceSpec) IsDefined() bool {
 	return !reflect.DeepEqual(r, &InterfaceSpec{})
 }
 
-// InterfaceNetworkReference describes a reference to another object in the same
+// InterfaceNetworkReference describes a reference to a network object in the same
 // namespace as the referrer.
 type InterfaceNetworkReference struct {
-	// kind of the remediation template.
+	// kind of the network object.
 	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
@@ -225,7 +225,7 @@ type InterfaceNetworkReference struct {
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
 	Kind string `json:"kind,omitempty"`
 
-	// name of the remediation template.
+	// name of the network object.
 	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
@@ -233,9 +233,8 @@ type InterfaceNetworkReference struct {
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name,omitempty"`
 
-	// apiVersion of the remediation template.
+	// apiVersion of the network object.
 	// apiVersion must be fully qualified domain name followed by / and a version.
-	// NOTE: This field must be kept in sync with the APIVersion of the remediation template.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=317

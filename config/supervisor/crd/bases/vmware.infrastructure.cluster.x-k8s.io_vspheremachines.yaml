@@ -956,23 +956,22 @@ spec:
                             maximum: 9000
                             minimum: 576
                             type: integer
-                          network:
+                          networkRef:
                             description: |-
-                              network is the name of the network resource to which this interface is
+                              networkRef is the name of the network resource to which this interface is
                               connected.
                             properties:
                               apiVersion:
                                 description: |-
-                                  apiVersion of the remediation template.
+                                  apiVersion of the network object.
                                   apiVersion must be fully qualified domain name followed by / and a version.
-                                  NOTE: This field must be kept in sync with the APIVersion of the remediation template.
                                 maxLength: 317
                                 minLength: 1
                                 pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                                 type: string
                               kind:
                                 description: |-
-                                  kind of the remediation template.
+                                  kind of the network object.
                                   kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                                 maxLength: 63
                                 minLength: 1
@@ -980,7 +979,7 @@ spec:
                                 type: string
                               name:
                                 description: |-
-                                  name of the remediation template.
+                                  name of the network object.
                                   name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                                 maxLength: 253
                                 minLength: 1
@@ -1025,7 +1024,7 @@ spec:
                             type: array
                             x-kubernetes-list-type: atomic
                         required:
-                        - network
+                        - networkRef
                         type: object
                       secondary:
                         description: |-
@@ -1053,23 +1052,22 @@ spec:
                               minLength: 2
                               pattern: ^[a-z0-9]{2,}$
                               type: string
-                            network:
+                            networkRef:
                               description: |-
-                                network is the name of the network resource to which this interface is
+                                networkRef is the name of the network resource to which this interface is
                                 connected.
                               properties:
                                 apiVersion:
                                   description: |-
-                                    apiVersion of the remediation template.
+                                    apiVersion of the network object.
                                     apiVersion must be fully qualified domain name followed by / and a version.
-                                    NOTE: This field must be kept in sync with the APIVersion of the remediation template.
                                   maxLength: 317
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                                 kind:
                                   description: |-
-                                    kind of the remediation template.
+                                    kind of the network object.
                                     kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                                   maxLength: 63
                                   minLength: 1
@@ -1077,7 +1075,7 @@ spec:
                                   type: string
                                 name:
                                   description: |-
-                                    name of the remediation template.
+                                    name of the network object.
                                     name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                                   maxLength: 253
                                   minLength: 1
@@ -1123,7 +1121,7 @@ spec:
                               x-kubernetes-list-type: atomic
                           required:
                           - name
-                          - network
+                          - networkRef
                           type: object
                         maxItems: 9
                         minItems: 1

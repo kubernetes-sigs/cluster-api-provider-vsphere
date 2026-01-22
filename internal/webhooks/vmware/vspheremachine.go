@@ -111,7 +111,7 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 			case manager.NSXVPCNetworkProvider:
 				primary := network.Interfaces.Primary
 				if primary.IsDefined() {
-					primaryNetGVK := primary.Network.GroupVersionKind()
+					primaryNetGVK := primary.NetworkRef.GroupVersionKind()
 					if primaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnetSet {
 						allErrs = append(allErrs, field.Invalid(
 							fldPath.Child("interfaces", "primary", "network"),
@@ -120,7 +120,7 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 					}
 				}
 				for i, secondaryInterface := range network.Interfaces.Secondary {
-					secondaryNetGVK := secondaryInterface.Network.GroupVersionKind()
+					secondaryNetGVK := secondaryInterface.NetworkRef.GroupVersionKind()
 					if secondaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnetSet && secondaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnet {
 						allErrs = append(allErrs, field.Invalid(
 							fldPath.Child("interfaces", "secondary").Index(i).Child("network"),
@@ -135,7 +135,7 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 						"primary interface can not be set when network provider is vsphere-network"))
 				}
 				for i, secondaryInterface := range network.Interfaces.Secondary {
-					secondaryNetGVK := secondaryInterface.Network.GroupVersionKind()
+					secondaryNetGVK := secondaryInterface.NetworkRef.GroupVersionKind()
 					if secondaryNetGVK != pkgnetwork.NetworkGVKNetOperator {
 						allErrs = append(allErrs, field.Invalid(
 							fldPath.Child("interfaces", "secondary").Index(i).Child("network"),

@@ -222,6 +222,7 @@ func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfa
 	return []interface{}{
 		hubVSphereMachineTemplateResource,
 		spokeVSphereMachineSpec,
+		hubVSphereMachineTemplateStatus,
 	}
 }
 
@@ -229,6 +230,13 @@ func hubVSphereMachineTemplateResource(in *vmwarev1.VSphereMachineTemplateResour
 	c.FillNoCustom(in)
 
 	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
+}
+
+func hubVSphereMachineTemplateStatus(in *vmwarev1.VSphereMachineTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// NodeInfo doesn't exist in v1beta1, so it will be lost during hub-spoke-hub conversion.
+	// Clear it in the hub object before comparison.
+	in.Status.NodeInfo = vmwarev1.NodeInfo{}
 }
 
 func ProviderServiceAccountFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

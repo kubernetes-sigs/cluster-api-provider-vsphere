@@ -217,6 +217,10 @@ linters:
     rules:
       # Specific exclude rules for deprecated types that are still part of the codebase. These
       # should be removed as the referenced deprecated types are removed from the project.
+      # ProviderServiceAccount
+      - linters:
+          - staticcheck
+        text: 'SA1019: .* ProviderServiceAccount is deprecated and is going to be removed in one of the upcoming CAPV releases'
       # v1Beta1 deprecated fields
       - linters:
           - staticcheck

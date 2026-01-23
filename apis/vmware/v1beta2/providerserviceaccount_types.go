@@ -52,6 +52,7 @@ type ProviderServiceAccountSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=providerserviceaccounts,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion:warning="ProviderServiceAccount is deprecated and is going to be removed in one of the upcoming CAPV releases"
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="VSphereCluster",type=string,JSONPath=.spec.ref.name
 // +kubebuilder:printcolumn:name="TargetNamespace",type=string,JSONPath=.spec.targetNamespace
@@ -59,6 +60,8 @@ type ProviderServiceAccountSpec struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // ProviderServiceAccount is the schema for the ProviderServiceAccount API.
+//
+// Deprecated: ProviderServiceAccount is deprecated and is going to be removed in one of the upcoming CAPV releases.
 type ProviderServiceAccount struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

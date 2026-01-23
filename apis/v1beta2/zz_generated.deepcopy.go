@@ -1616,16 +1616,6 @@ func (in *VSphereVMStatus) DeepCopyInto(out *VSphereVMStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.FailureReason != nil {
-		in, out := &in.FailureReason, &out.FailureReason
-		*out = new(errors.MachineStatusError)
-		**out = **in
-	}
-	if in.FailureMessage != nil {
-		in, out := &in.FailureMessage, &out.FailureMessage
-		*out = new(string)
-		**out = **in
-	}
 	if in.ModuleUUID != nil {
 		in, out := &in.ModuleUUID, &out.ModuleUUID
 		*out = new(string)
@@ -1657,6 +1647,16 @@ func (in *VSphereVMV1Beta1DeprecatedStatus) DeepCopyInto(out *VSphereVMV1Beta1De
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.FailureReason != nil {
+		in, out := &in.FailureReason, &out.FailureReason
+		*out = new(errors.MachineStatusError)
+		**out = **in
+	}
+	if in.FailureMessage != nil {
+		in, out := &in.FailureMessage, &out.FailureMessage
+		*out = new(string)
+		**out = **in
 	}
 }
 

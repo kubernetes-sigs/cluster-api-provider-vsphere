@@ -854,11 +854,13 @@ func Convert_v1beta2_VSphereVMStatus_To_v1beta1_VSphereVMStatus(in *infrav1.VSph
 	// NOTE: v1beta2 conditions should not automatically be converted into legacy conditions (v1beta1).
 	out.Conditions = nil
 
-	// Retrieve legacy conditions (v1beta1) from the deprecated field.
+	// Retrieve legacy conditions (v1beta1), failureReason and failureMessage from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
 			clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
+		out.FailureReason = in.Deprecated.V1Beta1.FailureReason
+		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -884,8 +886,8 @@ func Convert_v1beta1_VSphereVMStatus_To_v1beta2_VSphereVMStatus(in *VSphereVMSta
 		out.Conditions = in.V1Beta2.Conditions
 	}
 
-	// Move legacy conditions (v1beta1) to the deprecated field.
-	if in.Conditions == nil {
+	// Move legacy conditions (v1beta1), failureReason and failureMessage to the deprecated field.
+	if in.FailureReason == nil && in.FailureMessage == nil && in.Conditions == nil {
 		return nil
 	}
 
@@ -898,6 +900,8 @@ func Convert_v1beta1_VSphereVMStatus_To_v1beta2_VSphereVMStatus(in *VSphereVMSta
 	if in.Conditions != nil {
 		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
+	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
+	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
 	return nil
 }
 

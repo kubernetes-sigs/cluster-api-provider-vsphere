@@ -299,38 +299,6 @@ type VSphereVMStatus struct {
 	// +kubebuilder:validation:MaxItems=128
 	Network []NetworkStatus `json:"network,omitempty"`
 
-	// failureReason will be set in the event that there is a terminal problem
-	// reconciling the vspherevm and will contain a succinct value suitable
-	// for vm interpretation.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the vm.
-	//
-	// Any transient errors that occur during the reconciliation of vspherevms
-	// can be added as events to the vspherevm object and/or logged in the
-	// controller's output.
-	// +optional
-	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
-
-	// failureMessage will be set in the event that there is a terminal problem
-	// reconciling the vspherevm and will contain a more verbose string suitable
-	// for logging and human consumption.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the vm.
-	//
-	// Any transient errors that occur during the reconciliation of vspherevms
-	// can be added as events to the vspherevm object and/or logged in the
-	// controller's output.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=10240
-	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
-
 	// moduleUUID is the unique identifier for the vCenter cluster module construct
 	// which is used to configure anti-affinity. Objects with the same ModuleUUID
 	// will be anti-affined, meaning that the vCenter DRS will best effort schedule
@@ -369,6 +337,44 @@ type VSphereVMV1Beta1DeprecatedStatus struct {
 	//
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// failureReason will be set in the event that there is a terminal problem
+	// reconciling the vspherevm and will contain a succinct value suitable
+	// for vm interpretation.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the vm.
+	//
+	// Any transient errors that occur during the reconciliation of vspherevms
+	// can be added as events to the vspherevm object and/or logged in the
+	// controller's output.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
+
+	// failureMessage will be set in the event that there is a terminal problem
+	// reconciling the vspherevm and will contain a more verbose string suitable
+	// for logging and human consumption.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the vm.
+	//
+	// Any transient errors that occur during the reconciliation of vspherevms
+	// can be added as events to the vspherevm object and/or logged in the
+	// controller's output.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=10240
+	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 }
 
 // +kubebuilder:object:root=true

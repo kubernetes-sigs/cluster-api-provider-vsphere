@@ -272,9 +272,9 @@ var _ = Describe("VirtualMachine tests", func() {
 			//             running in this test domain, and so the condition
 			//             will not be set on the VM Operator VM.
 			expectedConditions = append(expectedConditions, metav1.Condition{
-				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereMachineVirtualMachineProvisioningV1Beta2Reason,
+				Reason:  infrav1.VSphereMachineVirtualMachineProvisioningReason,
 				Message: "",
 			})
 			expectedRequeue = true
@@ -301,7 +301,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			machine.Spec.Bootstrap.DataSecretName = &secretName
 			// we expect the reconciliation waiting for VM to be created
-			expectedConditions[0].Reason = infrav1.VSphereMachineVirtualMachineProvisioningV1Beta2Reason
+			expectedConditions[0].Reason = infrav1.VSphereMachineVirtualMachineProvisioningReason
 			expectedConditions[0].Message = ""
 			expectReconcileError = false
 			expectedRequeue = true
@@ -403,7 +403,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
 			// we expect the reconciliation succeeds
 			expectedConditions[0].Status = metav1.ConditionTrue
-			expectedConditions[0].Reason = infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Reason
+			expectedConditions[0].Reason = infrav1.VSphereMachineVirtualMachineProvisionedReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
@@ -502,9 +502,9 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			machine.Spec.Bootstrap.DataSecretName = &secretName
 			expectedConditions = append(expectedConditions, metav1.Condition{
-				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereMachineVirtualMachineProvisioningV1Beta2Reason,
+				Reason:  infrav1.VSphereMachineVirtualMachineProvisioningReason,
 				Message: "",
 			})
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -558,7 +558,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedVMIP = vmIP
 			expectedState = vmwarev1.VSphereMachinePhaseReady
 			expectedConditions[0].Status = metav1.ConditionTrue
-			expectedConditions[0].Reason = infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Reason
+			expectedConditions[0].Reason = infrav1.VSphereMachineVirtualMachineProvisionedReason
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal = vmopVM.DeepCopy()
 			vmopVM.Status.BiosUUID = biosUUID
@@ -593,9 +593,9 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("Machine doens't have a K8S version")
 			machine.Spec.Version = ""
 			expectedConditions = append(expectedConditions, metav1.Condition{
-				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereMachineVirtualMachineNotProvisionedV1Beta2Reason,
+				Reason:  infrav1.VSphereMachineVirtualMachineNotProvisionedReason,
 				Message: missingK8SVersionFailure,
 			})
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -635,7 +635,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectReconcileError = true
 			expectVMOpVM = true
 			expectedConditions = append(expectedConditions, metav1.Condition{
-				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  "NotFound",
 				Message: errMessage,
@@ -771,9 +771,9 @@ var _ = Describe("VirtualMachine tests", func() {
 
 				machine.Spec.Bootstrap.DataSecretName = &secretName
 				expectedConditions = append(expectedConditions, metav1.Condition{
-					Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+					Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 					Status:  metav1.ConditionFalse,
-					Reason:  infrav1.VSphereMachineVirtualMachineProvisioningV1Beta2Reason,
+					Reason:  infrav1.VSphereMachineVirtualMachineProvisioningReason,
 					Message: "",
 				})
 

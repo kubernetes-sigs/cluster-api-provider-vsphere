@@ -135,9 +135,9 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
 				return false
 			}
-			return conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition) &&
-				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition) &&
-				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition)
+			return conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneVCenterAvailableCondition) &&
+				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition) &&
+				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition)
 		}, timeout).Should(BeTrue())
 
 		Expect(testEnv.Get(ctx, failureDomainKey, vsphereFailureDomain)).To(Succeed())
@@ -200,7 +200,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 				if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
 					return false
 				}
-				return conditions.IsFalse(vsphereDeploymentZone, infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition)
+				return conditions.IsFalse(vsphereDeploymentZone, infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition)
 			}, timeout).Should(BeTrue())
 		})
 	})
@@ -375,9 +375,9 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			if err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone); err != nil {
 				return false
 			}
-			return conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition) &&
-				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition) &&
-				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition)
+			return conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneVCenterAvailableCondition) &&
+				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition) &&
+				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition)
 		}, timeout).Should(BeTrue())
 
 		g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereFailureDomain), vsphereFailureDomain)).To(Succeed())

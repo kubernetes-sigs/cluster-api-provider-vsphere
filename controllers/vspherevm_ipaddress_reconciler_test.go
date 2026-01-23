@@ -94,10 +94,10 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameLabel, "my-cluster"))
 			}
 
-			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)
+			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(metav1.ConditionFalse))
-			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.VSphereVMIPAddressClaimsBeingCreatedV1Beta2Reason))
+			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.VSphereVMIPAddressClaimsBeingCreatedReason))
 			g.Expect(claimedCondition.Message).To(gomega.Equal("3/3 claims being created"))
 		})
 
@@ -127,10 +127,10 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)
+			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(metav1.ConditionFalse))
-			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason))
+			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.VSphereVMIPAddressClaimsWaitingForIPAddressReason))
 			g.Expect(claimedCondition.Message).To(gomega.Equal("3/3 claims being processed"))
 
 			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
@@ -163,7 +163,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)
+			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(metav1.ConditionTrue))
 
@@ -207,7 +207,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)
+			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(metav1.ConditionFalse))
 		})
@@ -236,10 +236,10 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)
+			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.VSphereVMIPAddressClaimsFulfilledCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(metav1.ConditionFalse))
-			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason))
+			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.VSphereVMIPAddressClaimsWaitingForIPAddressReason))
 			g.Expect(claimedCondition.Message).To(gomega.Equal("2/3 claims being processed"))
 		})
 	})

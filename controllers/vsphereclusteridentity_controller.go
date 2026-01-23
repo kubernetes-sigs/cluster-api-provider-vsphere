@@ -104,7 +104,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 
 		if err := patchHelper.Patch(ctx, identity, patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
-			infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,
+			infrav1.VSphereClusterIdentityAvailableCondition,
 		}}); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
@@ -123,9 +123,9 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	if err := r.Client.Get(ctx, secretKey, secret); err != nil {
 		deprecatedv1beta1conditions.MarkFalse(identity, infrav1.CredentialsAvailableV1Beta1Condition, infrav1.SecretNotAvailableV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(identity, metav1.Condition{
-			Type:    infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,
+			Type:    infrav1.VSphereClusterIdentityAvailableCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereClusterIdentitySecretNotAvailableV1Beta2Reason,
+			Reason:  infrav1.VSphereClusterIdentitySecretNotAvailableReason,
 			Message: err.Error(),
 		})
 		return reconcile.Result{}, errors.Wrapf(err, "failed to get Secret %s", klog.KRef(secretKey.Namespace, secretKey.Name))
@@ -135,9 +135,9 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	if !clusterutilv1.IsOwnedByObject(secret, identity, infrav1.GroupVersion.WithKind("VSphereClusterIdentity").GroupKind()) && pkgidentity.IsOwnedByIdentityOrCluster(secret.GetOwnerReferences()) {
 		deprecatedv1beta1conditions.MarkFalse(identity, infrav1.CredentialsAvailableV1Beta1Condition, infrav1.SecretAlreadyInUseV1Beta1Reason, clusterv1.ConditionSeverityError, "secret being used by another Cluster/VSphereIdentity")
 		conditions.Set(identity, metav1.Condition{
-			Type:    infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,
+			Type:    infrav1.VSphereClusterIdentityAvailableCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereClusterIdentitySecretAlreadyInUseV1Beta2Reason,
+			Reason:  infrav1.VSphereClusterIdentitySecretAlreadyInUseReason,
 			Message: "secret being used by another Cluster/VSphereIdentity",
 		})
 		identity.Status.Ready = ptr.To(false)
@@ -161,9 +161,9 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	if err != nil {
 		deprecatedv1beta1conditions.MarkFalse(identity, infrav1.CredentialsAvailableV1Beta1Condition, infrav1.SecretOwnerReferenceFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(identity, metav1.Condition{
-			Type:    infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,
+			Type:    infrav1.VSphereClusterIdentityAvailableCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereClusterIdentitySettingSecretOwnerReferenceFailedV1Beta2Reason,
+			Reason:  infrav1.VSphereClusterIdentitySettingSecretOwnerReferenceFailedReason,
 			Message: err.Error(),
 		})
 		return reconcile.Result{}, err
@@ -171,9 +171,9 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 
 	deprecatedv1beta1conditions.MarkTrue(identity, infrav1.CredentialsAvailableV1Beta1Condition)
 	conditions.Set(identity, metav1.Condition{
-		Type:   infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,
+		Type:   infrav1.VSphereClusterIdentityAvailableCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.VSphereClusterIdentityAvailableV1Beta2Reason,
+		Reason: infrav1.VSphereClusterIdentityAvailableReason,
 	})
 
 	identity.Status.Ready = ptr.To(true)
@@ -189,9 +189,9 @@ func (r clusterIdentityReconciler) reconcileDelete(ctx context.Context, identity
 	}
 
 	conditions.Set(identity, metav1.Condition{
-		Type:   infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,
+		Type:   infrav1.VSphereClusterIdentityAvailableCondition,
 		Status: metav1.ConditionFalse,
-		Reason: infrav1.VSphereClusterIdentityDeletingV1Beta2Reason,
+		Reason: infrav1.VSphereClusterIdentityDeletingReason,
 	})
 
 	err := r.Client.Get(ctx, secretKey, secret)

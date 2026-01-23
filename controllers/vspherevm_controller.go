@@ -175,18 +175,18 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	if err != nil {
 		deprecatedv1beta1conditions.MarkFalse(vsphereVM, infrav1.VCenterAvailableV1Beta1Condition, infrav1.VCenterUnreachableV1Beta1Reason, clusterv1.ConditionSeverityError, "%v", err)
 		conditions.Set(vsphereVM, metav1.Condition{
-			Type:    infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
+			Type:    infrav1.VSphereVMVCenterAvailableCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereVMVCenterUnreachableV1Beta2Reason,
+			Reason:  infrav1.VSphereVMVCenterUnreachableReason,
 			Message: err.Error(),
 		})
 		return reconcile.Result{}, err
 	}
 	deprecatedv1beta1conditions.MarkTrue(vsphereVM, infrav1.VCenterAvailableV1Beta1Condition)
 	conditions.Set(vsphereVM, metav1.Condition{
-		Type:   infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
+		Type:   infrav1.VSphereVMVCenterAvailableCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.VSphereVMVCenterAvailableV1Beta2Reason,
+		Reason: infrav1.VSphereVMVCenterAvailableReason,
 	})
 
 	// Fetch the owner VSphereMachine.
@@ -273,18 +273,18 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		// Before computing ready condition, make sure that VirtualMachineProvisioned is always set.
 		// NOTE: This is required because v1beta2 conditions comply to guideline requiring conditions to be set at the
 		// first reconcile.
-		if c := conditions.Get(vmContext.VSphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition); c == nil {
+		if c := conditions.Get(vmContext.VSphereVM, infrav1.VSphereVMVirtualMachineProvisionedCondition); c == nil {
 			if ptr.Deref(vmContext.VSphereVM.Status.Ready, false) {
 				conditions.Set(vmContext.VSphereVM, metav1.Condition{
-					Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+					Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 					Status: metav1.ConditionTrue,
-					Reason: infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Reason,
+					Reason: infrav1.VSphereVMVirtualMachineProvisionedReason,
 				})
 			} else {
 				conditions.Set(vmContext.VSphereVM, metav1.Condition{
-					Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+					Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 					Status: metav1.ConditionFalse,
-					Reason: infrav1.VSphereVMVirtualMachineNotProvisionedV1Beta2Reason,
+					Reason: infrav1.VSphereVMVirtualMachineNotProvisionedReason,
 				})
 			}
 		}
@@ -298,29 +298,29 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 			),
 		)
 
-		if err := conditions.SetSummaryCondition(vmContext.VSphereVM, vmContext.VSphereVM, infrav1.VSphereVMReadyV1Beta2Condition,
+		if err := conditions.SetSummaryCondition(vmContext.VSphereVM, vmContext.VSphereVM, infrav1.VSphereVMReadyCondition,
 			conditions.ForConditionTypes{
-				infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
-				infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
-				infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
+				infrav1.VSphereVMVCenterAvailableCondition,
+				infrav1.VSphereVMVirtualMachineProvisionedCondition,
+				infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
 			},
 			conditions.IgnoreTypesIfMissing{
-				infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
-				infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
+				infrav1.VSphereVMVCenterAvailableCondition,
+				infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
 			},
 			// Using a custom merge strategy to override reasons applied during merge.
 			conditions.CustomMergeStrategy{
 				MergeStrategy: conditions.DefaultMergeStrategy(
 					// Use custom reasons.
 					conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-						infrav1.VSphereVMNotReadyV1Beta2Reason,
-						infrav1.VSphereVMReadyUnknownV1Beta2Reason,
-						infrav1.VSphereVMReadyV1Beta2Reason,
+						infrav1.VSphereVMNotReadyReason,
+						infrav1.VSphereVMReadyUnknownReason,
+						infrav1.VSphereVMReadyReason,
 					)),
 				),
 			},
 		); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to set %s condition", infrav1.VSphereVMReadyV1Beta2Condition)})
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to set %s condition", infrav1.VSphereVMReadyCondition)})
 			return
 		}
 
@@ -384,17 +384,17 @@ func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VM
 
 	deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, clusterv1beta1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-		Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+		Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 		Status: metav1.ConditionFalse,
-		Reason: infrav1.VSphereVMVirtualMachineDeletingV1Beta2Reason,
+		Reason: infrav1.VSphereVMVirtualMachineDeletingReason,
 	})
 	result, vm, err := r.VMService.DestroyVM(ctx, vmCtx)
 	if err != nil {
 		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, "DeletionFailed", clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-			Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+			Type:    infrav1.VSphereVMVirtualMachineProvisionedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereVMVirtualMachineDeletingV1Beta2Reason,
+			Reason:  infrav1.VSphereVMVirtualMachineDeletingReason,
 			Message: err.Error(),
 		})
 		return reconcile.Result{}, errors.Wrapf(err, "failed to destroy VM")
@@ -471,9 +471,9 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	if r.isWaitingForStaticIPAllocation(vmCtx) {
 		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForStaticIPAllocationV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-			Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+			Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.VSphereVMVirtualMachineWaitingForStaticIPAllocationV1Beta2Reason,
+			Reason: infrav1.VSphereVMVirtualMachineWaitingForStaticIPAllocationReason,
 		})
 		log.Info("VM is waiting for static ip to be available")
 		return reconcile.Result{}, nil
@@ -522,9 +522,9 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	if len(vmCtx.VSphereVM.Status.Addresses) == 0 {
 		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForIPAllocationV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-			Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+			Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.VSphereVMVirtualMachineWaitingForIPAllocationV1Beta2Reason,
+			Reason: infrav1.VSphereVMVirtualMachineWaitingForIPAllocationReason,
 		})
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
@@ -533,9 +533,9 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	vmCtx.VSphereVM.Status.Ready = ptr.To(true)
 	deprecatedv1beta1conditions.MarkTrue(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition)
 	conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-		Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+		Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Reason,
+		Reason: infrav1.VSphereVMVirtualMachineProvisionedReason,
 	})
 	log.Info("VSphereVM is ready")
 	return reconcile.Result{}, nil

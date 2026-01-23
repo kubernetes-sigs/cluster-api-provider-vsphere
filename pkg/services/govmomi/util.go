@@ -179,7 +179,7 @@ func checkAndRetryTask(ctx context.Context, vmCtx *capvcontext.VMContext, task *
 		}
 
 		log.Info("Task found: Task failed")
-		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, "%s", errorMessage)
+		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, "%s", errorMessage)
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,

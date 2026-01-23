@@ -66,7 +66,7 @@ func TestIsSoftPowerOffTimeoutExceeded(t *testing.T) {
 				Conditions: []metav1.Condition{
 					{
 						Type:               infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
-						Status:             infrav1.GuestSoftPowerOffInProgressReason,
+						Status:             infrav1.GuestSoftPowerOffInProgressV1Beta1Reason,
 						LastTransitionTime: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
 					},
 				},
@@ -92,7 +92,7 @@ func TestIsSoftPowerOffTimeoutExceeded(t *testing.T) {
 				Conditions: []metav1.Condition{
 					{
 						Type:               infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
-						Status:             infrav1.GuestSoftPowerOffInProgressReason,
+						Status:             infrav1.GuestSoftPowerOffInProgressV1Beta1Reason,
 						LastTransitionTime: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
 					},
 				},
@@ -169,7 +169,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 					Conditions: []metav1.Condition{
 						{
 							Type:               infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
-							Status:             infrav1.GuestSoftPowerOffInProgressReason,
+							Status:             infrav1.GuestSoftPowerOffInProgressV1Beta1Reason,
 							LastTransitionTime: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
 						},
 					},
@@ -206,7 +206,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 					Conditions: []metav1.Condition{
 						{
 							Type:               infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
-							Status:             infrav1.GuestSoftPowerOffInProgressReason,
+							Status:             infrav1.GuestSoftPowerOffInProgressV1Beta1Reason,
 							LastTransitionTime: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
 						},
 					},
@@ -243,7 +243,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 					Conditions: []metav1.Condition{
 						{
 							Type:               infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
-							Status:             infrav1.GuestSoftPowerOffInProgressReason,
+							Status:             infrav1.GuestSoftPowerOffInProgressV1Beta1Reason,
 							LastTransitionTime: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
 						},
 					},
@@ -308,7 +308,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 					Conditions: []metav1.Condition{
 						{
 							Type:               infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
-							Status:             infrav1.GuestSoftPowerOffInProgressReason,
+							Status:             infrav1.GuestSoftPowerOffInProgressV1Beta1Reason,
 							LastTransitionTime: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
 						},
 					},

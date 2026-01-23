@@ -173,7 +173,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 
 	authSession, err := r.retrieveVcenterSession(ctx, vsphereVM)
 	if err != nil {
-		deprecatedv1beta1conditions.MarkFalse(vsphereVM, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(vsphereVM, infrav1.VCenterAvailableV1Beta1Condition, infrav1.VCenterUnreachableV1Beta1Reason, clusterv1.ConditionSeverityError, "%v", err)
 		conditions.Set(vsphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -182,7 +182,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		})
 		return reconcile.Result{}, err
 	}
-	deprecatedv1beta1conditions.MarkTrue(vsphereVM, infrav1.VCenterAvailableCondition)
+	deprecatedv1beta1conditions.MarkTrue(vsphereVM, infrav1.VCenterAvailableV1Beta1Condition)
 	conditions.Set(vsphereVM, metav1.Condition{
 		Type:   infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
 		Status: metav1.ConditionTrue,
@@ -292,9 +292,9 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		// always update the readyCondition.
 		deprecatedv1beta1conditions.SetSummary(vmContext.VSphereVM,
 			deprecatedv1beta1conditions.WithConditions(
-				infrav1.VCenterAvailableCondition,
-				infrav1.IPAddressClaimedCondition,
-				infrav1.VMProvisionedCondition,
+				infrav1.VCenterAvailableV1Beta1Condition,
+				infrav1.IPAddressClaimedV1Beta1Condition,
+				infrav1.VMProvisionedV1Beta1Condition,
 			),
 		)
 
@@ -382,7 +382,7 @@ func (r vmReconciler) reconcile(ctx context.Context, vmCtx *capvcontext.VMContex
 func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, clusterv1beta1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, clusterv1beta1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 		Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 		Status: metav1.ConditionFalse,
@@ -390,7 +390,7 @@ func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VM
 	})
 	result, vm, err := r.VMService.DestroyVM(ctx, vmCtx)
 	if err != nil {
-		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, "DeletionFailed", clusterv1.ConditionSeverityWarning, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, "DeletionFailed", clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -469,7 +469,7 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	log := ctrl.LoggerFrom(ctx)
 
 	if r.isWaitingForStaticIPAllocation(vmCtx) {
-		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForStaticIPAllocationReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForStaticIPAllocationV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -520,7 +520,7 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 
 	// we didn't get any addresses, requeue
 	if len(vmCtx.VSphereVM.Status.Addresses) == 0 {
-		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForIPAllocationReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForIPAllocationV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -531,7 +531,7 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 
 	// Once the network is online the VM is considered ready.
 	vmCtx.VSphereVM.Status.Ready = ptr.To(true)
-	deprecatedv1beta1conditions.MarkTrue(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)
+	deprecatedv1beta1conditions.MarkTrue(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition)
 	conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 		Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 		Status: metav1.ConditionTrue,

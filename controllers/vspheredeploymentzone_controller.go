@@ -139,9 +139,9 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 func (r vsphereDeploymentZoneReconciler) patch(ctx context.Context, vsphereDeploymentZoneContext *capvcontext.VSphereDeploymentZoneContext) error {
 	deprecatedv1beta1conditions.SetSummary(vsphereDeploymentZoneContext.VSphereDeploymentZone,
 		deprecatedv1beta1conditions.WithConditions(
-			infrav1.VCenterAvailableCondition,
-			infrav1.VSphereFailureDomainValidatedCondition,
-			infrav1.PlacementConstraintMetCondition,
+			infrav1.VCenterAvailableV1Beta1Condition,
+			infrav1.VSphereFailureDomainValidatedV1Beta1Condition,
+			infrav1.PlacementConstraintMetV1Beta1Condition,
 		),
 	)
 
@@ -186,7 +186,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 
 	authSession, err := r.getVCenterSession(ctx, deploymentZoneCtx, failureDomain.Spec.Topology.Datacenter)
 	if err != nil {
-		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableV1Beta1Condition, infrav1.VCenterUnreachableV1Beta1Reason, clusterv1.ConditionSeverityError, "%v", err)
 		conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
 			Type:    infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -198,7 +198,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 	}
 
 	deploymentZoneCtx.AuthSession = authSession
-	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition)
+	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableV1Beta1Condition)
 	conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
 		Type:   infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition,
 		Status: metav1.ConditionTrue,
@@ -226,7 +226,7 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 
 	if resourcePool := placementConstraint.ResourcePool; resourcePool != "" {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.ResourcePool(ctx, resourcePool); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition, infrav1.ResourcePoolNotFoundReason, clusterv1.ConditionSeverityError, "resource pool %s is misconfigured", resourcePool)
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetV1Beta1Condition, infrav1.ResourcePoolNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "resource pool %s is misconfigured", resourcePool)
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
 				Type:    infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -239,7 +239,7 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 
 	if folder := placementConstraint.Folder; folder != "" {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.Folder(ctx, placementConstraint.Folder); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition, infrav1.FolderNotFoundReason, clusterv1.ConditionSeverityError, "folder %s is misconfigured", folder)
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetV1Beta1Condition, infrav1.FolderNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "folder %s is misconfigured", folder)
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
 				Type:    infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -250,7 +250,7 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 		}
 	}
 
-	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
+	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetV1Beta1Condition)
 	conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
 		Type:   infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,

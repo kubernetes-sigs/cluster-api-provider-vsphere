@@ -295,7 +295,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		// always update the readyCondition.
 		deprecatedv1beta1conditions.SetSummary(machineContext.GetVSphereMachine(),
 			deprecatedv1beta1conditions.WithConditions(
-				infrav1.VMProvisionedCondition,
+				infrav1.VMProvisionedV1Beta1Condition,
 			),
 		)
 
@@ -372,7 +372,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 func (r *machineReconciler) reconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
+	deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 	conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 		Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 		Status: metav1.ConditionFalse,
@@ -387,7 +387,7 @@ func (r *machineReconciler) reconcileDelete(ctx context.Context, machineCtx capv
 			}
 			return reconcile.Result{}, nil
 		}
-		deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+		deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition, clusterv1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 		conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 			Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -411,13 +411,13 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 	}
 
 	// Cluster `.status.initialization.infrastructureProvisioned == false is handled differently depending on if the machine is supervisor based.
-	// 1) If the Cluster is not supervisor-based mark the VMProvisionedCondition false and return nil.
+	// 1) If the Cluster is not supervisor-based mark the VMProvisionedV1Beta1Condition false and return nil.
 	// 2) If the Cluster is supervisor-based continue to reconcile as InfrastructureProvisioned is not set to true until after the kube apiserver is available.
 	if !r.supervisorBased {
 		// vmwarev1.VSphereCluster doesn't set Cluster.Status.Ready until the API endpoint is available.
 		if !ptr.Deref(machineCtx.GetCluster().Status.Initialization.InfrastructureProvisioned, false) {
 			log.Info("Cluster infrastructure is not ready yet, skipping reconciliation")
-			deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+			deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForClusterInfrastructureV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -435,7 +435,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 	if machineCtx.GetMachine().Spec.Bootstrap.DataSecretName == nil {
 		if !util.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) && !conditions.IsTrue(machineCtx.GetCluster(), clusterv1.ClusterControlPlaneInitializedCondition) {
 			log.Info("Waiting for the control plane to be initialized, skipping reconciliation")
-			deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
+			deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -444,7 +444,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 			return ctrl.Result{}, nil
 		}
 		log.Info("Waiting for bootstrap data to be ready, skipping reconciliation")
-		deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForBootstrapDataV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -468,7 +468,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 		return reconcile.Result{}, errors.Wrapf(err, "failed to patch Machine with host info label")
 	}
 
-	deprecatedv1beta1conditions.MarkTrue(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition)
+	deprecatedv1beta1conditions.MarkTrue(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition)
 	conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 		Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 		Status: metav1.ConditionTrue,

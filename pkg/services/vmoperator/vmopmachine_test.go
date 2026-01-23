@@ -167,7 +167,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		expectedVMIP         string
 		expectReconcileError bool
 		expectVMOpVM         bool
-		expectedState        vmwarev1.VirtualMachineState
+		expectedState        vmwarev1.VSphereMachinePhase
 		expectedConditions   []metav1.Condition
 		expectedRequeue      bool
 
@@ -186,7 +186,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		// The default state of a VirtualMachine before a VM is successfully reconciled
 		expectedBiosUUID = ""
 		expectedVMIP = ""
-		expectedState = vmwarev1.VirtualMachineStatePending
+		expectedState = vmwarev1.VSphereMachinePhasePending
 		expectedConditions = nil
 		expectedRequeue = false
 
@@ -210,9 +210,14 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			Expect(vsphereMachine).ShouldNot(BeNil())
 			Expect(vsphereMachine.Name).Should(Equal(machineName))
-			Expect(vsphereMachine.Status.ID).Should(Equal(expectedBiosUUID))
-			Expect(vsphereMachine.Status.IPAddr).Should(Equal(expectedVMIP))
-			Expect(vsphereMachine.Status.VMStatus).Should(Equal(expectedState))
+			Expect(vsphereMachine.Status.BiosUUID).Should(Equal(expectedBiosUUID))
+			if expectedVMIP == "" {
+				Expect(vsphereMachine.Status.Addresses).Should(BeEmpty())
+			} else {
+				Expect(vsphereMachine.Status.Addresses).Should(HaveLen(1))
+				Expect(vsphereMachine.Status.Addresses[0].Address).Should(Equal(expectedVMIP))
+			}
+			Expect(vsphereMachine.Status.Phase).Should(Equal(expectedState))
 
 			vmopVM = getReconciledVM(ctx, vmService, machineContext)
 			Expect(vmopVM != nil).Should(Equal(expectVMOpVM))
@@ -314,7 +319,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Reason:             string(metav1.ConditionTrue),
 			})
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
-			expectedState = vmwarev1.VirtualMachineStateCreated
+			expectedState = vmwarev1.VSphereMachinePhaseCreated
 			// we expect the reconciliation waiting for VM to be powered on
 			expectedConditions[0].Reason = vmwarev1.PoweringOnReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -326,7 +331,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVMOriginal = vmopVM.DeepCopy()
 			vmopVM.Status.PowerState = vmoprv1alpha5.VirtualMachinePowerStateOn
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
-			expectedState = vmwarev1.VirtualMachineStatePoweredOn
+			expectedState = vmwarev1.VSphereMachinePhasePoweredOn
 			// we expect the reconciliation waiting for VM to have an IP
 			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -390,7 +395,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedRequeue = false
 			expectedBiosUUID = biosUUID
 			expectedVMIP = vmIP
-			expectedState = vmwarev1.VirtualMachineStateReady
+			expectedState = vmwarev1.VSphereMachinePhaseReady
 
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal = vmopVM.DeepCopy()
@@ -516,7 +521,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Reason:             string(metav1.ConditionTrue),
 			})
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
-			expectedState = vmwarev1.VirtualMachineStateCreated
+			expectedState = vmwarev1.VSphereMachinePhaseCreated
 			expectedConditions[0].Reason = vmwarev1.PoweringOnReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
@@ -527,7 +532,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVMOriginal = vmopVM.DeepCopy()
 			vmopVM.Status.PowerState = vmoprv1alpha5.VirtualMachinePowerStateOn
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
-			expectedState = vmwarev1.VirtualMachineStatePoweredOn
+			expectedState = vmwarev1.VSphereMachinePhasePoweredOn
 			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
@@ -551,7 +556,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedRequeue = false
 			expectedBiosUUID = biosUUID
 			expectedVMIP = vmIP
-			expectedState = vmwarev1.VirtualMachineStateReady
+			expectedState = vmwarev1.VSphereMachinePhaseReady
 			expectedConditions[0].Status = metav1.ConditionTrue
 			expectedConditions[0].Reason = infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Reason
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
@@ -1156,13 +1161,13 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Our reconcile loop calls DestroyVM until it gets the answer it's looking for
 			_ = vmService.ReconcileDelete(ctx, supervisorMachineContext)
 			Expect(supervisorMachineContext.VSphereMachine).ShouldNot(BeNil())
-			if supervisorMachineContext.VSphereMachine.Status.VMStatus == vmwarev1.VirtualMachineStateNotFound {
+			if supervisorMachineContext.VSphereMachine.Status.Phase == vmwarev1.VSphereMachinePhaseNotFound {
 				// If the state is NotFound, check that the VM really has gone
 				Expect(getReconciledVM(ctx, vmService, supervisorMachineContext)).Should(BeNil())
 				return true
 			}
 			// If the state is not NotFound, it must be Deleting
-			Expect(supervisorMachineContext.VSphereMachine.Status.VMStatus).Should(Equal(vmwarev1.VirtualMachineStateDeleting))
+			Expect(supervisorMachineContext.VSphereMachine.Status.Phase).Should(Equal(vmwarev1.VSphereMachinePhaseDeleting))
 			return false
 		}
 

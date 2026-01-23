@@ -146,6 +146,21 @@ func hubVSphereMachineStatus(in *vmwarev1.VSphereMachineStatus, c randfill.Conti
 			in.Deprecated = nil
 		}
 	}
+
+	if c.Bool() {
+		phaseValues := []vmwarev1.VSphereMachinePhase{
+			vmwarev1.VSphereMachinePhaseNotFound,
+			vmwarev1.VSphereMachinePhaseCreated,
+			vmwarev1.VSphereMachinePhasePoweredOn,
+			vmwarev1.VSphereMachinePhasePending,
+			vmwarev1.VSphereMachinePhaseReady,
+			vmwarev1.VSphereMachinePhaseDeleting,
+			vmwarev1.VSphereMachinePhaseError,
+		}
+		in.Phase = phaseValues[c.Int31n(int32(len(phaseValues)))]
+	} else {
+		in.Phase = ""
+	}
 }
 
 func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
@@ -179,6 +194,23 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 
 	if in.ID != nil && *in.ID == "" {
 		in.ID = nil
+	}
+
+	in.IPAddr = "" // IPAddr has been removed in v1beta2.
+
+	if c.Bool() {
+		vmStatusValues := []VirtualMachineState{
+			VirtualMachineStateNotFound,
+			VirtualMachineStateCreated,
+			VirtualMachineStatePoweredOn,
+			VirtualMachineStatePending,
+			VirtualMachineStateReady,
+			VirtualMachineStateDeleting,
+			VirtualMachineStateError,
+		}
+		in.VMStatus = vmStatusValues[c.Int31n(int32(len(vmStatusValues)))]
+	} else {
+		in.VMStatus = ""
 	}
 }
 

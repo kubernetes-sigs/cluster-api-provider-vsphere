@@ -313,21 +313,15 @@ type VSphereMachineStatus struct {
 	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
-	// vmID is used to identify the virtual machine.
+	// biosUUID is the biosUUID of the virtual machine.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
-	ID string `json:"vmID,omitempty"`
+	BiosUUID string `json:"biosUUID,omitempty"`
 
-	// vmIp is the IP address used to access the virtual machine.
+	// phase is the phase of the VSphereMachine.
 	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
-	IPAddr string `json:"vmIp,omitempty"`
-
-	// vmstatus is used to identify the virtual machine status.
-	// +optional
-	VMStatus VirtualMachineState `json:"vmstatus,omitempty"`
+	Phase VSphereMachinePhase `json:"phase,omitempty"`
 
 	// network describes the observed state of the VM's network configuration.
 	// Please note much of the network status information is only available if
@@ -428,7 +422,7 @@ type VSphereMachineV1Beta1DeprecatedStatus struct {
 // +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".spec.imageName",description="Image name",priority=10
 // +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
 // +kubebuilder:printcolumn:name="Provisioned",type="string",JSONPath=".status.initialization.provisioned",description="VSphereMachine is provisioned"
-// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.vmstatus",description="VSphereMachine status"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="VSphereMachine phase"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of VSphereMachine"
 type VSphereMachine struct {
 	metav1.TypeMeta `json:",inline"`

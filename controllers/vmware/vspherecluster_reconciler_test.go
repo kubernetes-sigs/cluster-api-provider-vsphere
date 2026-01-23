@@ -90,7 +90,12 @@ var _ = Describe("Cluster Controller Tests", func() {
 		})
 
 		It("Returns valid request with IP address", func() {
-			vsphereMachine.Status.IPAddr = testIP
+			vsphereMachine.Status.Addresses = clusterv1.MachineAddresses{
+				{
+					Type:    clusterv1.MachineInternalIP,
+					Address: testIP,
+				},
+			}
 			request := reconciler.VSphereMachineToCluster(ctx, vsphereMachine)
 			Expect(request).ShouldNot(BeNil())
 			Expect(request[0].Namespace).Should(Equal(cluster.Namespace))

@@ -870,8 +870,8 @@ spec:
       jsonPath: .status.initialization.provisioned
       name: Provisioned
       type: string
-    - description: VSphereMachine status
-      jsonPath: .status.vmstatus
+    - description: VSphereMachine phase
+      jsonPath: .status.phase
       name: Phase
       type: string
     - description: Time duration since creation of VSphereMachine
@@ -1260,6 +1260,11 @@ spec:
                 minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
+              biosUUID:
+                description: biosUUID is the biosUUID of the virtual machine.
+                maxLength: 2048
+                minLength: 1
+                type: string
               conditions:
                 description: |-
                   conditions represents the observations of a VSphereMachine's current state.
@@ -1721,26 +1726,16 @@ spec:
                     type: array
                     x-kubernetes-list-type: atomic
                 type: object
-              vmID:
-                description: vmID is used to identify the virtual machine.
-                maxLength: 2048
-                minLength: 1
-                type: string
-              vmIp:
-                description: vmIp is the IP address used to access the virtual machine.
-                maxLength: 256
-                minLength: 1
-                type: string
-              vmstatus:
-                description: vmstatus is used to identify the virtual machine status.
+              phase:
+                description: phase is the phase of the VSphereMachine.
                 enum:
-                - notfound
-                - created
-                - poweredon
-                - pending
-                - ready
-                - deleting
-                - error
+                - NotFound
+                - Created
+                - PoweredOn
+                - Pending
+                - Ready
+                - Deleting
+                - Error
                 type: string
             type: object
         required:

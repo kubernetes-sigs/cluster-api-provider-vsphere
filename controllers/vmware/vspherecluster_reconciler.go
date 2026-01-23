@@ -395,7 +395,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 		ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
 
 		// If the machine has no IP address then skip it.
-		if vsphereMachine.Status.IPAddr == "" {
+		if len(vsphereMachine.Status.Addresses) == 0 {
 			log.V(4).Info("Skipping Machine without IP address")
 			continue
 		}
@@ -404,7 +404,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 		// endpoints for this cluster so that they can be read into the
 		// analogous CAPI cluster via an unstructured reader.
 		apiEndpoint := vmwarev1.APIEndpoint{
-			Host: vsphereMachine.Status.IPAddr,
+			Host: vsphereMachine.Status.Addresses[0].Address,
 			Port: apiEndpointPort,
 		}
 		apiEndpointList = append(apiEndpointList, apiEndpoint)
@@ -444,7 +444,7 @@ func (r *ClusterReconciler) VSphereMachineToCluster(ctx context.Context, o clien
 	}
 
 	// Only currently interested in updating Cluster from VSphereMachines with IP addresses
-	if vsphereMachine.Status.IPAddr == "" {
+	if len(vsphereMachine.Status.Addresses) == 0 {
 		log.V(6).Info("Skipping VSphereCluster reconcile as Machine does not have an IP address")
 		return nil
 	}

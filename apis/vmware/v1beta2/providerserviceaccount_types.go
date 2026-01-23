@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,7 +25,7 @@ import (
 type ProviderServiceAccountSpec struct {
 	// ref specifies the reference to the VSphereCluster for which the ProviderServiceAccount needs to be realized.
 	// +required
-	Ref *corev1.ObjectReference `json:"ref,omitempty"`
+	Ref ProviderServiceAccountReference `json:"ref,omitempty,omitzero"`
 
 	// rules specifies the privileges that need to be granted to the service account.
 	// +required
@@ -47,6 +46,16 @@ type ProviderServiceAccountSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	TargetSecretName string `json:"targetSecretName,omitempty"`
+}
+
+// ProviderServiceAccountReference describes a reference to the object to which the ProviderServiceAccount belongs.
+type ProviderServiceAccountReference struct {
+	// name of the VSphereCluster object.
+	//
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name,omitempty"`
 }
 
 // +kubebuilder:object:root=true

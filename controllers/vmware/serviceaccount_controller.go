@@ -510,8 +510,8 @@ func (r *ServiceAccountReconciler) getProviderServiceAccounts(ctx context.Contex
 		if pSvcAccount.DeletionTimestamp != nil {
 			continue
 		}
-		ref := pSvcAccount.Spec.Ref
-		if ref != nil && ref.Name == clusterCtx.VSphereCluster.Name {
+
+		if pSvcAccount.Spec.Ref.Name == clusterCtx.VSphereCluster.Name {
 			pSvcAccounts = append(pSvcAccounts, pSvcAccount)
 		}
 	}
@@ -590,11 +590,10 @@ func (r *ServiceAccountReconciler) providerServiceAccountToVSphereCluster(_ cont
 }
 
 func toVSphereClusterRequest(providerServiceAccount *vmwarev1.ProviderServiceAccount) []reconcile.Request {
-	vsphereClusterRef := providerServiceAccount.Spec.Ref
-	if vsphereClusterRef == nil || vsphereClusterRef.Name == "" {
+	if providerServiceAccount.Spec.Ref.Name == "" {
 		return nil
 	}
 	return []reconcile.Request{
-		{NamespacedName: client.ObjectKey{Namespace: providerServiceAccount.Namespace, Name: vsphereClusterRef.Name}},
+		{NamespacedName: client.ObjectKey{Namespace: providerServiceAccount.Namespace, Name: providerServiceAccount.Spec.Ref.Name}},
 	}
 }

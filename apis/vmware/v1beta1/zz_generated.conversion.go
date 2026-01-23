@@ -24,8 +24,8 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
-	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -109,16 +109,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.ProviderServiceAccountList)(nil), (*ProviderServiceAccountList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ProviderServiceAccountList_To_v1beta1_ProviderServiceAccountList(a.(*v1beta2.ProviderServiceAccountList), b.(*ProviderServiceAccountList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ProviderServiceAccountSpec)(nil), (*v1beta2.ProviderServiceAccountSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ProviderServiceAccountSpec_To_v1beta2_ProviderServiceAccountSpec(a.(*ProviderServiceAccountSpec), b.(*v1beta2.ProviderServiceAccountSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ProviderServiceAccountSpec)(nil), (*ProviderServiceAccountSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ProviderServiceAccountSpec_To_v1beta1_ProviderServiceAccountSpec(a.(*v1beta2.ProviderServiceAccountSpec), b.(*ProviderServiceAccountSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -382,6 +372,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ProviderServiceAccountSpec)(nil), (*v1beta2.ProviderServiceAccountSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ProviderServiceAccountSpec_To_v1beta2_ProviderServiceAccountSpec(a.(*ProviderServiceAccountSpec), b.(*v1beta2.ProviderServiceAccountSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*VSphereClusterStatus)(nil), (*v1beta2.VSphereClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(a.(*VSphereClusterStatus), b.(*v1beta2.VSphereClusterStatus), scope)
 	}); err != nil {
@@ -404,6 +399,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.InterfaceSpec)(nil), (*InterfaceSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_InterfaceSpec_To_v1beta1_InterfaceSpec(a.(*v1beta2.InterfaceSpec), b.(*InterfaceSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ProviderServiceAccountSpec)(nil), (*ProviderServiceAccountSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ProviderServiceAccountSpec_To_v1beta1_ProviderServiceAccountSpec(a.(*v1beta2.ProviderServiceAccountSpec), b.(*ProviderServiceAccountSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -613,7 +613,17 @@ func Convert_v1beta2_ProviderServiceAccount_To_v1beta1_ProviderServiceAccount(in
 
 func autoConvert_v1beta1_ProviderServiceAccountList_To_v1beta2_ProviderServiceAccountList(in *ProviderServiceAccountList, out *v1beta2.ProviderServiceAccountList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.ProviderServiceAccount)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.ProviderServiceAccount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_ProviderServiceAccount_To_v1beta2_ProviderServiceAccount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -624,7 +634,17 @@ func Convert_v1beta1_ProviderServiceAccountList_To_v1beta2_ProviderServiceAccoun
 
 func autoConvert_v1beta2_ProviderServiceAccountList_To_v1beta1_ProviderServiceAccountList(in *v1beta2.ProviderServiceAccountList, out *ProviderServiceAccountList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]ProviderServiceAccount)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]ProviderServiceAccount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_ProviderServiceAccount_To_v1beta1_ProviderServiceAccount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -634,29 +654,19 @@ func Convert_v1beta2_ProviderServiceAccountList_To_v1beta1_ProviderServiceAccoun
 }
 
 func autoConvert_v1beta1_ProviderServiceAccountSpec_To_v1beta2_ProviderServiceAccountSpec(in *ProviderServiceAccountSpec, out *v1beta2.ProviderServiceAccountSpec, s conversion.Scope) error {
-	out.Ref = (*v1.ObjectReference)(unsafe.Pointer(in.Ref))
-	out.Rules = *(*[]rbacv1.PolicyRule)(unsafe.Pointer(&in.Rules))
+	// WARNING: in.Ref requires manual conversion: inconvertible types (*k8s.io/api/core/v1.ObjectReference vs sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2.ProviderServiceAccountReference)
+	out.Rules = *(*[]v1.PolicyRule)(unsafe.Pointer(&in.Rules))
 	out.TargetNamespace = in.TargetNamespace
 	out.TargetSecretName = in.TargetSecretName
 	return nil
-}
-
-// Convert_v1beta1_ProviderServiceAccountSpec_To_v1beta2_ProviderServiceAccountSpec is an autogenerated conversion function.
-func Convert_v1beta1_ProviderServiceAccountSpec_To_v1beta2_ProviderServiceAccountSpec(in *ProviderServiceAccountSpec, out *v1beta2.ProviderServiceAccountSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_ProviderServiceAccountSpec_To_v1beta2_ProviderServiceAccountSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_ProviderServiceAccountSpec_To_v1beta1_ProviderServiceAccountSpec(in *v1beta2.ProviderServiceAccountSpec, out *ProviderServiceAccountSpec, s conversion.Scope) error {
-	out.Ref = (*v1.ObjectReference)(unsafe.Pointer(in.Ref))
-	out.Rules = *(*[]rbacv1.PolicyRule)(unsafe.Pointer(&in.Rules))
+	// WARNING: in.Ref requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2.ProviderServiceAccountReference vs *k8s.io/api/core/v1.ObjectReference)
+	out.Rules = *(*[]v1.PolicyRule)(unsafe.Pointer(&in.Rules))
 	out.TargetNamespace = in.TargetNamespace
 	out.TargetSecretName = in.TargetSecretName
 	return nil
-}
-
-// Convert_v1beta2_ProviderServiceAccountSpec_To_v1beta1_ProviderServiceAccountSpec is an autogenerated conversion function.
-func Convert_v1beta2_ProviderServiceAccountSpec_To_v1beta1_ProviderServiceAccountSpec(in *v1beta2.ProviderServiceAccountSpec, out *ProviderServiceAccountSpec, s conversion.Scope) error {
-	return autoConvert_v1beta2_ProviderServiceAccountSpec_To_v1beta1_ProviderServiceAccountSpec(in, out, s)
 }
 
 func autoConvert_v1beta1_RouteSpec_To_v1beta2_RouteSpec(in *RouteSpec, out *v1beta2.RouteSpec, s conversion.Scope) error {
@@ -1330,7 +1340,7 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 		out.Conditions = nil
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
-	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	if err := metav1.Convert_string_To_Pointer_string(&in.ID, &out.ID, s); err != nil {
 		return err
 	}
@@ -1462,7 +1472,7 @@ func Convert_v1beta2_VSphereMachineTemplateSpec_To_v1beta1_VSphereMachineTemplat
 }
 
 func autoConvert_v1beta1_VSphereMachineTemplateStatus_To_v1beta2_VSphereMachineTemplateStatus(in *VSphereMachineTemplateStatus, out *v1beta2.VSphereMachineTemplateStatus, s conversion.Scope) error {
-	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	return nil
 }
 
@@ -1472,7 +1482,7 @@ func Convert_v1beta1_VSphereMachineTemplateStatus_To_v1beta2_VSphereMachineTempl
 }
 
 func autoConvert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTemplateStatus(in *v1beta2.VSphereMachineTemplateStatus, out *VSphereMachineTemplateStatus, s conversion.Scope) error {
-	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	return nil
 }
 
@@ -1483,7 +1493,7 @@ func Convert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTempl
 
 func autoConvert_v1beta1_VSphereMachineVolume_To_v1beta2_VSphereMachineVolume(in *VSphereMachineVolume, out *v1beta2.VSphereMachineVolume, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	out.StorageClass = in.StorageClass
 	return nil
 }
@@ -1495,7 +1505,7 @@ func Convert_v1beta1_VSphereMachineVolume_To_v1beta2_VSphereMachineVolume(in *VS
 
 func autoConvert_v1beta2_VSphereMachineVolume_To_v1beta1_VSphereMachineVolume(in *v1beta2.VSphereMachineVolume, out *VSphereMachineVolume, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	out.StorageClass = in.StorageClass
 	return nil
 }

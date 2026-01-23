@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
@@ -196,5 +197,19 @@ func hubVSphereMachineTemplateResource(in *vmwarev1.VSphereMachineTemplateResour
 }
 
 func ProviderServiceAccountFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
+	return []interface{}{
+		spokeProviderServiceAccountSpec,
+	}
+}
+
+func spokeProviderServiceAccountSpec(in *ProviderServiceAccountSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Ref != nil && in.Ref.Name != "" {
+		in.Ref = &corev1.ObjectReference{
+			Name: in.Ref.Name,
+		}
+	} else {
+		in.Ref = nil
+	}
 }

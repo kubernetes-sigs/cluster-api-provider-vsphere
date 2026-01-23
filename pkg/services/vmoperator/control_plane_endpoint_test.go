@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -76,12 +76,12 @@ func updateVMServiceWithVIP(ctx context.Context, clusterCtx *vmware.ClusterConte
 	vmService := getVirtualMachineService(ctx, clusterCtx, c, cpService)
 
 	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-	s := &vmoprv1alpha2.VirtualMachineService{}
+	s := &vmoprv1alpha5.VirtualMachineService{}
 	err := c.Get(ctx, ctrlclient.ObjectKeyFromObject(vmService), s)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	sOriginal := s.DeepCopy()
-	s.Status.LoadBalancer.Ingress = []vmoprv1alpha2.LoadBalancerIngress{{IP: vip}}
+	s.Status.LoadBalancer.Ingress = []vmoprv1alpha5.LoadBalancerIngress{{IP: vip}}
 
 	err = c.Status().Patch(ctx, s, ctrlclient.MergeFrom(sOriginal))
 	Expect(err).ShouldNot(HaveOccurred())

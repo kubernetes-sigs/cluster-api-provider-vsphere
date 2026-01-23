@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,7 +45,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(vmoprvhub.AddToScheme(scheme)).To(Succeed())
-	g.Expect(vmoprv1alpha2.AddToScheme(scheme)).To(Succeed())
+	g.Expect(vmoprv1alpha5.AddToScheme(scheme)).To(Succeed())
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,7 +87,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			name:                   "VirtualMachineClass does exist and has cpu and memory set",
 			vSphereMachineTemplate: vSphereMachineTemplate(namespace.Name, "with-class", "vm-class", nil),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha2.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 			},
 			wantErr: "",
 			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
@@ -106,7 +106,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 				},
 			}),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha2.VirtualMachineClassHardware{Cpus: 2, Memory: quantity(2048)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 2, Memory: quantity(2048)}),
 			},
 			wantErr: "",
 			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
@@ -189,8 +189,8 @@ func vSphereMachineTemplate(namespace, name, className string, status *vmwarev1.
 	return tpl
 }
 
-func virtualMachineClass(namespace, name string, hardware *vmoprv1alpha2.VirtualMachineClassHardware) *vmoprv1alpha2.VirtualMachineClass {
-	class := &vmoprv1alpha2.VirtualMachineClass{
+func virtualMachineClass(namespace, name string, hardware *vmoprv1alpha5.VirtualMachineClassHardware) *vmoprv1alpha5.VirtualMachineClass {
+	class := &vmoprv1alpha5.VirtualMachineClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,

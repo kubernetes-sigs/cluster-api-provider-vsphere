@@ -22,7 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -61,7 +61,7 @@ func init() {
 	utilruntime.Must(infrav1beta1.AddToScheme(scheme))
 	utilruntime.Must(vmwarev1beta1.AddToScheme(scheme))
 	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
-	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
 	utilruntime.Must(vcsimv1.AddToScheme(scheme))
 
 	// scheme used for operating on the cloud resource.

@@ -21,64 +21,66 @@ import (
 )
 
 const (
-	// ResourcePolicyReadyCondition reports the successful creation of a
+	// ResourcePolicyReadyV1Beta1Condition reports the successful creation of a
 	// Resource Policy.
-	ResourcePolicyReadyCondition clusterv1.ConditionType = "ResourcePolicyReady"
+	ResourcePolicyReadyV1Beta1Condition clusterv1.ConditionType = "ResourcePolicyReady"
 
-	// ResourcePolicyCreationFailedReason used when any errors occur during
+	// ResourcePolicyCreationFailedV1Beta1Reason used when any errors occur during
 	// ResourcePolicy creation.
-	ResourcePolicyCreationFailedReason = "ResourcePolicyCreationFailed"
+	ResourcePolicyCreationFailedV1Beta1Reason = "ResourcePolicyCreationFailed"
 )
 
 const (
-	// ClusterNetworkReadyCondition reports the successful provision of a
+	// ClusterNetworkReadyV1Beta1Condition reports the successful provision of a
 	// Cluster Network.
-	ClusterNetworkReadyCondition clusterv1.ConditionType = "ClusterNetworkReady"
+	ClusterNetworkReadyV1Beta1Condition clusterv1.ConditionType = "ClusterNetworkReady"
 
-	// ClusterNetworkProvisionStartedReason is used when waiting for Cluster
+	// ClusterNetworkProvisionStartedV1Beta1Reason is used when waiting for Cluster
 	// Network to be Ready.
-	ClusterNetworkProvisionStartedReason = "ClusterNetworkProvisionStarted"
-	// ClusterNetworkProvisionFailedReason is used when any errors occur
+	ClusterNetworkProvisionStartedV1Beta1Reason = "ClusterNetworkProvisionStarted"
+
+	// ClusterNetworkProvisionFailedV1Beta1Reason is used when any errors occur
 	// during network provision.
-	ClusterNetworkProvisionFailedReason = "ClusterNetworkProvisionFailed"
+	ClusterNetworkProvisionFailedV1Beta1Reason = "ClusterNetworkProvisionFailed"
 )
 
 const (
-	// LoadBalancerReadyCondition reports the successful reconciliation of
+	// LoadBalancerReadyV1Beta1Condition reports the successful reconciliation of
 	// a static control plane endpoint.
-	LoadBalancerReadyCondition clusterv1.ConditionType = "LoadBalancerReady"
+	LoadBalancerReadyV1Beta1Condition clusterv1.ConditionType = "LoadBalancerReady"
 
-	// LoadBalancerCreationFailedReason is used when load balancer related
+	// LoadBalancerCreationFailedV1Beta1Reason is used when load balancer related
 	// resources creation fails.
-	LoadBalancerCreationFailedReason = "LoadBalancerCreationFailed"
-	// WaitingForLoadBalancerIPReason is used when waiting for load
+	LoadBalancerCreationFailedV1Beta1Reason = "LoadBalancerCreationFailed"
+
+	// WaitingForLoadBalancerIPV1Beta1Reason is used when waiting for load
 	// balancer IP to exist.
-	WaitingForLoadBalancerIPReason = "WaitingForLoadBalancerIP"
+	WaitingForLoadBalancerIPV1Beta1Reason = "WaitingForLoadBalancerIP"
 )
 
 // Conditions and condition Reasons for VSphereMachine.
+// ConditionType VMProvisionedCondition is shared with infrav1.VSphereMachine.
 const (
-	// ConditionType VMProvisionedCondition is shared with infrav1.VSPhereMachine
-	// VMCreationFailedReason reports that creating VM CRD or corresponding bootstrap ConfigMap failed.
-	VMCreationFailedReason = "VMCreationFailed"
-	// VMProvisionStartedReason documents (Severity=Info) a Virtual Machine currently is in creation process.
-	VMProvisionStartedReason = "VMProvisionStarted"
-	// PoweringOnReason documents (Severity=Info) a Virtual Machine currently executing the power on sequence.
-	PoweringOnReason = "PoweringOn"
-	// WaitingForNetworkAddressReason (Severity=Info) documents a VSphereMachine waiting for the machine network
+	// VMCreationFailedV1Beta1Reason reports that creating VM CRD or corresponding bootstrap ConfigMap failed.
+	VMCreationFailedV1Beta1Reason = "VMCreationFailed"
+	// VMProvisionStartedV1Beta1Reason documents (Severity=Info) a Virtual Machine currently is in creation process.
+	VMProvisionStartedV1Beta1Reason = "VMProvisionStarted"
+	// PoweringOnV1Beta1Reason documents (Severity=Info) a Virtual Machine currently executing the power on sequence.
+	PoweringOnV1Beta1Reason = "PoweringOn"
+	// WaitingForNetworkAddressV1Beta1Reason (Severity=Info) documents a VSphereMachine waiting for the machine network
 	// settings to be reported after machine being powered on.
-	WaitingForNetworkAddressReason = "WaitingForNetworkAddress"
-	// WaitingForBIOSUUIDReason (Severity=Info) documents a VSphereMachine waiting for the machine to have a BIOS UUID.
-	WaitingForBIOSUUIDReason = "WaitingForBIOSUUID"
+	WaitingForNetworkAddressV1Beta1Reason = "WaitingForNetworkAddress"
+	// WaitingForBIOSUUIDV1Beta1Reason (Severity=Info) documents a VSphereMachine waiting for the machine to have a BIOS UUID.
+	WaitingForBIOSUUIDV1Beta1Reason = "WaitingForBIOSUUID"
 )
 
 const (
-	// ProviderServiceAccountsReadyCondition documents the status of provider service accounts
+	// ProviderServiceAccountsReadyV1Beta1Condition documents the status of provider service accounts
 	// and related Roles, RoleBindings and Secrets are created.
-	ProviderServiceAccountsReadyCondition clusterv1.ConditionType = "ProviderServiceAccountsReady"
+	ProviderServiceAccountsReadyV1Beta1Condition clusterv1.ConditionType = "ProviderServiceAccountsReady"
 
-	// ProviderServiceAccountsReconciliationFailedReason reports that provider service accounts related resources reconciliation failed.
-	ProviderServiceAccountsReconciliationFailedReason = "ProviderServiceAccountsReconciliationFailed"
+	// ProviderServiceAccountsReconciliationFailedV1Beta1Reason reports that provider service accounts related resources reconciliation failed.
+	ProviderServiceAccountsReconciliationFailedV1Beta1Reason = "ProviderServiceAccountsReconciliationFailed"
 )
 
 const (
@@ -95,9 +97,9 @@ const (
 	// SupervisorHeadlessSvcPort is the port for the Supervisor apiserver when using the headless service.
 	SupervisorHeadlessSvcPort = 6443
 
-	// ServiceDiscoveryReadyCondition documents the status of service discoveries.
-	ServiceDiscoveryReadyCondition clusterv1.ConditionType = "ServiceDiscoveryReady"
+	// ServiceDiscoveryReadyV1Beta1Condition documents the status of service discoveries.
+	ServiceDiscoveryReadyV1Beta1Condition clusterv1.ConditionType = "ServiceDiscoveryReady"
 
-	// SupervisorHeadlessServiceSetupFailedReason documents the headless service setup for svc api server failed.
-	SupervisorHeadlessServiceSetupFailedReason = "SupervisorHeadlessServiceSetupFailed"
+	// SupervisorHeadlessServiceSetupFailedV1Beta1Reason documents the headless service setup for svc api server failed.
+	SupervisorHeadlessServiceSetupFailedV1Beta1Reason = "SupervisorHeadlessServiceSetupFailed"
 )

@@ -321,7 +321,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
 			expectedState = vmwarev1.VSphereMachinePhaseCreated
 			// we expect the reconciliation waiting for VM to be powered on
-			expectedConditions[0].Reason = vmwarev1.PoweringOnReason
+			expectedConditions[0].Reason = vmwarev1.PoweringOnV1Beta1Reason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
@@ -333,7 +333,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
 			expectedState = vmwarev1.VSphereMachinePhasePoweredOn
 			// we expect the reconciliation waiting for VM to have an IP
-			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressReason
+			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressV1Beta1Reason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
@@ -385,7 +385,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			}
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
 			// we expect the reconciliation waiting for VM to have a BIOS UUID
-			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDReason
+			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDV1Beta1Reason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
@@ -522,7 +522,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			})
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
 			expectedState = vmwarev1.VSphereMachinePhaseCreated
-			expectedConditions[0].Reason = vmwarev1.PoweringOnReason
+			expectedConditions[0].Reason = vmwarev1.PoweringOnV1Beta1Reason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
@@ -533,7 +533,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVM.Status.PowerState = vmoprv1alpha5.VirtualMachinePowerStateOn
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
 			expectedState = vmwarev1.VSphereMachinePhasePoweredOn
-			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressReason
+			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressV1Beta1Reason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
@@ -546,7 +546,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			}
 			vmopVM.Status.Network.PrimaryIP4 = vmIP
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
-			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDReason
+			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDV1Beta1Reason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 

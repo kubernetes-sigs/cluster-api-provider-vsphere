@@ -62,7 +62,7 @@ func (m *MockNSXTNetworkProvider) ProvisionClusterNetwork(ctx context.Context, c
 	if err != nil {
 		// Check if the error contains the string "virtual network ready status"
 		if strings.Contains(err.Error(), "virtual network ready status") {
-			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
+			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyV1Beta1Condition)
 			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
 				Status: metav1.ConditionTrue,
@@ -87,7 +87,7 @@ func (m *MockNSXTVpcNetworkProvider) ProvisionClusterNetwork(ctx context.Context
 	if err != nil {
 		// Check if the error contains the string "subnetset ready status"
 		if strings.Contains(err.Error(), "subnetset ready status") {
-			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
+			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyV1Beta1Condition)
 			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
 				Status: metav1.ConditionTrue,

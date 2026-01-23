@@ -235,7 +235,7 @@ func (r *serviceDiscoveryReconciler) patch(ctx context.Context, clusterCtx *vmwa
 	// NOTE: this controller only owns the ServiceDiscoveryReady condition on the VSphereCluster object.
 	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
 		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
-			vmwarev1.ServiceDiscoveryReadyCondition,
+			vmwarev1.ServiceDiscoveryReadyV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
@@ -245,7 +245,7 @@ func (r *serviceDiscoveryReconciler) patch(ctx context.Context, clusterCtx *vmwa
 
 func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) error {
 	if err := r.reconcileSupervisorHeadlessService(ctx, guestClusterCtx); err != nil {
-		deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition, vmwarev1.SupervisorHeadlessServiceSetupFailedReason,
+		deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition, vmwarev1.SupervisorHeadlessServiceSetupFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
@@ -289,7 +289,7 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 	if err != nil {
 		// Note: We have watches on the LB Svc (VIP) & the cluster-info configmap (FIP).
 		// There is no need to return an error to keep re-trying.
-		deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition, vmwarev1.SupervisorHeadlessServiceSetupFailedReason,
+		deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition, vmwarev1.SupervisorHeadlessServiceSetupFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
@@ -345,7 +345,7 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 		log.Error(nil, "Unexpected result during createOrPatch service Endpoints", "endpointsSubsets", endpointsSubsetsStr, "operationResult", result)
 	}
 
-	deprecatedv1beta1conditions.MarkTrue(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition)
+	deprecatedv1beta1conditions.MarkTrue(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition)
 	conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
 		Type:   vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,

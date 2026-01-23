@@ -145,9 +145,9 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 	// always update the readyCondition.
 	deprecatedv1beta1conditions.SetSummary(clusterCtx.VSphereCluster,
 		deprecatedv1beta1conditions.WithConditions(
-			vmwarev1.ResourcePolicyReadyCondition,
-			vmwarev1.ClusterNetworkReadyCondition,
-			vmwarev1.LoadBalancerReadyCondition,
+			vmwarev1.ResourcePolicyReadyV1Beta1Condition,
+			vmwarev1.ClusterNetworkReadyV1Beta1Condition,
+			vmwarev1.LoadBalancerReadyV1Beta1Condition,
 		),
 	)
 
@@ -182,9 +182,9 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 
 	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
 		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
-			vmwarev1.ResourcePolicyReadyCondition,
-			vmwarev1.ClusterNetworkReadyCondition,
-			vmwarev1.LoadBalancerReadyCondition,
+			vmwarev1.ResourcePolicyReadyV1Beta1Condition,
+			vmwarev1.ClusterNetworkReadyV1Beta1Condition,
+			vmwarev1.LoadBalancerReadyV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
@@ -199,9 +199,9 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 
 func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
 	deletingConditionTypes := []clusterv1.ConditionType{
-		vmwarev1.ResourcePolicyReadyCondition,
-		vmwarev1.ClusterNetworkReadyCondition,
-		vmwarev1.LoadBalancerReadyCondition,
+		vmwarev1.ResourcePolicyReadyV1Beta1Condition,
+		vmwarev1.ClusterNetworkReadyV1Beta1Condition,
+		vmwarev1.LoadBalancerReadyV1Beta1Condition,
 	}
 
 	for _, t := range deletingConditionTypes {
@@ -247,7 +247,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	// Reconciling the ResourcePolicy early potentially saves us the extra relocate operation.
 	resourcePolicyName, err := r.ResourcePolicyService.ReconcileResourcePolicy(ctx, clusterCtx)
 	if err != nil {
-		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition, vmwarev1.ResourcePolicyCreationFailedReason, clusterv1.ConditionSeverityWarning, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyV1Beta1Condition, vmwarev1.ResourcePolicyCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -258,7 +258,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 			"failed to configure resource policy for vsphereCluster %s/%s",
 			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
-	deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
+	deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyV1Beta1Condition)
 	conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,
@@ -295,7 +295,7 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 			Reason: vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Reason,
 		})
 		if r.NetworkProvider.HasLoadBalancer() {
-			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
+			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition)
 		}
 		log.Info("Skipping control plane endpoint reconciliation",
 			"reason", "ControlPlaneEndpoint already set on Cluster",
@@ -310,7 +310,7 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 			Reason: vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Reason,
 		})
 		if r.NetworkProvider.HasLoadBalancer() {
-			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
+			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition)
 		}
 		log.Info("Skipping control plane endpoint reconciliation",
 			"reason", "ControlPlaneEndpoint already set on VSphereCluster",

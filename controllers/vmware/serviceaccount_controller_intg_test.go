@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -174,7 +174,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vsphereCluster := &vmwarev1.VSphereCluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: intCtx.VSphereCluster.GetName()}
 				Expect(intCtx.Client.Get(ctx, key, vsphereCluster)).To(Succeed())
-				Expect(deprecatedv1beta1conditions.Has(vsphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)).To(BeFalse())
+				Expect(conditions.Has(vsphereCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition)).To(BeFalse())
 			})
 		})
 	})
@@ -196,7 +196,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vsphereCluster := &vmwarev1.VSphereCluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: intCtx.VSphereCluster.GetName()}
 				Expect(intCtx.Client.Get(ctx, key, vsphereCluster)).To(Succeed())
-				Expect(deprecatedv1beta1conditions.Has(vsphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)).To(BeFalse())
+				Expect(conditions.Has(vsphereCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition)).To(BeFalse())
 			})
 		})
 	})

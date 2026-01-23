@@ -63,6 +63,11 @@ func (m *MockNSXTNetworkProvider) ProvisionClusterNetwork(ctx context.Context, c
 		// Check if the error contains the string "virtual network ready status"
 		if strings.Contains(err.Error(), "virtual network ready status") {
 			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
+			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+				Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: vmwarev1.VSphereClusterNetworkReadyV1Beta2Reason,
+			})
 			return nil
 		}
 		// return the original error if it doesn't contain the specific string
@@ -83,6 +88,11 @@ func (m *MockNSXTVpcNetworkProvider) ProvisionClusterNetwork(ctx context.Context
 		// Check if the error contains the string "subnetset ready status"
 		if strings.Contains(err.Error(), "subnetset ready status") {
 			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
+			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+				Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: vmwarev1.VSphereClusterNetworkReadyV1Beta2Reason,
+			})
 			return nil
 		}
 		// return the original error if it doesn't contain the specific string
@@ -663,7 +673,7 @@ var _ = Describe("Network provider", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 			It("should succeed", func() {
-				Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 		})
 
@@ -697,7 +707,7 @@ var _ = Describe("Network provider", func() {
 				annotations, err := np.GetVMServiceAnnotations(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(annotations).To(HaveKeyWithValue("ncp.vmware.com/virtual-network-name", GetNSXTVirtualNetworkName(clusterCtx.VSphereCluster.Name)))
-				Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 		})
 
@@ -729,7 +739,7 @@ var _ = Describe("Network provider", func() {
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(BeEmpty())
-				Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 		})
 
@@ -756,7 +766,7 @@ var _ = Describe("Network provider", func() {
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(Equal(fakeSNATIP + "/32"))
-				Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 		})
 
@@ -790,7 +800,7 @@ var _ = Describe("Network provider", func() {
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(Equal(fakeSNATIP + "/32"))
 				// err is not empty, but it is because vnetObj does not have status mocked in this test
 
-				Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 		})
 
@@ -820,7 +830,7 @@ var _ = Describe("Network provider", func() {
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(BeEmpty())
 				// err is not empty, but it is because vnetObj does not have status mocked in this test
 
-				Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 
 			AfterEach(func() {
@@ -858,7 +868,7 @@ var _ = Describe("Network provider", func() {
 				expectedErrorMessage := fmt.Sprintf("virtual network ready status is: '%s' in cluster %s. reason: %s, message: %s",
 					"False", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster}, testNetworkNotRealizedReason, testNetworkNotRealizedMessage)
 				Expect(err).To(MatchError(expectedErrorMessage))
-				Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 
 			It("should return error when vnet ready status is not set", func() {
@@ -875,7 +885,7 @@ var _ = Describe("Network provider", func() {
 
 				expectedErrorMessage := fmt.Sprintf("virtual network ready status in cluster %s has not been set", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster})
 				Expect(err).To(MatchError(expectedErrorMessage))
-				Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 		})
 
@@ -1023,7 +1033,7 @@ var _ = Describe("Network provider", func() {
 				expectedErrorMessage := fmt.Sprintf("subnetset ready status is: '%s' in cluster %s. reason: %s, message: %s",
 					"False", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster}, testNetworkNotRealizedReason, testNetworkNotRealizedMessage)
 				Expect(err).To(MatchError(expectedErrorMessage))
-				Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 
 			It("should return error when subnetset ready status is not set", func() {
@@ -1041,7 +1051,7 @@ var _ = Describe("Network provider", func() {
 				err = np.VerifyNetworkStatus(ctx, clusterCtx, subnetsetObj)
 				expectedErrorMessage := fmt.Sprintf("subnetset ready status in cluster %s has not been set", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster})
 				Expect(err).To(MatchError(expectedErrorMessage))
-				Expect(deprecatedv1beta1conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 		})
 
@@ -1069,7 +1079,6 @@ var _ = Describe("Network provider", func() {
 					Namespace: dummyNs,
 				}, subnetSet)
 				Expect(apierrors.IsNotFound(getErr)).To(BeTrue())
-				Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition)).To(BeTrue())
 			})
 

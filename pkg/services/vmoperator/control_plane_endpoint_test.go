@@ -24,11 +24,10 @@ import (
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
@@ -104,7 +103,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 		expectedPort                int
 		expectedAnnotations         map[string]string
 		expectedClusterRoleVMLabels map[string]string
-		expectedConditions          clusterv1.Conditions
+		expectedConditions          []metav1.Condition
 
 		cluster                  *clusterv1.Cluster
 		vsphereCluster           *vmwarev1.VSphereCluster
@@ -163,7 +162,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			}
 
 			for _, expectedCondition := range expectedConditions {
-				c := deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, expectedCondition.Type)
+				c := conditions.Get(clusterCtx.VSphereCluster, expectedCondition.Type)
 				Expect(c).NotTo(BeNil())
 				Expect(c.Status).To(Equal(expectedCondition.Status))
 				Expect(c.Reason).To(Equal(expectedCondition.Reason))
@@ -181,7 +180,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectAPIEndpoint = false
 			expectVMS = false
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyNetworkProvider())
-			Expect(deprecatedv1beta1conditions.Get(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)).To(BeNil())
+			Expect(conditions.Get(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition)).To(BeNil())
 			verifyOutput()
 		})
 
@@ -229,10 +228,10 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			By("NetOp NetworkProvider has no Network")
 			netOpProvider := network.NetOpNetworkProvider(c)
 			// we expect the reconciliation fail because lack of bootstrap data
-			expectedConditions = append(expectedConditions, clusterv1.Condition{
-				Type:    vmwarev1.LoadBalancerReadyCondition,
-				Status:  corev1.ConditionFalse,
-				Reason:  vmwarev1.LoadBalancerCreationFailedReason,
+			expectedConditions = append(expectedConditions, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyV1Beta2Reason,
 				Message: noNetworkFailure,
 			})
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, netOpProvider)
@@ -244,7 +243,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectedAnnotations["netoperator.vmware.com/network-name"] = "dummy-network"
 			expectVMS = true
 			createDefaultNetwork(ctx, clusterCtx, c)
-			expectedConditions[0].Reason = vmwarev1.WaitingForLoadBalancerIPReason
+			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason
 			expectedConditions[0].Message = waitingForVIPFailure
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, netOpProvider)
 			verifyOutput()
@@ -256,8 +255,8 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectedPort = defaultAPIBindPort
 			expectedHost = vip
 			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
-			expectedConditions[0].Status = corev1.ConditionTrue
-			expectedConditions[0].Reason = ""
+			expectedConditions[0].Status = metav1.ConditionTrue
+			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Reason
 			expectedConditions[0].Message = ""
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, netOpProvider)
 			verifyOutput()
@@ -271,10 +270,10 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			// A VirtualMachineService is only created once all prerequisites have been met
 			expectVMS = false
 			expectedType = vmoprvhub.VirtualMachineServiceTypeLoadBalancer
-			expectedConditions = append(expectedConditions, clusterv1.Condition{
-				Type:    vmwarev1.LoadBalancerReadyCondition,
-				Status:  corev1.ConditionFalse,
-				Reason:  vmwarev1.LoadBalancerCreationFailedReason,
+			expectedConditions = append(expectedConditions, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyV1Beta2Reason,
 				Message: noNetworkFailure,
 			})
 
@@ -290,7 +289,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectedVnetName := network.GetNSXTVirtualNetworkName(clusterName)
 			expectedAnnotations["ncp.vmware.com/virtual-network-name"] = expectedVnetName
 			expectVMS = true
-			expectedConditions[0].Reason = vmwarev1.WaitingForLoadBalancerIPReason
+			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason
 			expectedConditions[0].Message = waitingForVIPFailure
 			createVnet(ctx, clusterCtx, c)
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, nsxtProvider)
@@ -302,8 +301,8 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectAPIEndpoint = true
 			expectedPort = defaultAPIBindPort
 			expectedHost = vip
-			expectedConditions[0].Status = corev1.ConditionTrue
-			expectedConditions[0].Reason = ""
+			expectedConditions[0].Status = metav1.ConditionTrue
+			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Reason
 			expectedConditions[0].Message = ""
 			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, nsxtProvider)

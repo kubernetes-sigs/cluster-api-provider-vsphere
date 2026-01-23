@@ -273,7 +273,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		// Before computing ready condition, make sure that VirtualMachineProvisioned is always set.
 		// NOTE: This is required because v1beta2 conditions comply to guideline requiring conditions to be set at the
 		// first reconcile.
-		if c := conditions.Get(vmContext.VSphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition); c != nil {
+		if c := conditions.Get(vmContext.VSphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition); c == nil {
 			if ptr.Deref(vmContext.VSphereVM.Status.Ready, false) {
 				conditions.Set(vmContext.VSphereVM, metav1.Condition{
 					Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,

@@ -313,11 +313,11 @@ type VSphereMachineStatus struct {
 	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
-	// vmID is used to identify the virtual machine.
+	// biosUUID is the biosUUID of the virtual machine.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
-	ID string `json:"vmID,omitempty"`
+	BiosUUID string `json:"biosUUID,omitempty"`
 
 	// vmstatus is used to identify the virtual machine status.
 	// +optional

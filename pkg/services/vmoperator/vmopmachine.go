@@ -786,8 +786,8 @@ func (v *VmopMachineService) reconcileProviderID(ctx context.Context, supervisor
 		log.Info("Updated providerID", "providerID", providerID)
 	}
 
-	if supervisorMachineCtx.VSphereMachine.Status.ID != vm.Status.BiosUUID {
-		supervisorMachineCtx.VSphereMachine.Status.ID = vm.Status.BiosUUID
+	if supervisorMachineCtx.VSphereMachine.Status.BiosUUID != vm.Status.BiosUUID {
+		supervisorMachineCtx.VSphereMachine.Status.BiosUUID = vm.Status.BiosUUID
 		log.Info("Updated VM ID", "vmID", vm.Status.BiosUUID)
 	}
 }

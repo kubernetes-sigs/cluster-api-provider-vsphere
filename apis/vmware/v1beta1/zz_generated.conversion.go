@@ -1292,9 +1292,7 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VSphereMachineStatus, out *v1beta2.VSphereMachineStatus, s conversion.Scope) error {
 	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	if err := metav1.Convert_Pointer_string_To_string(&in.ID, &out.ID, s); err != nil {
-		return err
-	}
+	// WARNING: in.ID requires manual conversion: does not exist in peer-type
 	// WARNING: in.IPAddr requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
@@ -1331,9 +1329,7 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
-	if err := metav1.Convert_string_To_Pointer_string(&in.ID, &out.ID, s); err != nil {
-		return err
-	}
+	// WARNING: in.BiosUUID requires manual conversion: does not exist in peer-type
 	out.VMStatus = VirtualMachineState(in.VMStatus)
 	if err := Convert_v1beta2_VSphereMachineNetworkStatus_To_v1beta1_VSphereMachineNetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err

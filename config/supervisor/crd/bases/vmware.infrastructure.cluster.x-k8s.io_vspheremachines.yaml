@@ -1260,6 +1260,11 @@ spec:
                 minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
+              biosUUID:
+                description: biosUUID is the biosUUID of the virtual machine.
+                maxLength: 2048
+                minLength: 1
+                type: string
               conditions:
                 description: |-
                   conditions represents the observations of a VSphereMachine's current state.
@@ -1721,11 +1726,6 @@ spec:
                     type: array
                     x-kubernetes-list-type: atomic
                 type: object
-              vmID:
-                description: vmID is used to identify the virtual machine.
-                maxLength: 2048
-                minLength: 1
-                type: string
               vmstatus:
                 description: vmstatus is used to identify the virtual machine status.
                 enum:

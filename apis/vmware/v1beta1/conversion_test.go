@@ -180,6 +180,8 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 	if in.ID != nil && *in.ID == "" {
 		in.ID = nil
 	}
+
+	in.IPAddr = "" // IPAddr has been removed in v1beta2.
 }
 
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

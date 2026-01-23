@@ -123,8 +123,12 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient
 			return nil, errors.Wrapf(err, "getting vmwarev1.VSphereMachine %s/%s", m.Namespace, m.Spec.InfrastructureRef.Name)
 		}
 
-		if vsphereMachine.Status.IPAddr != "" {
-			return []string{vsphereMachine.Status.IPAddr}, nil
+		if len(vsphereMachine.Status.Addresses) > 0 {
+			addresses := []string{}
+			for _, address := range vsphereMachine.Status.Addresses {
+				addresses = append(addresses, address.Address)
+			}
+			return addresses, nil
 		}
 
 		var err error

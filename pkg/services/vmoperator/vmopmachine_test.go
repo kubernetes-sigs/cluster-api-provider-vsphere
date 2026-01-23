@@ -211,7 +211,12 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(vsphereMachine).ShouldNot(BeNil())
 			Expect(vsphereMachine.Name).Should(Equal(machineName))
 			Expect(vsphereMachine.Status.ID).Should(Equal(expectedBiosUUID))
-			Expect(vsphereMachine.Status.IPAddr).Should(Equal(expectedVMIP))
+			if expectedVMIP == "" {
+				Expect(vsphereMachine.Status.Addresses).Should(BeEmpty())
+			} else {
+				Expect(vsphereMachine.Status.Addresses).Should(HaveLen(1))
+				Expect(vsphereMachine.Status.Addresses[0].Address).Should(Equal(expectedVMIP))
+			}
 			Expect(vsphereMachine.Status.VMStatus).Should(Equal(expectedState))
 
 			vmopVM = getReconciledVM(ctx, vmService, machineContext)

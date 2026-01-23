@@ -319,12 +319,6 @@ type VSphereMachineStatus struct {
 	// +kubebuilder:validation:MaxLength=2048
 	ID string `json:"vmID,omitempty"`
 
-	// vmIp is the IP address used to access the virtual machine.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
-	IPAddr string `json:"vmIp,omitempty"`
-
 	// vmstatus is used to identify the virtual machine status.
 	// +optional
 	VMStatus VirtualMachineState `json:"vmstatus,omitempty"`

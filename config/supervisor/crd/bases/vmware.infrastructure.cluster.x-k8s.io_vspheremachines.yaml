@@ -1726,11 +1726,6 @@ spec:
                 maxLength: 2048
                 minLength: 1
                 type: string
-              vmIp:
-                description: vmIp is the IP address used to access the virtual machine.
-                maxLength: 256
-                minLength: 1
-                type: string
               vmstatus:
                 description: vmstatus is used to identify the virtual machine status.
                 enum:

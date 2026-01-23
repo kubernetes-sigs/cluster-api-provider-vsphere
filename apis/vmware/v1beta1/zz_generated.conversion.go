@@ -1295,7 +1295,7 @@ func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in
 	if err := metav1.Convert_Pointer_string_To_string(&in.ID, &out.ID, s); err != nil {
 		return err
 	}
-	out.IPAddr = in.IPAddr
+	// WARNING: in.IPAddr requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.VMStatus = v1beta2.VirtualMachineState(in.VMStatus)
@@ -1334,7 +1334,6 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 	if err := metav1.Convert_string_To_Pointer_string(&in.ID, &out.ID, s); err != nil {
 		return err
 	}
-	out.IPAddr = in.IPAddr
 	out.VMStatus = VirtualMachineState(in.VMStatus)
 	if err := Convert_v1beta2_VSphereMachineNetworkStatus_To_v1beta1_VSphereMachineNetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err

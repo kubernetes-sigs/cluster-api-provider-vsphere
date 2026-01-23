@@ -759,17 +759,17 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 		return false
 	}
 
-	supervisorMachineCtx.VSphereMachine.Status.IPAddr = vm.Status.Network.PrimaryIP4
-	if supervisorMachineCtx.VSphereMachine.Status.IPAddr == "" {
-		supervisorMachineCtx.VSphereMachine.Status.IPAddr = vm.Status.Network.PrimaryIP6
+	ipAddr := vm.Status.Network.PrimaryIP4
+	if ipAddr == "" {
+		ipAddr = vm.Status.Network.PrimaryIP6
 	}
 
 	// Cluster API requires InfrastructureMachineStatus.Addresses to be set
-	if supervisorMachineCtx.VSphereMachine.Status.IPAddr != "" {
+	if ipAddr != "" {
 		supervisorMachineCtx.VSphereMachine.Status.Addresses = []clusterv1.MachineAddress{
 			{
 				Type:    clusterv1.MachineInternalIP,
-				Address: supervisorMachineCtx.VSphereMachine.Status.IPAddr,
+				Address: ipAddr,
 			},
 		}
 	}

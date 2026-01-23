@@ -870,8 +870,8 @@ spec:
       jsonPath: .status.initialization.provisioned
       name: Provisioned
       type: string
-    - description: VSphereMachine status
-      jsonPath: .status.vmstatus
+    - description: VSphereMachine phase
+      jsonPath: .status.phase
       name: Phase
       type: string
     - description: Time duration since creation of VSphereMachine
@@ -1726,16 +1726,16 @@ spec:
                     type: array
                     x-kubernetes-list-type: atomic
                 type: object
-              vmstatus:
-                description: vmstatus is used to identify the virtual machine status.
+              phase:
+                description: phase is the phase of the VSphereMachine.
                 enum:
-                - notfound
-                - created
-                - poweredon
-                - pending
-                - ready
-                - deleting
-                - error
+                - NotFound
+                - Created
+                - PoweredOn
+                - Pending
+                - Ready
+                - Deleting
+                - Error
                 type: string
             type: object
         required:

@@ -31,32 +31,32 @@ type VSphereMachineTemplateResource struct {
 	Spec VSphereMachineSpec `json:"spec,omitempty,omitzero"`
 }
 
-// VirtualMachineState describes the state of a VM.
-// +kubebuilder:validation:Enum=notfound;created;poweredon;pending;ready;deleting;error
-type VirtualMachineState string
+// VSphereMachinePhase is the phase of the VSphereMachine.
+// +kubebuilder:validation:Enum=NotFound;Created;PoweredOn;Pending;Ready;Deleting;Error
+type VSphereMachinePhase string
 
 const (
-	// VirtualMachineStateNotFound is the string representing a VM that cannot be located.
-	VirtualMachineStateNotFound = VirtualMachineState("notfound")
+	// VSphereMachinePhaseNotFound is the string representing a VM that cannot be located.
+	VSphereMachinePhaseNotFound = VSphereMachinePhase("NotFound")
 
-	// VirtualMachineStateCreated is the string representing a VM that's been created.
-	VirtualMachineStateCreated = VirtualMachineState("created")
+	// VSphereMachinePhaseCreated is the string representing a VM that's been created.
+	VSphereMachinePhaseCreated = VSphereMachinePhase("Created")
 
-	// VirtualMachineStatePoweredOn is the string representing a VM that has successfully powered on.
-	VirtualMachineStatePoweredOn = VirtualMachineState("poweredon")
+	// VSphereMachinePhasePoweredOn is the string representing a VM that has successfully powered on.
+	VSphereMachinePhasePoweredOn = VSphereMachinePhase("PoweredOn")
 
-	// VirtualMachineStatePending is the string representing a VM with an in-flight task.
-	VirtualMachineStatePending = VirtualMachineState("pending")
+	// VSphereMachinePhasePending is the string representing a VM with an in-flight task.
+	VSphereMachinePhasePending = VSphereMachinePhase("Pending")
 
-	// VirtualMachineStateReady is the string representing a powered-on VM with reported IP addresses.
-	VirtualMachineStateReady = VirtualMachineState("ready")
+	// VSphereMachinePhaseReady is the string representing a powered-on VM with reported IP addresses.
+	VSphereMachinePhaseReady = VSphereMachinePhase("Ready")
 
-	// VirtualMachineStateDeleting is the string representing a machine that still exists, but has a deleteTimestamp
-	// Note that once a VirtualMachine is finally deleted, its state will be VirtualMachineStateNotFound.
-	VirtualMachineStateDeleting = VirtualMachineState("deleting")
+	// VSphereMachinePhaseDeleting is the string representing a machine that still exists, but has a deletionTimestamp.
+	// Note that once a VirtualMachine is finally deleted, its state will be VSphereMachinePhaseNotFound.
+	VSphereMachinePhaseDeleting = VSphereMachinePhase("Deleting")
 
-	// VirtualMachineStateError is reported if an error occurs determining the status.
-	VirtualMachineStateError = VirtualMachineState("error")
+	// VSphereMachinePhaseError is reported if an error occurs determining the status.
+	VSphereMachinePhaseError = VSphereMachinePhase("Error")
 )
 
 // VirtualMachinePowerOpMode represents the various power operation modes

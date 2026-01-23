@@ -135,29 +135,29 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 	if err := v.Client.Get(ctx, *key, vmOperatorVM); err != nil {
 		// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
 		if apierrors.IsNotFound(err) {
-			supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateNotFound
+			supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseNotFound
 			return err
 		}
-		supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateError
+		supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseError
 		return err
 	}
 
 	// Next, check to see if it's in the process of being deleted
 	if vmOperatorVM.GetDeletionTimestamp() != nil {
-		supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateDeleting
+		supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseDeleting
 		return nil
 	}
 
 	// If none of the above are true, Delete the VM
 	if err := v.Client.Delete(ctx, vmOperatorVM); err != nil {
 		if apierrors.IsNotFound(err) {
-			supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateNotFound
+			supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseNotFound
 			return err
 		}
-		supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateError
+		supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseError
 		return err
 	}
-	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateDeleting
+	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseDeleting
 	return nil
 }
 
@@ -192,7 +192,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	}
 
 	// Set the VM state. Will get reset throughout the reconcile
-	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
+	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhasePending
 
 	// Get the VirtualMachine object Key
 	vmOperatorVM := &vmoprvhub.VirtualMachine{}
@@ -362,7 +362,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	}
 
 	// Update the VM's state to Pending
-	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
+	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhasePending
 
 	// Requeue until the VM Operator VirtualMachine has:
 	// * Been created
@@ -411,7 +411,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		return true, nil
 	}
 	// Mark the VM as created
-	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateCreated
+	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseCreated
 
 	if vmOperatorVM.Status.PowerState != vmoprvhub.VirtualMachinePowerStateOn {
 		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.PoweringOnReason, clusterv1.ConditionSeverityInfo, "")
@@ -424,7 +424,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		return true, nil
 	}
 	// Mark the VM as poweredOn
-	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePoweredOn
+	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhasePoweredOn
 
 	if vmOperatorVM.Status.Network == nil || (vmOperatorVM.Status.Network.PrimaryIP4 == "" && vmOperatorVM.Status.Network.PrimaryIP6 == "") {
 		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForNetworkAddressReason, clusterv1.ConditionSeverityInfo, "")
@@ -449,7 +449,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	}
 
 	// Mark the VM as ready
-	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateReady
+	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseReady
 
 	if ok := v.reconcileNetwork(supervisorMachineCtx, vmOperatorVM); !ok {
 		log.Info("IP not yet assigned")

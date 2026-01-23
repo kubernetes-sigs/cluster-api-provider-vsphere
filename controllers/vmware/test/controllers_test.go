@@ -359,13 +359,13 @@ var _ = Describe("Reconciliation tests", func() {
 		}, time.Second*30).Should(BeNumerically(">", 0))
 	}
 
-	assertEventuallyVMStatus := func(key client.ObjectKey, obj client.Object, expectedState vmwarev1.VirtualMachineState) {
-		EventuallyWithOffset(1, func() (vmwarev1.VirtualMachineState, error) {
+	assertEventuallyPhase := func(key client.ObjectKey, obj client.Object, expectedState vmwarev1.VSphereMachinePhase) {
+		EventuallyWithOffset(1, func() (vmwarev1.VSphereMachinePhase, error) {
 			if err := k8sClient.Get(ctx, key, obj); err != nil {
 				return "", err
 			}
 			vSphereMachine := obj.(*vmwarev1.VSphereMachine)
-			return vSphereMachine.Status.VMStatus, nil
+			return vSphereMachine.Status.Phase, nil
 		}, time.Second*30).Should(Equal(expectedState))
 	}
 
@@ -593,8 +593,8 @@ var _ = Describe("Reconciliation tests", func() {
 			// going through its various stages of initialization due to vmoperator
 			// code returning reconcile errors
 
-			By("Expect the VSphereMachine to have its Status.VMStatus initialized to a new VM")
-			assertEventuallyVMStatus(infraMachineKey, infraMachine, vmwarev1.VirtualMachineStatePending)
+			By("Expect the VSphereMachine to have its Status.Phase initialized to a new VM")
+			assertEventuallyPhase(infraMachineKey, infraMachine, vmwarev1.VSphereMachinePhasePending)
 
 			By("Expect the VM to have been successfully created")
 			// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
@@ -621,7 +621,7 @@ var _ = Describe("Reconciliation tests", func() {
 			}, time.Second*30).Should(Succeed())
 
 			By("Expect the VSphereMachine VM status to reflect VM Created status")
-			assertEventuallyVMStatus(infraMachineKey, infraMachine, vmwarev1.VirtualMachineStateCreated)
+			assertEventuallyPhase(infraMachineKey, infraMachine, vmwarev1.VSphereMachinePhaseCreated)
 
 			By("Modifying the VM to simulate it having been powered on")
 			Eventually(func() error {
@@ -634,7 +634,7 @@ var _ = Describe("Reconciliation tests", func() {
 			}, time.Second*30).Should(Succeed())
 
 			By("Expect the VSphereMachine VM status to reflect VM PoweredOn status")
-			assertEventuallyVMStatus(infraMachineKey, infraMachine, vmwarev1.VirtualMachineStatePoweredOn)
+			assertEventuallyPhase(infraMachineKey, infraMachine, vmwarev1.VSphereMachinePhasePoweredOn)
 
 			By("Modifying the VM to simulate it having been successfully booted")
 			Eventually(func() error {
@@ -652,7 +652,7 @@ var _ = Describe("Reconciliation tests", func() {
 			}, time.Second*30).Should(Succeed())
 
 			By("Expect the VSphereMachine VM status to reflect VM Ready status")
-			assertEventuallyVMStatus(infraMachineKey, infraMachine, vmwarev1.VirtualMachineStateReady)
+			assertEventuallyPhase(infraMachineKey, infraMachine, vmwarev1.VSphereMachinePhaseReady)
 
 			By("Expect the Machine's label to reflect the ESXi host")
 			EventuallyWithOffset(1, func() (string, error) {

@@ -238,7 +238,7 @@ func (r *serviceDiscoveryReconciler) patch(ctx context.Context, clusterCtx *vmwa
 			vmwarev1.ServiceDiscoveryReadyV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterServiceDiscoveryReadyCondition,
 		}},
 	)
 }
@@ -248,9 +248,9 @@ func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestC
 		deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition, vmwarev1.SupervisorHeadlessServiceSetupFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
-			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
+			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  vmwarev1.VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason,
+			Reason:  vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason,
 			Message: err.Error(),
 		})
 		return errors.Wrapf(err, "failed to reconcile supervisor headless Service")
@@ -292,9 +292,9 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 		deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition, vmwarev1.SupervisorHeadlessServiceSetupFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
-			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
+			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  vmwarev1.VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason,
+			Reason:  vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason,
 			Message: err.Error(),
 		})
 		return nil
@@ -347,9 +347,9 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 
 	deprecatedv1beta1conditions.MarkTrue(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition)
 	conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
-		Type:   vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
+		Type:   vmwarev1.VSphereClusterServiceDiscoveryReadyCondition,
 		Status: metav1.ConditionTrue,
-		Reason: vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Reason,
+		Reason: vmwarev1.VSphereClusterServiceDiscoveryReadyReason,
 	})
 	return nil
 }

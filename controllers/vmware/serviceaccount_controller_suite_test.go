@@ -154,7 +154,7 @@ func assertRoleBinding(ctx context.Context, ctrlClient client.Client, namespace,
 
 // assertProviderServiceAccountsCondition asserts the condition on the ProviderServiceAccount CR.
 func assertProviderServiceAccountsCondition(vCluster *vmwarev1.VSphereCluster, status metav1.ConditionStatus, message string, reason string) {
-	c := conditions.Get(vCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition)
+	c := conditions.Get(vCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyCondition)
 	Expect(c).NotTo(BeNil())
 	Expect(c.Status).To(Equal(status))
 	Expect(c.Reason).To(Equal(reason))

@@ -174,7 +174,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vsphereCluster := &vmwarev1.VSphereCluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: intCtx.VSphereCluster.GetName()}
 				Expect(intCtx.Client.Get(ctx, key, vsphereCluster)).To(Succeed())
-				Expect(conditions.Has(vsphereCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition)).To(BeFalse())
+				Expect(conditions.Has(vsphereCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyCondition)).To(BeFalse())
 			})
 		})
 	})
@@ -196,7 +196,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vsphereCluster := &vmwarev1.VSphereCluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: intCtx.VSphereCluster.GetName()}
 				Expect(intCtx.Client.Get(ctx, key, vsphereCluster)).To(Succeed())
-				Expect(conditions.Has(vsphereCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition)).To(BeFalse())
+				Expect(conditions.Has(vsphereCluster, vmwarev1.VSphereClusterProviderServiceAccountsReadyCondition)).To(BeFalse())
 			})
 		})
 	})

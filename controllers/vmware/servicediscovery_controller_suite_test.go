@@ -121,7 +121,7 @@ func assertHeadlessSvcWithFIPHostNameEndpoints(ctx context.Context, guestClient 
 
 func assertServiceDiscoveryCondition(vsphereCluster *vmwarev1.VSphereCluster, status metav1.ConditionStatus,
 	message string, reason string) {
-	c := conditions.Get(vsphereCluster, vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition)
+	c := conditions.Get(vsphereCluster, vmwarev1.VSphereClusterServiceDiscoveryReadyCondition)
 	Expect(c).NotTo(BeNil())
 	if message == "" {
 		Expect(c.Message).To(BeEmpty())

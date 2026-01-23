@@ -58,9 +58,9 @@ func (np *netopNetworkProvider) SupportsVMReadinessProbe() bool {
 func (np *netopNetworkProvider) ProvisionClusterNetwork(_ context.Context, clusterCtx *vmware.ClusterContext) error {
 	deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyV1Beta1Condition)
 	conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
-		Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
+		Type:   vmwarev1.VSphereClusterNetworkReadyCondition,
 		Status: metav1.ConditionTrue,
-		Reason: vmwarev1.VSphereClusterNetworkReadyV1Beta2Reason,
+		Reason: vmwarev1.VSphereClusterNetworkReadyReason,
 	})
 
 	return nil

@@ -234,9 +234,6 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	}
 
 	failureDomain := machine.Spec.FailureDomain
-	if failureDomain == "" && vsphereMachine.Spec.FailureDomain != "" {
-		failureDomain = vsphereMachine.Spec.FailureDomain
-	}
 
 	var vsphereFailureDomain *infrav1.VSphereFailureDomain
 	if failureDomain != "" {

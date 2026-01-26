@@ -327,12 +327,6 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 	}
 
-	// If the failureDomain is explicitly define for a machine, forward this info to the VM.
-	// Note: for consistency, affinity rules will be set on all the VMs, no matter if they are explicitly assigned to a failureDomain or not.
-	if supervisorMachineCtx.Machine.Spec.FailureDomain != "" {
-		supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = supervisorMachineCtx.Machine.Spec.FailureDomain
-	}
-
 	// Check for the presence of an existing object
 	if err := v.Client.Get(ctx, *vmKey, vmOperatorVM); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -456,7 +450,20 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		return true, nil
 	}
 
-	v.reconcileProviderID(ctx, supervisorMachineCtx, vmOperatorVM)
+	// Surface BiosUUID and ProviderID.
+	providerID := fmt.Sprintf("vsphere://%s", vmOperatorVM.Status.BiosUUID)
+	if supervisorMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
+		supervisorMachineCtx.VSphereMachine.Spec.ProviderID = providerID
+		log.Info("Updated providerID", "providerID", providerID)
+	}
+
+	if supervisorMachineCtx.VSphereMachine.Status.BiosUUID != vmOperatorVM.Status.BiosUUID {
+		supervisorMachineCtx.VSphereMachine.Status.BiosUUID = vmOperatorVM.Status.BiosUUID
+		log.Info("Updated VM ID", "vmID", vmOperatorVM.Status.BiosUUID)
+	}
+
+	// Surface placement.
+	supervisorMachineCtx.VSphereMachine.Status.FailureDomain = vmOperatorVM.Status.Zone
 
 	// Mark the VSphereMachine as Ready
 	supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
@@ -777,21 +784,6 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 	return true
 }
 
-func (v *VmopMachineService) reconcileProviderID(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprvhub.VirtualMachine) {
-	log := ctrl.LoggerFrom(ctx)
-	providerID := fmt.Sprintf("vsphere://%s", vm.Status.BiosUUID)
-
-	if supervisorMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
-		supervisorMachineCtx.VSphereMachine.Spec.ProviderID = providerID
-		log.Info("Updated providerID", "providerID", providerID)
-	}
-
-	if supervisorMachineCtx.VSphereMachine.Status.BiosUUID != vm.Status.BiosUUID {
-		supervisorMachineCtx.VSphereMachine.Status.BiosUUID = vm.Status.BiosUUID
-		log.Info("Updated VM ID", "vmID", vm.Status.BiosUUID)
-	}
-}
-
 // getVirtualMachinesInCluster returns all VMOperator VirtualMachine objects in the current cluster.
 // First filter by ClusterSelectorKey. If the result is empty, they fall back to legacyClusterSelectorKey.
 func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext) ([]*vmoprvhub.VirtualMachine, error) {
@@ -914,7 +906,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 		// Control Plane VMs will still have failureDomain set, and we will set PVC annotation.
 		zonal := len(supervisorMachineCtx.VSphereCluster.Status.FailureDomains) > 1
 
-		if zone := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; zonal && zone != "" {
+		if zone := supervisorMachineCtx.Machine.Spec.FailureDomain; zonal && zone != "" {
 			topology := []map[string]string{
 				{corev1.LabelTopologyZone: zone},
 			}
@@ -1004,7 +996,7 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 //	this function may return a more diverse topology.
 func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, failureDomain string) map[string]string {
 	// This is for explicit placement.
-	if fd := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; fd != "" {
+	if fd := supervisorMachineCtx.Machine.Spec.FailureDomain; fd != "" {
 		return map[string]string{
 			corev1.LabelTopologyZone: fd,
 		}

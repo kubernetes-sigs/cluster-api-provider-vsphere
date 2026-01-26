@@ -1059,13 +1059,6 @@ spec:
                 format: int32
                 minimum: 1
                 type: integer
-              failureDomain:
-                description: |-
-                  failureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
-                  For this infrastructure provider, the name is equivalent to the name of the VSphereDeploymentZone.
-                maxLength: 253
-                minLength: 1
-                type: string
               folder:
                 description: |-
                   folder is the name, inventory path, managed object reference or the managed

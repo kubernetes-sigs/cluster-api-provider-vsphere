@@ -111,12 +111,6 @@ linters:
       linters:
         - kubeapilinter
 
-    ## TODO: Think about CPU configuration, context: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/3664
-    - path: "api/govmomi/v1beta2/types.go"
-      text: "optionalfields: field (NumCPUs|NumCoresPerSocket) has a valid zero value"
-      linters:
-        - kubeapilinter
-
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

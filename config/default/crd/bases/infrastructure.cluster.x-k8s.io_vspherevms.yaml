@@ -1455,6 +1455,7 @@ spec:
                   Defaults to the eponymous property value in the template from which the
                   virtual machine is cloned.
                 format: int32
+                minimum: 2
                 type: integer
               numCoresPerSocket:
                 description: |-
@@ -1462,7 +1463,9 @@ spec:
                   virtual machine.
                   Defaults to the eponymous property value in the template from which the
                   virtual machine is cloned.
+                  Note: Starting with vSphere 8 numCoresPerSocket can be set to 0 to enable "Assigned at power on".
                 format: int32
+                minimum: 0
                 type: integer
               os:
                 description: |-

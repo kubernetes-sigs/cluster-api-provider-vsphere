@@ -1674,6 +1674,11 @@ func (in *VSphereVMV1Beta1DeprecatedStatus) DeepCopy() *VSphereVMV1Beta1Deprecat
 func (in *VirtualMachineCloneSpec) DeepCopyInto(out *VirtualMachineCloneSpec) {
 	*out = *in
 	in.Network.DeepCopyInto(&out.Network)
+	if in.NumCoresPerSocket != nil {
+		in, out := &in.NumCoresPerSocket, &out.NumCoresPerSocket
+		*out = new(int32)
+		**out = **in
+	}
 	in.Resources.DeepCopyInto(&out.Resources)
 	if in.AdditionalDisksGiB != nil {
 		in, out := &in.AdditionalDisksGiB, &out.AdditionalDisksGiB

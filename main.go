@@ -323,6 +323,11 @@ func main() {
 		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
+	if isGovmomiCRDLoaded && isSupervisorCRDLoaded {
+		err := fmt.Errorf("both supervisor and govmomi CRDs detected (unsupported configuration)")
+		setupLog.Error(err, "Unable to start manager")
+		os.Exit(1)
+	}
 
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {

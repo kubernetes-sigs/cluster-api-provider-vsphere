@@ -180,14 +180,17 @@ type VirtualMachineCloneSpec struct {
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.
 	// +optional
+	// +kubebuilder:validation:Minimum=2
 	NumCPUs int32 `json:"numCPUs,omitempty"`
 
 	// numCoresPerSocket is the number of cores among which to distribute CPUs in this
 	// virtual machine.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.
+	// Note: Starting with vSphere 8 numCoresPerSocket can be set to 0 to enable "Assigned at power on".
 	// +optional
-	NumCoresPerSocket int32 `json:"numCoresPerSocket,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NumCoresPerSocket *int32 `json:"numCoresPerSocket,omitempty"`
 
 	// resources is the definition of the VM's cpu and memory
 	// reservations, limits and shares.

@@ -197,6 +197,8 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	clusterv1.Convert_int32_To_Pointer_int32(src.Spec.NumCoresPerSocket, ok, restored.Spec.NumCoresPerSocket, &dst.Spec.NumCoresPerSocket)
+
 	if len(src.Spec.Network.Routes) == len(dst.Spec.Network.Routes) {
 		for i, dstRoute := range dst.Spec.Network.Routes {
 			srcRoute := src.Spec.Network.Routes[i]
@@ -296,6 +298,8 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	clusterv1.Convert_int32_To_Pointer_int32(src.Spec.Template.Spec.NumCoresPerSocket, ok, restored.Spec.Template.Spec.NumCoresPerSocket, &dst.Spec.Template.Spec.NumCoresPerSocket)
+
 	if len(src.Spec.Template.Spec.Network.Routes) == len(dst.Spec.Template.Spec.Network.Routes) {
 		for i, dstRoute := range dst.Spec.Template.Spec.Network.Routes {
 			srcRoute := src.Spec.Template.Spec.Network.Routes[i]
@@ -374,6 +378,8 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
+
+	clusterv1.Convert_int32_To_Pointer_int32(src.Spec.NumCoresPerSocket, ok, restored.Spec.NumCoresPerSocket, &dst.Spec.NumCoresPerSocket)
 
 	if src.Spec.BootstrapRef != nil {
 		dst.Spec.BootstrapRef.Name = src.Spec.BootstrapRef.Name

@@ -2470,7 +2470,9 @@ func autoConvert_v1beta1_VirtualMachineCloneSpec_To_v1beta2_VirtualMachineCloneS
 		return err
 	}
 	out.NumCPUs = in.NumCPUs
-	out.NumCoresPerSocket = in.NumCoresPerSocket
+	if err := v1.Convert_int32_To_Pointer_int32(&in.NumCoresPerSocket, &out.NumCoresPerSocket, s); err != nil {
+		return err
+	}
 	if err := Convert_v1beta1_VirtualMachineResources_To_v1beta2_VirtualMachineResources(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
@@ -2506,7 +2508,9 @@ func autoConvert_v1beta2_VirtualMachineCloneSpec_To_v1beta1_VirtualMachineCloneS
 		return err
 	}
 	out.NumCPUs = in.NumCPUs
-	out.NumCoresPerSocket = in.NumCoresPerSocket
+	if err := v1.Convert_Pointer_int32_To_int32(&in.NumCoresPerSocket, &out.NumCoresPerSocket, s); err != nil {
+		return err
+	}
 	if err := Convert_v1beta2_VirtualMachineResources_To_v1beta1_VirtualMachineResources(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}

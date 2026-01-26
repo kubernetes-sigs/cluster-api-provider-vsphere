@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega" //nolint:revive,staticcheck
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -65,9 +65,12 @@ type RoundTripCheckTypesInput struct {
 	Skip bool
 
 	// Instruct the type checked about a field rename, e.g. "VirtualMachine.Status.NodeName": "Host",
+	// Note: currently this applies only to fields of type scalar (not to pointers, array, map, struct).
 	FieldNameMap map[string]string
+}
 
-	// Internal settings
+type roundTripCheckTypesOptions struct {
+	RoundTripCheckTypesInput
 
 	// fullMatchRequired is set to true to ensure that hub types nested under fields of type slice/array
 	// fully match with the corresponding spoke type, thus preventing data loss.
@@ -85,22 +88,22 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 			if input.CheckTypes.Skip {
 				t.Skip("skipping type check. Please check hub and spoke types manually to ensure no data loss happens when creating patches for spoke types")
 			}
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 
 			hubT, err := objType(input.Hub)
-			g.Expect(err).NotTo(gomega.HaveOccurred(), "failed to get type of the hub object")
+			g.Expect(err).NotTo(HaveOccurred(), "failed to get type of the hub object")
 
 			spokeT, err := objType(input.Spoke)
-			g.Expect(err).NotTo(gomega.HaveOccurred(), "failed to get type of the spoke object")
+			g.Expect(err).NotTo(HaveOccurred(), "failed to get type of the spoke object")
 
-			inspectTypes(t, hubT, spokeT, field.NewPath(hubT.Name()), input.CheckTypes)
+			inspectTypes(t, hubT, spokeT, field.NewPath(hubT.Name()), roundTripCheckTypesOptions{RoundTripCheckTypesInput: input.CheckTypes})
 		})
 
 		// Perform round trip between types ensuring conversion are properly implemented.
 		// Note: The test is checking only the hub-spoke-hub round trip because hub types have only a subset of spoke types,
-		// and this would require specific fuzzer config for each type.
+		// and spoke-hub-spoke would require specific fuzzer config for each type.
 		t.Run("hub-spoke-hub", func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 
 			if _, isConvertible := input.Hub.(conversionmeta.Convertible); !isConvertible {
 				g.Fail("Hub type must implement sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta/Convertible")
@@ -129,20 +132,20 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 
 				// First convert hub to spoke
 				spoke := input.Spoke.DeepCopyObject()
-				g.Expect(input.Converter.Convert(t.Context(), hubBefore, spoke)).To(gomega.Succeed(), "error calling Convert from hub to spoke")
+				g.Expect(input.Converter.Convert(t.Context(), hubBefore, spoke)).To(Succeed(), "error calling Convert from hub to spoke")
 
 				// Convert spoke back to hub and check if the resulting hub is equal to the hub before the round trip
 				hubAfter := input.Hub.DeepCopyObject()
-				g.Expect(input.Converter.Convert(t.Context(), spoke, hubAfter)).To(gomega.Succeed(), "error calling Convert from spoke to hub: %v")
+				g.Expect(input.Converter.Convert(t.Context(), spoke, hubAfter)).To(Succeed(), "error calling Convert from spoke to hub: %v")
 
 				convertibleAfter, _ := hubAfter.(conversionmeta.Convertible)
-				g.Expect(convertibleAfter.GetSource().APIVersion).To(gomega.Equal(spokeGVK.GroupVersion().String()), "Convert is expected to set Convertible.APIVersion")
+				g.Expect(convertibleAfter.GetSource().APIVersion).To(Equal(spokeGVK.GroupVersion().String()), "Convert is expected to set Convertible.APIVersion")
 
 				convertibleAfter.SetSource(conversionmeta.SourceTypeMeta{})
 
 				if !apiequality.Semantic.DeepEqual(hubBefore, hubAfter) {
 					diff := cmp.Diff(hubBefore, hubAfter)
-					g.Expect(false).To(gomega.BeTrue(), diff)
+					g.Expect(false).To(BeTrue(), diff)
 				}
 			}
 		})
@@ -156,15 +159,15 @@ var (
 	quantityT      = reflect.TypeFor[resource.Quantity]()
 )
 
-func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *field.Path, input RoundTripCheckTypesInput) {
+func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *field.Path, options roundTripCheckTypesOptions) {
 	t.Helper()
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	// If hub type is a pointer, inspect Elem types.
 	// Note: Current logic assumes that when a field in hub is a pointer, also the corresponding spoke field is. This can be improved in the future.
 	if hubT.Kind() == reflect.Ptr {
-		g.Expect(spokeT.Kind()).To(gomega.Equal(reflect.Ptr), fmt.Sprintf("field %s is a pointer in hub, not in spoke", path.String()))
-		inspectTypes(t, hubT.Elem(), spokeT.Elem(), path, input)
+		g.Expect(spokeT.Kind()).To(Equal(reflect.Ptr), fmt.Sprintf("field %s is a pointer in hub, not in spoke", path.String()))
+		inspectTypes(t, hubT.Elem(), spokeT.Elem(), path, options)
 		return
 	}
 
@@ -173,7 +176,7 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 	// If hub type is one of metav1.(Time|Condition|LabelSelector) or resource.Quantity, do not check further.
 	// Note: Current logic assumes that when a field in hub is one of the types above, also the corresponding spoke field is. This can be improved in the future.
 	if hubT == timeT || hubT == conditionT || hubT == labelSelectorT || hubT == quantityT {
-		g.Expect(spokeT).To(gomega.Equal(hubT), fmt.Sprintf("field %s has type %s in hub, %s in spoke", path.String(), hubT, spokeT))
+		g.Expect(spokeT).To(Equal(hubT), fmt.Sprintf("field %s has type %s in hub, %s in spoke", path.String(), hubT, spokeT))
 		return
 	}
 
@@ -181,38 +184,38 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 	case reflect.Map:
 		// If hub type is a map, check both key and value types.
 		// Note: Current logic assumes that when a field in hub is a map, also the corresponding spoke field is. This can be improved in the future.
-		g.Expect(spokeT.Kind()).To(gomega.Equal(reflect.Map), fmt.Sprintf("field %s is a map in hub, not in spoke", path.String()))
-		inspectTypes(t, hubT.Key(), spokeT.Key(), path.Key("$key"), input)
-		inspectTypes(t, hubT.Elem(), spokeT.Elem(), path.Key("$elem"), input)
+		g.Expect(spokeT.Kind()).To(Equal(reflect.Map), fmt.Sprintf("field %s is a map in hub, not in spoke", path.String()))
+		inspectTypes(t, hubT.Key(), spokeT.Key(), path.Key("$key"), options)
+		inspectTypes(t, hubT.Elem(), spokeT.Elem(), path.Key("$elem"), options)
 	case reflect.Array, reflect.Slice:
-		// If hub type is a map, check items type.
+		// If hub type is a array/slice, check items type.
 		// Notably, starting from this type, a full match is required to prevent data loss.
 		// Note: Current logic assumes that when a field in hub is a slice/array, also the corresponding spoke field is. This can be improved in the future.
-		g.Expect(spokeT.Kind()).To(gomega.Equal(hubKind), fmt.Sprintf("field %s is a %s in hub, not in spoke", hubKind, path.String()))
+		g.Expect(spokeT.Kind()).To(Equal(hubKind), fmt.Sprintf("field %s is a %s in hub, not in spoke", hubKind, path.String()))
 
-		if !input.fullMatchRequired {
+		if !options.fullMatchRequired {
 			t.Logf("Enforcing full match requirement for %s", path.Index(0))
-			input.fullMatchRequired = true
+			options.fullMatchRequired = true
 		}
-		inspectTypes(t, hubT.Elem(), spokeT.Elem(), path.Index(0), input)
+		inspectTypes(t, hubT.Elem(), spokeT.Elem(), path.Index(0), options)
 	case reflect.Struct:
 		// If hub type is a struct, checks fields in the hub type when they have a corresponding field in the spoke type.
 		// Note: hub types are a superset of spoke types in different API versions.
-		spokeFieldNames := sets.New[string]()
+		spokeFieldNamesWithHubFieldMatch := sets.New[string]()
 		for i := 0; i < hubT.NumField(); i++ {
 			hubField := hubT.Field(i)
 			hubFieldName := hubField.Name
 			fieldPath := path.Child(hubFieldName)
 
 			spokeFieldName := hubField.Name
-			if mappedSpokeFieldName, ok := input.FieldNameMap[fieldPath.String()]; ok {
+			if mappedSpokeFieldName, ok := options.FieldNameMap[fieldPath.String()]; ok {
 				spokeFieldName = mappedSpokeFieldName
 			}
-			spokeFieldNames.Insert(hubFieldName)
 
 			// If the field is the TypeMeta, ObjectMeta or the Source field, do not check further.
 			if path.Root().String() == path.String() {
 				if hubFieldName == "TypeMeta" || hubFieldName == "ObjectMeta" || hubFieldName == "Source" {
+					spokeFieldNamesWithHubFieldMatch.Insert(spokeFieldName)
 					continue
 				}
 			}
@@ -222,15 +225,17 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 				t.Logf("field %s not found in spoke type", fieldPath.String())
 				continue
 			}
-			inspectTypes(t, hubField.Type, spokeField.Type, fieldPath, input)
+
+			spokeFieldNamesWithHubFieldMatch.Insert(spokeFieldName)
+			inspectTypes(t, hubField.Type, spokeField.Type, fieldPath, options)
 		}
 
 		// If a full match is required, also check the other way around: all the spoke fields have a corresponding field in hub.
-		if input.fullMatchRequired {
+		if options.fullMatchRequired {
 			for i := 0; i < spokeT.NumField(); i++ {
 				spokeField := spokeT.Field(i)
 				spokeFieldName := spokeField.Name
-				if spokeFieldNames.Has(spokeFieldName) {
+				if spokeFieldNamesWithHubFieldMatch.Has(spokeFieldName) {
 					continue
 				}
 				g.Fail(fmt.Sprintf("Field %s not found in hub type", path.Child(spokeFieldName)))
@@ -252,7 +257,7 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 			break
 		}
 
-		g.Expect(hubT).To(gomega.Equal(spokeT), fmt.Sprintf("field %s has type %s in hub, %s in spoke", path.String(), hubT, spokeT))
+		g.Expect(hubT).To(Equal(spokeT), fmt.Sprintf("field %s has type %s in hub, %s in spoke", path.String(), hubT, spokeT))
 	}
 }
 

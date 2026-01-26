@@ -28,7 +28,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1beta2 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -1194,7 +1194,7 @@ func autoConvert_v1beta1_Topology_To_v1beta2_Topology(in *Topology, out *v1beta2
 	if err := v1.Convert_Pointer_string_To_string(&in.ComputeCluster, &out.ComputeCluster, s); err != nil {
 		return err
 	}
-	// WARNING: in.Hosts requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1.FailureDomainHosts vs sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.FailureDomainHosts)
+	// WARNING: in.Hosts requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1.FailureDomainHosts vs sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.FailureDomainHosts)
 	out.Networks = *(*[]string)(unsafe.Pointer(&in.Networks))
 	if in.NetworkConfigurations != nil {
 		in, out := &in.NetworkConfigurations, &out.NetworkConfigurations
@@ -1216,7 +1216,7 @@ func autoConvert_v1beta2_Topology_To_v1beta1_Topology(in *v1beta2.Topology, out 
 	if err := v1.Convert_string_To_Pointer_string(&in.ComputeCluster, &out.ComputeCluster, s); err != nil {
 		return err
 	}
-	// WARNING: in.Hosts requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.FailureDomainHosts vs *sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1.FailureDomainHosts)
+	// WARNING: in.Hosts requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.FailureDomainHosts vs *sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1.FailureDomainHosts)
 	out.Networks = *(*[]string)(unsafe.Pointer(&in.Networks))
 	if in.NetworkConfigurations != nil {
 		in, out := &in.NetworkConfigurations, &out.NetworkConfigurations
@@ -1447,7 +1447,7 @@ func autoConvert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in *VS
 	if err := Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	// WARNING: in.IdentityRef requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1.VSphereIdentityReference vs sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereIdentityReference)
+	// WARNING: in.IdentityRef requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1.VSphereIdentityReference vs sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.VSphereIdentityReference)
 	if in.ClusterModules != nil {
 		in, out := &in.ClusterModules, &out.ClusterModules
 		*out = make([]v1beta2.ClusterModule, len(*in))
@@ -1472,7 +1472,7 @@ func autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *v1
 	if err := Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	// WARNING: in.IdentityRef requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereIdentityReference vs *sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1.VSphereIdentityReference)
+	// WARNING: in.IdentityRef requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.VSphereIdentityReference vs *sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1.VSphereIdentityReference)
 	if in.ClusterModules != nil {
 		in, out := &in.ClusterModules, &out.ClusterModules
 		*out = make([]ClusterModule, len(*in))
@@ -2035,7 +2035,7 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	}
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1.VSphereVMNamingStrategy vs sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereVMNamingStrategy)
+	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1.VSphereVMNamingStrategy vs sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.VSphereVMNamingStrategy)
 	return nil
 }
 
@@ -2051,7 +2051,7 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 	}
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereVMNamingStrategy vs *sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1.VSphereVMNamingStrategy)
+	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.VSphereVMNamingStrategy vs *sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1.VSphereVMNamingStrategy)
 	return nil
 }
 
@@ -2359,7 +2359,7 @@ func autoConvert_v1beta1_VSphereVMSpec_To_v1beta2_VSphereVMSpec(in *VSphereVMSpe
 	if err := Convert_v1beta1_VirtualMachineCloneSpec_To_v1beta2_VirtualMachineCloneSpec(&in.VirtualMachineCloneSpec, &out.VirtualMachineCloneSpec, s); err != nil {
 		return err
 	}
-	// WARNING: in.BootstrapRef requires manual conversion: inconvertible types (*k8s.io/api/core/v1.ObjectReference vs sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereVMBootstrapReference)
+	// WARNING: in.BootstrapRef requires manual conversion: inconvertible types (*k8s.io/api/core/v1.ObjectReference vs sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.VSphereVMBootstrapReference)
 	out.BiosUUID = in.BiosUUID
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeout requires manual conversion: does not exist in peer-type
@@ -2370,7 +2370,7 @@ func autoConvert_v1beta2_VSphereVMSpec_To_v1beta1_VSphereVMSpec(in *v1beta2.VSph
 	if err := Convert_v1beta2_VirtualMachineCloneSpec_To_v1beta1_VirtualMachineCloneSpec(&in.VirtualMachineCloneSpec, &out.VirtualMachineCloneSpec, s); err != nil {
 		return err
 	}
-	// WARNING: in.BootstrapRef requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2.VSphereVMBootstrapReference vs *k8s.io/api/core/v1.ObjectReference)
+	// WARNING: in.BootstrapRef requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.VSphereVMBootstrapReference vs *k8s.io/api/core/v1.ObjectReference)
 	out.BiosUUID = in.BiosUUID
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeoutSeconds requires manual conversion: does not exist in peer-type

@@ -315,8 +315,8 @@ generate: ## Run all generate targets
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(MAKE) clean-generated-yaml SRC_DIRS="$(CRD_ROOT),$(SUPERVISOR_CRD_ROOT),./config/govmomi/webhook/manifests.yaml,./config/supervisor/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
-		paths=./apis/v1beta1 \
-		paths=./apis/v1beta2 \
+		paths=./api/govmomi/v1beta1 \
+		paths=./api/govmomi/v1beta2 \
 		paths=./internal/webhooks \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(CRD_ROOT) \
@@ -333,8 +333,8 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:rbac:dir=$(RBAC_ROOT) \
 		rbac:roleName=manager-role
 	$(CONTROLLER_GEN) \
-		paths=./apis/vmware/v1beta1 \
-		paths=./apis/vmware/v1beta2 \
+		paths=./api/supervisor/v1beta1 \
+		paths=./api/supervisor/v1beta2 \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(SUPERVISOR_CRD_ROOT)
 	# net-operator is used for tests
@@ -361,10 +361,10 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 
 .PHONY: generate-go-deepcopy
 generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./apis"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./apis/... \
+		paths=./api/... \
 		paths=./pkg/conversion/api/...
 	$(CONTROLLER_GEN) \
     	object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
@@ -372,12 +372,12 @@ generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
 
 .PHONY: generate-go-conversions
 generate-go-conversions: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
-	$(MAKE) clean-generated-conversions SRC_DIRS="./apis/v1beta1"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/govmomi/v1beta1,./api/supervisor/v1beta1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./apis/v1beta1 \
-		./apis/vmware/v1beta1
+		./api/govmomi/v1beta1 \
+		./api/supervisor/v1beta1
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
@@ -536,7 +536,7 @@ verify-gen: generate  ## Verify go generated files are up to date
 .PHONY: verify-conversions
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER) \
-		./apis/...
+		./api/...
 
 .PHONY: verify-doctoc
 verify-doctoc: generate-doctoc
@@ -688,7 +688,7 @@ setup-envtest: $(SETUP_ENVTEST) ## Set up envtest (download kubebuilder assets)
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GOVC) ## Run unit tests
-	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -v ./apis/... ./controllers/... ./pkg/... ./internal/... ./hack/tools/... $(TEST_ARGS)
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -v ./api/... ./controllers/... ./pkg/... ./internal/... ./hack/tools/... $(TEST_ARGS)
 
 .PHONY: test-verbose
 test-verbose: ## Run unit tests with verbose flag
@@ -699,7 +699,7 @@ test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) $(GOVC) ## Run unit tests
 	# Note: running ensure.go to make sure tests run with the correct kube-kins image in CI
 	hack/ensure-go.sh
 	# Note: ARTIFACTS must be set so the ginkgo suites write junit reports to the ARTIFACTS folder
-	set +o errexit; (ARTIFACTS=$(ARTIFACTS) KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -json ./apis/... ./controllers/... ./pkg/... ./internal/... ./hack/tools/... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
+	set +o errexit; (ARTIFACTS=$(ARTIFACTS) KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -json ./api/... ./controllers/... ./pkg/... ./internal/... ./hack/tools/... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
 	exit $$(cat $(ARTIFACTS)/junit.exitcode)
 

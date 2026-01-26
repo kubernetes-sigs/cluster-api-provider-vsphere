@@ -106,13 +106,13 @@ linters:
         - pkg: sigs.k8s.io/controller-runtime
           alias: ctrl
         # CAPV
-        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1
           alias: infrav1beta1
-        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2
           alias: infrav1
-        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta1
           alias: vmwarev1beta1
-        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2
           alias: vmwarev1
         # Conversions
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client
@@ -328,39 +328,39 @@ linters:
         # Disable linters for conversion
       - linters:
           - staticcheck
-        path: ^apis\/.*\/.*conversion.*\.go$
+        path: ^api\/.*\/.*conversion.*\.go$
         text: 'SA1019: in.(.+) is deprecated'
       - linters:
           - revive
         # Ignoring stylistic checks for generated code
-        path: ^apis\/.*\/.*conversion.*\.go$
+        path: ^api\/.*\/.*conversion.*\.go$
         # Checking if an error is nil to just after return the error or nil is redundant
         text: 'if-return: redundant if ...; err != nil check, just return error instead'
       - linters:
           - revive
         # Ignoring stylistic checks for generated code
-        path: ^apis\/.*\/.*conversion.*\.go$
+        path: ^api\/.*\/.*conversion.*\.go$
         # Exported function and methods should have comments. This warns on undocumented exported functions and methods.
         text: exported (method|function|type|const) (.+) should have comment or be unexported
       - linters:
           - revive
         # Ignoring stylistic checks for generated code
-        path: ^apis\/.*\/.*conversion.*\.go$
+        path: ^api\/.*\/.*conversion.*\.go$
         # This rule warns when initialism, variable or package naming conventions are not followed.
         text: 'var-naming: don''t use underscores in Go names;'
       - linters:
           - revive
         # Ignoring stylistic checks for generated code
-        path: ^apis\/.*\/.*conversion.*\.go$
+        path: ^api\/.*\/.*conversion.*\.go$
         # By convention, receiver names in a method should reflect their identity.
         text: 'receiver-naming: receiver name'
       - linters:
           - staticcheck
-        path: ^apis\/.*\/.*conversion.*\.go$
+        path: ^api\/.*\/.*conversion.*\.go$
         text: 'ST1003: should not use underscores in Go names;'
       - linters:
           - staticcheck
-        path: ^apis\/.*\/.*conversion.*\.go$
+        path: ^api\/.*\/.*conversion.*\.go$
         text: 'ST1016: methods on the same type should have the same receiver name'
       - linters:
           - goconst

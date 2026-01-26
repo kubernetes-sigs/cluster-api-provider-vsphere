@@ -194,10 +194,10 @@ func (r *ServiceAccountReconciler) patch(ctx context.Context, clusterCtx *vmware
 	// NOTE: this controller only owns the ProviderServiceAccountsReady condition on the VSphereCluster object.
 	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
 		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
-			vmwarev1.ProviderServiceAccountsReadyCondition,
+			vmwarev1.ProviderServiceAccountsReadyV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterProviderServiceAccountsReadyCondition,
 		}},
 	)
 }
@@ -206,20 +206,20 @@ func (r *ServiceAccountReconciler) patch(ctx context.Context, clusterCtx *vmware
 func (r *ServiceAccountReconciler) reconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) (_ reconcile.Result, reterr error) {
 	defer func() {
 		if reterr != nil {
-			deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition, vmwarev1.ProviderServiceAccountsReconciliationFailedReason,
+			deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyV1Beta1Condition, vmwarev1.ProviderServiceAccountsReconciliationFailedV1Beta1Reason,
 				clusterv1.ConditionSeverityWarning, "%v", reterr)
 			conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
-				Type:    vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
+				Type:    vmwarev1.VSphereClusterProviderServiceAccountsReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  vmwarev1.VSphereClusterProviderServiceAccountsNotReadyV1Beta2Reason,
+				Reason:  vmwarev1.VSphereClusterProviderServiceAccountsNotReadyReason,
 				Message: reterr.Error(),
 			})
 		} else {
-			deprecatedv1beta1conditions.MarkTrue(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)
+			deprecatedv1beta1conditions.MarkTrue(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyV1Beta1Condition)
 			conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
-				Type:   vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
+				Type:   vmwarev1.VSphereClusterProviderServiceAccountsReadyCondition,
 				Status: metav1.ConditionTrue,
-				Reason: vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Reason,
+				Reason: vmwarev1.VSphereClusterProviderServiceAccountsReadyReason,
 			})
 		}
 	}()

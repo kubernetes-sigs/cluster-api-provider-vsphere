@@ -170,7 +170,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					return false
 				}
 
-				if !ptr.Deref(i.Status.Ready, false) && conditions.GetReason(i, infrav1.VSphereClusterIdentityAvailableV1Beta2Condition) == infrav1.VSphereClusterIdentitySecretAlreadyInUseV1Beta2Reason {
+				if !ptr.Deref(i.Status.Ready, false) && conditions.GetReason(i, infrav1.VSphereClusterIdentityAvailableCondition) == infrav1.VSphereClusterIdentitySecretAlreadyInUseReason {
 					return true
 				}
 				return false
@@ -194,7 +194,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					return false
 				}
 
-				if !ptr.Deref(i.Status.Ready, false) && conditions.GetReason(i, infrav1.VSphereClusterIdentityAvailableV1Beta2Condition) == infrav1.VSphereClusterIdentitySecretNotAvailableV1Beta2Reason {
+				if !ptr.Deref(i.Status.Ready, false) && conditions.GetReason(i, infrav1.VSphereClusterIdentityAvailableCondition) == infrav1.VSphereClusterIdentitySecretNotAvailableReason {
 					return true
 				}
 				return false

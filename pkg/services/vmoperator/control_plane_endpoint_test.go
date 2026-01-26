@@ -180,7 +180,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectAPIEndpoint = false
 			expectVMS = false
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyNetworkProvider())
-			Expect(conditions.Get(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition)).To(BeNil())
+			Expect(conditions.Get(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterLoadBalancerReadyCondition)).To(BeNil())
 			verifyOutput()
 		})
 
@@ -229,9 +229,9 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			netOpProvider := network.NetOpNetworkProvider(c)
 			// we expect the reconciliation fail because lack of bootstrap data
 			expectedConditions = append(expectedConditions, metav1.Condition{
-				Type:    vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+				Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyV1Beta2Reason,
+				Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyReason,
 				Message: noNetworkFailure,
 			})
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, netOpProvider)
@@ -243,7 +243,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectedAnnotations["netoperator.vmware.com/network-name"] = "dummy-network"
 			expectVMS = true
 			createDefaultNetwork(ctx, clusterCtx, c)
-			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason
+			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerWaitingForIPReason
 			expectedConditions[0].Message = waitingForVIPFailure
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, netOpProvider)
 			verifyOutput()
@@ -256,7 +256,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectedHost = vip
 			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
 			expectedConditions[0].Status = metav1.ConditionTrue
-			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Reason
+			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerReadyReason
 			expectedConditions[0].Message = ""
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, netOpProvider)
 			verifyOutput()
@@ -271,9 +271,9 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectVMS = false
 			expectedType = vmoprvhub.VirtualMachineServiceTypeLoadBalancer
 			expectedConditions = append(expectedConditions, metav1.Condition{
-				Type:    vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+				Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyV1Beta2Reason,
+				Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyReason,
 				Message: noNetworkFailure,
 			})
 
@@ -289,7 +289,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectedVnetName := network.GetNSXTVirtualNetworkName(clusterName)
 			expectedAnnotations["ncp.vmware.com/virtual-network-name"] = expectedVnetName
 			expectVMS = true
-			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason
+			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerWaitingForIPReason
 			expectedConditions[0].Message = waitingForVIPFailure
 			createVnet(ctx, clusterCtx, c)
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, nsxtProvider)
@@ -302,7 +302,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectedPort = defaultAPIBindPort
 			expectedHost = vip
 			expectedConditions[0].Status = metav1.ConditionTrue
-			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Reason
+			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerReadyReason
 			expectedConditions[0].Message = ""
 			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, nsxtProvider)

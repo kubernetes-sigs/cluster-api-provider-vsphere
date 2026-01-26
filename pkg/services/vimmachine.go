@@ -117,9 +117,9 @@ func (v *VimMachineService) ReconcileDelete(ctx context.Context, machineCtx capv
 
 	// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
 	// in order to provide evidences about machine deletion.
-	deprecatedv1beta1conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
-	conditions.SetMirrorCondition(vm, vimMachineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
-		conditions.TargetConditionType(infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition))
+	deprecatedv1beta1conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, vm)
+	conditions.SetMirrorCondition(vm, vimMachineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedCondition,
+		conditions.TargetConditionType(infrav1.VSphereMachineVirtualMachineProvisionedCondition))
 	return nil
 }
 
@@ -176,9 +176,9 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 		log.Info("Waiting for VSphereVM to become ready")
 		// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
 		// in order to provide evidences about machine provisioning while provisioning is actually happening.
-		deprecatedv1beta1conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
-		conditions.SetMirrorCondition(vm, vimMachineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
-			conditions.TargetConditionType(infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition))
+		deprecatedv1beta1conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, vm)
+		conditions.SetMirrorCondition(vm, vimMachineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedCondition,
+			conditions.TargetConditionType(infrav1.VSphereMachineVirtualMachineProvisionedCondition))
 		return true, nil
 	}
 
@@ -195,11 +195,11 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 		if err != nil {
 			return false, errors.Wrapf(err, "unexpected error while reconciling network for %s", vimMachineCtx)
 		}
-		deprecatedv1beta1conditions.MarkFalse(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForNetworkAddressesReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedv1beta1conditions.MarkFalse(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForNetworkAddressesV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(vimMachineCtx.VSphereMachine, metav1.Condition{
-			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+			Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.VSphereMachineVirtualMachineWaitingForNetworkAddressV1Beta2Reason,
+			Reason: infrav1.VSphereMachineVirtualMachineWaitingForNetworkAddressReason,
 		})
 		return true, nil
 	}
@@ -229,7 +229,7 @@ func (v *VimMachineService) GetHostInfo(ctx context.Context, machineCtx capvcont
 		return "", err
 	}
 
-	if conditions.IsTrue(vsphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition) {
+	if conditions.IsTrue(vsphereVM, infrav1.VSphereVMVirtualMachineProvisionedCondition) {
 		return vsphereVM.Status.Host, nil
 	}
 	log.V(4).Info("Returning empty host info as VMProvisioned condition is not set to true")

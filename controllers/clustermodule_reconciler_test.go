@@ -146,7 +146,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.BeElementOf(kcpUUID+"a", mdUUID+"a"))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[1].ModuleUUID).To(gomega.BeElementOf(kcpUUID+"a", mdUUID+"a"))
 				// Check that condition got set.
-				g.Expect(conditions.IsTrue(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition)).To(gomega.BeTrue())
+				g.Expect(conditions.IsTrue(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition)).To(gomega.BeTrue())
 			},
 		},
 		{
@@ -174,8 +174,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.BeElementOf(kcpUUID, mdUUID))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[1].ModuleUUID).To(gomega.BeElementOf(kcpUUID, mdUUID))
 				// Check that condition got set.
-				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition)).To(gomega.BeTrue())
-				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
+				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
 			},
 		},
 		{
@@ -203,8 +203,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.BeElementOf(kcpUUID, mdUUID))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[1].ModuleUUID).To(gomega.BeElementOf(kcpUUID, mdUUID))
 				// Check that condition got set.
-				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition)).To(gomega.BeTrue())
-				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
+				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
 			},
 		},
 		{
@@ -233,8 +233,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.BeElementOf(kcpUUID+"a", mdUUID))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[1].ModuleUUID).To(gomega.BeElementOf(kcpUUID+"a", mdUUID))
 				// Check that condition got set.
-				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition)).To(gomega.BeTrue())
-				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
+				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition).Message).To(gomega.ContainSubstring(vCenter500err.Error()))
 			},
 		},
 		{
@@ -250,8 +250,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(mdUUID))
 				g.Expect(ptr.Deref(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane, false)).To(gomega.BeFalse())
 
-				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition)).To(gomega.BeTrue())
-				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition).Message).To(gomega.ContainSubstring("kcp"))
+				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition).Message).To(gomega.ContainSubstring("kcp"))
 			},
 		},
 		{
@@ -269,8 +269,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(kcpUUID))
 				g.Expect(ptr.Deref(clusterCtx.VSphereCluster.Spec.ClusterModules[0].ControlPlane, false)).To(gomega.BeTrue())
 
-				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition)).To(gomega.BeTrue())
-				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition).Message).To(gomega.ContainSubstring("md"))
+				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition).Message).To(gomega.ContainSubstring("md"))
 			},
 		},
 		{
@@ -284,8 +284,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			haveError: false,
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.BeEmpty())
-				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition)).To(gomega.BeTrue())
-				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition).Message).To(gomega.ContainSubstring("kcp"))
+				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition).Message).To(gomega.ContainSubstring("kcp"))
 			},
 		},
 		{

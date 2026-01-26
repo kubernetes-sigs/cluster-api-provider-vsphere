@@ -171,7 +171,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			if err := testEnv.Get(ctx, key, infraMachine); err != nil {
 				return false
 			}
-			return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition, infrav1.VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason)
+			return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereVMVirtualMachineProvisionedCondition, infrav1.VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyReason)
 		}, timeout).Should(BeTrue())
 
 		By("setting the cluster infrastructure to be ready")
@@ -183,7 +183,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		}, timeout).Should(Succeed())
 
 		Eventually(func() bool {
-			return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition, infrav1.VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason)
+			return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereVMVirtualMachineProvisionedCondition, infrav1.VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyReason)
 		}, timeout).Should(BeFalse())
 	})
 
@@ -201,7 +201,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Expect(testEnv.List(ctx, &vms, client.InNamespace(testNs.Name), client.MatchingLabels{
 					clusterv1.ClusterNameLabel: capiCluster.Name,
 				})).To(Succeed())
-				return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition, infrav1.VSphereMachineVirtualMachineWaitingForBootstrapDataV1Beta2Reason) &&
+				return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition, infrav1.VSphereMachineVirtualMachineWaitingForBootstrapDataReason) &&
 					len(vms.Items) == 0
 			}, timeout).Should(BeTrue())
 

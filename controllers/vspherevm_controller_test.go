@@ -209,10 +209,10 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 
-		g.Expect(conditions.Has(vm, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition)).To(BeTrue())
-		vmProvisionCondition := conditions.Get(vm, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition)
+		g.Expect(conditions.Has(vm, infrav1.VSphereVMVirtualMachineProvisionedCondition)).To(BeTrue())
+		vmProvisionCondition := conditions.Get(vm, infrav1.VSphereVMVirtualMachineProvisionedCondition)
 		g.Expect(vmProvisionCondition.Status).To(Equal(metav1.ConditionFalse))
-		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.VSphereVMVirtualMachineWaitingForStaticIPAllocationV1Beta2Reason))
+		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.VSphereVMVirtualMachineWaitingForStaticIPAllocationReason))
 	})
 
 	t.Run("Waiting for IP addr allocation", func(t *testing.T) {
@@ -245,10 +245,10 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 
-		g.Expect(conditions.Has(vm, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition)).To(BeTrue())
-		vmProvisionCondition := conditions.Get(vm, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition)
+		g.Expect(conditions.Has(vm, infrav1.VSphereVMVirtualMachineProvisionedCondition)).To(BeTrue())
+		vmProvisionCondition := conditions.Get(vm, infrav1.VSphereVMVirtualMachineProvisionedCondition)
 		g.Expect(vmProvisionCondition.Status).To(Equal(metav1.ConditionFalse))
-		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.VSphereVMVirtualMachineWaitingForIPAllocationV1Beta2Reason))
+		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.VSphereVMVirtualMachineWaitingForIPAllocationReason))
 	})
 
 	t.Run("Deleting a VM with IPAddressClaims", func(t *testing.T) {
@@ -501,7 +501,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
-		g.Expect(conditions.IsTrue(vm, infrav1.VSphereVMVCenterAvailableV1Beta2Condition)).To(BeTrue())
+		g.Expect(conditions.IsTrue(vm, infrav1.VSphereVMVCenterAvailableCondition)).To(BeTrue())
 	},
 	)
 

@@ -69,12 +69,12 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 	log := ctrl.LoggerFrom(ctx)
 
 	if !clustermodule.IsClusterCompatible(clusterCtx) {
-		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.VCenterVersionIncompatibleReason, clusterv1.ConditionSeverityInfo,
+		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition, infrav1.VCenterVersionIncompatibleV1Beta1Reason, clusterv1.ConditionSeverityInfo,
 			"vCenter version %s does not support cluster modules", clusterCtx.VSphereCluster.Status.VCenterVersion)
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
-			Type:    infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
+			Type:    infrav1.VSphereClusterClusterModulesReadyCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereClusterModulesInvalidVCenterVersionV1Beta2Reason,
+			Reason:  infrav1.VSphereClusterModulesInvalidVCenterVersionReason,
 			Message: fmt.Sprintf("vCenter version %s does not support cluster modules", clusterCtx.VSphereCluster.Status.VCenterVersion),
 		})
 		log.V(5).Info(fmt.Sprintf("vCenter version %s does not support cluster modules to implement anti affinity (vCenter >= 7 required)", clusterCtx.VSphereCluster.Status.VCenterVersion))
@@ -176,24 +176,24 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 		} else {
 			err = errors.New(generateClusterModuleErrorMessage(modErrs))
 		}
-		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason,
+		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition, infrav1.ClusterModuleSetupFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityWarning, "%s", generateClusterModuleErrorMessage(modErrs))
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
-			Type:    infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
+			Type:    infrav1.VSphereClusterClusterModulesReadyCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereClusterClusterModulesNotReadyV1Beta2Reason,
+			Reason:  infrav1.VSphereClusterClusterModulesNotReadyReason,
 			Message: generateClusterModuleErrorMessage(modErrs),
 		})
 		return reconcile.Result{}, err
 	case len(modErrs) == 0 && len(clusterModuleSpecs) > 0:
-		deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
+		deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition)
 	default:
-		deprecatedv1beta1conditions.Delete(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
+		deprecatedv1beta1conditions.Delete(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition)
 	}
 	conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
-		Type:   infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
+		Type:   infrav1.VSphereClusterClusterModulesReadyCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.VSphereClusterClusterModulesReadyV1Beta2Reason,
+		Reason: infrav1.VSphereClusterClusterModulesReadyReason,
 	})
 	return reconcile.Result{}, err
 }

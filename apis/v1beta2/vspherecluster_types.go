@@ -30,71 +30,71 @@ const (
 
 // VSphereCluster's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereClusterReadyV1Beta2Condition is true if the VSphereCluster's deletionTimestamp is not set, VSphereCluster's
+	// VSphereClusterReadyCondition is true if the VSphereCluster's deletionTimestamp is not set, VSphereCluster's
 	// FailureDomainsReady, VCenterAvailable and ClusterModulesReady conditions are true.
-	VSphereClusterReadyV1Beta2Condition = clusterv1.ReadyCondition
+	VSphereClusterReadyCondition = clusterv1.ReadyCondition
 
-	// VSphereClusterReadyV1Beta2Reason surfaces when the VSphereCluster readiness criteria is met.
-	VSphereClusterReadyV1Beta2Reason = clusterv1.ReadyReason
+	// VSphereClusterReadyReason surfaces when the VSphereCluster readiness criteria is met.
+	VSphereClusterReadyReason = clusterv1.ReadyReason
 
-	// VSphereClusterNotReadyV1Beta2Reason surfaces when the VSphereCluster readiness criteria is not met.
-	VSphereClusterNotReadyV1Beta2Reason = clusterv1.NotReadyReason
+	// VSphereClusterNotReadyReason surfaces when the VSphereCluster readiness criteria is not met.
+	VSphereClusterNotReadyReason = clusterv1.NotReadyReason
 
-	// VSphereClusterReadyUnknownV1Beta2Reason surfaces when at least one VSphereCluster readiness criteria is unknown
+	// VSphereClusterReadyUnknownReason surfaces when at least one VSphereCluster readiness criteria is unknown
 	// and no VSphereCluster readiness criteria is not met.
-	VSphereClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
+	VSphereClusterReadyUnknownReason = clusterv1.ReadyUnknownReason
 )
 
 // VSphereCluster's FailureDomainsReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereClusterFailureDomainsReadyV1Beta2Condition documents the status of failure domains for a VSphereCluster.
-	VSphereClusterFailureDomainsReadyV1Beta2Condition = "FailureDomainsReady"
+	// VSphereClusterFailureDomainsReadyCondition documents the status of failure domains for a VSphereCluster.
+	VSphereClusterFailureDomainsReadyCondition = "FailureDomainsReady"
 
-	// VSphereClusterFailureDomainsReadyV1Beta2Reason surfaces when the failure domains for a VSphereCluster are ready.
-	VSphereClusterFailureDomainsReadyV1Beta2Reason = clusterv1.ReadyReason
+	// VSphereClusterFailureDomainsReadyReason surfaces when the failure domains for a VSphereCluster are ready.
+	VSphereClusterFailureDomainsReadyReason = clusterv1.ReadyReason
 
-	// VSphereClusterFailureDomainsWaitingForFailureDomainStatusV1Beta2Reason surfaces when not all VSphereFailureDomains for a VSphereCluster are ready.
-	VSphereClusterFailureDomainsWaitingForFailureDomainStatusV1Beta2Reason = "WaitingForFailureDomainStatus"
+	// VSphereClusterFailureDomainsWaitingForFailureDomainStatusReason surfaces when not all VSphereFailureDomains for a VSphereCluster are ready.
+	VSphereClusterFailureDomainsWaitingForFailureDomainStatusReason = "WaitingForFailureDomainStatus"
 
-	// VSphereClusterFailureDomainsNotReadyV1Beta2Reason surfaces when the failure domains for a VSphereCluster are not ready.
-	VSphereClusterFailureDomainsNotReadyV1Beta2Reason = clusterv1.NotReadyReason
+	// VSphereClusterFailureDomainsNotReadyReason surfaces when the failure domains for a VSphereCluster are not ready.
+	VSphereClusterFailureDomainsNotReadyReason = clusterv1.NotReadyReason
 
-	// VSphereClusterFailureDomainsDeletingV1Beta2Reason surfaces when the failure domains for a VSphereCluster are being deleted.
-	VSphereClusterFailureDomainsDeletingV1Beta2Reason = clusterv1.DeletingReason
+	// VSphereClusterFailureDomainsDeletingReason surfaces when the failure domains for a VSphereCluster are being deleted.
+	VSphereClusterFailureDomainsDeletingReason = clusterv1.DeletingReason
 )
 
 // VSphereCluster's VCenterAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereClusterVCenterAvailableV1Beta2Condition documents the status of vCenter for a VSphereCluster.
-	VSphereClusterVCenterAvailableV1Beta2Condition = "VCenterAvailable"
+	// VSphereClusterVCenterAvailableCondition documents the status of vCenter for a VSphereCluster.
+	VSphereClusterVCenterAvailableCondition = "VCenterAvailable"
 
-	// VSphereClusterVCenterAvailableV1Beta2Reason surfaces when the vCenter for a VSphereCluster is available.
-	VSphereClusterVCenterAvailableV1Beta2Reason = clusterv1.AvailableReason
+	// VSphereClusterVCenterAvailableReason surfaces when the vCenter for a VSphereCluster is available.
+	VSphereClusterVCenterAvailableReason = clusterv1.AvailableReason
 
-	// VSphereClusterVCenterUnreachableV1Beta2Reason surfaces when the vCenter for a VSphereCluster is unreachable.
-	VSphereClusterVCenterUnreachableV1Beta2Reason = "VCenterUnreachable"
+	// VSphereClusterVCenterUnreachableReason surfaces when the vCenter for a VSphereCluster is unreachable.
+	VSphereClusterVCenterUnreachableReason = "VCenterUnreachable"
 
-	// VSphereClusterVCenterAvailableDeletingV1Beta2Reason surfaces when the VSphereCluster is being deleted.
-	VSphereClusterVCenterAvailableDeletingV1Beta2Reason = clusterv1.DeletingReason
+	// VSphereClusterVCenterAvailableDeletingReason surfaces when the VSphereCluster is being deleted.
+	VSphereClusterVCenterAvailableDeletingReason = clusterv1.DeletingReason
 )
 
 // VSphereCluster's ClusterModulesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereClusterClusterModulesReadyV1Beta2Condition documents the status of vCenter for a VSphereCluster.
-	VSphereClusterClusterModulesReadyV1Beta2Condition = "ClusterModulesReady"
+	// VSphereClusterClusterModulesReadyCondition documents the status of vCenter for a VSphereCluster.
+	VSphereClusterClusterModulesReadyCondition = "ClusterModulesReady"
 
-	// VSphereClusterClusterModulesReadyV1Beta2Reason surfaces when the cluster modules for a VSphereCluster are ready.
-	VSphereClusterClusterModulesReadyV1Beta2Reason = clusterv1.ReadyReason
+	// VSphereClusterClusterModulesReadyReason surfaces when the cluster modules for a VSphereCluster are ready.
+	VSphereClusterClusterModulesReadyReason = clusterv1.ReadyReason
 
-	// VSphereClusterModulesInvalidVCenterVersionV1Beta2Reason surfaces when the cluster modules for a VSphereCluster can't be reconciled
+	// VSphereClusterModulesInvalidVCenterVersionReason surfaces when the cluster modules for a VSphereCluster can't be reconciled
 	// due to an invalid vCenter version.
-	VSphereClusterModulesInvalidVCenterVersionV1Beta2Reason = "InvalidVCenterVersion"
+	VSphereClusterModulesInvalidVCenterVersionReason = "InvalidVCenterVersion"
 
-	// VSphereClusterClusterModulesNotReadyV1Beta2Reason surfaces when the cluster modules for a VSphereCluster are not ready.
-	VSphereClusterClusterModulesNotReadyV1Beta2Reason = clusterv1.NotReadyReason
+	// VSphereClusterClusterModulesNotReadyReason surfaces when the cluster modules for a VSphereCluster are not ready.
+	VSphereClusterClusterModulesNotReadyReason = clusterv1.NotReadyReason
 
-	// VSphereClusterClusterModulesDeletingV1Beta2Reason surfaces when the cluster modules for a VSphereCluster are being deleted.
-	VSphereClusterClusterModulesDeletingV1Beta2Reason = clusterv1.DeletingReason
+	// VSphereClusterClusterModulesDeletingReason surfaces when the cluster modules for a VSphereCluster are being deleted.
+	VSphereClusterClusterModulesDeletingReason = clusterv1.DeletingReason
 )
 
 // VCenterVersion conveys the API version of the vCenter instance.

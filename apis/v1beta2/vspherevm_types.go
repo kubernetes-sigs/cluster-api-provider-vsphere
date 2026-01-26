@@ -39,139 +39,139 @@ const (
 
 // VSphereVM's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereVMReadyV1Beta2Condition is true if the VSphereVM's deletionTimestamp is not set, VSphereVM's
+	// VSphereVMReadyCondition is true if the VSphereVM's deletionTimestamp is not set, VSphereVM's
 	// VirtualMachineProvisioned, VCenterAvailable and IPAddressClaimsFulfilled are true.
-	VSphereVMReadyV1Beta2Condition = clusterv1.ReadyCondition
+	VSphereVMReadyCondition = clusterv1.ReadyCondition
 
-	// VSphereVMReadyV1Beta2Reason surfaces when the VSphereVM readiness criteria is met.
-	VSphereVMReadyV1Beta2Reason = clusterv1.ReadyReason
+	// VSphereVMReadyReason surfaces when the VSphereVM readiness criteria is met.
+	VSphereVMReadyReason = clusterv1.ReadyReason
 
-	// VSphereVMNotReadyV1Beta2Reason surfaces when the VSphereVM readiness criteria is not met.
-	VSphereVMNotReadyV1Beta2Reason = clusterv1.NotReadyReason
+	// VSphereVMNotReadyReason surfaces when the VSphereVM readiness criteria is not met.
+	VSphereVMNotReadyReason = clusterv1.NotReadyReason
 
-	// VSphereVMReadyUnknownV1Beta2Reason surfaces when at least one VSphereVM readiness criteria is unknown
+	// VSphereVMReadyUnknownReason surfaces when at least one VSphereVM readiness criteria is unknown
 	// and no VSphereVM readiness criteria is not met.
-	VSphereVMReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
+	VSphereVMReadyUnknownReason = clusterv1.ReadyUnknownReason
 )
 
 // VSphereVM's VirtualMachineProvisioned condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereVMVirtualMachineProvisionedV1Beta2Condition documents the status of the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineProvisionedCondition documents the status of the VirtualMachine that is controlled
 	// by the VSphereVM.
-	VSphereVMVirtualMachineProvisionedV1Beta2Condition = "VirtualMachineProvisioned"
+	VSphereVMVirtualMachineProvisionedCondition = "VirtualMachineProvisioned"
 
-	// VSphereVMVirtualMachineWaitingForCloneV1Beta2Reason documents the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineWaitingForCloneReason documents the VirtualMachine that is controlled
 	// by the VSphereVM waiting for the clone operation to complete.
-	VSphereVMVirtualMachineWaitingForCloneV1Beta2Reason = "WaitingForClone"
+	VSphereVMVirtualMachineWaitingForCloneReason = "WaitingForClone"
 
-	// VSphereVMVirtualMachineWaitingForStaticIPAllocationV1Beta2Reason documents the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineWaitingForStaticIPAllocationReason documents the VirtualMachine that is controlled
 	// by the VSphereVM waiting for the allocation of a static IP address.
-	VSphereVMVirtualMachineWaitingForStaticIPAllocationV1Beta2Reason = "WaitingForStaticIPAllocation"
+	VSphereVMVirtualMachineWaitingForStaticIPAllocationReason = "WaitingForStaticIPAllocation"
 
-	// VSphereVMVirtualMachineWaitingForIPAddressV1Beta2Reason documents the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineWaitingForIPAddressReason documents the VirtualMachine that is controlled
 	// by the VSphereVM waiting for an IP address to be provisioned from the IPAM provider.
-	VSphereVMVirtualMachineWaitingForIPAddressV1Beta2Reason = "WaitingForIPAddress"
+	VSphereVMVirtualMachineWaitingForIPAddressReason = "WaitingForIPAddress"
 
-	// VSphereVMVirtualMachineWaitingForIPAllocationV1Beta2Reason documents the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineWaitingForIPAllocationReason documents the VirtualMachine that is controlled
 	// by the VSphereVM waiting for the allocation of an IP address.
 	// This is used when the dhcp4 or dhcp6 for a VirtualMachine is set and the VirtualMachine is waiting for the
 	// relevant IP address to show up on the VM.
-	VSphereVMVirtualMachineWaitingForIPAllocationV1Beta2Reason = "WaitingForIPAllocation"
+	VSphereVMVirtualMachineWaitingForIPAllocationReason = "WaitingForIPAllocation"
 
-	// VSphereVMVirtualMachinePoweringOnV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// VSphereVMVirtualMachinePoweringOnReason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM is executing the power on sequence.
-	VSphereVMVirtualMachinePoweringOnV1Beta2Reason = "PoweringOn"
+	VSphereVMVirtualMachinePoweringOnReason = "PoweringOn"
 
-	// VSphereVMVirtualMachineProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineProvisionedReason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM is provisioned.
-	VSphereVMVirtualMachineProvisionedV1Beta2Reason = clusterv1.ProvisionedReason
+	VSphereVMVirtualMachineProvisionedReason = clusterv1.ProvisionedReason
 
-	// VSphereVMVirtualMachineTaskFailedV1Beta2Reason surfaces when a task for the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineTaskFailedReason surfaces when a task for the VirtualMachine that is controlled
 	// by the VSphereVM failed; the reconcile look will automatically retry the operation,
 	// but a user intervention might be required to fix the problem.
-	VSphereVMVirtualMachineTaskFailedV1Beta2Reason = "TaskFailed"
+	VSphereVMVirtualMachineTaskFailedReason = "TaskFailed"
 
-	// VSphereVMVirtualMachineNotFoundByBIOSUUIDV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineNotFoundByBIOSUUIDReason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM can't be found by BIOS UUID.
 	// Those kind of errors could be transient sometimes and failed VSphereVM are automatically
 	// reconciled by the controller.
-	VSphereVMVirtualMachineNotFoundByBIOSUUIDV1Beta2Reason = "NotFoundByBIOSUUID"
+	VSphereVMVirtualMachineNotFoundByBIOSUUIDReason = "NotFoundByBIOSUUID"
 
-	// VSphereVMVirtualMachineNotProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineNotProvisionedReason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM is not provisioned.
-	VSphereVMVirtualMachineNotProvisionedV1Beta2Reason = clusterv1.NotProvisionedReason
+	VSphereVMVirtualMachineNotProvisionedReason = clusterv1.NotProvisionedReason
 
-	// VSphereVMVirtualMachineDeletingV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineDeletingReason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM is being deleted.
-	VSphereVMVirtualMachineDeletingV1Beta2Reason = clusterv1.DeletingReason
+	VSphereVMVirtualMachineDeletingReason = clusterv1.DeletingReason
 )
 
 // VSphereVM's VCenterAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereVMVCenterAvailableV1Beta2Condition documents the availability of the VCenter hosting the VSphereVM.
-	VSphereVMVCenterAvailableV1Beta2Condition = "VCenterAvailable"
+	// VSphereVMVCenterAvailableCondition documents the availability of the VCenter hosting the VSphereVM.
+	VSphereVMVCenterAvailableCondition = "VCenterAvailable"
 
-	// VSphereVMVCenterAvailableV1Beta2Reason documents the VCenter hosting the VSphereVM
+	// VSphereVMVCenterAvailableReason documents the VCenter hosting the VSphereVM
 	// being available.
-	VSphereVMVCenterAvailableV1Beta2Reason = clusterv1.AvailableReason
+	VSphereVMVCenterAvailableReason = clusterv1.AvailableReason
 
-	// VSphereVMVCenterUnreachableV1Beta2Reason documents the VCenter hosting the VSphereVM
+	// VSphereVMVCenterUnreachableReason documents the VCenter hosting the VSphereVM
 	// cannot be reached.
-	VSphereVMVCenterUnreachableV1Beta2Reason = "VCenterUnreachable"
+	VSphereVMVCenterUnreachableReason = "VCenterUnreachable"
 )
 
 // VSphereVM's IPAddressClaimsFulfilled condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereVMIPAddressClaimsFulfilledV1Beta2Condition documents the status of claiming an IP address
+	// VSphereVMIPAddressClaimsFulfilledCondition documents the status of claiming an IP address
 	// from an IPAM provider.
-	VSphereVMIPAddressClaimsFulfilledV1Beta2Condition = "IPAddressClaimsFulfilled"
+	VSphereVMIPAddressClaimsFulfilledCondition = "IPAddressClaimsFulfilled"
 
-	// VSphereVMIPAddressClaimsBeingCreatedV1Beta2Reason documents that claims for the
+	// VSphereVMIPAddressClaimsBeingCreatedReason documents that claims for the
 	// IP addresses required by the VSphereVM are being created.
-	VSphereVMIPAddressClaimsBeingCreatedV1Beta2Reason = "IPAddressClaimsBeingCreated"
+	VSphereVMIPAddressClaimsBeingCreatedReason = "IPAddressClaimsBeingCreated"
 
-	// VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason documents that claims for the
+	// VSphereVMIPAddressClaimsWaitingForIPAddressReason documents that claims for the
 	// IP addresses required by the VSphereVM are waiting for IP addresses.
-	VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason = "WaitingForIPAddress"
+	VSphereVMIPAddressClaimsWaitingForIPAddressReason = "WaitingForIPAddress"
 
-	// VSphereVMIPAddressClaimsFulfilledV1Beta2Reason documents that claims for the
+	// VSphereVMIPAddressClaimsFulfilledReason documents that claims for the
 	// IP addresses required by the VSphereVM are fulfilled.
-	VSphereVMIPAddressClaimsFulfilledV1Beta2Reason = "Fulfilled"
+	VSphereVMIPAddressClaimsFulfilledReason = "Fulfilled"
 
-	// VSphereVMIPAddressClaimsNotFulfilledV1Beta2Reason documents that claims for the
+	// VSphereVMIPAddressClaimsNotFulfilledReason documents that claims for the
 	// IP addresses required by the VSphereVM are not fulfilled.
-	VSphereVMIPAddressClaimsNotFulfilledV1Beta2Reason = "NotFulfilled"
+	VSphereVMIPAddressClaimsNotFulfilledReason = "NotFulfilled"
 )
 
 // VSphereVM's GuestSoftPowerOffSucceeded condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition documents the status of performing guest initiated
+	// VSphereVMGuestSoftPowerOffSucceededCondition documents the status of performing guest initiated
 	// graceful shutdown.
-	VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition string = "GuestSoftPowerOffSucceeded"
+	VSphereVMGuestSoftPowerOffSucceededCondition string = "GuestSoftPowerOffSucceeded"
 
-	// VSphereVMGuestSoftPowerOffInProgressV1Beta2Reason documents that the guest receives
+	// VSphereVMGuestSoftPowerOffInProgressReason documents that the guest receives
 	// a graceful shutdown request.
-	VSphereVMGuestSoftPowerOffInProgressV1Beta2Reason = "InProgress"
+	VSphereVMGuestSoftPowerOffInProgressReason = "InProgress"
 
-	// GuestSoftPowerOffFailedV1Beta2Reason documents that the graceful
+	// VSphereVMGuestSoftPowerOffFailedReason documents that the graceful
 	// shutdown request failed.
-	VSphereVMGuestSoftPowerOffFailedV1Beta2Reason = "Failed"
+	VSphereVMGuestSoftPowerOffFailedReason = "Failed"
 
-	// GuestSoftPowerOffSucceededV1Beta2Reason documents that the graceful
+	// VSphereVMGuestSoftPowerOffSucceededReason documents that the graceful
 	// shutdown request succeeded.
-	VSphereVMGuestSoftPowerOffSucceededV1Beta2Reason = "Succeeded"
+	VSphereVMGuestSoftPowerOffSucceededReason = "Succeeded"
 )
 
 // VSphereVM's PCIDevicesDetached condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereVMPCIDevicesDetachedV1Beta2Condition documents the status of the attached PCI devices on the VSphereVM.
+	// VSphereVMPCIDevicesDetachedCondition documents the status of the attached PCI devices on the VSphereVM.
 	// It is a negative condition to notify the user that the device(s) is no longer attached to
 	// the underlying VM and would require manual intervention to fix the situation.
-	VSphereVMPCIDevicesDetachedV1Beta2Condition string = "PCIDevicesDetached"
+	VSphereVMPCIDevicesDetachedCondition string = "PCIDevicesDetached"
 
-	// VSphereVMPCIDevicesDetachedNotFoundV1Beta2Reason documents the VSphereVM not having the PCI device attached during VM startup.
+	// VSphereVMPCIDevicesDetachedNotFoundReason documents the VSphereVM not having the PCI device attached during VM startup.
 	// This would indicate that the PCI devices were removed out of band by an external entity.
-	VSphereVMPCIDevicesDetachedNotFoundV1Beta2Reason = "NotFound"
+	VSphereVMPCIDevicesDetachedNotFoundReason = "NotFound"
 )
 
 // VSphereVMSpec defines the desired state of VSphereVM.

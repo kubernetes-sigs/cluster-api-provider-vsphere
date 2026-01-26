@@ -228,9 +228,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			}
 
 			conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
+				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupReason,
 				Message: fmt.Sprintf("Waiting for VSphereMachine's VirtualMachineGroup %s to exist", key),
 			})
 			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s to exist, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
@@ -242,9 +242,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		isMember := v.checkVirtualMachineGroupMembership(vmGroup, vmKey.Name)
 		if !isMember {
 			conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
+				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupReason,
 				Message: fmt.Sprintf("Waiting for VirtualMachineGroup %s to have %s as a member", klog.KObj(vmGroup), vmKey.Name),
 			})
 			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s to have the vm as a member, requeueing", key.Name), "VirtualMachineGroup", klog.KObj(vmGroup))
@@ -349,12 +349,12 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 	// Reconcile the VM Operator VirtualMachine.
 	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM, affInfo); err != nil {
-		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMCreationFailedReason, clusterv1.ConditionSeverityWarning,
+		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, vmwarev1.VMCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning,
 			"failed to create or update VirtualMachine: %v", err)
 		conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-			Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+			Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereMachineVirtualMachineNotProvisionedV1Beta2Reason,
+			Reason:  infrav1.VSphereMachineVirtualMachineNotProvisionedReason,
 			Message: fmt.Sprintf("failed to create or update VirtualMachine: %v", err),
 		})
 		// TODO: what to do if AlreadyExists error
@@ -373,7 +373,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	if !meta.IsStatusConditionTrue(vmOperatorVM.Status.Conditions, vmoprvhub.VirtualMachineConditionCreated) {
 		// VM operator has conditions which indicate pre-requirements for creation are done.
 		// If one of them is set to false then it hit an error case and the information must bubble up
-		// to the VMProvisionedCondition in CAPV.
+		// to the VMProvisionedV1Beta1Condition in CAPV.
 		// NOTE: Following conditions do not get surfaced in any capacity unless they are relevant; if they show up at all,
 		// they become pre-reqs and must be true to proceed with VirtualMachine creation.
 		for _, condition := range []string{
@@ -390,9 +390,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			if c == nil || c.Status != metav1.ConditionFalse {
 				continue
 			}
-			deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, c.Reason, clusterv1.ConditionSeverityError, "%s", c.Message)
+			deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, c.Reason, clusterv1.ConditionSeverityError, "%s", c.Message)
 			conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  c.Reason,
 				Message: c.Message,
@@ -401,11 +401,11 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 
 		// All the pre-requisites are in place but the machines is not yet created, report it.
-		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMProvisionStartedReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, vmwarev1.VMProvisionStartedV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+			Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.VSphereMachineVirtualMachineProvisioningV1Beta2Reason,
+			Reason: infrav1.VSphereMachineVirtualMachineProvisioningReason,
 		})
 		log.Info(fmt.Sprintf("VM is not yet created: %s", supervisorMachineCtx))
 		return true, nil
@@ -414,11 +414,11 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseCreated
 
 	if vmOperatorVM.Status.PowerState != vmoprvhub.VirtualMachinePowerStateOn {
-		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.PoweringOnReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, vmwarev1.PoweringOnV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+			Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.VSphereMachineVirtualMachinePoweringOnV1Beta2Reason,
+			Reason: infrav1.VSphereMachineVirtualMachinePoweringOnReason,
 		})
 		log.Info(fmt.Sprintf("VM is not yet powered on: %s", supervisorMachineCtx))
 		return true, nil
@@ -427,22 +427,22 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhasePoweredOn
 
 	if vmOperatorVM.Status.Network == nil || (vmOperatorVM.Status.Network.PrimaryIP4 == "" && vmOperatorVM.Status.Network.PrimaryIP6 == "") {
-		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForNetworkAddressReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, vmwarev1.WaitingForNetworkAddressV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+			Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.VSphereMachineVirtualMachineWaitingForNetworkAddressV1Beta2Reason,
+			Reason: infrav1.VSphereMachineVirtualMachineWaitingForNetworkAddressReason,
 		})
 		log.Info(fmt.Sprintf("VM does not have an IP address: %s", supervisorMachineCtx))
 		return true, nil
 	}
 
 	if vmOperatorVM.Status.BiosUUID == "" {
-		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForBIOSUUIDReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, vmwarev1.WaitingForBIOSUUIDV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+			Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.VSphereMachineVirtualMachineWaitingForBIOSUUIDV1Beta2Reason,
+			Reason: infrav1.VSphereMachineVirtualMachineWaitingForBIOSUUIDReason,
 		})
 		log.Info(fmt.Sprintf("VM does not have a BIOS UUID: %s", supervisorMachineCtx))
 		return true, nil
@@ -460,11 +460,11 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 	// Mark the VSphereMachine as Ready
 	supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
-	deprecatedv1beta1conditions.MarkTrue(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition)
+	deprecatedv1beta1conditions.MarkTrue(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition)
 	conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-		Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+		Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Reason,
+		Reason: infrav1.VSphereMachineVirtualMachineProvisionedReason,
 	})
 	return false, nil
 }

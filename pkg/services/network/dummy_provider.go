@@ -47,9 +47,9 @@ func (np *dummyNetworkProvider) SupportsVMReadinessProbe() bool {
 
 func (np *dummyNetworkProvider) ProvisionClusterNetwork(_ context.Context, clusterCtx *vmware.ClusterContext) error {
 	conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
-		Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
+		Type:   vmwarev1.VSphereClusterNetworkReadyCondition,
 		Status: metav1.ConditionTrue,
-		Reason: vmwarev1.VSphereClusterNetworkReadyV1Beta2Reason,
+		Reason: vmwarev1.VSphereClusterNetworkReadyReason,
 	})
 	return nil
 }

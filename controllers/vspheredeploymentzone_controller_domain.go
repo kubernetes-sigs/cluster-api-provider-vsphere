@@ -37,11 +37,11 @@ import (
 func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain) error {
 	// verify the failure domain for the region
 	if err := r.reconcileInfraFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Region); err != nil {
-		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.RegionMisconfiguredReason, clusterv1.ConditionSeverityError, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.RegionMisconfiguredV1Beta1Reason, clusterv1.ConditionSeverityError, "%v", err)
 		conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereDeploymentZoneFailureDomainRegionMisconfiguredV1Beta2Reason,
+			Reason:  infrav1.VSphereDeploymentZoneFailureDomainRegionMisconfiguredReason,
 			Message: err.Error(),
 		})
 		return errors.Wrapf(err, "failed to reconcile failure domain: region is not configured correctly")
@@ -49,11 +49,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 
 	// verify the failure domain for the zone
 	if err := r.reconcileInfraFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone); err != nil {
-		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ZoneMisconfiguredReason, clusterv1.ConditionSeverityError, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.ZoneMisconfiguredV1Beta1Reason, clusterv1.ConditionSeverityError, "%v", err)
 		conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereDeploymentZoneFailureDomainZoneMisconfiguredV1Beta2Reason,
+			Reason:  infrav1.VSphereDeploymentZoneFailureDomainZoneMisconfiguredReason,
 			Message: err.Error(),
 		})
 		return errors.Wrapf(err, "failed to reconcile failure domain: zone is not configured correctly")
@@ -82,20 +82,20 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 				})
 		}); err != nil {
 		conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereDeploymentZoneFailureDomainValidationFailedV1Beta2Reason,
+			Reason:  infrav1.VSphereDeploymentZoneFailureDomainValidationFailedReason,
 			Message: "failed to update owner references of failure domain",
 		})
 		return err
 	}
 
 	// Mark the VSphereDeploymentZone as having a valid VSphereFailureDomain.
-	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
+	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition)
 	conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-		Type:   infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+		Type:   infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Reason,
+		Reason: infrav1.VSphereDeploymentZoneFailureDomainValidatedReason,
 	})
 	return nil
 }
@@ -108,11 +108,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 	topology := vsphereFailureDomain.Spec.Topology
 	if datastore := topology.Datastore; datastore != "" {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.Datastore(ctx, datastore); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.DatastoreNotFoundReason, clusterv1.ConditionSeverityError, "datastore %s is misconfigured", datastore)
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.DatastoreNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "datastore %s is misconfigured", datastore)
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereDeploymentZoneFailureDomainDatastoreNotFoundV1Beta2Reason,
+				Reason:  infrav1.VSphereDeploymentZoneFailureDomainDatastoreNotFoundReason,
 				Message: fmt.Sprintf("datastore %s is misconfigured", datastore),
 			})
 			return errors.Wrapf(err, "unable to find datastore %s", datastore)
@@ -121,11 +121,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 
 	for _, network := range topology.Networks {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.Network(ctx, network); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.NetworkNotFoundReason, clusterv1.ConditionSeverityError, "network %s is not found", network)
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.NetworkNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "network %s is not found", network)
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereDeploymentZoneFailureDomainNetworkNotFoundV1Beta2Reason,
+				Reason:  infrav1.VSphereDeploymentZoneFailureDomainNetworkNotFoundReason,
 				Message: fmt.Sprintf("network %s is not found", network),
 			})
 			return errors.Wrapf(err, "unable to find network %s", network)
@@ -134,11 +134,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 
 	for _, networkConfig := range topology.NetworkConfigurations {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.Network(ctx, networkConfig.NetworkName); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.NetworkNotFoundReason, clusterv1.ConditionSeverityError, "network %s is not found", networkConfig.NetworkName)
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.NetworkNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "network %s is not found", networkConfig.NetworkName)
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereDeploymentZoneFailureDomainNetworkNotFoundV1Beta2Reason,
+				Reason:  infrav1.VSphereDeploymentZoneFailureDomainNetworkNotFoundReason,
 				Message: fmt.Sprintf("network %s is not found", networkConfig.NetworkName),
 			})
 			return errors.Wrapf(err, "unable to find network %s", networkConfig.NetworkName)
@@ -148,11 +148,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 	if hostPlacementInfo := topology.Hosts; hostPlacementInfo.IsDefined() {
 		rule, err := cluster.VerifyAffinityRule(ctx, deploymentZoneCtx, topology.ComputeCluster, hostPlacementInfo.HostGroupName, hostPlacementInfo.VMGroupName)
 		if err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.HostsMisconfiguredReason, clusterv1.ConditionSeverityError, "vm host affinity does not exist")
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.HostsMisconfiguredV1Beta1Reason, clusterv1.ConditionSeverityError, "vm host affinity does not exist")
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereDeploymentZoneFailureDomainHostsMisconfiguredV1Beta2Reason,
+				Reason:  infrav1.VSphereDeploymentZoneFailureDomainHostsMisconfiguredReason,
 				Message: "vm host affinity rule does not exist",
 			})
 			return err
@@ -174,11 +174,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Con
 
 	ccr, err := deploymentZoneCtx.AuthSession.Finder.ClusterComputeResource(ctx, computeCluster)
 	if err != nil {
-		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ComputeClusterNotFoundReason, clusterv1.ConditionSeverityError, "compute cluster %s not found", computeCluster)
+		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.ComputeClusterNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "compute cluster %s not found", computeCluster)
 		conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+			Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereDeploymentZoneFailureDomainComputeClusterNotFoundV1Beta2Reason,
+			Reason:  infrav1.VSphereDeploymentZoneFailureDomainComputeClusterNotFoundReason,
 			Message: fmt.Sprintf("compute cluster %s not found", computeCluster),
 		})
 		return errors.Wrap(err, "compute cluster not found")
@@ -192,21 +192,21 @@ func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Con
 
 		ref, err := rp.Owner(ctx)
 		if err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ComputeClusterNotFoundReason, clusterv1.ConditionSeverityError, "resource pool owner not found")
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.ComputeClusterNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "resource pool owner not found")
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereDeploymentZoneFailureDomainComputeClusterNotFoundV1Beta2Reason,
+				Reason:  infrav1.VSphereDeploymentZoneFailureDomainComputeClusterNotFoundReason,
 				Message: "resource pool owner not found",
 			})
 			return errors.Wrap(err, "unable to find owner compute resource")
 		}
 		if ref.Reference() != ccr.Reference() {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ResourcePoolNotFoundReason, clusterv1.ConditionSeverityError, "resource pool is not owned by compute cluster")
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.ResourcePoolNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "resource pool is not owned by compute cluster")
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+				Type:    infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereDeploymentZoneFailureDomainResourcePoolNotFoundV1Beta2Reason,
+				Reason:  infrav1.VSphereDeploymentZoneFailureDomainResourcePoolNotFoundReason,
 				Message: "resource pool is not owned by compute cluster",
 			})
 			return errors.Errorf("compute cluster %s does not own resource pool %s", computeCluster, resourcePool)

@@ -139,40 +139,40 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 func (r vsphereDeploymentZoneReconciler) patch(ctx context.Context, vsphereDeploymentZoneContext *capvcontext.VSphereDeploymentZoneContext) error {
 	deprecatedv1beta1conditions.SetSummary(vsphereDeploymentZoneContext.VSphereDeploymentZone,
 		deprecatedv1beta1conditions.WithConditions(
-			infrav1.VCenterAvailableCondition,
-			infrav1.VSphereFailureDomainValidatedCondition,
-			infrav1.PlacementConstraintMetCondition,
+			infrav1.VCenterAvailableV1Beta1Condition,
+			infrav1.VSphereFailureDomainValidatedV1Beta1Condition,
+			infrav1.PlacementConstraintMetV1Beta1Condition,
 		),
 	)
 
-	if err := conditions.SetSummaryCondition(vsphereDeploymentZoneContext.VSphereDeploymentZone, vsphereDeploymentZoneContext.VSphereDeploymentZone, infrav1.VSphereDeploymentZoneReadyV1Beta2Condition,
+	if err := conditions.SetSummaryCondition(vsphereDeploymentZoneContext.VSphereDeploymentZone, vsphereDeploymentZoneContext.VSphereDeploymentZone, infrav1.VSphereDeploymentZoneReadyCondition,
 		conditions.ForConditionTypes{
-			infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
-			infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition,
-			infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+			infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition,
+			infrav1.VSphereDeploymentZoneVCenterAvailableCondition,
+			infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(
 				// Use custom reasons.
 				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-					infrav1.VSphereDeploymentZoneNotReadyV1Beta2Reason,
-					infrav1.VSphereDeploymentZoneReadyUnknownV1Beta2Reason,
-					infrav1.VSphereDeploymentZoneReadyV1Beta2Reason,
+					infrav1.VSphereDeploymentZoneNotReadyReason,
+					infrav1.VSphereDeploymentZoneReadyUnknownReason,
+					infrav1.VSphereDeploymentZoneReadyReason,
 				)),
 			),
 		},
 	); err != nil {
-		return errors.Wrapf(err, "failed to set %s condition", infrav1.VSphereDeploymentZoneReadyV1Beta2Condition)
+		return errors.Wrapf(err, "failed to set %s condition", infrav1.VSphereDeploymentZoneReadyCondition)
 	}
 
 	return vsphereDeploymentZoneContext.PatchHelper.Patch(ctx, vsphereDeploymentZoneContext.VSphereDeploymentZone,
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
-			infrav1.VSphereDeploymentZoneReadyV1Beta2Condition,
-			infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
-			infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition,
-			infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+			infrav1.VSphereDeploymentZoneReadyCondition,
+			infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition,
+			infrav1.VSphereDeploymentZoneVCenterAvailableCondition,
+			infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 		}},
 	)
 }
@@ -186,11 +186,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 
 	authSession, err := r.getVCenterSession(ctx, deploymentZoneCtx, failureDomain.Spec.Topology.Datacenter)
 	if err != nil {
-		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableV1Beta1Condition, infrav1.VCenterUnreachableV1Beta1Reason, clusterv1.ConditionSeverityError, "%v", err)
 		conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-			Type:    infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition,
+			Type:    infrav1.VSphereDeploymentZoneVCenterAvailableCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereDeploymentZoneVCenterUnreachableV1Beta2Reason,
+			Reason:  infrav1.VSphereDeploymentZoneVCenterUnreachableReason,
 			Message: err.Error(),
 		})
 		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(false)
@@ -198,11 +198,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 	}
 
 	deploymentZoneCtx.AuthSession = authSession
-	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition)
+	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableV1Beta1Condition)
 	conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-		Type:   infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition,
+		Type:   infrav1.VSphereDeploymentZoneVCenterAvailableCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Reason,
+		Reason: infrav1.VSphereDeploymentZoneVCenterAvailableReason,
 	})
 
 	if err := r.reconcilePlacementConstraint(ctx, deploymentZoneCtx); err != nil {
@@ -226,11 +226,11 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 
 	if resourcePool := placementConstraint.ResourcePool; resourcePool != "" {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.ResourcePool(ctx, resourcePool); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition, infrav1.ResourcePoolNotFoundReason, clusterv1.ConditionSeverityError, "resource pool %s is misconfigured", resourcePool)
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetV1Beta1Condition, infrav1.ResourcePoolNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "resource pool %s is misconfigured", resourcePool)
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-				Type:    infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
+				Type:    infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereDeploymentZonePlacementConstraintResourcePoolNotFoundV1Beta2Reason,
+				Reason:  infrav1.VSphereDeploymentZonePlacementConstraintResourcePoolNotFoundReason,
 				Message: fmt.Sprintf("resource pool %s is misconfigured", resourcePool),
 			})
 			return errors.Wrapf(err, "failed to reconcile placement contraint: unable to find resource pool %s", resourcePool)
@@ -239,22 +239,22 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 
 	if folder := placementConstraint.Folder; folder != "" {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.Folder(ctx, placementConstraint.Folder); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition, infrav1.FolderNotFoundReason, clusterv1.ConditionSeverityError, "folder %s is misconfigured", folder)
+			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetV1Beta1Condition, infrav1.FolderNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "folder %s is misconfigured", folder)
 			conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-				Type:    infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
+				Type:    infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSphereDeploymentZonePlacementConstraintFolderNotFoundV1Beta2Reason,
+				Reason:  infrav1.VSphereDeploymentZonePlacementConstraintFolderNotFoundReason,
 				Message: fmt.Sprintf("folder %s is misconfigured", folder),
 			})
 			return errors.Wrapf(err, "failed to reconcile placement contraint: unable to find folder %s", folder)
 		}
 	}
 
-	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
+	deprecatedv1beta1conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetV1Beta1Condition)
 	conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-		Type:   infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
+		Type:   infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Reason,
+		Reason: infrav1.VSphereDeploymentZonePlacementConstraintReadyReason,
 	})
 
 	return nil
@@ -303,19 +303,19 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 	log := ctrl.LoggerFrom(ctx)
 
 	conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-		Type:   infrav1.VSphereDeploymentZoneVCenterAvailableV1Beta2Condition,
+		Type:   infrav1.VSphereDeploymentZoneVCenterAvailableCondition,
 		Status: metav1.ConditionFalse,
-		Reason: infrav1.VSphereDeploymentZoneVCenterAvailableDeletingV1Beta2Reason,
+		Reason: infrav1.VSphereDeploymentZoneVCenterAvailableDeletingReason,
 	})
 	conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-		Type:   infrav1.VSphereDeploymentZonePlacementConstraintReadyV1Beta2Condition,
+		Type:   infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition,
 		Status: metav1.ConditionFalse,
-		Reason: infrav1.VSphereDeploymentZonePlacementConstraintDeletingV1Beta2Reason,
+		Reason: infrav1.VSphereDeploymentZonePlacementConstraintDeletingReason,
 	})
 	conditions.Set(deploymentZoneCtx.VSphereDeploymentZone, metav1.Condition{
-		Type:   infrav1.VSphereDeploymentZoneFailureDomainValidatedV1Beta2Condition,
+		Type:   infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition,
 		Status: metav1.ConditionFalse,
-		Reason: infrav1.VSphereDeploymentZoneFailureDomainDeletingV1Beta2Reason,
+		Reason: infrav1.VSphereDeploymentZoneFailureDomainDeletingReason,
 	})
 
 	machines := &clusterv1.MachineList{}

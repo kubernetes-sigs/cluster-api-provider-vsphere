@@ -98,40 +98,40 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 	if len(errList) > 0 {
 		aggregatedErr := kerrors.NewAggregate(errList)
 		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM,
-			infrav1.IPAddressClaimedCondition,
-			infrav1.IPAddressClaimNotFoundReason,
+			infrav1.IPAddressClaimedV1Beta1Condition,
+			infrav1.IPAddressClaimNotFoundV1Beta1Reason,
 			clusterv1.ConditionSeverityError,
 			"%v",
 			aggregatedErr)
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
+			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereVMIPAddressClaimsNotFulfilledV1Beta2Reason,
+			Reason:  infrav1.VSphereVMIPAddressClaimsNotFulfilledReason,
 			Message: aggregatedErr.Error(),
 		})
 		return aggregatedErr
 	}
 
-	// Calculating the IPAddressClaimedCondition from the Ready Condition of the individual IPAddressClaims.
+	// Calculating the IPAddressClaimedV1Beta1Condition from the Ready Condition of the individual IPAddressClaims.
 	// This will not work if the IPAM provider does not set the Ready condition on the IPAddressClaim.
 	// To correctly calculate the status of the condition, we would want all the IPAddressClaim objects
 	// to report the Ready Condition.
 	if len(claims) == totalClaims {
 		deprecatedv1beta1conditions.SetAggregate(vmCtx.VSphereVM,
-			infrav1.IPAddressClaimedCondition,
+			infrav1.IPAddressClaimedV1Beta1Condition,
 			deprecatedV1beta1Claims,
 			deprecatedv1beta1conditions.AddSourceRef(),
 			deprecatedv1beta1conditions.WithStepCounter())
 
 		if len(claims) > 0 {
-			if err := conditions.SetAggregateCondition(claims, vmCtx.VSphereVM, clusterv1beta1.ReadyV1Beta2Condition, conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)); err != nil {
+			if err := conditions.SetAggregateCondition(claims, vmCtx.VSphereVM, clusterv1beta1.ReadyV1Beta2Condition, conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledCondition)); err != nil {
 				return errors.Wrap(err, "failed to aggregate Ready condition from IPAddressClaims")
 			}
 		} else {
 			conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-				Type:   infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
+				Type:   infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
 				Status: metav1.ConditionTrue,
-				Reason: infrav1.VSphereVMIPAddressClaimsNotFulfilledV1Beta2Reason,
+				Reason: infrav1.VSphereVMIPAddressClaimsNotFulfilledReason,
 			})
 		}
 		return nil
@@ -140,30 +140,30 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 	// Fallback logic to calculate the state of the IPAddressClaimed condition
 	switch {
 	case totalClaims == claimsFulfilled:
-		deprecatedv1beta1conditions.MarkTrue(vmCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
+		deprecatedv1beta1conditions.MarkTrue(vmCtx.VSphereVM, infrav1.IPAddressClaimedV1Beta1Condition)
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-			Type:   infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
+			Type:   infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
 			Status: metav1.ConditionTrue,
-			Reason: infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Reason,
+			Reason: infrav1.VSphereVMIPAddressClaimsFulfilledReason,
 		})
 	case claimsFulfilled < totalClaims && claimsCreated > 0:
-		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.IPAddressClaimedCondition,
-			infrav1.IPAddressClaimsBeingCreatedReason, clusterv1.ConditionSeverityInfo,
+		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.IPAddressClaimedV1Beta1Condition,
+			infrav1.IPAddressClaimsBeingCreatedV1Beta1Reason, clusterv1.ConditionSeverityInfo,
 			"%d/%d claims being created", claimsCreated, totalClaims)
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
+			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereVMIPAddressClaimsBeingCreatedV1Beta2Reason,
+			Reason:  infrav1.VSphereVMIPAddressClaimsBeingCreatedReason,
 			Message: fmt.Sprintf("%d/%d claims being created", claimsCreated, totalClaims),
 		})
 	case claimsFulfilled < totalClaims && claimsCreated == 0:
-		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.IPAddressClaimedCondition,
-			infrav1.WaitingForIPAddressReason, clusterv1.ConditionSeverityInfo,
+		deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.IPAddressClaimedV1Beta1Condition,
+			infrav1.WaitingForIPAddressV1Beta1Reason, clusterv1.ConditionSeverityInfo,
 			"%d/%d claims being processed", totalClaims-claimsFulfilled, totalClaims)
 		conditions.Set(vmCtx.VSphereVM, metav1.Condition{
-			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
+			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason,
+			Reason:  infrav1.VSphereVMIPAddressClaimsWaitingForIPAddressReason,
 			Message: fmt.Sprintf("%d/%d claims being processed", totalClaims-claimsFulfilled, totalClaims),
 		})
 	}

@@ -30,23 +30,23 @@ const (
 
 // VSphereClusterIdentity's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereClusterIdentityAvailableV1Beta2Condition documents the availability for a VSphereClusterIdentity.
-	VSphereClusterIdentityAvailableV1Beta2Condition = clusterv1.AvailableCondition
+	// VSphereClusterIdentityAvailableCondition documents the availability for a VSphereClusterIdentity.
+	VSphereClusterIdentityAvailableCondition = clusterv1.AvailableCondition
 
-	// VSphereClusterIdentityAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity is available.
-	VSphereClusterIdentityAvailableV1Beta2Reason = clusterv1.AvailableReason
+	// VSphereClusterIdentityAvailableReason surfaces when the VSphereClusterIdentity is available.
+	VSphereClusterIdentityAvailableReason = clusterv1.AvailableReason
 
-	// VSphereClusterIdentitySecretNotAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity secret is not available.
-	VSphereClusterIdentitySecretNotAvailableV1Beta2Reason = "SecretNotAvailable"
+	// VSphereClusterIdentitySecretNotAvailableReason surfaces when the VSphereClusterIdentity secret is not available.
+	VSphereClusterIdentitySecretNotAvailableReason = "SecretNotAvailable"
 
-	// VSphereClusterIdentitySecretAlreadyInUseV1Beta2Reason surfaces when the VSphereClusterIdentity secret is already in use.
-	VSphereClusterIdentitySecretAlreadyInUseV1Beta2Reason = "SecretAlreadyInUse"
+	// VSphereClusterIdentitySecretAlreadyInUseReason surfaces when the VSphereClusterIdentity secret is already in use.
+	VSphereClusterIdentitySecretAlreadyInUseReason = "SecretAlreadyInUse"
 
-	// VSphereClusterIdentitySettingSecretOwnerReferenceFailedV1Beta2Reason surfaces when setting the owner reference on the VSphereClusterIdentity secret failed.
-	VSphereClusterIdentitySettingSecretOwnerReferenceFailedV1Beta2Reason = "SettingSecretOwnerReferenceFailed"
+	// VSphereClusterIdentitySettingSecretOwnerReferenceFailedReason surfaces when setting the owner reference on the VSphereClusterIdentity secret failed.
+	VSphereClusterIdentitySettingSecretOwnerReferenceFailedReason = "SettingSecretOwnerReferenceFailed"
 
-	// VSphereClusterIdentityDeletingV1Beta2Reason surfaces when the VSphereClusterIdentity is being deleted.
-	VSphereClusterIdentityDeletingV1Beta2Reason = clusterv1.DeletingReason
+	// VSphereClusterIdentityDeletingReason surfaces when the VSphereClusterIdentity is being deleted.
+	VSphereClusterIdentityDeletingReason = clusterv1.DeletingReason
 )
 
 // VSphereClusterIdentitySpec contains a secret reference and a group of allowed namespaces.

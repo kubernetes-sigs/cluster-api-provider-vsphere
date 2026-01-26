@@ -106,9 +106,9 @@ var _ = Describe("Cluster Controller Tests", func() {
 	Context("Test reconcileDelete", func() {
 		It("should mark specific resources to be in deleting conditions", func() {
 			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
-				metav1.Condition{Type: vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition, Status: metav1.ConditionTrue})
+				metav1.Condition{Type: vmwarev1.VSphereClusterResourcePolicyReadyCondition, Status: metav1.ConditionTrue})
 			reconciler.reconcileDelete(clusterCtx)
-			c := conditions.Get(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition)
+			c := conditions.Get(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterResourcePolicyReadyCondition)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).To(Equal(metav1.ConditionFalse))
 			Expect(c.Reason).To(Equal(clusterv1.DeletingReason))

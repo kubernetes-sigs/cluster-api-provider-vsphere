@@ -383,7 +383,7 @@ func Test_VimMachineService_GetHostInfo(t *testing.T) {
 				Host: hostAddr,
 				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 						Status: conditionStatus,
 					},
 				},
@@ -428,7 +428,7 @@ func Test_VimMachineService_createOrPatchVSphereVM(t *testing.T) {
 				Host: hostAddr,
 				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 						Status: conditionStatus,
 					},
 				},
@@ -513,7 +513,7 @@ func Test_VimMachineService_reconcileProviderID(t *testing.T) {
 				Host: hostAddr,
 				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 						Status: conditionStatus,
 					},
 				},
@@ -586,7 +586,7 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 				Network:   networkStatus,
 				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 						Status: conditionStatus,
 					},
 				},
@@ -653,7 +653,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 				Network:   networkStatus,
 				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 						Status: conditionStatus,
 					},
 					{
@@ -756,7 +756,7 @@ func Test_VimMachineService_ReconcileDelete(t *testing.T) {
 				Host: hostAddr,
 				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 						Status: conditionStatus,
 					},
 					{
@@ -779,7 +779,7 @@ func Test_VimMachineService_ReconcileDelete(t *testing.T) {
 		g := NewWithT(t)
 		err := vimMachineService.ReconcileDelete(ctx, machineCtx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(conditions.Get(machineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition).Status).To(Equal(conditions.Get(vsphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition).Status))
+		g.Expect(conditions.Get(machineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedCondition).Status).To(Equal(conditions.Get(vsphereVM, infrav1.VSphereVMVirtualMachineProvisionedCondition).Status))
 	})
 }
 
@@ -882,7 +882,7 @@ func Test_VimMachineService_SyncFailureReason(t *testing.T) {
 				Host: hostAddr,
 				Conditions: []metav1.Condition{
 					{
-						Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+						Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 						Status: conditionStatus,
 					},
 				},

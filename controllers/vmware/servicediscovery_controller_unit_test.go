@@ -56,7 +56,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason)
+				vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason)
 		})
 	})
 	Context("When VIP is available", func() {
@@ -69,7 +69,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the VIP in the guest cluster")
 			assertHeadlessSvcWithVIPEndpoints(ctx, controllerCtx.GuestClient, vmwarev1.SupervisorHeadlessSvcNamespace, vmwarev1.SupervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Reason)
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyReason)
 		})
 		It("Should get supervisor master endpoint IP", func() {
 			r := &serviceDiscoveryReconciler{
@@ -88,7 +88,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the FIP in the guest cluster")
 			assertHeadlessSvcWithFIPEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Reason)
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyReason)
 		})
 	})
 	Context("When VIP and FIP are available", func() {
@@ -101,7 +101,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the VIP in the guest cluster")
 			assertHeadlessSvcWithVIPEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Reason)
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyReason)
 		})
 	})
 	Context("When VIP is an hostname", func() {
@@ -112,7 +112,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the VIP in the guest cluster")
 			assertHeadlessSvcWithVIPHostnameEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Reason)
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyReason)
 		})
 	})
 	Context("When FIP is an hostname", func() {
@@ -124,7 +124,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the FIP in the guest cluster")
 			assertHeadlessSvcWithFIPHostNameEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Reason)
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyReason)
 		})
 	})
 	Context("When FIP is an empty hostname", func() {
@@ -137,7 +137,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason)
+				vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason)
 		})
 	})
 	Context("When FIP is an invalid host", func() {
@@ -150,7 +150,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason)
+				vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason)
 		})
 	})
 	Context("When FIP config map has invalid kubeconfig data", func() {
@@ -166,7 +166,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason)
+				vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason)
 		})
 	})
 	Context("When FIP config map has invalid kubeconfig key", func() {
@@ -182,7 +182,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason)
+				vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason)
 		})
 	})
 }

@@ -46,12 +46,12 @@ func (c *VMContext) String() string {
 // Patch updates the object and its status on the API server.
 func (c *VMContext) Patch(ctx context.Context) error {
 	return c.PatchHelper.Patch(ctx, c.VSphereVM, patch.WithOwnedConditions{Conditions: []string{
-		infrav1.VSphereVMReadyV1Beta2Condition,
-		infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
-		infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
-		infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
-		infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
-		infrav1.VSphereVMPCIDevicesDetachedV1Beta2Condition,
+		infrav1.VSphereVMReadyCondition,
+		infrav1.VSphereVMVCenterAvailableCondition,
+		infrav1.VSphereVMVirtualMachineProvisionedCondition,
+		infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
+		infrav1.VSphereVMGuestSoftPowerOffSucceededCondition,
+		infrav1.VSphereVMPCIDevicesDetachedCondition,
 		clusterv1.PausedCondition,
 	}})
 }

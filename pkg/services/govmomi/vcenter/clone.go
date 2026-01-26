@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/crypto"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
@@ -364,6 +365,50 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 	isLinkedClone := snapshotRef != nil
 	spec.Location.Disk = getDiskLocators(disks, *datastoreRef, isLinkedClone)
 	spec.Location.Datastore = datastoreRef
+
+	switch vmCtx.VSphereVM.Spec.NestedHV {
+	case "enabled":
+		spec.Config.NestedHVEnabled = ptr.To(true)
+	case "disabled":
+		spec.Config.NestedHVEnabled = ptr.To(false)
+	}
+	if vmCtx.VSphereVM.Spec.FtEncryptionMode != "" {
+		spec.Config.FtEncryptionMode = vmCtx.VSphereVM.Spec.FtEncryptionMode
+	}
+	if vmCtx.VSphereVM.Spec.MigrateEncryption != "" {
+		spec.Config.FtEncryptionMode = vmCtx.VSphereVM.Spec.MigrateEncryption
+	}
+	if vmCtx.VSphereVM.Spec.CryptoProfile != "" {
+		pbmClient, err := pbm.NewClient(ctx, vmCtx.Session.Client.Client)
+		if err != nil {
+			return errors.Wrapf(err, "unable to create pbm client for %q", vmCtx)
+		}
+
+		spbmStoragePolicyID, err := pbmClient.ProfileIDByName(ctx, vmCtx.VSphereVM.Spec.CryptoProfile)
+		if err != nil {
+			return errors.Wrapf(err, "unable to get storageProfileID from name %s for %q", vmCtx.VSphereVM.Spec.CryptoProfile, vmCtx)
+		}
+		profileSpec := types.VirtualMachineDefinedProfileSpec{
+			ProfileId: spbmStoragePolicyID,
+		}
+		spec.Config.VmProfile = append(spec.Config.VmProfile, &profileSpec)
+	}
+	if vmCtx.VSphereVM.Spec.CryptoKeyID != "" {
+		kmip, err := crypto.GetManagerKmip(vmCtx.Session.Client.Client)
+		if err != nil {
+			return errors.Wrapf(err, "unable to create kmip client for %q", vmCtx)
+		}
+		keyID, err := kmip.GenerateKey(ctx, vmCtx.VSphereVM.Spec.CryptoKeyID)
+		if err != nil {
+			return errors.Wrapf(err, "unable to generate a key for %q", vmCtx)
+		}
+		cryptoSpec := types.CryptoSpecEncrypt{
+			CryptoKeyId: types.CryptoKeyId{
+				KeyId: keyID,
+			},
+		}
+		spec.Config.Crypto = &cryptoSpec
+	}
 
 	log.Info(fmt.Sprintf("Cloning Machine with clone mode %s", vmCtx.VSphereVM.Status.CloneMode))
 	task, err := tpl.Clone(ctx, folder, vmCtx.VSphereVM.Name, spec)

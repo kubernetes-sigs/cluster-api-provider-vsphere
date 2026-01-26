@@ -164,6 +164,17 @@ spec:
                           Folder is the name, inventory path, managed object reference or the managed
                           object ID of the folder in which the virtual machine is created/located.
                         type: string
+                      ftEncryptionMode:
+                        description: |-
+                          ftEncryptionMode is the encrypted fault tolerance mode.
+                          Defaults to the eponymous property value in the template from which the
+                          virtual machine is cloned.
+                          Check the compatibility with the ESXi version before setting the value.
+                        enum:
+                        - ftEncryptionDisabled
+                        - ftEncryptionOpportunistic
+                        - ftEncryptionRequired
+                        type: string
                       guestSoftPowerOffTimeout:
                         description: |-
                           GuestSoftPowerOffTimeout sets the wait timeout for shutdown in the VM guest.
@@ -188,6 +199,17 @@ spec:
                           virtual machine is cloned.
                         format: int64
                         type: integer
+                      migrateEncryption:
+                        description: |-
+                          migrateEncryption is the encrypted vMotion mode.
+                          Defaults to the eponymous property value in the template from which the
+                          virtual machine is cloned.
+                          Check the compatibility with the ESXi version before setting the value.
+                        enum:
+                        - disabled
+                        - opportunistic
+                        - required
+                        type: string
                       namingStrategy:
                         description: NamingStrategy allows configuring the naming
                           strategy used when calculating the name of the VSphereVM.
@@ -210,6 +232,16 @@ spec:
                                 so we highly recommend to use a template which leads to a name shorter than 63 characters.
                             type: string
                         type: object
+                      nestedHV:
+                        description: |-
+                          nestedHV controls nested hardware-assisted virtualization.
+                          Defaults to the eponymous property value in the template from which the
+                          virtual machine is cloned.
+                          Check the compatibility with the ESXi version before setting the value.
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
                       network:
                         description: Network is the network configuration for this
                           machine's VM.

@@ -164,6 +164,11 @@ func (r *clusterReconciler) patch(ctx context.Context, clusterCtx *capvcontext.C
 	}
 
 	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyV1Beta1Condition,
+			infrav1.VCenterAvailableV1Beta1Condition,
+			infrav1.ClusterModulesAvailableV1Beta1Condition,
+		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
 			infrav1.VSphereClusterReadyCondition,

@@ -167,6 +167,12 @@ func (r vsphereDeploymentZoneReconciler) patch(ctx context.Context, vsphereDeplo
 	}
 
 	return vsphereDeploymentZoneContext.PatchHelper.Patch(ctx, vsphereDeploymentZoneContext.VSphereDeploymentZone,
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyV1Beta1Condition,
+			infrav1.PlacementConstraintMetV1Beta1Condition,
+			infrav1.VCenterAvailableV1Beta1Condition,
+			infrav1.VSphereFailureDomainValidatedV1Beta1Condition,
+		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
 			infrav1.VSphereDeploymentZoneReadyCondition,

@@ -45,15 +45,22 @@ func (c *VMContext) String() string {
 
 // Patch updates the object and its status on the API server.
 func (c *VMContext) Patch(ctx context.Context) error {
-	return c.PatchHelper.Patch(ctx, c.VSphereVM, patch.WithOwnedConditions{Conditions: []string{
-		infrav1.VSphereVMReadyCondition,
-		infrav1.VSphereVMVCenterAvailableCondition,
-		infrav1.VSphereVMVirtualMachineProvisionedCondition,
-		infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
-		infrav1.VSphereVMGuestSoftPowerOffSucceededCondition,
-		infrav1.VSphereVMPCIDevicesDetachedCondition,
-		clusterv1.PausedCondition,
-	}})
+	return c.PatchHelper.Patch(ctx, c.VSphereVM,
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyV1Beta1Condition,
+			infrav1.VCenterAvailableV1Beta1Condition,
+			infrav1.IPAddressClaimedV1Beta1Condition,
+			infrav1.VMProvisionedV1Beta1Condition,
+		}},
+		patch.WithOwnedConditions{Conditions: []string{
+			infrav1.VSphereVMReadyCondition,
+			infrav1.VSphereVMVCenterAvailableCondition,
+			infrav1.VSphereVMVirtualMachineProvisionedCondition,
+			infrav1.VSphereVMIPAddressClaimsFulfilledCondition,
+			infrav1.VSphereVMGuestSoftPowerOffSucceededCondition,
+			infrav1.VSphereVMPCIDevicesDetachedCondition,
+			clusterv1.PausedCondition,
+		}})
 }
 
 // GetSession returns this context's session.

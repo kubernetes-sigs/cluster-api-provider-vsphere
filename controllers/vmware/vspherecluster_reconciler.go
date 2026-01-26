@@ -182,6 +182,7 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 
 	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
 		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyV1Beta1Condition,
 			vmwarev1.ResourcePolicyReadyV1Beta1Condition,
 			vmwarev1.ClusterNetworkReadyV1Beta1Condition,
 			vmwarev1.LoadBalancerReadyV1Beta1Condition,

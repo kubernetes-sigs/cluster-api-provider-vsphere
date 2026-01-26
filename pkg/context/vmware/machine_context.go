@@ -50,11 +50,16 @@ func (c *SupervisorMachineContext) String() string {
 
 // Patch updates the object and its status on the API server.
 func (c *SupervisorMachineContext) Patch(ctx context.Context) error {
-	return c.PatchHelper.Patch(ctx, c.VSphereMachine, patch.WithOwnedConditions{Conditions: []string{
-		infrav1.VSphereMachineReadyCondition,
-		infrav1.VSphereMachineVirtualMachineProvisionedCondition,
-		clusterv1.PausedCondition,
-	}})
+	return c.PatchHelper.Patch(ctx, c.VSphereMachine,
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyV1Beta1Condition,
+			infrav1.VMProvisionedV1Beta1Condition,
+		}},
+		patch.WithOwnedConditions{Conditions: []string{
+			infrav1.VSphereMachineReadyCondition,
+			infrav1.VSphereMachineVirtualMachineProvisionedCondition,
+			clusterv1.PausedCondition,
+		}})
 }
 
 // GetVSphereMachine returns the VSphereMachine from the SupervisorMachineContext.

@@ -411,7 +411,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 	}
 
 	// Cluster `.status.initialization.infrastructureProvisioned == false is handled differently depending on if the machine is supervisor based.
-	// 1) If the Cluster is not supervisor-based mark the VMProvisionedV1Beta1Condition false and return nil.
+	// 1) If the Cluster is not supervisor-based mark the VSphereMachineVirtualMachineProvisionedCondition false and return nil.
 	// 2) If the Cluster is supervisor-based continue to reconcile as InfrastructureProvisioned is not set to true until after the kube apiserver is available.
 	if !r.supervisorBased {
 		// vmwarev1.VSphereCluster doesn't set Cluster.Status.Ready until the API endpoint is available.

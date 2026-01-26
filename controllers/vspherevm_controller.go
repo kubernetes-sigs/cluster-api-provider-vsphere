@@ -31,7 +31,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -382,7 +381,7 @@ func (r vmReconciler) reconcile(ctx context.Context, vmCtx *capvcontext.VMContex
 func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, clusterv1beta1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	deprecatedv1beta1conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 	conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 		Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
 		Status: metav1.ConditionFalse,

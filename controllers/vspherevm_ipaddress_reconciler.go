@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -112,7 +111,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 		return aggregatedErr
 	}
 
-	// Calculating the IPAddressClaimedV1Beta1Condition from the Ready Condition of the individual IPAddressClaims.
+	// Calculating the VSphereVMIPAddressClaimsFulfilledCondition from the Ready Condition of the individual IPAddressClaims.
 	// This will not work if the IPAM provider does not set the Ready condition on the IPAddressClaim.
 	// To correctly calculate the status of the condition, we would want all the IPAddressClaim objects
 	// to report the Ready Condition.
@@ -124,7 +123,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 			deprecatedv1beta1conditions.WithStepCounter())
 
 		if len(claims) > 0 {
-			if err := conditions.SetAggregateCondition(claims, vmCtx.VSphereVM, clusterv1beta1.ReadyV1Beta2Condition, conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledCondition)); err != nil {
+			if err := conditions.SetAggregateCondition(claims, vmCtx.VSphereVM, clusterv1.ReadyCondition, conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledCondition)); err != nil {
 				return errors.Wrap(err, "failed to aggregate Ready condition from IPAddressClaims")
 			}
 		} else {

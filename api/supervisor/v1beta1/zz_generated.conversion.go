@@ -29,8 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apisv1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	v1beta2 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
+	govmomiv1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -818,7 +818,7 @@ func autoConvert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
-			if err := apisv1beta1.Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := govmomiv1beta1.Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -835,7 +835,7 @@ func autoConvert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := apisv1beta1.Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := govmomiv1beta1.Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1265,7 +1265,7 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	}
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	out.MinHardwareVersion = in.MinHardwareVersion
-	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1.VirtualMachineNamingStrategy vs sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2.VirtualMachineNamingStrategy)
+	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta1.VirtualMachineNamingStrategy vs sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2.VirtualMachineNamingStrategy)
 	return nil
 }
 
@@ -1285,7 +1285,7 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 	}
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)
 	out.MinHardwareVersion = in.MinHardwareVersion
-	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2.VirtualMachineNamingStrategy vs *sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1.VirtualMachineNamingStrategy)
+	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2.VirtualMachineNamingStrategy vs *sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta1.VirtualMachineNamingStrategy)
 	return nil
 }
 
@@ -1301,7 +1301,7 @@ func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
-			if err := apisv1beta1.Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := govmomiv1beta1.Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1320,7 +1320,7 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := apisv1beta1.Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := govmomiv1beta1.Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

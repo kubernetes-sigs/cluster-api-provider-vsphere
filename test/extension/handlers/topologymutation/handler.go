@@ -36,10 +36,10 @@ import (
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta2"
-	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/clusterclass"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/kubevip"
 )

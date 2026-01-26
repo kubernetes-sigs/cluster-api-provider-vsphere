@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // Package v1beta1 contains API Schema definitions for the vmware.infrastructure v1beta1 API group
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta2
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2
 // +kubebuilder:object:generate=true
 // +groupName=vmware.infrastructure.cluster.x-k8s.io
 //

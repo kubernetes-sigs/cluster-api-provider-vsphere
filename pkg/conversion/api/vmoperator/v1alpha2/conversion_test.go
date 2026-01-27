@@ -42,6 +42,11 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{
 			virtualMachineFuncs,
 		},
+		CheckTypes: test.RoundTripCheckTypesInput{
+			FieldNameMap: map[string]string{
+				"VirtualMachine.Status.NodeName": "Host",
+			},
+		},
 	}))
 	t.Run("for VirtualMachineClass", test.RoundTripTest(test.RoundTripTestInput{
 		Converter: converter,

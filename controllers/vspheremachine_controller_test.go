@@ -87,7 +87,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Namespace: testNs.Name,
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: "cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersion.String(),
 						Kind:       "Cluster",
 						Name:       capiCluster.Name,
 						UID:        "blah",
@@ -262,7 +262,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 			Namespace: ns.Name,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: "cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "Cluster",
 					Name:       capiCluster.Name,
 					UID:        "blah",
@@ -319,7 +319,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 				// This ownerReference should be removed by the reconciler as it's no longer needed.
 				// These ownerReferences were previously added by CAPV to prevent machines becoming orphaned.
 				{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "VSphereCluster",
 					Name:       vSphereCluster.Name,
 					UID:        "blah",

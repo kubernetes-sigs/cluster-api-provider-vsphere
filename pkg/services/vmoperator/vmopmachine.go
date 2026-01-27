@@ -373,7 +373,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	if !meta.IsStatusConditionTrue(vmOperatorVM.Status.Conditions, vmoprvhub.VirtualMachineConditionCreated) {
 		// VM operator has conditions which indicate pre-requirements for creation are done.
 		// If one of them is set to false then it hit an error case and the information must bubble up
-		// to the VMProvisionedV1Beta1Condition in CAPV.
+		// to the VSphereMachineVirtualMachineProvisionedCondition in CAPV.
 		// NOTE: Following conditions do not get surfaced in any capacity unless they are relevant; if they show up at all,
 		// they become pre-reqs and must be true to proceed with VirtualMachine creation.
 		for _, condition := range []string{

@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
@@ -38,8 +39,6 @@ type controllerReferenceTestCase struct {
 }
 
 func TestSetControllerReferenceWithOverride(t *testing.T) {
-	g := NewGomegaWithT(t)
-
 	cases := []controllerReferenceTestCase{
 		{
 			name: "no existing owners",
@@ -50,10 +49,6 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 				},
 			},
 			newOwner: &vmwarev1.ProviderServiceAccount{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "vmware.infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "ProviderServiceAccount",
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "owner",
@@ -77,10 +72,6 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 				},
 			},
 			newOwner: &vmwarev1.ProviderServiceAccount{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "vmware.infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "ProviderServiceAccount",
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "owner",
@@ -105,10 +96,6 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 				},
 			},
 			newOwner: &vmwarev1.ProviderServiceAccount{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "vmware.infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "ProviderServiceAccount",
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "owner",
@@ -149,10 +136,6 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 				},
 			},
 			newOwner: &vmwarev1.ProviderServiceAccount{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "vmware.infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "ProviderServiceAccount",
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "owner",
@@ -164,8 +147,9 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(*testing.T) {
+			g := NewWithT(t)
+
 			controllerManagerContext := fake.NewControllerManagerContext(tc.controlled)
 			actualErr := SetControllerReferenceWithOverride(tc.newOwner, tc.controlled, controllerManagerContext.Scheme)
 			if tc.expectErr {
@@ -173,9 +157,12 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 			} else {
 				g.Expect(actualErr).NotTo(HaveOccurred())
 				controller := metav1.GetControllerOf(tc.controlled)
+
+				gvk, err := apiutil.GVKForObject(tc.newOwner, controllerManagerContext.Scheme)
+				g.Expect(err).ToNot(HaveOccurred())
 				newOwnerRef := &metav1.OwnerReference{
-					APIVersion: tc.newOwner.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-					Kind:       tc.newOwner.GetObjectKind().GroupVersionKind().Kind,
+					APIVersion: gvk.GroupVersion().String(),
+					Kind:       gvk.Kind,
 					Name:       tc.newOwner.GetName(),
 				}
 				g.Expect(referSameObject(*controller, *newOwnerRef)).To(BeTrue(), "Expect controller to be: %v, got: %v", newOwnerRef, controller)

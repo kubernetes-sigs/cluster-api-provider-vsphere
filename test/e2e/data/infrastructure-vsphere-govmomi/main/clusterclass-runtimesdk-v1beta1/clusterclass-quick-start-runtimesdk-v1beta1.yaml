@@ -1,0 +1,318 @@
+# Note: This file is intentionally using v1beta1 for v1beta1 test coverage.
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+          - name: cloud-provider
+            value: external
+          name: '{{ local_hostname }}'
+      preKubeadmCommands:
+      - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
+        >/etc/hosts
+      - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
+        localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+      - mkdir -p /etc/pre-kubeadm-commands
+      - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+        do echo "Running script $script"; "$script"; done
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-runtimesdk-v1beta1
+spec:
+  controlPlane:
+    machineInfrastructure:
+      templateRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        name: ${CLUSTER_CLASS_NAME}-template
+    naming:
+      template: '{{ .cluster.name }}-cp-{{ .random }}'
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      kind: KubeadmControlPlaneTemplate
+      name: ${CLUSTER_CLASS_NAME}-controlplane
+  infrastructure:
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: VSphereClusterTemplate
+      name: ${CLUSTER_CLASS_NAME}
+  patches:
+  - external:
+      discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+      generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+      settings:
+        testMode: govmomi
+      validateTopologyExtension: validate-topology.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+    name: test-patch
+  - definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files/-
+        valueFrom:
+          template: "owner: root:root\npath:  \"/etc/pre-kubeadm-commands/20-k8s-install.sh\"\npermissions:
+            \"0755\"\ncontent: |\n  #!/bin/bash\n\n  set -o nounset\n  set -o pipefail\n
+            \ set -o errexit\n\n  DISTRO=\"ubuntu\"\n  KUBE_BINARY_DIR=\"/usr/bin\"\n\n
+            \ source /etc/lsb-release\n  if [[ \"$${DISTRIB_ID}\" == *Flatcar* ]];
+            then\n    # Overrides for flatcar\n    DISTRO=\"flatcar\"\n    KUBE_BINARY_DIR=\"/opt/bin\"\n
+            \ fi\n  \n  function retry {\n    attempt=0\n    max_attempts=$${1}\n
+            \   interval=$${2}\n    shift; shift\n    until [[ $${attempt} -ge \"$${max_attempts}\"
+            ]] ; do\n      attempt=$((attempt+1))\n      set +e\n      eval \"$*\"
+            && return || echo \"failed $${attempt} times: $*\"\n      set -e\n      sleep
+            \"$${interval}\"\n    done\n    echo \"error: reached max attempts at
+            retry($*)\"\n    return 1\n  }\n  \n  [[ $(id -u) != 0 ]] && SUDO=\"sudo\"
+            || SUDO=\"\"\n  \n  # This test installs release packages or binaries
+            that are a result of the CI and release builds.\n  # It runs '... --version'
+            commands to verify that the binaries are correctly installed\n  # and
+            finally uninstalls the packages.\n  # For the release packages it tests
+            all versions in the support skew.\n  LINE_SEPARATOR=\"*************************************************\"\n
+            \ echo \"$${LINE_SEPARATOR}\"\n  \n  ## Variables (replaced by JSON patching)\n
+            \ KUBERNETES_VERSION={{ .builtin.controlPlane.version }}\n  ##\n  \n  #
+            Note: We assume if kubectl has the right version, everything else has
+            as well\n  if [[ $(kubectl version --client=true -o json | jq '.clientVersion.gitVersion'
+            -r) = \"$${KUBERNETES_VERSION}\" ]]; then\n    echo \"Detected Kubernetes
+            $${KUBERNETES_VERSION} via kubectl version, nothing to do\"\n    exit
+            0\n  fi\n  \n  if [[ \"$${KUBERNETES_VERSION}\" != \"\" ]]; then\n    CI_DIR=/tmp/k8s-ci\n
+            \   mkdir -p \"$${CI_DIR}\"\n    declare -a PACKAGES_TO_TEST=(\"kubectl\"
+            \"kubelet\" \"kubeadm\")\n    # Let's just also download the control plane
+            images for worker nodes. It's easier then optimizing it.\n    declare
+            -a CONTAINERS_TO_TEST=(\"kube-apiserver\" \"kube-controller-manager\"
+            \"kube-proxy\" \"kube-scheduler\")\n    CONTAINER_EXT=\"tar\"\n    echo
+            \"* testing version $${KUBERNETES_VERSION}\"\n    CI_URL=\"https://dl.k8s.io/ci/$${KUBERNETES_VERSION}/bin/linux/amd64\"\n
+            \   # Set CI_URL to the released binaries for actually released versions.\n
+            \   if [[ \"$${KUBERNETES_VERSION}\" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]
+            || [[ \"$${KUBERNETES_VERSION}\" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+-(beta|rc).[0-9]+$
+            ]]; then\n      CI_URL=\"https://dl.k8s.io/release/$${KUBERNETES_VERSION}/bin/linux/amd64\"\n
+            \   fi\n    for CI_PACKAGE in \"$${PACKAGES_TO_TEST[@]}\"; do\n      #
+            Browser: https://console.cloud.google.com/storage/browser/k8s-release-dev?project=k8s-release-dev\n
+            \     # e.g.: https://storage.googleapis.com/k8s-release-dev/ci/v1.21.0-beta.1.378+cf3374e43491c5/bin/linux/amd64/kubectl\n
+            \     echo \"* downloading binary: $${CI_URL}/$${CI_PACKAGE}\"\n      wget
+            \"$${CI_URL}/$${CI_PACKAGE}\" -O \"$${CI_DIR}/$${CI_PACKAGE}\"\n      chmod
+            +x \"$${CI_DIR}/$${CI_PACKAGE}\"\n      mv \"$${CI_DIR}/$${CI_PACKAGE}\"
+            \"$${KUBE_BINARY_DIR}/$${CI_PACKAGE}\"\n    done\n    systemctl restart
+            kubelet\n    IMAGE_REGISTRY_PREFIX=registry.k8s.io\n    # Kubernetes builds
+            from 1.20 through 1.24 are tagged with k8s.gcr.io\n    if [[ \"$${KUBERNETES_VERSION}\"
+            =~ ^v1\\.(1[0-9]|2[0-4])[\\.[0-9]+ ]]; then\n      IMAGE_REGISTRY_PREFIX=k8s.gcr.io\n
+            \   fi\n    for CI_CONTAINER in \"$${CONTAINERS_TO_TEST[@]}\"; do\n      echo
+            \"* downloading package: $${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}\"\n
+            \     wget \"$${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}\" -O \"$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}\"\n
+            \     $${SUDO} ctr -n k8s.io images import \"$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}\"
+            || echo \"* ignoring expected 'ctr images import' result\"\n      $${SUDO}
+            ctr -n k8s.io images tag \"$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}\"
+            \"$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}\"\n
+            \     $${SUDO} ctr -n k8s.io images tag \"$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}\"
+            \"gcr.io/k8s-staging-ci-images/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}\"\n
+            \   done\n  fi\n  echo \"* checking binary versions\"\n  echo \"ctr version:
+            \" \"$(ctr version)\"\n  echo \"kubeadm version: \" \"$(kubeadm version
+            -o=short)\"\n  echo \"kubectl version: \" \"$(kubectl version --client=true)\"\n
+            \ echo \"kubelet version: \" \"$(kubelet --version)\"\n  echo \"$${LINE_SEPARATOR}\"\n"
+      selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/files/-
+        valueFrom:
+          template: "owner: root:root\npath:  \"/etc/pre-kubeadm-commands/20-k8s-install.sh\"\npermissions:
+            \"0755\"\ncontent: |\n  #!/bin/bash\n\n  set -o nounset\n  set -o pipefail\n
+            \ set -o errexit\n\n  DISTRO=\"ubuntu\"\n  KUBE_BINARY_DIR=\"/usr/bin\"\n\n
+            \ source /etc/lsb-release\n  if [[ \"$${DISTRIB_ID}\" == *Flatcar* ]];
+            then\n    # Overrides for flatcar\n    DISTRO=\"flatcar\"\n    KUBE_BINARY_DIR=\"/opt/bin\"\n
+            \ fi\n  \n  function retry {\n    attempt=0\n    max_attempts=$${1}\n
+            \   interval=$${2}\n    shift; shift\n    until [[ $${attempt} -ge \"$${max_attempts}\"
+            ]] ; do\n      attempt=$((attempt+1))\n      set +e\n      eval \"$*\"
+            && return || echo \"failed $${attempt} times: $*\"\n      set -e\n      sleep
+            \"$${interval}\"\n    done\n    echo \"error: reached max attempts at
+            retry($*)\"\n    return 1\n  }\n  \n  [[ $(id -u) != 0 ]] && SUDO=\"sudo\"
+            || SUDO=\"\"\n  \n  # This test installs release packages or binaries
+            that are a result of the CI and release builds.\n  # It runs '... --version'
+            commands to verify that the binaries are correctly installed\n  # and
+            finally uninstalls the packages.\n  # For the release packages it tests
+            all versions in the support skew.\n  LINE_SEPARATOR=\"*************************************************\"\n
+            \ echo \"$${LINE_SEPARATOR}\"\n  \n  ## Variables (replaced by JSON patching)\n
+            \ KUBERNETES_VERSION={{ .builtin.machineDeployment.version }}\n  ##\n
+            \ \n  # Note: We assume if kubectl has the right version, everything else
+            has as well\n  if [[ $(kubectl version --client=true -o json | jq '.clientVersion.gitVersion'
+            -r) = \"$${KUBERNETES_VERSION}\" ]]; then\n    echo \"Detected Kubernetes
+            $${KUBERNETES_VERSION} via kubectl version, nothing to do\"\n    exit
+            0\n  fi\n  \n  if [[ \"$${KUBERNETES_VERSION}\" != \"\" ]]; then\n    CI_DIR=/tmp/k8s-ci\n
+            \   mkdir -p \"$${CI_DIR}\"\n    declare -a PACKAGES_TO_TEST=(\"kubectl\"
+            \"kubelet\" \"kubeadm\")\n    # Let's just also download the control plane
+            images for worker nodes. It's easier then optimizing it.\n    declare
+            -a CONTAINERS_TO_TEST=(\"kube-apiserver\" \"kube-controller-manager\"
+            \"kube-proxy\" \"kube-scheduler\")\n    CONTAINER_EXT=\"tar\"\n    echo
+            \"* testing version $${KUBERNETES_VERSION}\"\n    CI_URL=\"https://dl.k8s.io/ci/$${KUBERNETES_VERSION}/bin/linux/amd64\"\n
+            \   # Set CI_URL to the released binaries for actually released versions.\n
+            \   if [[ \"$${KUBERNETES_VERSION}\" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]
+            || [[ \"$${KUBERNETES_VERSION}\" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+-(beta|rc).[0-9]+$
+            ]]; then\n      CI_URL=\"https://dl.k8s.io/release/$${KUBERNETES_VERSION}/bin/linux/amd64\"\n
+            \   fi\n    for CI_PACKAGE in \"$${PACKAGES_TO_TEST[@]}\"; do\n      #
+            Browser: https://console.cloud.google.com/storage/browser/k8s-release-dev?project=k8s-release-dev\n
+            \     # e.g.: https://storage.googleapis.com/k8s-release-dev/ci/v1.21.0-beta.1.378+cf3374e43491c5/bin/linux/amd64/kubectl\n
+            \     echo \"* downloading binary: $${CI_URL}/$${CI_PACKAGE}\"\n      wget
+            \"$${CI_URL}/$${CI_PACKAGE}\" -O \"$${CI_DIR}/$${CI_PACKAGE}\"\n      chmod
+            +x \"$${CI_DIR}/$${CI_PACKAGE}\"\n      mv \"$${CI_DIR}/$${CI_PACKAGE}\"
+            \"$${KUBE_BINARY_DIR}/$${CI_PACKAGE}\"\n    done\n    systemctl restart
+            kubelet\n    IMAGE_REGISTRY_PREFIX=registry.k8s.io\n    # Kubernetes builds
+            from 1.20 through 1.24 are tagged with k8s.gcr.io\n    if [[ \"$${KUBERNETES_VERSION}\"
+            =~ ^v1\\.(1[0-9]|2[0-4])[\\.[0-9]+ ]]; then\n      IMAGE_REGISTRY_PREFIX=k8s.gcr.io\n
+            \   fi\n    for CI_CONTAINER in \"$${CONTAINERS_TO_TEST[@]}\"; do\n      echo
+            \"* downloading package: $${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}\"\n
+            \     wget \"$${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}\" -O \"$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}\"\n
+            \     $${SUDO} ctr -n k8s.io images import \"$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}\"
+            || echo \"* ignoring expected 'ctr images import' result\"\n      $${SUDO}
+            ctr -n k8s.io images tag \"$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}\"
+            \"$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}\"\n
+            \     $${SUDO} ctr -n k8s.io images tag \"$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}\"
+            \"gcr.io/k8s-staging-ci-images/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}\"\n
+            \   done\n  fi\n  echo \"* checking binary versions\"\n  echo \"ctr version:
+            \" \"$(ctr version)\"\n  echo \"kubeadm version: \" \"$(kubeadm version
+            -o=short)\"\n  echo \"kubectl version: \" \"$(kubectl version --client=true)\"\n
+            \ echo \"kubelet version: \" \"$(kubelet --version)\"\n  echo \"$${LINE_SEPARATOR}\"\n"
+      selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - ${CLUSTER_CLASS_NAME}-worker
+    name: k8sInstallScript
+  workers:
+    machineDeployments:
+    - bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+      class: ${CLUSTER_CLASS_NAME}-worker
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: VSphereMachineTemplate
+          name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+      naming:
+        template: '{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{
+          .random }}'
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-controlplane
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          controllerManager:
+            extraArgs:
+            - name: cloud-provider
+              value: external
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+            - name: cloud-provider
+              value: external
+            name: '{{ local_hostname }}'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+            - name: cloud-provider
+              value: external
+            name: '{{ local_hostname }}'
+        preKubeadmCommands:
+        - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
+        - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
+          >/etc/hosts
+        - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
+          localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+        - mkdir -p /etc/pre-kubeadm-commands
+        - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+          do echo "Running script $script"; "$script"; done
+        users:
+        - name: capv
+          sshAuthorizedKeys:
+          - ${VSPHERE_SSH_AUTHORIZED_KEY}
+          sudo: ALL=(ALL) NOPASSWD:ALL
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereClusterTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec: {}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-template
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      cloneMode: linkedClone
+      datacenter: ${VSPHERE_DATACENTER}
+      datastore: ${VSPHERE_DATASTORE}
+      diskGiB: 25
+      folder: ${VSPHERE_FOLDER}
+      memoryMiB: 8192
+      namingStrategy:
+        template: '{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{
+          trimSuffix "-" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}'
+      network:
+        devices:
+        - dhcp4: true
+          dhcp6: false
+          networkName: ${VSPHERE_NETWORK}
+      numCPUs: 2
+      os: Linux
+      powerOffMode: trySoft
+      resourcePool: ${VSPHERE_RESOURCE_POOL}
+      server: ${VSPHERE_SERVER}
+      storagePolicyName: ${VSPHERE_STORAGE_POLICY}
+      template: ${VSPHERE_TEMPLATE}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      cloneMode: linkedClone
+      datacenter: ${VSPHERE_DATACENTER}
+      datastore: ${VSPHERE_DATASTORE}
+      diskGiB: 25
+      folder: ${VSPHERE_FOLDER}
+      memoryMiB: 8192
+      namingStrategy:
+        template: '{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{
+          trimSuffix "-" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}'
+      network:
+        devices:
+        - dhcp4: true
+          dhcp6: false
+          networkName: ${VSPHERE_NETWORK}
+      numCPUs: 2
+      os: Linux
+      powerOffMode: trySoft
+      resourcePool: ${VSPHERE_RESOURCE_POOL}
+      server: ${VSPHERE_SERVER}
+      storagePolicyName: ${VSPHERE_STORAGE_POLICY}
+      template: ${VSPHERE_TEMPLATE}

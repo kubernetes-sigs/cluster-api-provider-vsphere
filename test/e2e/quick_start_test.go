@@ -83,6 +83,26 @@ var _ = Describe("ClusterClass Creation using Cluster API quick-start test [vcsi
 	})
 })
 
+var _ = Describe("ClusterClass v1beta1 Creation using Cluster API quick-start test [vcsim] [supervisor] [ClusterClass]", func() {
+	const specName = "quick-start-cluster-class-v1beta1" // prefix (quick-start) copied from CAPI
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
+		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
+			return capi_e2e.QuickStartSpecInput{
+				E2EConfig:                 e2eConfig,
+				ClusterctlConfigPath:      testSpecificSettingsGetter().ClusterctlConfigPath,
+				BootstrapClusterProxy:     bootstrapClusterProxy,
+				ArtifactFolder:            artifactFolder,
+				SkipCleanup:               skipCleanup,
+				Flavor:                    ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk-v1beta1")),
+				ExtensionServiceNamespace: "capv-test-extension",
+				ExtensionServiceName:      "capv-test-extension-webhook-service",
+				PostNamespaceCreated:      testSpecificSettingsGetter().PostNamespaceCreatedFunc,
+				PostMachinesProvisioned:   checkAllPodsReady,
+			}
+		})
+	})
+})
+
 var _ = Describe("Cluster creation with [Ignition] bootstrap [PR-Blocking]", func() {
 	const specName = "quick-start-ignition" // prefix (quick-start) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {

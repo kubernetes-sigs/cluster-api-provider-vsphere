@@ -132,7 +132,7 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient
 		}
 
 		var err error
-		vmName, err = vmoperator.GenerateVirtualMachineName(m.Name, vsphereMachine.Spec.NamingStrategy)
+		vmName, err = vmoperator.GenerateVirtualMachineName(m.Name, vsphereMachine.Spec.Naming)
 		if err != nil {
 			return nil, errors.Wrapf(err, "generating VirtualMachine name for Machine %s/%s", m.Namespace, m.Name)
 		}

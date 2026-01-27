@@ -425,7 +425,7 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachi
 // generateVMObjectName returns a new VM object name in specific cases, otherwise return the same
 // passed in the parameter.
 func generateVMObjectName(vimMachineCtx *capvcontext.VIMMachineContext, machineName string) (string, error) {
-	name, err := GenerateVSphereVMName(machineName, vimMachineCtx.VSphereMachine.Spec.NamingStrategy)
+	name, err := GenerateVSphereVMName(machineName, vimMachineCtx.VSphereMachine.Spec.Naming)
 	if err != nil {
 		return "", err
 	}
@@ -437,7 +437,7 @@ func generateVMObjectName(vimMachineCtx *capvcontext.VIMMachineContext, machineN
 }
 
 // GenerateVSphereVMName generates the name of a VSphereVM based on the naming strategy.
-func GenerateVSphereVMName(machineName string, namingStrategy infrav1.VSphereVMNamingStrategy) (string, error) {
+func GenerateVSphereVMName(machineName string, namingStrategy infrav1.VSphereVMNamingSpec) (string, error) {
 	// Per default the name of the VSphereVM should be equal to the Machine name (this is the same as "{{ .machine.name }}")
 	if namingStrategy.Template == "" {
 		// Note: No need to trim to max length in this case as valid Machine names will also be valid VSphereVM names.

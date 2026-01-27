@@ -1453,7 +1453,7 @@ type vSphereMachineOption func(m *vmwarev1.VSphereMachine)
 
 func withCustomNamingStrategy() func(m *vmwarev1.VSphereMachine) {
 	return func(m *vmwarev1.VSphereMachine) {
-		m.Spec.NamingStrategy = vmwarev1.VirtualMachineNamingStrategy{
+		m.Spec.Naming = vmwarev1.VirtualMachineNamingSpec{
 			Template: "{{ .machine.name }}-vm",
 		}
 	}

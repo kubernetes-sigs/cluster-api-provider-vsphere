@@ -1289,7 +1289,7 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := virtualMachineObjectKey(tt.machineName, corev1.NamespaceDefault, vmwarev1.VirtualMachineNamingStrategy{
+			got, err := virtualMachineObjectKey(tt.machineName, corev1.NamespaceDefault, vmwarev1.VirtualMachineNamingSpec{
 				Template: tt.template,
 			})
 			if (err != nil) != tt.wantErr {

@@ -118,9 +118,9 @@ type VSphereMachineSpec struct {
 	// +kubebuilder:validation:MaxLength=32
 	MinHardwareVersion string `json:"minHardwareVersion,omitempty"`
 
-	// namingStrategy allows configuring the naming strategy used when calculating the name of the VirtualMachine.
+	// naming allows configuring the naming strategy used when calculating the name of the VirtualMachine.
 	// +optional
-	NamingStrategy VirtualMachineNamingStrategy `json:"namingStrategy,omitempty,omitzero"`
+	Naming VirtualMachineNamingSpec `json:"naming,omitempty,omitzero"`
 }
 
 // VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.
@@ -267,9 +267,9 @@ type RouteSpec struct {
 	Via string `json:"via,omitempty"`
 }
 
-// VirtualMachineNamingStrategy defines the naming strategy for the VirtualMachines.
+// VirtualMachineNamingSpec defines the naming strategy for the VirtualMachines.
 // +kubebuilder:validation:MinProperties=1
-type VirtualMachineNamingStrategy struct {
+type VirtualMachineNamingSpec struct {
 	// template defines the template to use for generating the name of the VirtualMachine object.
 	// If not defined, it will fall back to `{{ .machine.name }}`.
 	// The templating has the following data available:

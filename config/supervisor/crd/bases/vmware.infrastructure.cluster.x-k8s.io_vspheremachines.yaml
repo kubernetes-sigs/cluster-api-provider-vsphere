@@ -933,9 +933,9 @@ spec:
                 maxLength: 32
                 minLength: 1
                 type: string
-              namingStrategy:
-                description: namingStrategy allows configuring the naming strategy
-                  used when calculating the name of the VirtualMachine.
+              naming:
+                description: naming allows configuring the naming strategy used when
+                  calculating the name of the VirtualMachine.
                 minProperties: 1
                 properties:
                   template:

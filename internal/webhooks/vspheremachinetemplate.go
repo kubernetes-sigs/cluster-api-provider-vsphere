@@ -130,7 +130,7 @@ func (webhook *VSphereMachineTemplate) ValidateDelete(_ context.Context, _ *infr
 
 func validateVSphereVMNamingTemplate(_ context.Context, vsphereMachineTemplate *infrav1.VSphereMachineTemplate) field.ErrorList {
 	var allErrs field.ErrorList
-	namingStrategy := vsphereMachineTemplate.Spec.Template.Spec.NamingStrategy
+	namingStrategy := vsphereMachineTemplate.Spec.Template.Spec.Naming
 	if namingStrategy.Template != "" {
 		name, err := services.GenerateVSphereVMName("machine", namingStrategy)
 		templateFldPath := field.NewPath("spec", "template", "spec", "namingStrategy", "template")

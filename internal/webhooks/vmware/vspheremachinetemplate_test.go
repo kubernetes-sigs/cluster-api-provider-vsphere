@@ -37,45 +37,45 @@ import (
 func TestVSphereMachineTemplate_Validate(t *testing.T) {
 	tests := []struct {
 		name           string
-		namingStrategy vmwarev1.VirtualMachineNamingStrategy
+		namingStrategy vmwarev1.VirtualMachineNamingSpec
 		wantErr        bool
 	}{
 		{
 			name:           "Should succeed if namingStrategy not set",
-			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{},
+			namingStrategy: vmwarev1.VirtualMachineNamingSpec{},
 			wantErr:        false,
 		},
 		{
 			name: "Should succeed if namingStrategy.template not set",
-			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+			namingStrategy: vmwarev1.VirtualMachineNamingSpec{
 				Template: "",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Should succeed if namingStrategy.template is set to the fallback value",
-			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+			namingStrategy: vmwarev1.VirtualMachineNamingSpec{
 				Template: "{{ .machine.name }}",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Should succeed if namingStrategy.template is set to the Windows example",
-			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+			namingStrategy: vmwarev1.VirtualMachineNamingSpec{
 				Template: "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Should fail if namingStrategy.template is set to an invalid template",
-			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+			namingStrategy: vmwarev1.VirtualMachineNamingSpec{
 				Template: "{{ invalid",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Should fail if namingStrategy.template is set to a valid template that renders an invalid name",
-			namingStrategy: vmwarev1.VirtualMachineNamingStrategy{
+			namingStrategy: vmwarev1.VirtualMachineNamingSpec{
 				Template: "-{{ .machine.name }}", // Leading - is not valid for names.
 			},
 			wantErr: true,
@@ -89,7 +89,7 @@ func TestVSphereMachineTemplate_Validate(t *testing.T) {
 				Spec: vmwarev1.VSphereMachineTemplateSpec{
 					Template: vmwarev1.VSphereMachineTemplateResource{
 						Spec: vmwarev1.VSphereMachineSpec{
-							NamingStrategy: tc.namingStrategy,
+							Naming: tc.namingStrategy,
 						},
 					},
 				},

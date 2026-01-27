@@ -11,6 +11,7 @@ linters:
     - bidichk # dangerous unicode sequences
     - bodyclose # unclosed http bodies
     - containedctx # context.Context nested in a struct
+    - depguard # blocks dependencies
     - dogsled # too many blank identifiers in assignments
     - dupword # duplicate words
     - durationcheck # multiplying two durations
@@ -48,6 +49,12 @@ linters:
     # TODO: It will be dropped when the Go version migration is done.
     - usetesting
   settings:
+    depguard:
+      rules:
+        vm-operator:
+          deny:
+            - pkg: "github.com/vmware-tanzu/vm-operator/api"
+              desc: Use vmoprvhub in prod code instead
     ginkgolinter:
       forbid-focus-container: true
     gocritic:
@@ -235,14 +242,6 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: mgr.GetEventRecorderFor is deprecated'
-        # Deprecations for AutoConfigure
-      - linters:
-          - staticcheck
-        text: 'SA1019: .*AutoConfigure is deprecated'
-        # Deprecations for PreferredAPIServerCIDR
-      - linters:
-          - staticcheck
-        text: 'SA1019: .*PreferredAPIServerCIDR is deprecated'
         # Deprecations for FailureReason
       - linters:
           - staticcheck
@@ -260,7 +259,11 @@ linters:
           - revive
         path: pkg/conversion/api/vmoperator/hub/(.+)_types.go
         text: 'exported (type|const) (.+) should have comment \(or a comment on this block\) or be unexported'
-
+        # Allow direct usage of vm-operator APIs in a few places like e.g. tests and main.go
+      - linters:
+          - depguard
+        path: main.go|pkg/manager/manager.go|.*_test.go|internal/test/helpers/.*|pkg/context/fake/fake_controller_manager_context.go|pkg/conversion/.*|pkg/util/testutil.go
+        text: 'Use vmoprvhub in prod code instead'
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/.*" is deprecated'

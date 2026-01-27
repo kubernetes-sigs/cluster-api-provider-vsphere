@@ -97,7 +97,7 @@ type ControlPlaneEndpointService interface {
 type ResourcePolicyService interface {
 	// ReconcileResourcePolicy ensures that a VirtualMachineSetResourcePolicy exists for the cluster
 	// Returns the name of a policy if it exists, otherwise returns an error
-	ReconcileResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) (string, error)
+	ReconcileResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) error
 }
 
 // NetworkProvider provision network resources and configures VM based on network type.

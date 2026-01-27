@@ -38,12 +38,11 @@ type RPService struct {
 
 // ReconcileResourcePolicy ensures that a VirtualMachineSetResourcePolicy exists for the cluster
 // Returns the name of a policy if it exists, otherwise returns an error.
-func (s *RPService) ReconcileResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) (string, error) {
-	resourcePolicy, err := s.createOrPatchVirtualMachineSetResourcePolicy(ctx, clusterCtx)
-	if err != nil {
-		return "", errors.Errorf("failed to create Resource Policy: %+v", err)
+func (s *RPService) ReconcileResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
+	if err := s.createOrPatchVirtualMachineSetResourcePolicy(ctx, clusterCtx); err != nil {
+		return errors.Errorf("failed to create Resource Policy: %+v", err)
 	}
-	return resourcePolicy.Name, nil
+	return nil
 }
 
 func (s *RPService) newVirtualMachineSetResourcePolicy(clusterCtx *vmware.ClusterContext) *vmoprvhub.VirtualMachineSetResourcePolicy {
@@ -55,13 +54,13 @@ func (s *RPService) newVirtualMachineSetResourcePolicy(clusterCtx *vmware.Cluste
 	}
 }
 
-func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) (*vmoprvhub.VirtualMachineSetResourcePolicy, error) {
+func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
 	vmResourcePolicy := s.newVirtualMachineSetResourcePolicy(clusterCtx)
 
 	vmResourcePolicyExists := true
 	if err := s.Client.Get(ctx, client.ObjectKeyFromObject(vmResourcePolicy), vmResourcePolicy); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return nil, err
+			return err
 		}
 		vmResourcePolicyExists = false
 	}
@@ -83,7 +82,7 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 		vmResourcePolicy,
 		s.Client.Scheme(),
 	); err != nil {
-		return nil, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error setting %s/%s as owner of %s/%s",
 			clusterCtx.VSphereCluster.Namespace,
@@ -95,17 +94,17 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 
 	if !vmResourcePolicyExists {
 		if err := s.Client.Create(ctx, vmResourcePolicy); err != nil {
-			return nil, err
+			return err
 		}
 	} else if !reflect.DeepEqual(originalResourcePolicy, vmResourcePolicy) {
 		patch, err := conversionclient.MergeFrom(ctx, s.Client, originalResourcePolicy)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create patch for VirtualMachineSetResourcePolicy object")
+			return errors.Wrapf(err, "failed to create patch for VirtualMachineSetResourcePolicy object")
 		}
 		if err := s.Client.Patch(ctx, vmResourcePolicy, patch); err != nil {
-			return nil, errors.Wrapf(err, "failed to patch VirtualMachineSetResourcePolicy object")
+			return errors.Wrapf(err, "failed to patch VirtualMachineSetResourcePolicy object")
 		}
 	}
 
-	return vmResourcePolicy, nil
+	return nil
 }

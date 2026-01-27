@@ -102,10 +102,15 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	defer func() {
 		deprecatedv1beta1conditions.SetSummary(identity, deprecatedv1beta1conditions.WithConditions(infrav1.CredentialsAvailableV1Beta1Condition))
 
-		if err := patchHelper.Patch(ctx, identity, patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedCondition,
-			infrav1.VSphereClusterIdentityAvailableCondition,
-		}}); err != nil {
+		if err := patchHelper.Patch(ctx, identity,
+			patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.ReadyV1Beta1Condition,
+				infrav1.CredentialsAvailableV1Beta1Condition,
+			}},
+			patch.WithOwnedConditions{Conditions: []string{
+				clusterv1.PausedCondition,
+				infrav1.VSphereClusterIdentityAvailableCondition,
+			}}); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()

@@ -246,8 +246,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	// Reconcile ResourcePolicy before we create the machines. If the ResourcePolicy is not reconciled before we create the Node VMs,
 	// it will be handled by vm operator by relocating the VMs to the ResourcePool and Folder specified by the ResourcePolicy.
 	// Reconciling the ResourcePolicy early potentially saves us the extra relocate operation.
-	resourcePolicyName, err := r.ResourcePolicyService.ReconcileResourcePolicy(ctx, clusterCtx)
-	if err != nil {
+	if err := r.ResourcePolicyService.ReconcileResourcePolicy(ctx, clusterCtx); err != nil {
 		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyV1Beta1Condition, vmwarev1.ResourcePolicyCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterResourcePolicyReadyCondition,
@@ -265,8 +264,6 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 		Status: metav1.ConditionTrue,
 		Reason: vmwarev1.VSphereClusterResourcePolicyReadyReason,
 	})
-
-	clusterCtx.VSphereCluster.Status.ResourcePolicyName = resourcePolicyName
 
 	// Configure the cluster for the cluster network
 	err = r.NetworkProvider.ProvisionClusterNetwork(ctx, clusterCtx)

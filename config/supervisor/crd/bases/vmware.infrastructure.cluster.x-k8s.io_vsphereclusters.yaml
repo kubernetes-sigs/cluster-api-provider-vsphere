@@ -518,13 +518,6 @@ spec:
                       NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
                     type: boolean
                 type: object
-              resourcePolicyName:
-                description: |-
-                  resourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
-                  the cluster, if one exists
-                maxLength: 253
-                minLength: 1
-                type: string
             type: object
         type: object
     served: true

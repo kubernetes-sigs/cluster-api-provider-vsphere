@@ -572,13 +572,11 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
 	}
 	vmOperatorVM.Spec.PowerState = vmoprvhub.VirtualMachinePowerStateOn
-	if supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName != "" {
-		if vmOperatorVM.Spec.Reserved == nil {
-			vmOperatorVM.Spec.Reserved = &vmoprvhub.VirtualMachineReservedSpec{}
-		}
-		if vmOperatorVM.Spec.Reserved.ResourcePolicyName == "" {
-			vmOperatorVM.Spec.Reserved.ResourcePolicyName = supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName
-		}
+	if vmOperatorVM.Spec.Reserved == nil {
+		vmOperatorVM.Spec.Reserved = &vmoprvhub.VirtualMachineReservedSpec{}
+	}
+	if vmOperatorVM.Spec.Reserved.ResourcePolicyName == "" {
+		vmOperatorVM.Spec.Reserved.ResourcePolicyName = supervisorMachineCtx.Cluster.Name
 	}
 	if vmOperatorVM.Spec.Bootstrap == nil {
 		vmOperatorVM.Spec.Bootstrap = &vmoprvhub.VirtualMachineBootstrapSpec{}

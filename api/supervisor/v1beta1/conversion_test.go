@@ -116,6 +116,8 @@ func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+
+	in.ResourcePolicyName = "" // Field does not exist in v1beta1.
 }
 
 func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

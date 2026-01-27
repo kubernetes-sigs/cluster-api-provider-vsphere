@@ -121,7 +121,7 @@ const (
 	className                = "test-className"
 	imageName                = "test-imageName"
 	storageClass             = "test-storageClass"
-	resourcePolicyName       = "test-resourcePolicy"
+	resourcePolicyName       = clusterName
 	minHardwareVersion       = int32(17)
 	vmIP                     = "127.0.0.1"
 	biosUUID                 = "test-biosUuid"
@@ -193,7 +193,6 @@ var _ = Describe("VirtualMachine tests", func() {
 		// Create all necessary dependencies
 		cluster = util.CreateCluster(clusterName)
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
-		vsphereCluster.Status.ResourcePolicyName = resourcePolicyName
 		machine = util.CreateMachine(machineName, clusterName, k8sVersion, controlPlaneLabelTrue)
 		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
 		clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
@@ -470,7 +469,6 @@ var _ = Describe("VirtualMachine tests", func() {
 				vsphereMachine.Spec.ClassName = "new-class"
 				vsphereMachine.Spec.StorageClass = "new-storageclass"
 				vsphereMachine.Spec.MinHardwareVersion = "vmx-9999"
-				vsphereCluster.Status.ResourcePolicyName = "new-resourcepolicy"
 
 				requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 				verifyOutput(supervisorMachineContext)
@@ -1009,7 +1007,6 @@ var _ = Describe("VirtualMachine tests", func() {
 						// Create a separate cluster for this test to avoid VirtualMachineGroup conflicts
 						fdCluster := util.CreateCluster(fdClusterName)
 						fdVSphereCluster := util.CreateVSphereCluster(fdClusterName)
-						fdVSphereCluster.Status.ResourcePolicyName = resourcePolicyName
 
 						// Create a worker machine with failure domain
 						machine = util.CreateMachine(workerMachineName, fdClusterName, k8sVersion, false)

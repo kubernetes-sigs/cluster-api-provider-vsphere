@@ -42,9 +42,8 @@ func TestRPService(t *testing.T) {
 
 	t.Run("Creates Resource Policy using the cluster name", func(t *testing.T) {
 		g := NewWithT(t)
-		name, err := rpService.ReconcileResourcePolicy(ctx, clusterCtx)
+		err := rpService.ReconcileResourcePolicy(ctx, clusterCtx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(name).To(Equal(clusterName))
 
 		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
 		resourcePolicy := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{}

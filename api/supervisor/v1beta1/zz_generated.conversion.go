@@ -813,7 +813,7 @@ func Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *v1beta
 
 func autoConvert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VSphereClusterStatus, out *v1beta2.VSphereClusterStatus, s conversion.Scope) error {
 	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
-	out.ResourcePolicyName = in.ResourcePolicyName
+	// WARNING: in.ResourcePolicyName requires manual conversion: does not exist in peer-type
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]metav1.Condition, len(*in))
@@ -843,7 +843,6 @@ func autoConvert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in
 		out.Conditions = nil
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
-	out.ResourcePolicyName = in.ResourcePolicyName
 	// WARNING: in.FailureDomains requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain vs sigs.k8s.io/cluster-api/api/core/v1beta1.FailureDomains)
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil

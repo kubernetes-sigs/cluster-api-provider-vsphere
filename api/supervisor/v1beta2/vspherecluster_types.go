@@ -211,13 +211,6 @@ type VSphereClusterStatus struct {
 	// +optional
 	Initialization VSphereClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
 
-	// resourcePolicyName is the name of the VirtualMachineSetResourcePolicy for
-	// the cluster, if one exists
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	ResourcePolicyName string `json:"resourcePolicyName,omitempty"`
-
 	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
 	// +optional
 	// +listType=map

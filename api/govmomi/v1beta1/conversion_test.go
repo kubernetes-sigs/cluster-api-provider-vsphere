@@ -288,6 +288,7 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 	}
 
 	in.Network.PreferredAPIServerCIDR = "" // field has been dropped in v1beta2
+	in.FailureDomain = nil                 // field has been dropped in v1beta2
 }
 
 func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {

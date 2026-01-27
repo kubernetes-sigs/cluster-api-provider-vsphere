@@ -118,13 +118,6 @@ type VSphereMachineSpec struct {
 	// +kubebuilder:validation:MaxLength=512
 	ProviderID string `json:"providerID,omitempty"`
 
-	// failureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
-	// For this infrastructure provider, the name is equivalent to the name of the VSphereDeploymentZone.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	FailureDomain string `json:"failureDomain,omitempty"`
-
 	// powerOffMode describes the desired behavior when powering off a VM.
 	//
 	// There are three, supported power off modes: hard, soft, and

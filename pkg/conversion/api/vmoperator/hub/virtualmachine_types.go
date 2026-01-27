@@ -350,6 +350,14 @@ type VirtualMachineStatus struct {
 	// infrastructure provider that is exposed to the Guest OS BIOS as a unique
 	// hardware identifier.
 	BiosUUID string `json:"biosUUID,omitempty"`
+
+	// +optional
+
+	// Zone describes the availability zone where the VirtualMachine has been
+	// scheduled.
+	//
+	// Please note this field may be empty when the cluster is not zone-aware.
+	Zone string `json:"zone,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -55,13 +55,6 @@ type VSphereMachineSpec struct {
 	// +kubebuilder:validation:MaxLength=512
 	ProviderID string `json:"providerID,omitempty"`
 
-	// failureDomain is the failure domain the machine will be created in.
-	// Must match a FailureDomain name on the Cluster status.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
-	FailureDomain string `json:"failureDomain,omitempty"`
-
 	// imageName is the name of the base image used when specifying the
 	// underlying virtual machine
 	// +required
@@ -313,6 +306,12 @@ type VSphereMachineStatus struct {
 	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
+	// failureDomain is the failure domain where the VirtualMachine has been scheduled.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	FailureDomain string `json:"failureDomain,omitempty"`
+
 	// biosUUID is the biosUUID of the virtual machine.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -418,6 +417,7 @@ type VSphereMachineV1Beta1DeprecatedStatus struct {
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
 // +kubebuilder:printcolumn:name="Class",type="string",JSONPath=".spec.className",description="VirtualMachineClass name"
 // +kubebuilder:printcolumn:name="Provider ID",type="string",JSONPath=".spec.providerID",description="Provider ID",priority=10
+// +kubebuilder:printcolumn:name="Failure domain",type="string",JSONPath=".status.failureDomain",description="The failure domain where the VSphereMachine has been scheduled"
 // +kubebuilder:printcolumn:name="IP",type="string",JSONPath=`.status.addresses[?(@.type=="InternalIP")].address`,description="IP of the Machine",priority=10
 // +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".spec.imageName",description="Image name",priority=10
 // +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10

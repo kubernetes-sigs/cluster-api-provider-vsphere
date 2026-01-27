@@ -2030,9 +2030,7 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	if err := v1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
 		return err
 	}
-	if err := v1.Convert_Pointer_string_To_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
-		return err
-	}
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	// WARNING: in.GuestSoftPowerOffTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NamingStrategy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1.VSphereVMNamingStrategy vs sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2.VSphereVMNamingStrategy)
@@ -2044,9 +2042,6 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 		return err
 	}
 	if err := v1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
-		return err
-	}
-	if err := v1.Convert_string_To_Pointer_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)

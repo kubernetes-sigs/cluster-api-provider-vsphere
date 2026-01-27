@@ -54,12 +54,12 @@ func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
 				*createMD("md3", "test-cluster", "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", "test-cluster", "md1", ""),
-				*createVSphereMachine("m2", "test-cluster", "md1", "", func(vm *vmwarev1.VSphereMachine) {
+				*createVSphereMachine("m1", "test-cluster", "md1"),
+				*createVSphereMachine("m2", "test-cluster", "md1", func(vm *vmwarev1.VSphereMachine) {
 					vm.DeletionTimestamp = ptr.To(metav1.Now())
 				}),
-				*createVSphereMachine("m3", "test-cluster", "md2", ""),
-				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+				*createVSphereMachine("m3", "test-cluster", "md2"),
+				*createVSphereMachine("m4", "test-cluster", "md3"),
 			},
 			want: false, // tot replicas = 4, 3 VSphereMachine exist, 1 VSphereMachine in deleting.
 		},
@@ -71,10 +71,10 @@ func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
 				*createMD("md3", "test-cluster", "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", "test-cluster", "md1", ""),
-				*createVSphereMachine("m2", "test-cluster", "md1", ""),
-				*createVSphereMachine("m3", "test-cluster", "md2", ""),
-				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+				*createVSphereMachine("m1", "test-cluster", "md1"),
+				*createVSphereMachine("m2", "test-cluster", "md1"),
+				*createVSphereMachine("m3", "test-cluster", "md2"),
+				*createVSphereMachine("m4", "test-cluster", "md3"),
 			},
 			want: true, // tot replicas = 4, 4 VSphereMachine exist
 		},
@@ -88,9 +88,9 @@ func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
 				*createMD("md3", "test-cluster", "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", "test-cluster", "md1", ""),
-				*createVSphereMachine("m2", "test-cluster", "md1", ""),
-				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+				*createVSphereMachine("m1", "test-cluster", "md1"),
+				*createVSphereMachine("m2", "test-cluster", "md1"),
+				*createVSphereMachine("m4", "test-cluster", "md3"),
 			},
 			want: true, // tot replicas = 3 (one md is deleting, so not included in the total), 3 VSphereMachine exist
 		},
@@ -102,9 +102,9 @@ func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
 				*createMD("md3", "test-cluster", "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", "test-cluster", "md1", ""),
-				*createVSphereMachine("m3", "test-cluster", "md2", ""),
-				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+				*createVSphereMachine("m1", "test-cluster", "md1"),
+				*createVSphereMachine("m3", "test-cluster", "md2"),
+				*createVSphereMachine("m4", "test-cluster", "md3"),
 			},
 			want: false, // tot replicas = 4, 3 VSphereMachine exist
 		},
@@ -133,10 +133,10 @@ func Test_getVirtualMachineNameToMachineDeploymentMapping(t *testing.T) {
 		{
 			name: "mapping from VirtualMachineName to MachineDeployment is inferred from vSphereMachines",
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", "test-cluster", "md1", ""),
-				*createVSphereMachine("m2", "test-cluster", "md1", ""),
-				*createVSphereMachine("m3", "test-cluster", "md2", ""),
-				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+				*createVSphereMachine("m1", "test-cluster", "md1"),
+				*createVSphereMachine("m2", "test-cluster", "md1"),
+				*createVSphereMachine("m3", "test-cluster", "md2"),
+				*createVSphereMachine("m4", "test-cluster", "md3"),
 			},
 			want: map[string]string{
 				// Note VirtualMachineName is equal to the VSphereMachine name because when using the default naming strategy
@@ -149,12 +149,12 @@ func Test_getVirtualMachineNameToMachineDeploymentMapping(t *testing.T) {
 		{
 			name: "mapping from VirtualMachineName to MachineDeployment is inferred from vSphereMachines (custom naming strategy)",
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", "test-cluster", "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", "test-cluster", "md1", "", withCustomNamingStrategy(), func(m *vmwarev1.VSphereMachine) {
+				*createVSphereMachine("m1", "test-cluster", "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", "test-cluster", "md1", withCustomNamingStrategy(), func(m *vmwarev1.VSphereMachine) {
 					m.DeletionTimestamp = ptr.To(metav1.Now())
 				}), // Should not be included in the mapping
-				*createVSphereMachine("m3", "test-cluster", "md2", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+				*createVSphereMachine("m3", "test-cluster", "md2", withCustomNamingStrategy()),
+				*createVSphereMachine("m4", "test-cluster", "md3"),
 			},
 			want: map[string]string{
 				"m1-vm": "md1",
@@ -166,12 +166,12 @@ func Test_getVirtualMachineNameToMachineDeploymentMapping(t *testing.T) {
 		{
 			name: "deleting vSphereMachines are not included in the mapping",
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", "test-cluster", "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", "test-cluster", "md1", "", withCustomNamingStrategy(), func(m *vmwarev1.VSphereMachine) {
+				*createVSphereMachine("m1", "test-cluster", "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", "test-cluster", "md1", withCustomNamingStrategy(), func(m *vmwarev1.VSphereMachine) {
 					m.DeletionTimestamp = ptr.To(metav1.Now())
 				}), // Should not be included in the mapping
-				*createVSphereMachine("m3", "test-cluster", "md2", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+				*createVSphereMachine("m3", "test-cluster", "md2", withCustomNamingStrategy()),
+				*createVSphereMachine("m4", "test-cluster", "md3"),
 			},
 			want: map[string]string{
 				"m1-vm": "md1",
@@ -183,12 +183,12 @@ func Test_getVirtualMachineNameToMachineDeploymentMapping(t *testing.T) {
 		{
 			name: "vSphereMachines without the MachineDeploymentNameLabel are not included in the mapping",
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", "test-cluster", "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", "test-cluster", "md1", "", withCustomNamingStrategy(), func(m *vmwarev1.VSphereMachine) {
+				*createVSphereMachine("m1", "test-cluster", "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", "test-cluster", "md1", withCustomNamingStrategy(), func(m *vmwarev1.VSphereMachine) {
 					delete(m.Labels, clusterv1.MachineDeploymentNameLabel)
 				}), // Should not be included in the mapping
-				*createVSphereMachine("m3", "test-cluster", "md2", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+				*createVSphereMachine("m3", "test-cluster", "md2", withCustomNamingStrategy()),
+				*createVSphereMachine("m4", "test-cluster", "md3"),
 			},
 			want: map[string]string{
 				"m1-vm": "md1",
@@ -627,10 +627,10 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				*createMD("md3", cluster.Name, "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", cluster.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", cluster.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m3", cluster.Name, "md2", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m4", cluster.Name, "md3", "zone1"),
+				*createVSphereMachine("m1", cluster.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", cluster.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m3", cluster.Name, "md2", withCustomNamingStrategy()),
+				*createVSphereMachine("m4", cluster.Name, "md3"),
 			},
 			existingVMG: nil,
 			want: &vmoprvhub.VirtualMachineGroup{
@@ -677,11 +677,11 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				*createMD("md4", cluster.Name, "zone2", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", cluster.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m5", cluster.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m4", cluster.Name, "md3", "zone1"),
-				*createVSphereMachine("m6", cluster.Name, "md3", "zone1"),
-				*createVSphereMachine("m7", cluster.Name, "md4", "zone2"),
+				*createVSphereMachine("m1", cluster.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m5", cluster.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m4", cluster.Name, "md3"),
+				*createVSphereMachine("m6", cluster.Name, "md3"),
+				*createVSphereMachine("m7", cluster.Name, "md4"),
 			},
 			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
@@ -771,11 +771,11 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				*createMD("md4", cluster.Name, "zone2", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", cluster.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m5", cluster.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m4", cluster.Name, "md3", "zone1"),
-				*createVSphereMachine("m6", cluster.Name, "md3", "zone1"),
-				*createVSphereMachine("m7", cluster.Name, "md4", "zone2"),
+				*createVSphereMachine("m1", cluster.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m5", cluster.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m4", cluster.Name, "md3"),
+				*createVSphereMachine("m6", cluster.Name, "md3"),
+				*createVSphereMachine("m7", cluster.Name, "md4"),
 			},
 			existingVMG: &vmoprvhub.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
@@ -910,7 +910,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createMD("md2", clusterInitialized.Name, "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
 			},
 			existingVMG: nil,
 			wantResult:  ctrl.Result{},
@@ -924,8 +924,8 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createMD("md2", clusterInitialized.Name, "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m3", clusterInitialized.Name, "md2"),
 			},
 			existingVMG: nil,
 			wantResult:  ctrl.Result{},
@@ -939,9 +939,9 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createMD("md2", clusterInitialized.Name, "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m3", clusterInitialized.Name, "md2"),
 			},
 			existingVMG: nil,
 			wantResult:  ctrl.Result{},
@@ -978,9 +978,9 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createMD("md2", clusterInitialized.Name, "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m3", clusterInitialized.Name, "md2"),
 			},
 			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1038,13 +1038,13 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createMD("md4", clusterInitialized.Name, "zone2", 1), // new
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m4", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()), // new
-				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
-				*createVSphereMachine("m5", clusterInitialized.Name, "md2", "zone1"),                        // new
-				*createVSphereMachine("m6", clusterInitialized.Name, "md3", "", withCustomNamingStrategy()), // new
-				*createVSphereMachine("m7", clusterInitialized.Name, "md4", "zone3"),                        // new
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m4", clusterInitialized.Name, "md1", withCustomNamingStrategy()), // new
+				*createVSphereMachine("m3", clusterInitialized.Name, "md2"),
+				*createVSphereMachine("m5", clusterInitialized.Name, "md2"),                             // new
+				*createVSphereMachine("m6", clusterInitialized.Name, "md3", withCustomNamingStrategy()), // new
+				*createVSphereMachine("m7", clusterInitialized.Name, "md4"),                             // new
 			},
 			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1107,10 +1107,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// md4 deleted
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
 				// m4 deleted
-				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
+				*createVSphereMachine("m3", clusterInitialized.Name, "md2"),
 				// m5 deleted
 				// m6 deleted
 				// m7 deleted
@@ -1181,9 +1181,9 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				*createMD("md2", clusterInitialized.Name, "zone1", 1),
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m3", clusterInitialized.Name, "md2"),
 			},
 			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1244,12 +1244,12 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// Adding a new MD without explicit placement is not supported at this stage
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m4", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()), // new
-				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
-				*createVSphereMachine("m5", clusterInitialized.Name, "md2", "zone1"), // new
-				*createVSphereMachine("m6", clusterInitialized.Name, "md3", "zone2"), // new
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m4", clusterInitialized.Name, "md1", withCustomNamingStrategy()), // new
+				*createVSphereMachine("m3", clusterInitialized.Name, "md2"),
+				*createVSphereMachine("m5", clusterInitialized.Name, "md2"), // new
+				*createVSphereMachine("m6", clusterInitialized.Name, "md3"), // new
 			},
 			existingVMG: &vmoprv1alpha5.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1313,10 +1313,10 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				// md3 deleted
 			},
 			vSphereMachines: []vmwarev1.VSphereMachine{
-				*createVSphereMachine("m1", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
-				*createVSphereMachine("m2", clusterInitialized.Name, "md1", "", withCustomNamingStrategy()),
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
 				// m4 deleted
-				*createVSphereMachine("m3", clusterInitialized.Name, "md2", "zone1"),
+				*createVSphereMachine("m3", clusterInitialized.Name, "md2"),
 				// m5 deleted
 				// m5 deleted
 			},
@@ -1459,7 +1459,7 @@ func withCustomNamingStrategy() func(m *vmwarev1.VSphereMachine) {
 	}
 }
 
-func createVSphereMachine(name, cluster, md, failureDomain string, options ...vSphereMachineOption) *vmwarev1.VSphereMachine {
+func createVSphereMachine(name, cluster, md string, options ...vSphereMachineOption) *vmwarev1.VSphereMachine {
 	m := &vmwarev1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: metav1.NamespaceDefault,
@@ -1468,9 +1468,6 @@ func createVSphereMachine(name, cluster, md, failureDomain string, options ...vS
 				clusterv1.ClusterNameLabel:           cluster,
 				clusterv1.MachineDeploymentNameLabel: md,
 			},
-		},
-		Spec: vmwarev1.VSphereMachineSpec{
-			FailureDomain: failureDomain,
 		},
 	}
 	for _, opt := range options {

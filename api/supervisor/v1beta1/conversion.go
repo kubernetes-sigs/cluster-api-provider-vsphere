@@ -96,6 +96,7 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 	if !reflect.DeepEqual(initialization, vmwarev1.VSphereMachineInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+	dst.Status.FailureDomain = restored.Status.FailureDomain
 	return nil
 }
 

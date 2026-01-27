@@ -181,6 +181,8 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 	if in.NamingStrategy != nil && reflect.DeepEqual(in.NamingStrategy, &VirtualMachineNamingStrategy{}) {
 		in.NamingStrategy = nil
 	}
+
+	in.FailureDomain = nil // field has been dropped in v1beta2
 }
 
 func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {

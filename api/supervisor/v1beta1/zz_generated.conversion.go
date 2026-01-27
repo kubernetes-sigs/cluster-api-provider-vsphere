@@ -1253,9 +1253,7 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	if err := metav1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
 		return err
 	}
-	if err := metav1.Convert_Pointer_string_To_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
-		return err
-	}
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.ImageName = in.ImageName
 	out.ClassName = in.ClassName
 	out.StorageClass = in.StorageClass
@@ -1271,9 +1269,6 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 
 func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1beta2.VSphereMachineSpec, out *VSphereMachineSpec, s conversion.Scope) error {
 	if err := metav1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
-		return err
-	}
-	if err := metav1.Convert_string_To_Pointer_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
 	out.ImageName = in.ImageName
@@ -1329,6 +1324,7 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	// WARNING: in.BiosUUID requires manual conversion: does not exist in peer-type
 	// WARNING: in.Phase requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_VSphereMachineNetworkStatus_To_v1beta1_VSphereMachineNetworkStatus(&in.Network, &out.Network, s); err != nil {

@@ -851,6 +851,10 @@ spec:
       name: Provider ID
       priority: 10
       type: string
+    - description: The failure domain where the VSphereMachine has been scheduled
+      jsonPath: .status.failureDomain
+      name: Failure domain
+      type: string
     - description: IP of the Machine
       jsonPath: .status.addresses[?(@.type=="InternalIP")].address
       name: IP
@@ -908,13 +912,6 @@ spec:
                   className is the name of the class used when specifying the underlying
                   virtual machine
                 maxLength: 253
-                minLength: 1
-                type: string
-              failureDomain:
-                description: |-
-                  failureDomain is the failure domain the machine will be created in.
-                  Must match a FailureDomain name on the Cluster status.
-                maxLength: 256
                 minLength: 1
                 type: string
               imageName:
@@ -1440,6 +1437,12 @@ spec:
                         type: string
                     type: object
                 type: object
+              failureDomain:
+                description: failureDomain is the failure domain where the VirtualMachine
+                  has been scheduled.
+                maxLength: 256
+                minLength: 1
+                type: string
               initialization:
                 description: |-
                   initialization provides observations of the VSphereMachine initialization process.

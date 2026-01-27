@@ -117,7 +117,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 		// Controller runtime client
 		crclient, err := conversionclient.NewWithConverter(
 			fake.NewClientBuilder().WithObjects(cluster, vsphereCluster, machine, vSphereMachine, virtualMachine).WithScheme(scheme).Build(),
-			conversionapi.DefaultConverter,
+			conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
 		)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -259,7 +259,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 		// Controller runtime client
 		crclient, err := conversionclient.NewWithConverter(
 			fake.NewClientBuilder().WithObjects(cluster, vsphereCluster, machine, vSphereMachine, virtualMachine).WithScheme(scheme).Build(),
-			conversionapi.DefaultConverter,
+			conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
 		)
 		g.Expect(err).ToNot(HaveOccurred())
 

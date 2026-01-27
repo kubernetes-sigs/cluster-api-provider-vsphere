@@ -47,26 +47,19 @@ type Converter struct {
 	conversionFuncs map[schema.GroupVersionKind]map[schema.GroupVersionKind]ConvertFunc
 
 	// targetVersionSelector stores func that selects the target version for conversions.
-	targetVersionSelector func(gk schema.GroupKind) string
+	targetVersionSelector func(gk schema.GroupKind) (string, error)
 }
 
 // NewConverter returns a Converter.
-func NewConverter() *Converter {
+func NewConverter(targetVersionSelector func(_ schema.GroupKind) (string, error)) *Converter {
 	s := &Converter{
-		gvkToType:       map[schema.GroupVersionKind]reflect.Type{},
-		typeToGVK:       map[reflect.Type]schema.GroupVersionKind{},
-		gvkHubTypes:     map[schema.GroupVersionKind]bool{},
-		conversionFuncs: map[schema.GroupVersionKind]map[schema.GroupVersionKind]ConvertFunc{},
-		targetVersionSelector: func(_ schema.GroupKind) string {
-			panic("targetVersionSelector not set")
-		},
+		gvkToType:             map[schema.GroupVersionKind]reflect.Type{},
+		typeToGVK:             map[reflect.Type]schema.GroupVersionKind{},
+		gvkHubTypes:           map[schema.GroupVersionKind]bool{},
+		conversionFuncs:       map[schema.GroupVersionKind]map[schema.GroupVersionKind]ConvertFunc{},
+		targetVersionSelector: targetVersionSelector,
 	}
 	return s
-}
-
-// SetTargetVersion sets the target version to be used for all groups and kinds known by this converter.
-func (s *Converter) SetTargetVersion(v string) {
-	s.targetVersionSelector = func(_ schema.GroupKind) string { return v }
 }
 
 // AddHubTypes adds to the converter hub types that require conversion.
@@ -270,9 +263,14 @@ func (s *Converter) SpokeGroupVersionKindFor(obj runtime.Object) (schema.GroupVe
 		return schema.GroupVersionKind{}, errors.Errorf("no type registered for %s", gvk)
 	}
 
+	spokeVersion, err := s.targetVersionSelector(gvk.GroupKind())
+	if err != nil {
+		return schema.GroupVersionKind{}, errors.Wrapf(err, "no target version registered for %s", gvk.GroupKind())
+	}
+
 	spokeGVK := schema.GroupVersionKind{
 		Group:   gvk.Group,
-		Version: s.targetVersionSelector(gvk.GroupKind()),
+		Version: spokeVersion,
 		Kind:    gvk.Kind,
 	}
 

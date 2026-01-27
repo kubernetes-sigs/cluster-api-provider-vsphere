@@ -21,54 +21,57 @@ import (
 
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/randfill"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/test"
+	conversiontest "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/test"
 )
 
 func TestFuzzyConversion(t *testing.T) {
-	converter := conversion.NewConverter()
+	converter := conversion.NewConverter(func(_ schema.GroupKind) (string, error) {
+		return vmoprv1alpha2.GroupVersion.Version, nil
+	})
 	utilruntime.Must(vmoprvhub.AddToConverter(converter))
 	utilruntime.Must(AddToConverter(converter))
 
-	t.Run("for VirtualMachine", test.RoundTripTest(test.RoundTripTestInput{
+	t.Run("for VirtualMachine", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachine{},
 		Spoke:     &vmoprv1alpha2.VirtualMachine{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{
 			virtualMachineFuncs,
 		},
-		CheckTypes: test.RoundTripCheckTypesInput{
+		CheckTypes: conversiontest.RoundTripCheckTypesInput{
 			FieldNameMap: map[string]string{
 				"VirtualMachine.Status.NodeName": "Host",
 			},
 		},
 	}))
-	t.Run("for VirtualMachineClass", test.RoundTripTest(test.RoundTripTestInput{
+	t.Run("for VirtualMachineClass", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineClass{},
 		Spoke:     &vmoprv1alpha2.VirtualMachineClass{},
 	}))
-	t.Run("for VirtualMachineGroup", test.RoundTripTest(test.RoundTripTestInput{
+	t.Run("for VirtualMachineGroup", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineGroup{},
 		Spoke:     &vmoprv1alpha2.VirtualMachineGroup{},
 	}))
-	t.Run("for VirtualMachineImage", test.RoundTripTest(test.RoundTripTestInput{
+	t.Run("for VirtualMachineImage", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineImage{},
 		Spoke:     &vmoprv1alpha2.VirtualMachineImage{},
 	}))
-	t.Run("for VirtualMachineService", test.RoundTripTest(test.RoundTripTestInput{
+	t.Run("for VirtualMachineService", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineService{},
 		Spoke:     &vmoprv1alpha2.VirtualMachineService{},
 	}))
-	t.Run("for VirtualMachineSetResourcePolicy", test.RoundTripTest(test.RoundTripTestInput{
+	t.Run("for VirtualMachineSetResourcePolicy", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineSetResourcePolicy{},
 		Spoke:     &vmoprv1alpha2.VirtualMachineSetResourcePolicy{},

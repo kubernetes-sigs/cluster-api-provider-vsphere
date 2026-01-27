@@ -50,20 +50,19 @@ func Test_WatchObject(t *testing.T) {
 			wantObj:       &vmoprv1alpha5.VirtualMachine{},
 		},
 		{
-			name:    "Fails for non hub objects",
-			obj:     &corev1.Node{},
-			wantErr: true,
+			name:          "Fails for non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj:           &corev1.Node{},
+			wantErr:       true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			c := &conversionClient{
 				internalClient: fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter:      converter,
+				converter:      converterForVersion(tt.targetVersion),
 			}
 
 			gotObj, err := WatchObject(c, tt.obj)

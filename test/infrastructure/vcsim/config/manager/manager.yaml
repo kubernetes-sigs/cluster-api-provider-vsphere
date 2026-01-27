@@ -22,6 +22,7 @@ spec:
         - "--leader-elect"
         - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
         - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
+        - "--vm-operator-api-version=${VM_OPERATOR_API_VERSION:=v1alpha5}"
         image: controller:latest
         name: manager
         env:

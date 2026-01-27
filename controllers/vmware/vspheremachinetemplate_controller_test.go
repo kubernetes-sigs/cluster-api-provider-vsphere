@@ -141,7 +141,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 
 			c, err := conversionclient.NewWithConverter(
 				fakeClientBuilder.Build(),
-				conversionapi.DefaultConverter,
+				conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
 			)
 			g.Expect(err).ToNot(HaveOccurred())
 

@@ -33,9 +33,8 @@ import (
 
 func Test_MergeFrom(t *testing.T) {
 	g := NewWithT(t)
-	converter.SetTargetVersion(vmoprv1alpha5.GroupVersion.Version)
 
-	cc, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), converter)
+	cc, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha5Converter)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	fromHub := &vmoprvhub.VirtualMachine{
@@ -128,7 +127,9 @@ func Test_MergeFrom(t *testing.T) {
 
 func Test_conversionMergePatch_Data(t *testing.T) {
 	g := NewWithT(t)
-	cc, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), converter)
+	v1alpha2ConversionClient, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha2Converter)
+	g.Expect(err).NotTo(HaveOccurred())
+	v1alpha5ConversionClient, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha5Converter)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	tests := []struct {
@@ -149,7 +150,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 						Namespace: "test-ns",
 					},
 				},
-				client: cc.(*conversionClient),
+				client: v1alpha5ConversionClient.(*conversionClient),
 			},
 			obj: &vmoprvhub.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -172,7 +173,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 						Namespace: "test-ns",
 					},
 				},
-				client: cc.(*conversionClient),
+				client: v1alpha5ConversionClient.(*conversionClient),
 			},
 			obj: &vmoprv1alpha5.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -195,7 +196,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 						Namespace: "test-ns",
 					},
 				},
-				client: cc.(*conversionClient),
+				client: v1alpha2ConversionClient.(*conversionClient),
 			},
 			obj: &vmoprvhub.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -218,7 +219,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 						Namespace: "test-ns",
 					},
 				},
-				client: cc.(*conversionClient),
+				client: v1alpha2ConversionClient.(*conversionClient),
 			},
 			obj: &vmoprv1alpha2.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -241,7 +242,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 						Namespace: "test-ns",
 					},
 				},
-				client: cc.(*conversionClient),
+				client: v1alpha5ConversionClient.(*conversionClient),
 			},
 			obj: &vmoprv1alpha2.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -258,8 +259,6 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			converter.SetTargetVersion(tt.targetVersion)
 
 			gotData, err := tt.patch.Data(tt.obj)
 			if tt.wantErr {

@@ -62,6 +62,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
@@ -195,6 +196,7 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 		KubeConfig: env.Config,
 		Username:   simr.Username(),
 		Password:   simr.Password(),
+		Converter:  conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
 	}
 	managerOpts.AddToManager = func(_ context.Context, _ *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		if err := (&webhooks.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {

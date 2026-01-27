@@ -42,7 +42,6 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 )
@@ -84,9 +83,12 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 		return nil, errors.Wrap(err, "unable to create manager")
 	}
 
-	cc, err := conversionclient.NewWithConverter(mgr.GetClient(), conversionapi.DefaultConverter)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create a conversion client")
+	cc := mgr.GetClient()
+	if opts.Converter != nil {
+		cc, err = conversionclient.NewWithConverter(mgr.GetClient(), opts.Converter)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create a conversion client")
+		}
 	}
 
 	// Build the controller manager context.

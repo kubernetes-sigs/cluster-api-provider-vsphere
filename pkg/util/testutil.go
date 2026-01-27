@@ -168,7 +168,7 @@ func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.V
 			&vmoprv1alpha5.VirtualMachineService{},
 			&vmoprv1alpha5.VirtualMachine{},
 		).Build(),
-		conversionapi.DefaultConverter,
+		conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
 	)
 	if err != nil {
 		panic(err)

@@ -22,6 +22,7 @@ import (
 	"slices"
 	"sort"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -263,9 +264,9 @@ func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *vmware
 		return err
 	}
 
-	if !reflect.DeepEqual(in.NamingStrategy, vmwarev1.VirtualMachineNamingStrategy{}) {
+	if !reflect.DeepEqual(in.Naming, vmwarev1.VirtualMachineNamingSpec{}) {
 		out.NamingStrategy = &VirtualMachineNamingStrategy{}
-		if err := autoConvert_v1beta2_VirtualMachineNamingStrategy_To_v1beta1_VirtualMachineNamingStrategy(&in.NamingStrategy, out.NamingStrategy, s); err != nil {
+		if err := metav1.Convert_string_To_Pointer_string(&in.Naming.Template, &out.NamingStrategy.Template, s); err != nil {
 			return err
 		}
 	}
@@ -279,7 +280,7 @@ func Convert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSpher
 	}
 
 	if in.NamingStrategy != nil {
-		if err := autoConvert_v1beta1_VirtualMachineNamingStrategy_To_v1beta2_VirtualMachineNamingStrategy(in.NamingStrategy, &out.NamingStrategy, s); err != nil {
+		if err := metav1.Convert_Pointer_string_To_string(&in.NamingStrategy.Template, &out.Naming.Template, s); err != nil {
 			return err
 		}
 	}

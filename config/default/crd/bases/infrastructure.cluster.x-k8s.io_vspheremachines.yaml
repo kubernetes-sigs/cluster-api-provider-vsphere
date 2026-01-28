@@ -1095,9 +1095,9 @@ spec:
                 format: int64
                 minimum: 1
                 type: integer
-              namingStrategy:
-                description: namingStrategy allows configuring the naming strategy
-                  used when calculating the name of the VSphereVM.
+              naming:
+                description: naming allows configuring the naming strategy used when
+                  calculating the name of the VSphereVM.
                 minProperties: 1
                 properties:
                   template:

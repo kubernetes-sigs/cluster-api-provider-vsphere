@@ -1,4 +1,4 @@
 - op: add
-  path: /spec/template/spec/namingStrategy
+  path: /spec/template/spec/naming
   value:
     template: '{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix "-" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}'

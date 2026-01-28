@@ -414,7 +414,7 @@ func getVirtualMachineNameToMachineDeploymentMapping(_ context.Context, vSphereM
 			continue
 		}
 
-		virtualMachineName, err := vmoperator.GenerateVirtualMachineName(vsphereMachine.Name, vsphereMachine.Spec.NamingStrategy)
+		virtualMachineName, err := vmoperator.GenerateVirtualMachineName(vsphereMachine.Name, vsphereMachine.Spec.Naming)
 		if err != nil {
 			return nil, err
 		}

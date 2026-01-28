@@ -128,7 +128,7 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 
 	// First, check to see if it's already deleted
 	vmOperatorVM := &vmoprvhub.VirtualMachine{}
-	key, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
+	key, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.Naming)
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 	// Get the VirtualMachine object Key
 	vmOperatorVM := &vmoprvhub.VirtualMachine{}
-	vmKey, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
+	vmKey, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.Naming)
 	if err != nil {
 		return false, err
 	}
@@ -478,7 +478,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 // virtualMachineObjectKey returns the object key of the VirtualMachine.
 // Part of this is generating the name of the VirtualMachine based on the naming strategy.
-func virtualMachineObjectKey(machineName, machineNamespace string, namingStrategy vmwarev1.VirtualMachineNamingStrategy) (*client.ObjectKey, error) {
+func virtualMachineObjectKey(machineName, machineNamespace string, namingStrategy vmwarev1.VirtualMachineNamingSpec) (*client.ObjectKey, error) {
 	name, err := GenerateVirtualMachineName(machineName, namingStrategy)
 	if err != nil {
 		return nil, err
@@ -491,7 +491,7 @@ func virtualMachineObjectKey(machineName, machineNamespace string, namingStrateg
 }
 
 // GenerateVirtualMachineName generates the name of a VirtualMachine based on the naming strategy.
-func GenerateVirtualMachineName(machineName string, namingStrategy vmwarev1.VirtualMachineNamingStrategy) (string, error) {
+func GenerateVirtualMachineName(machineName string, namingStrategy vmwarev1.VirtualMachineNamingSpec) (string, error) {
 	// Per default the name of the VirtualMachine should be equal to the Machine name (this is the same as "{{ .machine.name }}")
 	if namingStrategy.Template == "" {
 		// Note: No need to trim to max length in this case as valid Machine names will also be valid VirtualMachine names.
@@ -514,7 +514,7 @@ func (v *VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcon
 	}
 
 	vmOperatorVM := &vmoprvhub.VirtualMachine{}
-	key, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
+	key, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.Naming)
 	if err != nil {
 		return "", err
 	}

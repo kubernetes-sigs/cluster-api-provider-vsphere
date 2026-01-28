@@ -718,9 +718,9 @@ func Convert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *infrav
 		return err
 	}
 
-	if !reflect.DeepEqual(in.NamingStrategy, infrav1.VSphereVMNamingStrategy{}) {
+	if !reflect.DeepEqual(in.Naming, infrav1.VSphereVMNamingSpec{}) {
 		out.NamingStrategy = &VSphereVMNamingStrategy{}
-		if err := autoConvert_v1beta2_VSphereVMNamingStrategy_To_v1beta1_VSphereVMNamingStrategy(&in.NamingStrategy, out.NamingStrategy, s); err != nil {
+		if err := metav1.Convert_string_To_Pointer_string(&in.Naming.Template, &out.NamingStrategy.Template, s); err != nil {
 			return err
 		}
 	}
@@ -737,7 +737,7 @@ func Convert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSpher
 	}
 
 	if in.NamingStrategy != nil {
-		if err := autoConvert_v1beta1_VSphereVMNamingStrategy_To_v1beta2_VSphereVMNamingStrategy(in.NamingStrategy, &out.NamingStrategy, s); err != nil {
+		if err := metav1.Convert_Pointer_string_To_string(&in.NamingStrategy.Template, &out.Naming.Template, s); err != nil {
 			return err
 		}
 	}

@@ -145,14 +145,14 @@ type VSphereMachineSpec struct {
 	// +kubebuilder:validation:Minimum=1
 	GuestSoftPowerOffTimeoutSeconds int32 `json:"guestSoftPowerOffTimeoutSeconds,omitempty"`
 
-	// namingStrategy allows configuring the naming strategy used when calculating the name of the VSphereVM.
+	// naming allows configuring the naming strategy used when calculating the name of the VSphereVM.
 	// +optional
-	NamingStrategy VSphereVMNamingStrategy `json:"namingStrategy,omitempty,omitzero"`
+	Naming VSphereVMNamingSpec `json:"naming,omitempty,omitzero"`
 }
 
-// VSphereVMNamingStrategy defines the naming strategy for the VSphereVMs.
+// VSphereVMNamingSpec defines the naming strategy for the VSphereVMs.
 // +kubebuilder:validation:MinProperties=1
-type VSphereVMNamingStrategy struct {
+type VSphereVMNamingSpec struct {
 	// template defines the template to use for generating the name of the VSphereVM object.
 	// If not defined, it will fall back to `{{ .machine.name }}`.
 	// The templating has the following data available:

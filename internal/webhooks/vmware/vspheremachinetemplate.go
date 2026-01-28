@@ -100,7 +100,7 @@ func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphere
 	allErrs := validateNetwork(webhook.NetworkProvider, newVSphereMachineTemplate.Spec.Template.Spec.Network, field.NewPath("spec", "template", "spec", "network"))
 
 	// Validate namingStrategy
-	namingStrategy := newVSphereMachineTemplate.Spec.Template.Spec.NamingStrategy
+	namingStrategy := newVSphereMachineTemplate.Spec.Template.Spec.Naming
 	if namingStrategy.Template != "" {
 		name, err := vmoperator.GenerateVirtualMachineName("machine", namingStrategy)
 		templateFldPath := field.NewPath("spec", "template", "spec", "namingStrategy", "template")

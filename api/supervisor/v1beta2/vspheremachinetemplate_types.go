@@ -30,6 +30,45 @@ const (
 	VSphereResourceMemory corev1.ResourceName = "memory"
 )
 
+// Architecture represents the CPU architecture of the node.
+// Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
+// +kubebuilder:validation:Enum=amd64;arm64;s390x;ppc64le
+// +enum
+type Architecture string
+
+const (
+	// ArchitectureAmd64 is the AMD64 architecture.
+	ArchitectureAmd64 Architecture = "amd64"
+	// ArchitectureArm64 is the ARM64 architecture.
+	ArchitectureArm64 Architecture = "arm64"
+	// ArchitectureS390x is the S390X architecture.
+	ArchitectureS390x Architecture = "s390x"
+	// ArchitecturePpc64le is the PPC64LE architecture.
+	ArchitecturePpc64le Architecture = "ppc64le"
+)
+
+const (
+	// VMwareSystemOSArchPropertyKey is the key for the architecture property in the
+	// ClusterVirtualMachineImage's vmwareSystemProperties. This is defined by VM Operator.
+	VMwareSystemOSArchPropertyKey = "vmware-system.tkr.os-arch"
+	// VMwareSystemOSTypePropertyKey is the key for the operating system type property in the
+	// ClusterVirtualMachineImage's vmwareSystemProperties. This is defined by VM Operator.
+	VMwareSystemOSTypePropertyKey = "vmware-system.tkr.os-type"
+)
+
+// OperatingSystem represents the operating system of the node.
+// Its underlying type is a string and its value can be any of linux, windows.
+// +kubebuilder:validation:Enum=linux;windows
+// +enum
+type OperatingSystem string
+
+const (
+	// OperatingSystemLinux is the Linux operating system.
+	OperatingSystemLinux OperatingSystem = "linux"
+	// OperatingSystemWindows is the Windows operating system.
+	OperatingSystemWindows OperatingSystem = "windows"
+)
+
 // VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate.
 type VSphereMachineTemplateSpec struct {
 	// template defines the desired state of VSphereMachineTemplate.
@@ -45,6 +84,11 @@ type VSphereMachineTemplateStatus struct {
 	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
 	// +optional
 	Capacity corev1.ResourceList `json:"capacity,omitempty,omitzero"`
+	// nodeInfo defines the node's architecture and operating system.
+	// This value is used for autoscaling from zero operations as defined in:
+	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md#implementation-detailsnotesconstraints
+	// +optional
+	NodeInfo NodeInfo `json:"nodeInfo,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -70,6 +114,19 @@ type VSphereMachineTemplate struct {
 	// status is the observed state of VSphereMachineTemplate.
 	// +optional
 	Status VSphereMachineTemplateStatus `json:"status,omitempty,omitzero"`
+}
+
+// NodeInfo contains information about the node's architecture and operating system.
+// +kubebuilder:validation:MinProperties=1
+type NodeInfo struct {
+	// architecture is the CPU architecture of the node.
+	// Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
+	// +optional
+	Architecture Architecture `json:"architecture,omitempty"`
+	// operatingSystem is a string representing the operating system of the node.
+	// This may be a string like 'linux' or 'windows'.
+	// +optional
+	OperatingSystem OperatingSystem `json:"operatingSystem,omitempty"`
 }
 
 // +kubebuilder:object:root=true

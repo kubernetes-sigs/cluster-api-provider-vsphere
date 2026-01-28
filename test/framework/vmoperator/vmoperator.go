@@ -238,6 +238,10 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 			retryError = nil
 			if err := c.Get(ctx, client.ObjectKeyFromObject(spu), spu); err != nil {
+				if meta.IsNoMatchError(err) {
+					log.Info("Skipping creation of vm-operator StoragePolicyUsage, this CR is only required when using vm-operator >= 1.9")
+					return true, nil
+				}
 				if !apierrors.IsNotFound(err) {
 					retryError = errors.Wrapf(err, "failed to get vm-operator StoragePolicyUsage %s", spu.Name)
 					return false, nil

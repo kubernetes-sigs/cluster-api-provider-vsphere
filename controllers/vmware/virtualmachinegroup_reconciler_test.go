@@ -1395,7 +1395,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 
 			c, err := conversionclient.NewWithConverter(
 				fake.NewClientBuilder().WithObjects(objects...).WithScheme(scheme.Scheme).Build(),
-				conversionapi.DefaultConverter,
+				conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
 			)
 			g.Expect(err).ToNot(HaveOccurred())
 			r := &VirtualMachineGroupReconciler{

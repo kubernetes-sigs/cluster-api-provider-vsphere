@@ -18,7 +18,8 @@ limitations under the License.
 package api //nolint:revive
 
 import (
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
@@ -27,16 +28,20 @@ import (
 	vmoprv1alpha5conversion "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha5"
 )
 
-// DefaultConverter is a converter aware of the API types and the conversions defined in sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api.
-var DefaultConverter *conversion.Converter
+// DefaultConverterFor is a converter aware of the API types and the conversions defined in sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api.
+// Use the targetVersions parameter to define target version for each group.
+func DefaultConverterFor(targetVersions ...schema.GroupVersion) *conversion.Converter {
+	converter := conversion.NewConverter(func(gk schema.GroupKind) (string, error) {
+		for _, gv := range targetVersions {
+			if gv.Group == gk.Group {
+				return gv.Version, nil
+			}
+		}
+		return "", errors.Errorf("target version for %s is not configured", gk.Group)
+	})
 
-func init() {
-	DefaultConverter = conversion.NewConverter()
-
-	utilruntime.Must(vmoprvhub.AddToConverter(DefaultConverter))
-	utilruntime.Must(vmoprv1alpha2conversion.AddToConverter(DefaultConverter))
-	utilruntime.Must(vmoprv1alpha5conversion.AddToConverter(DefaultConverter))
-
-	// TODO: Add dynamic selection of target version.
-	DefaultConverter.SetTargetVersion(vmoprv1alpha5.GroupVersion.Version)
+	utilruntime.Must(vmoprvhub.AddToConverter(converter))
+	utilruntime.Must(vmoprv1alpha2conversion.AddToConverter(converter))
+	utilruntime.Must(vmoprv1alpha5conversion.AddToConverter(converter))
+	return converter
 }

@@ -142,7 +142,7 @@ func LoadE2EConfig(ctx context.Context, configPath string, configOverridesPath, 
 		Byf("Overriding source folder for vsphere provider to /config/supervisor in the e2e config")
 		for i := range config.Providers {
 			if config.Providers[i].Name == "vsphere" {
-				// Replace relativ path for latest version.
+				// Replace relative path for latest version.
 				config.Providers[i].Versions[0].Value = strings.ReplaceAll(config.Providers[i].Versions[0].Value, "/config/default", "/config/supervisor")
 				// Replace target file in github.
 				for j, version := range config.Providers[i].Versions {
@@ -207,13 +207,24 @@ func SetupBootstrapCluster(ctx context.Context, config *clusterctl.E2EConfig, sc
 }
 
 func InitBootstrapCluster(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, config *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
+	runtimeExtensions := []string{}
+	for _, runtimeExtension := range config.RuntimeExtensionProviders() {
+		if runtimeExtension == "vm-operator" {
+			if config.HasVariable("VM_OPERATOR_VERSION") {
+				runtimeExtensions = append(runtimeExtensions, fmt.Sprintf("vm-operator:%s", config.MustGetVariable("VM_OPERATOR_VERSION")))
+				continue
+			}
+		}
+		runtimeExtensions = append(runtimeExtensions, runtimeExtension)
+	}
+
 	clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 		ClusterProxy:              bootstrapClusterProxy,
 		ClusterctlConfigPath:      clusterctlConfig,
 		InfrastructureProviders:   config.InfrastructureProviders(),
 		LogFolder:                 filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
 		IPAMProviders:             config.IPAMProviders(),
-		RuntimeExtensionProviders: config.RuntimeExtensionProviders(),
+		RuntimeExtensionProviders: runtimeExtensions,
 	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 

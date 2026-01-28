@@ -26,9 +26,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -37,6 +39,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
 	vspherevcsim "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vcsim"
@@ -382,10 +385,17 @@ func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framew
 }
 
 func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
-	c, err := conversionclient.NewWithConverter(
-		managementClusterProxy.GetClient(),
-		conversionapi.DefaultConverter,
+	// Use latest vm-operator API version or the API version defined in the VM_OPERATOR_API_VERSION env var.
+	apiVersionVMOperator := vmoprv1alpha5.GroupVersion.Version
+	if v := e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"); v != "" {
+		apiVersionVMOperator = v
+	}
+
+	converter := conversionapi.DefaultConverterFor(
+		schema.GroupVersion{Group: vmoprvhub.GroupVersion.Group, Version: apiVersionVMOperator},
 	)
+
+	c, err := conversionclient.NewWithConverter(managementClusterProxy.GetClient(), converter)
 	Expect(err).NotTo(HaveOccurred())
 
 	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcsim"))

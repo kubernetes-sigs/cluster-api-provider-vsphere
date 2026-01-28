@@ -36,15 +36,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	conversionmeta "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
-	vmoprv1alpha2conversion "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha2"
-	vmoprv1alpha5conversion "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha5"
 )
 
 var (
-	scheme    = runtime.NewScheme()
-	converter = conversion.NewConverter()
+	scheme            = runtime.NewScheme()
+	v1alpha2Converter *conversion.Converter
+	v1alpha5Converter *conversion.Converter
 )
 
 func init() {
@@ -53,9 +53,18 @@ func init() {
 	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
 	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
 
-	utilruntime.Must(vmoprvhub.AddToConverter(converter))
-	utilruntime.Must(vmoprv1alpha2conversion.AddToConverter(converter))
-	utilruntime.Must(vmoprv1alpha5conversion.AddToConverter(converter))
+	v1alpha2Converter = conversionapi.DefaultConverterFor(vmoprv1alpha2.GroupVersion)
+	v1alpha5Converter = conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion)
+}
+
+func converterForVersion(v string) *conversion.Converter {
+	switch v {
+	case vmoprv1alpha2.GroupVersion.Version:
+		return v1alpha2Converter
+	case vmoprv1alpha5.GroupVersion.Version:
+		return v1alpha5Converter
+	}
+	panic("unknown version")
 }
 
 func Test_conversionClient_Get(t *testing.T) {
@@ -104,7 +113,8 @@ func Test_conversionClient_Get(t *testing.T) {
 			},
 		},
 		{
-			name: "Get non hub objects",
+			name:          "Get non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -124,11 +134,9 @@ func Test_conversionClient_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.obj).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
@@ -233,7 +241,8 @@ func Test_conversionClient_List(t *testing.T) {
 			},
 		},
 		{
-			name: "List non hub objects",
+			name:          "List non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			objs: []client.Object{
 				&corev1.Node{
 					ObjectMeta: metav1.ObjectMeta{
@@ -268,11 +277,9 @@ func Test_conversionClient_List(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			c := &conversionClient{
 				internalClient: fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build(),
-				converter:      converter,
+				converter:      converterForVersion(tt.targetVersion),
 			}
 
 			gvk, err := c.internalClient.GroupVersionKindFor(tt.wantObjs[0])
@@ -334,7 +341,8 @@ func Test_conversionClient_Create(t *testing.T) {
 			},
 		},
 		{
-			name: "Create non hub objects",
+			name:          "Create non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -375,11 +383,9 @@ func Test_conversionClient_Create(t *testing.T) {
 			g := NewWithT(t)
 			ctx := t.Context()
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			c := &conversionClient{
 				internalClient: fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter:      converter,
+				converter:      converterForVersion(tt.targetVersion),
 			}
 
 			objOriginal := tt.obj.DeepCopyObject().(client.Object)
@@ -445,7 +451,8 @@ func Test_conversionClient_Delete(t *testing.T) {
 			},
 		},
 		{
-			name: "Delete non hub objects",
+			name:          "Delete non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -487,11 +494,9 @@ func Test_conversionClient_Delete(t *testing.T) {
 			g := NewWithT(t)
 			ctx := t.Context()
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
@@ -537,7 +542,8 @@ func Test_conversionClient_Update(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name: "Update non hub objects",
+			name:          "Update non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -563,11 +569,9 @@ func Test_conversionClient_Update(t *testing.T) {
 			g := NewWithT(t)
 			ctx := t.Context()
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 
@@ -691,11 +695,9 @@ func Test_conversionClient_Patch(t *testing.T) {
 			g := NewWithT(t)
 			ctx := t.Context()
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
@@ -746,11 +748,9 @@ func Test_conversionClient_Patch(t *testing.T) {
 		g := NewWithT(t)
 		ctx := t.Context()
 
-		converter.SetTargetVersion(vmoprv1alpha5.GroupVersion.Version)
-
 		cc, err := NewWithConverter(
 			fake.NewClientBuilder().WithScheme(scheme).Build(),
-			converter,
+			v1alpha5Converter,
 		)
 		g.Expect(err).NotTo(HaveOccurred())
 		c := cc.(*conversionClient)
@@ -771,7 +771,8 @@ func Test_conversionClient_DeleteAllOf(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name: "Delete non hub objects",
+			name:          "Delete non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-n",
@@ -797,11 +798,9 @@ func Test_conversionClient_DeleteAllOf(t *testing.T) {
 			g := NewWithT(t)
 			ctx := t.Context()
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
@@ -824,8 +823,9 @@ func Test_conversionClient_Apply(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name: "Apply non hub objects",
-			obj:  corev1applyconfigurations.Node("test-vm").WithLabels(map[string]string{"foo": "bar"}),
+			name:          "Apply non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj:           corev1applyconfigurations.Node("test-vm").WithLabels(map[string]string{"foo": "bar"}),
 		},
 	}
 
@@ -834,11 +834,9 @@ func Test_conversionClient_Apply(t *testing.T) {
 			g := NewWithT(t)
 			ctx := t.Context()
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
@@ -965,12 +963,10 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&vmoprvhub.VirtualMachine{}, &vmoprv1alpha2.VirtualMachine{}, &vmoprv1alpha5.VirtualMachine{}).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
-
-			converter.SetTargetVersion(tt.targetVersion)
 
 			tmpSourceVersion := ""
 			if convertible, isConvertible := tt.obj.(conversionmeta.Convertible); isConvertible {
@@ -1023,8 +1019,9 @@ func Test_conversionClient_ApplyStatus(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name: "Apply non hub objects",
-			obj:  corev1applyconfigurations.Node("test-vm").WithStatus(&corev1applyconfigurations.NodeStatusApplyConfiguration{Phase: ptr.To(corev1.NodeRunning)}),
+			name:          "Apply non hub objects",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj:           corev1applyconfigurations.Node("test-vm").WithStatus(&corev1applyconfigurations.NodeStatusApplyConfiguration{Phase: ptr.To(corev1.NodeRunning)}),
 		},
 	}
 
@@ -1033,11 +1030,9 @@ func Test_conversionClient_ApplyStatus(t *testing.T) {
 			g := NewWithT(t)
 			ctx := t.Context()
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
@@ -1073,20 +1068,19 @@ func Test_newTargetVersionObjectFor(t *testing.T) {
 			wantObj:       &vmoprv1alpha5.VirtualMachine{},
 		},
 		{
-			name:    "Fails for non hub types",
-			obj:     &corev1.Node{},
-			wantErr: true,
+			name:          "Fails for non hub types",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj:           &corev1.Node{},
+			wantErr:       true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.obj).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
@@ -1124,20 +1118,19 @@ func Test_newTargetVersionObjectListFor(t *testing.T) {
 			wantObj:       &vmoprv1alpha5.VirtualMachineList{},
 		},
 		{
-			name:    "Fails for non hub types",
-			obj:     &corev1.NodeList{},
-			wantErr: true,
+			name:          "Fails for non hub types",
+			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj:           &corev1.NodeList{},
+			wantErr:       true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			converter.SetTargetVersion(tt.targetVersion)
-
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter,
+				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)
@@ -1187,7 +1180,7 @@ func Test_newObjectListItemFor(t *testing.T) {
 
 			cc, err := NewWithConverter(
 				fake.NewClientBuilder().WithScheme(scheme).Build(),
-				converter,
+				v1alpha5Converter,
 			)
 			g.Expect(err).NotTo(HaveOccurred())
 			c := cc.(*conversionClient)

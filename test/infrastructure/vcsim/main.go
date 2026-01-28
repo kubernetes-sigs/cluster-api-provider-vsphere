@@ -45,6 +45,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
+	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -99,6 +100,7 @@ var (
 	controlPlaneEndpointConcurrency   int
 	envsubstConcurrency               int
 	vmOperatorDependenciesConcurrency int
+	apiVersionVMOperator              string
 )
 
 func init() {
@@ -129,6 +131,13 @@ func init() {
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
 	logsv1.AddFlags(logOptions, fs)
+
+	fs.StringVar(
+		&apiVersionVMOperator,
+		"vm-operator-api-version",
+		vmoprv1alpha5.GroupVersion.Version,
+		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s, %s", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version),
+	)
 
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
@@ -209,11 +218,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	if apiVersionVMOperator != vmoprv1alpha2.GroupVersion.Version && apiVersionVMOperator != vmoprv1alpha5.GroupVersion.Version {
+		fmt.Printf("Invalid argument: --vm-operator-api-version must be one of : %s, %s\n", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version)
+		os.Exit(1)
+	}
+
 	// klog.Background will automatically use the right logger.
 	ctrl.SetLogger(klog.Background())
 
 	// Note: setupLog can only be used after ctrl.SetLogger was called
 	setupLog.Info(fmt.Sprintf("Version: %s (git commit: %s)", version.Get().String(), version.Get().GitCommit))
+	setupLog.Info(fmt.Sprintf("Target API Version for group %s: %s", vmoprvhub.GroupVersion.Group, apiVersionVMOperator))
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
@@ -344,10 +359,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		os.Exit(1)
 	}
 
-	cc, err := conversionclient.NewWithConverter(
-		mgr.GetClient(),
-		conversionapi.DefaultConverter,
+	converter := conversionapi.DefaultConverterFor(
+		schema.GroupVersion{Group: vmoprvhub.GroupVersion.Group, Version: apiVersionVMOperator},
 	)
+
+	cc, err := conversionclient.NewWithConverter(mgr.GetClient(), converter)
 	if err != nil {
 		setupLog.Error(err, "failed to create a conversion client")
 		os.Exit(1)

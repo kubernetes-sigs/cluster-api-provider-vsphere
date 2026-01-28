@@ -117,6 +117,16 @@ func (in BList) DeepCopyObject() runtime.Object {
 	panic("implement me")
 }
 
+var panicVersionSelector = func(_ schema.GroupKind) (string, error) {
+	panic("targetVersionSelector should not be called!")
+}
+
+var sameVersionForAllGroupsSelector = func(v string) func(_ schema.GroupKind) (string, error) {
+	return func(_ schema.GroupKind) (string, error) {
+		return v, nil
+	}
+}
+
 func Test_converter_AddHubTypes(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -166,7 +176,7 @@ func Test_converter_AddHubTypes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			c := NewConverter()
+			c := NewConverter(panicVersionSelector)
 
 			err := c.AddHubTypes(tt.gv, tt.obj)
 			if tt.wantErr {
@@ -186,7 +196,7 @@ func Test_converter_AddHubTypes(t *testing.T) {
 	t.Run("Pass when the same gvk/type is registered twice", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := NewConverter()
+		c := NewConverter(panicVersionSelector)
 
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -197,7 +207,7 @@ func Test_converter_AddHubTypes(t *testing.T) {
 	t.Run("Fails when a gvk is registered twice for different types", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := NewConverter()
+		c := NewConverter(panicVersionSelector)
 
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -208,7 +218,7 @@ func Test_converter_AddHubTypes(t *testing.T) {
 	t.Run("Fails when a type is registered twice for different gvk", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := NewConverter()
+		c := NewConverter(panicVersionSelector)
 
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -219,7 +229,7 @@ func Test_converter_AddHubTypes(t *testing.T) {
 }
 
 func TestConverter_AddConversion(t *testing.T) {
-	c := NewConverter()
+	c := NewConverter(panicVersionSelector)
 	utilruntime.Must(addHubToConverter(c))
 
 	convertAFromHubToV1alpha5 := func(ctx context.Context, hub runtime.Object, spoke runtime.Object) error {
@@ -320,7 +330,7 @@ func TestConverter_AddConversion(t *testing.T) {
 	t.Run("Pass when the same conversion is registered twice", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := NewConverter()
+		c := NewConverter(panicVersionSelector)
 
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -334,7 +344,7 @@ func TestConverter_AddConversion(t *testing.T) {
 	t.Run("Fails when a gvk is registered twice for different types", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := NewConverter()
+		c := NewConverter(panicVersionSelector)
 
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -348,7 +358,7 @@ func TestConverter_AddConversion(t *testing.T) {
 	t.Run("Fails when a type is registered twice for different gvk", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := NewConverter()
+		c := NewConverter(panicVersionSelector)
 
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -362,7 +372,7 @@ func TestConverter_AddConversion(t *testing.T) {
 	t.Run("Fails when the same conversion is registered twice but with a different conversion func", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := NewConverter()
+		c := NewConverter(panicVersionSelector)
 
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -376,7 +386,7 @@ func TestConverter_AddConversion(t *testing.T) {
 	t.Run("Fails when the same conversion is registered twice but with a different conversion func", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := NewConverter()
+		c := NewConverter(panicVersionSelector)
 
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -390,7 +400,7 @@ func TestConverter_AddConversion(t *testing.T) {
 }
 
 func Test_converter_Convert(t *testing.T) {
-	c := NewConverter()
+	c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
 	utilruntime.Must(addHubToConverter(c))
 	utilruntime.Must(AddV1alpha5ToConverter(c))
 
@@ -443,8 +453,7 @@ func Test_converter_Convert(t *testing.T) {
 		{
 			name: "Fails when conversion fail",
 			converter: func() *Converter {
-				c := NewConverter()
-				c.SetTargetVersion(v1alpha5GroupVersion.Version)
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				_ = c.AddConversion(
 					&testhub.A{},
@@ -506,7 +515,7 @@ func Test_converter_Convert(t *testing.T) {
 }
 
 func Test_converter_IsHub(t *testing.T) {
-	c := NewConverter()
+	c := NewConverter(panicVersionSelector)
 	utilruntime.Must(addHubToConverter(c))
 	utilruntime.Must(AddV1alpha5ToConverter(c))
 
@@ -547,8 +556,7 @@ func Test_converter_IsHub(t *testing.T) {
 }
 
 func Test_converter_TargetGroupVersionKindFor(t *testing.T) {
-	c := NewConverter()
-	c.SetTargetVersion(v1alpha5GroupVersion.Version)
+	c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
 	utilruntime.Must(addHubToConverter(c))
 	utilruntime.Must(AddV1alpha5ToConverter(c))
 
@@ -574,8 +582,7 @@ func Test_converter_TargetGroupVersionKindFor(t *testing.T) {
 		{
 			name: "Fails when conversions to the target version are not registered",
 			converter: func() *Converter {
-				c := NewConverter()
-				c.SetTargetVersion(v1alpha5GroupVersion.Version)
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				return c
 			}(),
@@ -628,7 +635,7 @@ func Test_converter_GroupVersionKindFor(t *testing.T) {
 		{
 			name: "Get gvk for hub object",
 			converter: func() *Converter {
-				c := NewConverter()
+				c := NewConverter(panicVersionSelector)
 				utilruntime.Must(addHubToConverter(c))
 				return c
 			}(),
@@ -638,8 +645,7 @@ func Test_converter_GroupVersionKindFor(t *testing.T) {
 		{
 			name: "Get gvk for a spoke object",
 			converter: func() *Converter {
-				c := NewConverter()
-				c.SetTargetVersion(v1alpha5GroupVersion.Version)
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				utilruntime.Must(AddV1alpha5ToConverter(c))
 				return c
@@ -650,7 +656,7 @@ func Test_converter_GroupVersionKindFor(t *testing.T) {
 		{
 			name: "Fails for nil type",
 			converter: func() *Converter {
-				c := NewConverter()
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				return c
 			}(),
@@ -660,7 +666,7 @@ func Test_converter_GroupVersionKindFor(t *testing.T) {
 		{
 			name: "Fails for unknown type",
 			converter: func() *Converter {
-				c := NewConverter()
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				return c
 			}(),
@@ -711,7 +717,7 @@ func Test_objType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			c := NewConverter()
+			c := NewConverter(panicVersionSelector)
 
 			utilruntime.Must(addHubToConverter(c))
 

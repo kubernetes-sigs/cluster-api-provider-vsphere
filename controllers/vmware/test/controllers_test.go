@@ -51,6 +51,7 @@ import (
 	vmwarewebhooks "sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
@@ -246,6 +247,7 @@ func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) man
 		},
 		KubeConfig:      cfg,
 		NetworkProvider: networkProvider,
+		Converter:       conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
 	}
 
 	if withWebhooks {

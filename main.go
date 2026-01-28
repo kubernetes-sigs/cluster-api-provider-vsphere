@@ -67,6 +67,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
@@ -94,6 +95,7 @@ var (
 	syncPeriod                  time.Duration
 	webhookOpts                 webhook.Options
 	watchNamespace              string
+	apiVersionVMOperator        string
 
 	clusterCacheConcurrency           int
 	vSphereClusterConcurrency         int
@@ -173,6 +175,13 @@ func InitFlags(fs *pflag.FlagSet) {
 		"network-provider",
 		"",
 		"network provider to be used by Supervisor based clusters.",
+	)
+
+	fs.StringVar(
+		&apiVersionVMOperator,
+		"vm-operator-api-version",
+		vmoprv1alpha5.GroupVersion.Version,
+		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s, %s", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version),
 	)
 
 	// Flags common between CAPI and CAPV
@@ -335,9 +344,20 @@ func main() {
 	virtualMachineCacheSelector := labels.NewSelector().Add(*req)
 
 	var vm runtime.Object
+	var converter *conversion.Converter
 	if isSupervisorCRDLoaded {
+		if apiVersionVMOperator != vmoprv1alpha2.GroupVersion.Version && apiVersionVMOperator != vmoprv1alpha5.GroupVersion.Version {
+			fmt.Printf("Invalid argument: --vm-operator-api-version must be one of : %s, %s\n", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version)
+			os.Exit(1)
+		}
+		setupLog.Info(fmt.Sprintf("Target API Version for group %s: %s", vmoprvhub.GroupVersion.Group, apiVersionVMOperator))
+
+		converter = conversionapi.DefaultConverterFor(
+			schema.GroupVersion{Group: vmoprvhub.GroupVersion.Group, Version: apiVersionVMOperator},
+		)
+
 		// Get vm-operator native types in the preferred version for cache filters.
-		vmGVK, err := conversionapi.DefaultConverter.SpokeGroupVersionKindFor(&vmoprvhub.VirtualMachine{})
+		vmGVK, err := converter.SpokeGroupVersionKindFor(&vmoprvhub.VirtualMachine{})
 		if err != nil {
 			setupLog.Error(err, "Unable to start manager; failed to get object for VirtualMachine cache filter")
 			os.Exit(1)
@@ -461,6 +481,7 @@ func main() {
 	managerOpts.Controller = config.Controller{
 		UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
 	}
+	managerOpts.Converter = converter
 
 	mgr, err := manager.New(ctx, managerOpts)
 	if err != nil {

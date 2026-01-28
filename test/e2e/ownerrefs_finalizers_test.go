@@ -197,7 +197,7 @@ var (
 				[]metav1.OwnerReference{kubeadmConfigController},
 				// Secrets created as a resource for a ClusterResourceSet can be owned by the ClusterResourceSet.
 				[]metav1.OwnerReference{clusterResourceSetOwner},
-				// Secrets created as an identityReference for a vSphereCluster should be owned but the vSphereCluster.
+				// Secrets created as an identityReference for a vSphereCluster should be owned by the vSphereCluster.
 				[]metav1.OwnerReference{vSphereClusterOwner},
 			)
 		},
@@ -228,17 +228,19 @@ var (
 				"VirtualMachine": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 					return framework.HasExactOwners(owners, vmwareVSphereMachineController)
 				},
+				"VirtualMachineSetResourcePolicy": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
+					return framework.HasExactOwners(owners, vmwareVSphereClusterOwner)
+				},
 
 				// Following objects are for vm-operator (not managed by CAPV), so checking ownerReferences is not relevant.
-				"VirtualMachineImage":             func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
-				"NetworkInterface":                func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
-				"ContentSourceBinding":            func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
-				"VirtualMachineSetResourcePolicy": func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
-				"VirtualMachineClassBinding":      func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
-				"VirtualMachineClass":             func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
-				"VMOperatorDependencies":          func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
-				"StoragePolicyUsage":              func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
-				"Zone":                            func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"VirtualMachineImage":        func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"NetworkInterface":           func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"ContentSourceBinding":       func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"VirtualMachineClassBinding": func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"VirtualMachineClass":        func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"VMOperatorDependencies":     func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"StoragePolicyUsage":         func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"Zone":                       func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
 			}
 		}
 
@@ -283,6 +285,7 @@ var (
 	vSphereDeploymentZoneOwner  = metav1.OwnerReference{Kind: "VSphereDeploymentZone", APIVersion: infrav1.GroupVersion.String()}
 	vSphereClusterIdentityOwner = metav1.OwnerReference{Kind: "VSphereClusterIdentity", APIVersion: infrav1.GroupVersion.String()}
 
+	vmwareVSphereClusterOwner      = metav1.OwnerReference{Kind: "VSphereCluster", APIVersion: vmwarev1.GroupVersion.String()}
 	vmwareVSphereMachineController = metav1.OwnerReference{Kind: "VSphereMachine", APIVersion: vmwarev1.GroupVersion.String(), Controller: ptr.To(true)}
 
 	// CAPI owners.

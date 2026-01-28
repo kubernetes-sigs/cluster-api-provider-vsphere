@@ -1,0 +1,158 @@
+# Note: This file is intentionally using v1beta1 for v1beta1 test coverage.
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+          - name: cloud-provider
+            value: external
+          name: '{{ local_hostname }}'
+      preKubeadmCommands:
+      - dhclient eth0
+      - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
+        >/etc/hosts
+      - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
+        localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+      - mkdir -p /etc/pre-kubeadm-commands
+      - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+        do echo "Running script $script"; "$script"; done
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-runtimesdk-v1beta1
+spec:
+  controlPlane:
+    machineInfrastructure:
+      templateRef:
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        name: ${CLUSTER_CLASS_NAME}-template
+    naming:
+      template: '{{ .cluster.name }}-cp-{{ .random }}'
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      kind: KubeadmControlPlaneTemplate
+      name: ${CLUSTER_CLASS_NAME}-controlplane
+  infrastructure:
+    templateRef:
+      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+      kind: VSphereClusterTemplate
+      name: ${CLUSTER_CLASS_NAME}
+  patches:
+  - external:
+      discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+      generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+      settings:
+        testMode: supervisor
+      validateTopologyExtension: validate-topology.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+    name: test-patch
+  workers:
+    machineDeployments:
+    - bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+      class: ${CLUSTER_CLASS_NAME}-worker
+      infrastructure:
+        templateRef:
+          apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+          kind: VSphereMachineTemplate
+          name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+      naming:
+        template: '{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{
+          .random }}'
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-controlplane
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          controllerManager:
+            extraArgs:
+            - name: cloud-provider
+              value: external
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+            - name: cloud-provider
+              value: external
+            name: '{{ local_hostname }}'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+            - name: cloud-provider
+              value: external
+            name: '{{ local_hostname }}'
+        preKubeadmCommands:
+        - dhclient eth0
+        - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
+        - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
+          >/etc/hosts
+        - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
+          localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+        - mkdir -p /etc/pre-kubeadm-commands
+        - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+          do echo "Running script $script"; "$script"; done
+        users:
+        - name: capv
+          sshAuthorizedKeys:
+          - ${VSPHERE_SSH_AUTHORIZED_KEY}
+          sudo: ALL=(ALL) NOPASSWD:ALL
+---
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereClusterTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec: {}
+---
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-template
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      className: ${VSPHERE_MACHINE_CLASS_NAME}
+      imageName: ${VSPHERE_IMAGE_NAME}
+      namingStrategy:
+        template: '{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{
+          trimSuffix "-" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}'
+      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
+      storageClass: ${VSPHERE_STORAGE_CLASS}
+---
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      className: ${VSPHERE_MACHINE_CLASS_NAME}
+      imageName: ${VSPHERE_IMAGE_NAME}
+      namingStrategy:
+        template: '{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{
+          trimSuffix "-" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}'
+      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
+      storageClass: ${VSPHERE_STORAGE_CLASS}

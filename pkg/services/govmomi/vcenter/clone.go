@@ -175,9 +175,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		numCPUs = 2
 	}
 	numCoresPerSocket := vmCtx.VSphereVM.Spec.NumCoresPerSocket
-	if numCoresPerSocket == 0 {
-		numCoresPerSocket = numCPUs
-	}
+
 	memMiB := vmCtx.VSphereVM.Spec.MemoryMiB
 	if memMiB == 0 {
 		memMiB = 2048
@@ -197,7 +195,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 			DeviceChange:      deviceSpecs,
 			ExtraConfig:       extraConfig,
 			NumCPUs:           numCPUs,
-			NumCoresPerSocket: ptr.To(numCoresPerSocket),
+			NumCoresPerSocket: numCoresPerSocket,
 			MemoryMB:          memMiB,
 			VAppConfigRemoved: &vappConfigRemoved,
 		},

@@ -697,7 +697,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1.GroupVersion.String(),
+							APIVersion: "cluster.x-k8s.io/v1beta1", // Version should be bumped.
 							Kind:       "Cluster",
 							Name:       cluster.Name,
 							UID:        cluster.UID,
@@ -736,7 +736,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(), // Verify version was bumped.
 							Kind:       "Cluster",
 							Name:       cluster.Name,
 							UID:        cluster.UID,

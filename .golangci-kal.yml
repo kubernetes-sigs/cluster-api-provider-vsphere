@@ -74,16 +74,10 @@ linters:
     generated: strict
     paths:
       - zz_generated.*\.go$
-      - vendored_openapi\.go$
       - ".*_test.go"  # Exclude test files.
     rules:
     ## KAL should only run on API folders.
-    - path-except: "api//*"
-      linters:
-        - kubeapilinter
-
-    ## Excludes for conversion package & vendored apiVersions.
-    - path: "pkg/conversion|internal/apis/topology/v1alpha1"
+    - path-except: "^api//*"
       linters:
         - kubeapilinter
 

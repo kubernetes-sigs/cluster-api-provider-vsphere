@@ -25,13 +25,17 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -138,6 +142,10 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 
 // patchKubeadmControlPlaneTemplate patches the KubeadmControlPlaneTemplate.
 func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+	// Remove CP taint (this is useful to run workloads on the test cluster if the cluster has no worker nodes).
+	tpl.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.Taints = ptr.To([]corev1.Taint{})
+	tpl.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.Taints = ptr.To([]corev1.Taint{})
+
 	// patch enableSSHIntoNodes
 	if err := patchUsers(&tpl.Spec.Template.Spec.KubeadmConfigSpec, templateVariables); err != nil {
 		return err
@@ -336,11 +344,71 @@ func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate runti
 		return err
 	}
 
+	var numCPUs, diskGiB *int32
+	var memoryMiB *int64
+	var customVMXKeys map[string]string
+	numCPUsJSON, err := topologymutation.GetVariable(templateVariables, "numCPUs")
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set numCPUs")
+	}
+	if numCPUsJSON != nil {
+		i, err := strconv.ParseInt(string(numCPUsJSON.Raw), 10, 32)
+		if err != nil {
+			return errors.Wrap(err, "could not set numCPUs")
+		}
+		numCPUs = ptr.To(int32(i))
+	}
+	memoryMiBJSON, err := topologymutation.GetVariable(templateVariables, "memoryMiB")
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set memoryMiB")
+	}
+	if memoryMiBJSON != nil {
+		i, err := strconv.ParseInt(string(memoryMiBJSON.Raw), 10, 64)
+		if err != nil {
+			return errors.Wrap(err, "could not set memoryMiB")
+		}
+		memoryMiB = ptr.To(i)
+	}
+	diskGiBJSON, err := topologymutation.GetVariable(templateVariables, "diskGiB")
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set diskGiB")
+	}
+	if diskGiBJSON != nil {
+		i, err := strconv.ParseInt(string(diskGiBJSON.Raw), 10, 32)
+		if err != nil {
+			return errors.Wrap(err, "could not set diskGiB")
+		}
+		diskGiB = ptr.To(int32(i))
+	}
+	if err := topologymutation.GetObjectVariableInto(templateVariables, "customVMXKeys", &customVMXKeys); err != nil {
+		return errors.Wrap(err, "could not set customVMXKeys")
+	}
+
 	switch vsphereMachineTemplate := vsphereMachineTemplate.(type) {
 	case *infrav1beta1.VSphereMachineTemplate:
 		vsphereMachineTemplate.Spec.Template.Spec.Template = imageName
+		if numCPUs != nil {
+			vsphereMachineTemplate.Spec.Template.Spec.NumCPUs = *numCPUs
+		}
+		if memoryMiB != nil {
+			vsphereMachineTemplate.Spec.Template.Spec.MemoryMiB = *memoryMiB
+		}
+		if diskGiB != nil {
+			vsphereMachineTemplate.Spec.Template.Spec.DiskGiB = *diskGiB
+		}
+		vsphereMachineTemplate.Spec.Template.Spec.CustomVMXKeys = customVMXKeys
 	case *infrav1.VSphereMachineTemplate:
 		vsphereMachineTemplate.Spec.Template.Spec.Template = imageName
+		if numCPUs != nil {
+			vsphereMachineTemplate.Spec.Template.Spec.NumCPUs = *numCPUs
+		}
+		if memoryMiB != nil {
+			vsphereMachineTemplate.Spec.Template.Spec.MemoryMiB = *memoryMiB
+		}
+		if diskGiB != nil {
+			vsphereMachineTemplate.Spec.Template.Spec.DiskGiB = *diskGiB
+		}
+		vsphereMachineTemplate.Spec.Template.Spec.CustomVMXKeys = customVMXKeys
 	}
 
 	return err
@@ -407,4 +475,51 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 	resp.Variables = clusterclass.GetClusterClassVariables(req.Settings["testMode"] == "govmomi")
+
+	// Append
+	if req.Settings["testMode"] == "govmomi" {
+		resp.Variables = append(resp.Variables, clusterv1.ClusterClassVariable{
+			Name:     "numCPUs",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:    "integer",
+					Format:  "int32",
+					Default: &apiextensionsv1.JSON{Raw: []byte(`2`)},
+				},
+			},
+		}, clusterv1.ClusterClassVariable{
+			Name:     "memoryMiB",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:    "integer",
+					Format:  "int64",
+					Default: &apiextensionsv1.JSON{Raw: []byte(`8192`)},
+				},
+			},
+		}, clusterv1.ClusterClassVariable{
+			Name:     "diskGiB",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:    "integer",
+					Format:  "int32",
+					Default: &apiextensionsv1.JSON{Raw: []byte(`25`)},
+				},
+			},
+		}, clusterv1.ClusterClassVariable{
+			Name:     "customVMXKeys",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:    "object",
+					Default: &apiextensionsv1.JSON{Raw: []byte(`{"keep-at-least-until":"2000-01-01"}`)},
+					AdditionalProperties: &clusterv1.JSONSchemaProps{
+						Type: "string",
+					},
+				},
+			},
+		})
+	}
 }

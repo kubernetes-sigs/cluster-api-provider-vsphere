@@ -223,8 +223,14 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			objects: []client.Object{
 				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 			},
-			wantErr:    "ClusterVirtualMachineImage \"missing-image\" not found",
-			wantStatus: nil,
+			wantErr: "",
+			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
+				Capacity: corev1.ResourceList{
+					corev1.ResourceCPU:    quantity(1),
+					corev1.ResourceMemory: quantity(1024),
+				},
+				// NodeInfo should remain empty as the image doesn't exist
+			},
 		},
 		{
 			name:                   "ClusterVirtualMachineImage without vmwareSystemProperties",
@@ -240,6 +246,21 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 					corev1.ResourceMemory: quantity(1024),
 				},
 				// NodeInfo should remain empty as properties don't exist
+			},
+		},
+		{
+			name:                   "Empty imageName",
+			vSphereMachineTemplate: vSphereMachineTemplate(namespace.Name, "with-empty-image", "vm-class", nil),
+			objects: []client.Object{
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+			},
+			wantErr: "",
+			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
+				Capacity: corev1.ResourceList{
+					corev1.ResourceCPU:    quantity(1),
+					corev1.ResourceMemory: quantity(1024),
+				},
+				// NodeInfo should remain empty as imageName is empty
 			},
 		},
 	}

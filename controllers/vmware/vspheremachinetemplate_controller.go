@@ -156,13 +156,13 @@ func normalizeArchitecture(arch string) vmwarev1.Architecture {
 
 func getOSAndArchFromClusterVirtualMachineImage(ctx context.Context, c client.Client, imageName string) (string, string, error) {
 	if imageName == "" {
-		return "", "", errors.New("imageName is empty")
+		return "", "", nil
 	}
 	// Try to fetch the ClusterVirtualMachineImage with the given name
 	cvmi := &vmoprvhub.ClusterVirtualMachineImage{}
 	if err := c.Get(ctx, client.ObjectKey{Name: imageName}, cvmi); err != nil {
 		if apierrors.IsNotFound(err) {
-			return "", "", errors.Wrapf(err, "ClusterVirtualMachineImage %q not found", imageName)
+			return "", "", nil
 		}
 		return "", "", errors.Wrapf(err, "failed to get ClusterVirtualMachineImage %q", imageName)
 	}

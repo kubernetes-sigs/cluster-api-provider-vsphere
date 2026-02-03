@@ -128,6 +128,16 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &vmwarev1.VSphereMachineTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		dst.Status.NodeInfo = restored.Status.NodeInfo
+	}
+
 	return nil
 }
 
@@ -145,7 +155,7 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.FailureDomain = nil
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *ProviderServiceAccount) ConvertTo(dstRaw conversion.Hub) error {
@@ -429,4 +439,13 @@ func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *clusterv1beta1.APIEn
 	out.Host = in.Host
 	out.Port = in.Port
 	return nil
+}
+
+// Convert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTemplateStatus converts v1beta2 VSphereMachineTemplateStatus to v1beta1.
+// This is a manual conversion function that handles the NodeInfo field which doesn't exist in v1beta1.
+// The NodeInfo field is intentionally dropped during this conversion as v1beta1 doesn't support it.
+func Convert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTemplateStatus(in *vmwarev1.VSphereMachineTemplateStatus, out *VSphereMachineTemplateStatus, s apimachineryconversion.Scope) error {
+	// Call the auto-generated conversion function which handles the Capacity field
+	// Note: The NodeInfo field from v1beta2 is intentionally dropped as it doesn't exist in v1beta1
+	return autoConvert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTemplateStatus(in, out, s)
 }

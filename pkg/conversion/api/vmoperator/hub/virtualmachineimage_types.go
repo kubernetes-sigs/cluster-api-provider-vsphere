@@ -69,6 +69,12 @@ type VirtualMachineImageStatus struct {
 
 	// +optional
 
+	// VMwareSystemProperties describes the observed VMware system properties defined for
+	// this image.
+	VMwareSystemProperties []KeyValuePair `json:"vmwareSystemProperties,omitempty"`
+
+	// +optional
+
 	// ProductInfo describes the observed product information for this image.
 	ProductInfo VirtualMachineImageProductInfo `json:"productInfo,omitempty"`
 
@@ -139,9 +145,62 @@ type VirtualMachineImageList struct {
 	Items           []VirtualMachineImage `json:"items"`
 }
 
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster,shortName=cvmi;cvmimage;clustervmi;clustervmimage
+// +kubebuilder:storageversion
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Display Name",type="string",JSONPath=".status.name"
+// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".status.type"
+// +kubebuilder:printcolumn:name="Image Version",type="string",JSONPath=".status.productInfo.version"
+// +kubebuilder:printcolumn:name="OS Name",type="string",JSONPath=".status.osInfo.type"
+// +kubebuilder:printcolumn:name="OS Version",type="string",JSONPath=".status.osInfo.version"
+// +kubebuilder:printcolumn:name="Hardware Version",type="string",JSONPath=".status.hardwareVersion"
+
+// ClusterVirtualMachineImage is the schema for the clustervirtualmachineimages
+// API.
+type ClusterVirtualMachineImage struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   VirtualMachineImageSpec   `json:"spec,omitempty"`
+	Status VirtualMachineImageStatus `json:"status,omitempty"`
+
+	Source conversionmeta.SourceTypeMeta `json:"source,omitempty,omitzero"`
+}
+
+// GetSource returns the Source for this object.
+func (i *ClusterVirtualMachineImage) GetSource() conversionmeta.SourceTypeMeta {
+	return i.Source
+}
+
+// SetSource sets Source for an API object.
+func (i *ClusterVirtualMachineImage) SetSource(source conversionmeta.SourceTypeMeta) {
+	i.Source = source
+}
+
+// GetConditions returns the set of conditions for this object.
+func (i ClusterVirtualMachineImage) GetConditions() []metav1.Condition {
+	return i.Status.Conditions
+}
+
+// SetConditions sets conditions for an API object.
+func (i *ClusterVirtualMachineImage) SetConditions(conditions []metav1.Condition) {
+	i.Status.Conditions = conditions
+}
+
+// +kubebuilder:object:root=true
+
+// ClusterVirtualMachineImageList contains a list of ClusterVirtualMachineImage.
+type ClusterVirtualMachineImageList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ClusterVirtualMachineImage `json:"items"`
+}
+
 func init() {
 	objectTypes = append(objectTypes,
 		&VirtualMachineImage{},
 		&VirtualMachineImageList{},
-	)
+		&ClusterVirtualMachineImage{},
+		&ClusterVirtualMachineImageList{})
 }

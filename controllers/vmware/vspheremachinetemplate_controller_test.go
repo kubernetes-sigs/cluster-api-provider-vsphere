@@ -77,18 +77,25 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:                   "VirtualMachineClass does exist but has no data",
-			vSphereMachineTemplate: vSphereMachineTemplate(namespace.Name, "with-class", "vm-class", nil),
+			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-class", "vm-class", "test-image", nil),
 			objects: []client.Object{
 				virtualMachineClass(namespace.Name, "vm-class", nil),
+				clusterVirtualMachineImage("test-image", "linux", "amd64"),
 			},
-			wantErr:    "",
-			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{},
+			wantErr: "",
+			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
+				NodeInfo: vmwarev1.NodeInfo{
+					OperatingSystem: vmwarev1.OperatingSystemLinux,
+					Architecture:    vmwarev1.ArchitectureAmd64,
+				},
+			},
 		},
 		{
 			name:                   "VirtualMachineClass does exist and has cpu and memory set",
-			vSphereMachineTemplate: vSphereMachineTemplate(namespace.Name, "with-class", "vm-class", nil),
+			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-class", "vm-class", "test-image", nil),
 			objects: []client.Object{
 				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+				clusterVirtualMachineImage("test-image", "linux", "amd64"),
 			},
 			wantErr: "",
 			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
@@ -96,11 +103,15 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 					corev1.ResourceCPU:    quantity(1),
 					corev1.ResourceMemory: quantity(1024),
 				},
+				NodeInfo: vmwarev1.NodeInfo{
+					OperatingSystem: vmwarev1.OperatingSystemLinux,
+					Architecture:    vmwarev1.ArchitectureAmd64,
+				},
 			},
 		},
 		{
 			name: "VirtualMachineClass got updated to new cpu and memory values",
-			vSphereMachineTemplate: vSphereMachineTemplate(namespace.Name, "with-class", "vm-class", &vmwarev1.VSphereMachineTemplateStatus{
+			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-class", "vm-class", "test-image", &vmwarev1.VSphereMachineTemplateStatus{
 				Capacity: corev1.ResourceList{
 					corev1.ResourceCPU:    quantity(1),
 					corev1.ResourceMemory: quantity(1024),
@@ -108,12 +119,17 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			}),
 			objects: []client.Object{
 				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 2, Memory: quantity(2048)}),
+				clusterVirtualMachineImage("test-image", "linux", "amd64"),
 			},
 			wantErr: "",
 			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
 				Capacity: corev1.ResourceList{
 					corev1.ResourceCPU:    quantity(2),
 					corev1.ResourceMemory: quantity(2048),
+				},
+				NodeInfo: vmwarev1.NodeInfo{
+					OperatingSystem: vmwarev1.OperatingSystemLinux,
+					Architecture:    vmwarev1.ArchitectureAmd64,
 				},
 			},
 		},
@@ -207,14 +223,8 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			objects: []client.Object{
 				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 			},
-			wantErr: "",
-			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
-				Capacity: corev1.ResourceList{
-					corev1.ResourceCPU:    quantity(1),
-					corev1.ResourceMemory: quantity(1024),
-				},
-				// NodeInfo should remain empty as the image doesn't exist
-			},
+			wantErr:    "ClusterVirtualMachineImage \"missing-image\" not found",
+			wantStatus: nil,
 		},
 		{
 			name:                   "ClusterVirtualMachineImage without vmwareSystemProperties",
@@ -238,15 +248,8 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			g := NewWithT(t)
 			fakeClientBuilder := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(append([]client.Object{namespace}, tt.objects...)...)
-
-			// Register ClusterVirtualMachineImage objects with status subresource
-			// so the fake client properly handles Status field reads
-			for _, obj := range tt.objects {
-				if _, ok := obj.(*vmoprv1alpha5.ClusterVirtualMachineImage); ok {
-					fakeClientBuilder = fakeClientBuilder.WithStatusSubresource(obj)
-				}
-			}
+				WithObjects(append([]client.Object{namespace}, tt.objects...)...).
+				WithStatusSubresource(&vmoprv1alpha5.ClusterVirtualMachineImage{})
 
 			vSphereMachineTemplateName := "not-exists"
 			if tt.vSphereMachineTemplate != nil {

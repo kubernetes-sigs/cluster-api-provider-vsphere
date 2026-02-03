@@ -91,6 +91,19 @@ type VSphereMachineTemplateStatus struct {
 	NodeInfo NodeInfo `json:"nodeInfo,omitempty,omitzero"`
 }
 
+// NodeInfo contains information about the node's architecture and operating system.
+// +kubebuilder:validation:MinProperties=1
+type NodeInfo struct {
+	// architecture is the CPU architecture of the node.
+	// Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
+	// +optional
+	Architecture Architecture `json:"architecture,omitempty"`
+	// operatingSystem is a string representing the operating system of the node.
+	// This may be a string like 'linux' or 'windows'.
+	// +optional
+	OperatingSystem OperatingSystem `json:"operatingSystem,omitempty"`
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vspheremachinetemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
@@ -114,19 +127,6 @@ type VSphereMachineTemplate struct {
 	// status is the observed state of VSphereMachineTemplate.
 	// +optional
 	Status VSphereMachineTemplateStatus `json:"status,omitempty,omitzero"`
-}
-
-// NodeInfo contains information about the node's architecture and operating system.
-// +kubebuilder:validation:MinProperties=1
-type NodeInfo struct {
-	// architecture is the CPU architecture of the node.
-	// Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
-	// +optional
-	Architecture Architecture `json:"architecture,omitempty"`
-	// operatingSystem is a string representing the operating system of the node.
-	// This may be a string like 'linux' or 'windows'.
-	// +optional
-	OperatingSystem OperatingSystem `json:"operatingSystem,omitempty"`
 }
 
 // +kubebuilder:object:root=true

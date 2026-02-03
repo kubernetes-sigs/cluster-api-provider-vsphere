@@ -109,7 +109,10 @@ func (r *vSphereMachineTemplateReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	// retrieve the os and arch info from the ClusterVirtualMachineImage
-	os, arch := getOSAndArchFromClusterVirtualMachineImage(ctx, r.Client, vSphereMachineTemplate.Spec.Template.Spec.ImageName)
+	os, arch, err := getOSAndArchFromClusterVirtualMachineImage(ctx, r.Client, vSphereMachineTemplate.Spec.Template.Spec.ImageName)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
 	if validOS := normalizeOperatingSystem(os); validOS != "" {
 		vSphereMachineTemplate.Status.NodeInfo.OperatingSystem = validOS
@@ -151,14 +154,17 @@ func normalizeArchitecture(arch string) vmwarev1.Architecture {
 	}
 }
 
-func getOSAndArchFromClusterVirtualMachineImage(ctx context.Context, c client.Client, imageName string) (string, string) {
+func getOSAndArchFromClusterVirtualMachineImage(ctx context.Context, c client.Client, imageName string) (string, string, error) {
 	if imageName == "" {
-		return "", ""
+		return "", "", errors.New("imageName is empty")
 	}
 	// Try to fetch the ClusterVirtualMachineImage with the given name
 	cvmi := &vmoprvhub.ClusterVirtualMachineImage{}
 	if err := c.Get(ctx, client.ObjectKey{Name: imageName}, cvmi); err != nil {
-		return "", ""
+		if apierrors.IsNotFound(err) {
+			return "", "", errors.Wrapf(err, "ClusterVirtualMachineImage %q not found", imageName)
+		}
+		return "", "", errors.Wrapf(err, "failed to get ClusterVirtualMachineImage %q", imageName)
 	}
 
 	// Extract OS type and architecture from vmwareSystemProperties
@@ -172,7 +178,7 @@ func getOSAndArchFromClusterVirtualMachineImage(ctx context.Context, c client.Cl
 		}
 	}
 
-	return osType, osArch
+	return osType, osArch, nil
 }
 
 // enqueueVirtualMachineClassToVSphereMachineTemplateRequests returns a list of VSphereMachineTemplate reconcile requests

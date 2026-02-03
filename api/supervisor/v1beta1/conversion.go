@@ -128,6 +128,16 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &vmwarev1.VSphereMachineTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		dst.Status.NodeInfo = restored.Status.NodeInfo
+	}
+
 	return nil
 }
 
@@ -145,7 +155,7 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.FailureDomain = nil
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *ProviderServiceAccount) ConvertTo(dstRaw conversion.Hub) error {

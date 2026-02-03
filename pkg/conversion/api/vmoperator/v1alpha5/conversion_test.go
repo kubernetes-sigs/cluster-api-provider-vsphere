@@ -65,4 +65,9 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:       &vmoprvhub.VirtualMachineSetResourcePolicy{},
 		Spoke:     &vmoprv1alpha5.VirtualMachineSetResourcePolicy{},
 	}))
+	t.Run("for ClusterVirtualMachineImage", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
+		Converter: converter,
+		Hub:       &vmoprvhub.ClusterVirtualMachineImage{},
+		Spoke:     &vmoprv1alpha5.ClusterVirtualMachineImage{},
+	}))
 }

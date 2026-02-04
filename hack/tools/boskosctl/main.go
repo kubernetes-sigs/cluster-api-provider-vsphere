@@ -82,7 +82,7 @@ func setupCommands(ctx context.Context) *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: runCmd(ctx),
 	}
-	acquireCmd.PersistentFlags().StringVar(&resourceType, "resource-type", "", "Type of the resource. Should be one of: vsphere-project-cluster-api-provider, vsphere-project-cloud-provider, vsphere-project-image-builder")
+	acquireCmd.PersistentFlags().StringVar(&resourceType, "resource-type", "", "Type of the resource. Should be one of: gcve-vsphere-project")
 	rootCmd.AddCommand(acquireCmd)
 
 	// heartbeat command

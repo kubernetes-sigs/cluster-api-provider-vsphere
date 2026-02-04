@@ -152,6 +152,7 @@ rules:
   - vmoperator.vmware.com
   resources:
   - virtualmachineimages/status
+  - virtualmachines/status
   verbs:
   - get
   - patch

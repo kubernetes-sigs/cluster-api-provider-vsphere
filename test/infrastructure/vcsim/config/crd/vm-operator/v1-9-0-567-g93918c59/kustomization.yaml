@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # CRD list from test/infrastructure/vm-operator/vm-operator.tmp/config/crd/bases (with adjusted path)
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_clustervirtualmachineimages.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_contentsources.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_contentsourcebindings.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_contentlibraryproviders.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachines.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachineclasses.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachineclassinstances.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachineclassbindings.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinesetresourcepolicies.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachineservices.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachineimages.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachineimagecaches.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinepublishrequests.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_webconsolerequests.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinewebconsolerequests.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinereplicasets.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinegroups.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinesnapshots.yaml
+  - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinegrouppublishrequests.yaml
+  # CRD list from test/infrastructure/vm-operator/config/v1-9-0-567-g93918c59/kustomization.yaml (with adjusted path)
+  - ../../../../../vm-operator/config/v1-9-0-567-g93918c59/external-crds/topology.tanzu.vmware.com_availabilityzones.yaml
+  - ../../../../../vm-operator/config/v1-9-0-567-g93918c59/external-crds/topology.tanzu.vmware.com_zones.yaml
+  - ../../../../../vm-operator/config/v1-9-0-567-g93918c59/external-crds/imageregistry.vmware.com_clustercontentlibraryitems.yaml
+  - ../../../../../vm-operator/config/v1-9-0-567-g93918c59/external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
+  - ../../../../../vm-operator/config/v1-9-0-567-g93918c59/external-crds/netoperator.vmware.com_networkinterfaces.yaml
+  - ../../../../../vm-operator/config/v1-9-0-567-g93918c59/external-crds/cns.vmware.com_cnsnodevmattachments.yaml
+  - ../../../../../vm-operator/config/v1-9-0-567-g93918c59/external-crds/cns.vmware.com_storagepolicyquotas.yaml
+  - ../../../../../vm-operator/config/v1-9-0-567-g93918c59/external-crds/cns.vmware.com_storagepolicyusages.yaml

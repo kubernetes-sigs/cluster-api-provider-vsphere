@@ -62,8 +62,9 @@ const (
 )
 
 type VCenterSimulatorReconciler struct {
-	Client         client.Client
-	SupervisorMode bool
+	Client            client.Client
+	SupervisorMode    bool
+	VMOperatorSimMode bool
 
 	vcsimInstances map[string]*vcsimhelpers.Simulator
 	lock           sync.RWMutex
@@ -128,6 +129,16 @@ func (r *VCenterSimulatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimulator) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling VCenter")
+
+	// When simulating vm-operator, there is no need of a vcenter/vcsim.
+	// Note. We keep using the VCenterSimulator CR also in this case to avoid introducing code branches in the test framework.
+	if r.VMOperatorSimMode {
+		vCenterSimulator.Status.Host = "http://1.2.3.4:1234/sdk"
+		vCenterSimulator.Status.Username = "admin"
+		vCenterSimulator.Status.Password = "pass"
+		vCenterSimulator.Status.Thumbprint = "thumbprint"
+		return nil
+	}
 
 	r.lock.Lock()
 	defer r.lock.Unlock()

@@ -206,3 +206,41 @@ and to grab required variables from the corresponding `EnvVar`.
 
 Even if technically possible, we are not providing an official way to run vcsim controller using clusterctl,
 and as of today there are no plans to do so.
+
+### VM operator sim mode
+
+If your test is focused on CAPV supervisor mode only, and you don't have to generate real VMs and/or validate
+interactions with vm-operator, you can use vcsim with the `--vm-operator-sim-mode` flag set to true.
+
+When using this configuration, the vcsim controller is going to act as a minimal replacement of the `vm-operator`,
+simulating all the status changes that usually happens when provision and powering on a VM. 
+
+Also, in this configuration, the reconciliation of the `VCenterSimulator` and the `VMOperatorDependencies` CR will 
+be mostly no-op, because it is not required to create any vcsim instance, and only a minimal part of the 
+dependencies is required because those resources are also read by CAPV. 
+
+In order to use this mode you need following settings in your `tilt-setting.yaml/json`:
+
+```yaml
+...
+provider_repos:
+  - ../cluster-api-provider-vsphere
+  - ../cluster-api-provider-vsphere/test/infrastructure/vcsim
+enable_providers:
+  - kubeadm-bootstrap
+  - kubeadm-control-plane
+  - vsphere-supervisor
+  - vcsim-vm-operator
+  - capv-test-extension
+
+extra_args:
+  vcsim-vm-operator:
+    - "--vm-operator-sim-mode=true"
+    - "--v=2"
+    - "--logging-format=json"
+debug:
+  vcsim-vm-operator:
+    continue: true
+    port: 30040
+...
+```

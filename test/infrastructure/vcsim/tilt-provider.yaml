@@ -9,3 +9,16 @@
       - controllers
       - server
     label: VCSIM
+
+- name: vcsim-vm-operator
+  config:
+    version: v1.16.99
+    image: gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller
+    live_reload_deps:
+      - main.go
+      - api
+      - controllers
+      - server
+    label: VCSIM
+    additional_resources:
+    - config/crd/vm-operator/vm-operator-v1.9.0-567-g93918c59.yaml

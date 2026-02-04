@@ -101,6 +101,7 @@ var (
 	envsubstConcurrency               int
 	vmOperatorDependenciesConcurrency int
 	apiVersionVMOperator              string
+	vmOperatorSimMode                 bool
 )
 
 func init() {
@@ -137,6 +138,13 @@ func InitFlags(fs *pflag.FlagSet) {
 		"vm-operator-api-version",
 		vmoprv1alpha5.GroupVersion.Version,
 		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s, %s", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version),
+	)
+
+	fs.BoolVar(
+		&vmOperatorSimMode,
+		"vm-operator-sim-mode",
+		false,
+		"Simulate VM operator in supervisor mode.",
 	)
 
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -373,9 +381,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 	if err := (&controllers.VCenterSimulatorReconciler{
 		// NOTE: use a client that can handle conversions from API versions that exist in the supervisor
 		// and the internal hub version used in the reconciler.
-		Client:           cc,
-		SupervisorMode:   supervisorMode,
-		WatchFilterValue: watchFilterValue,
+		Client:            cc,
+		SupervisorMode:    supervisorMode,
+		VMOperatorSimMode: vmOperatorSimMode,
+		WatchFilterValue:  watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(vCenterSimulatorConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VCenterSimulatorReconciler")
 		os.Exit(1)
@@ -396,10 +405,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		if err := (&controllers.VirtualMachineReconciler{
 			// NOTE: use a client that can handle conversions from API versions that exist in the supervisor
 			// and the internal hub version used in the reconciler.
-			Client:           cc,
-			InMemoryManager:  inmemoryManager,
-			APIServerMux:     apiServerMux,
-			WatchFilterValue: watchFilterValue,
+			Client:            cc,
+			InMemoryManager:   inmemoryManager,
+			APIServerMux:      apiServerMux,
+			VMOperatorSimMode: vmOperatorSimMode,
+			WatchFilterValue:  watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(virtualMachineConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "VirtualMachineReconciler")
 			os.Exit(1)
@@ -408,8 +418,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		if err := (&controllers.VMOperatorDependenciesReconciler{
 			// NOTE: use a client that can handle conversions from API versions that exist in the supervisor
 			// and the internal hub version used in the reconciler.
-			Client:           cc,
-			WatchFilterValue: watchFilterValue,
+			Client:            cc,
+			VMOperatorSimMode: vmOperatorSimMode,
+			WatchFilterValue:  watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(vmOperatorDependenciesConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "VMOperatorDependenciesReconciler")
 			os.Exit(1)

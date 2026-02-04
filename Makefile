@@ -245,7 +245,7 @@ VM_OPERATOR_IMAGE_TAG ?= $(VM_OPERATOR_VERSION)
 DOT:= .
 DASH:= -
 # replace . with -
-VM_OPERATOR_VERSION_WITHOUT_DOTS ?= config/$(subst $(DOT),$(DASH),$(VM_OPERATOR_VERSION))
+VM_OPERATOR_VERSION_WITHOUT_DOTS ?= $(subst $(DOT),$(DASH),$(VM_OPERATOR_VERSION))
 
 # net operator
 NET_OPERATOR_IMAGE_NAME ?= cluster-api-net-operator
@@ -288,6 +288,7 @@ MANIFEST_ROOT ?= ./config
 CRD_ROOT ?= $(MANIFEST_ROOT)/default/crd/bases
 SUPERVISOR_CRD_ROOT ?= $(MANIFEST_ROOT)/supervisor/crd/bases
 VCSIM_CRD_ROOT ?= $(VCSIM_DIR)/config/crd/bases
+VCSIM_VM_OPERATOR_CRD_ROOT ?= $(VCSIM_DIR)/config/crd/vm-operator
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/govmomi/webhook
 SUPERVISOR_WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/supervisor/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
@@ -945,15 +946,16 @@ generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator
 	$(MAKE) generate-manifests-vm-operator-$(VM_OPERATOR_VERSION)
 
 generate-manifests-vm-operator-v1.8.6-0-gde75746a:
-	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
-	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
+	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
 generate-manifests-vm-operator-v1.9.0-567-g93918c59:
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
 	make kustomize-wcp
 	@cd "$(ROOT_DIR)"
-	cp "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/local-deployment.yaml" "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
-	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+	cp "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/local-deployment.yaml" "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
+	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VCSIM_VM_OPERATOR_CRD_ROOT)/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VCSIM_VM_OPERATOR_CRD_ROOT)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
 .PHONY: docker-build-all-vm-operator
 docker-build-all-vm-operator: checkout-vm-operator

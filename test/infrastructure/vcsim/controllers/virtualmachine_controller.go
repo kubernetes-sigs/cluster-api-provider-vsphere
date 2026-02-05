@@ -19,7 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"path"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -28,10 +30,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -51,15 +55,17 @@ import (
 )
 
 type VirtualMachineReconciler struct {
-	Client          client.Client
-	InMemoryManager inmemoryruntime.Manager
-	APIServerMux    *inmemoryserver.WorkloadClustersMux
+	Client            client.Client
+	InMemoryManager   inmemoryruntime.Manager
+	APIServerMux      *inmemoryserver.WorkloadClustersMux
+	VMOperatorSimMode bool
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachines,verbs=get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch
@@ -238,9 +244,19 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprvhub.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
-	ipReconciler := r.getVMIpReconciler(cluster, virtualMachine)
-	if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
-		return ret, err
+	// When simulating vm-operator, run the simulate code.
+	if r.VMOperatorSimMode {
+		if ret, err := r.simulateVMOperatorReconcileNormal(ctx, cluster, machine, virtualMachine); !ret.IsZero() || err != nil {
+			return ret, err
+		}
+	}
+
+	// When simulating vm-operator, there is no need of reconciling IP as a separated steps, they are added by the fake vm-operator.
+	if !r.VMOperatorSimMode {
+		ipReconciler := r.getVMIpReconciler(cluster, virtualMachine)
+		if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
+			return ret, err
+		}
 	}
 
 	bootstrapReconciler := r.getVMBootstrapReconciler(virtualMachine)
@@ -318,6 +334,113 @@ func (r *VirtualMachineReconciler) getVMBootstrapReconciler(virtualMachine *vmop
 
 func (r *VirtualMachineReconciler) getVCenterSession(ctx context.Context) (*session.Session, error) {
 	return vmoperator.GetVCenterSession(ctx, r.Client)
+}
+
+var ( // TODO: make this configurable
+	vmPowerOnDuration = 10 * time.Second
+	vmPowerOnJitter   = 0.3
+)
+
+func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context.Context, _ *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprvhub.VirtualMachine) (ret ctrl.Result, retErr error) {
+	// no-op if the VirtualMachine is already powered on
+	if virtualMachine.Status.PowerState == vmoprvhub.VirtualMachinePowerStateOn {
+		return ctrl.Result{}, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+	original := virtualMachine.DeepCopy()
+
+	defer func() {
+		patch, err := conversionclient.MergeFrom(ctx, r.Client, original)
+		if err != nil {
+			ret = ctrl.Result{}
+			retErr = kerrors.NewAggregate([]error{retErr, errors.Wrapf(err, "failed to create patch for VirtualMachine object")})
+			return
+		}
+
+		if err := r.Client.Status().Patch(ctx, virtualMachine, patch); err != nil {
+			ret = ctrl.Result{}
+			retErr = kerrors.NewAggregate([]error{retErr, errors.Wrapf(err, "failed to create patch for VirtualMachine object")})
+		}
+	}()
+
+	// Simulate passing all the initial checks before VM creation.
+	if !conditions.Has(virtualMachine, vmoprvhub.VirtualMachineConditionCreated) {
+		log.Info("Provisioning VirtualMachine")
+	}
+
+	conditions.Set(virtualMachine, metav1.Condition{
+		Type:   vmoprvhub.VirtualMachineConditionClassReady,
+		Status: metav1.ConditionTrue,
+		Reason: "VMOperatorSim",
+	})
+	conditions.Set(virtualMachine, metav1.Condition{
+		Type:   vmoprvhub.VirtualMachineConditionImageReady,
+		Status: metav1.ConditionTrue,
+		Reason: "VMOperatorSim",
+	})
+	conditions.Set(virtualMachine, metav1.Condition{
+		Type:   vmoprvhub.VirtualMachineConditionVMSetResourcePolicyReady,
+		Status: metav1.ConditionTrue,
+		Reason: "VMOperatorSim",
+	})
+	conditions.Set(virtualMachine, metav1.Condition{
+		Type:   vmoprvhub.VirtualMachineConditionBootstrapReady,
+		Status: metav1.ConditionTrue,
+		Reason: "VMOperatorSim",
+	})
+	conditions.Set(virtualMachine, metav1.Condition{
+		Type:   vmoprvhub.VirtualMachineConditionStorageReady,
+		Status: metav1.ConditionTrue,
+		Reason: "VMOperatorSim",
+	})
+	conditions.Set(virtualMachine, metav1.Condition{
+		Type:   vmoprvhub.VirtualMachineConditionNetworkReady,
+		Status: metav1.ConditionTrue,
+		Reason: "VMOperatorSim",
+	})
+
+	// Simulate Placement decision
+	// Note: auto placement is not supported ad this stage
+	conditions.Set(virtualMachine, metav1.Condition{
+		Type:   vmoprvhub.VirtualMachineConditionPlacementReady,
+		Status: metav1.ConditionTrue,
+		Reason: "VMOperatorSim",
+	})
+	virtualMachine.Status.Zone = ptr.Deref(machine.Spec.FailureDomain, "")
+
+	// Simulate VM creation
+	conditions.Set(virtualMachine, metav1.Condition{
+		Type:   vmoprvhub.VirtualMachineConditionCreated,
+		Status: metav1.ConditionTrue,
+		Reason: "VMOperatorSim",
+	})
+
+	vmPowerOnDuration := vmPowerOnDuration
+	vmPowerOnDuration += time.Duration(rand.Float64() * vmPowerOnJitter * float64(vmPowerOnDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+
+	now := time.Now()
+	start := conditions.Get(virtualMachine, vmoprvhub.VirtualMachineConditionCreated).LastTransitionTime
+	if now.Before(start.Add(vmPowerOnDuration)) {
+		remainingTime := start.Add(vmPowerOnDuration).Sub(now)
+		log.Info("Waiting for VM to be created", "Start", start, "Duration", vmPowerOnDuration, "RemainingTime", remainingTime)
+		return ctrl.Result{RequeueAfter: remainingTime}, nil
+	}
+
+	// Simulate VM PowerOn
+	log.Info("Powering on VirtualMachine")
+
+	virtualMachine.Status.PowerState = vmoprvhub.VirtualMachinePowerStateOn
+
+	// Simulate VM network being reported
+	virtualMachine.Status.Network = &vmoprvhub.VirtualMachineNetworkStatus{
+		PrimaryIP4: "192.0.2.100",
+	}
+
+	// Simulate BiosUUID
+	virtualMachine.Status.BiosUUID = string(virtualMachine.UID)
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager will add watches for this controller.

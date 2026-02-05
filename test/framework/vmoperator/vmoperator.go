@@ -540,37 +540,8 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	}
 
 	// Create VirtualMachineClass in K8s
-	for _, vmc := range config.Spec.VirtualMachineClasses {
-		vmClass := &vmoprvhub.VirtualMachineClass{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      vmc.Name,
-				Namespace: config.Namespace,
-			},
-			Spec: vmoprvhub.VirtualMachineClassSpec{
-				Hardware: vmoprvhub.VirtualMachineClassHardware{
-					Cpus:   vmc.Cpus,
-					Memory: vmc.Memory,
-				},
-			},
-		}
-		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-			retryError = nil
-			if err := c.Get(ctx, client.ObjectKeyFromObject(vmClass), vmClass); err != nil {
-				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get vm-operator VirtualMachineClass %s", vmClass.Name)
-					return false, nil
-				}
-				if err := c.Create(ctx, vmClass); err != nil {
-					retryError = errors.Wrapf(err, "failed to create vm-operator VirtualMachineClass %s", vmClass.Name)
-					return false, nil
-				}
-				log.Info("Created vm-operator VirtualMachineClass", "VirtualMachineClass", klog.KObj(vmClass))
-			}
-			return true, nil
-		})
-		if retryError != nil {
-			return retryError
-		}
+	if err := createVirtualMachineClass(ctx, c, config); err != nil {
+		return err
 	}
 
 	// Create a ContentLibrary in K8s and in vCenter,
@@ -765,6 +736,72 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		}
 	}
 
+	return nil
+}
+
+// ReconcileDependenciesVMOperatorSimMode reconciles dependencies for the vm-operator.
+// NOTE: This func is idempotent, it creates objects if missing otherwise it uses existing ones
+// (this will allow e.g. to update images once and re-use for many test run).
+func ReconcileDependenciesVMOperatorSimMode(ctx context.Context, c client.Client, dependenciesConfig *vcsimv1.VMOperatorDependencies) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Reconciling dependencies for the VMOperator Deployment")
+
+	config := dependenciesConfig.DeepCopy()
+
+	// If we are using a VCenterSimulator, read it build a config.Spec.VCenter for it (so the code below can assume Spec.VCenter is always set).
+	// Also, add default storage and vm class for vcsim in not otherwise specified.
+	if config.Spec.VCenterSimulatorRef != nil {
+		vCenterSimulator := &vcsimv1.VCenterSimulator{}
+		if err := c.Get(ctx, client.ObjectKey{
+			Namespace: config.Spec.VCenterSimulatorRef.Namespace,
+			Name:      config.Spec.VCenterSimulatorRef.Name,
+		}, vCenterSimulator); err != nil {
+			return errors.Wrapf(err, "failed to get vCenterSimulator %s", klog.KRef(config.Spec.VCenterSimulatorRef.Namespace, config.Spec.VCenterSimulatorRef.Name))
+		}
+
+		config.SetVCenterFromVCenterSimulator(vCenterSimulator)
+	}
+
+	return createVirtualMachineClass(ctx, c, config)
+}
+
+func createVirtualMachineClass(ctx context.Context, c client.Client, config *vcsimv1.VMOperatorDependencies) error {
+	var retryError error
+	log := ctrl.LoggerFrom(ctx)
+
+	// Create VirtualMachineClass in K8s
+	for _, vmc := range config.Spec.VirtualMachineClasses {
+		vmClass := &vmoprvhub.VirtualMachineClass{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vmc.Name,
+				Namespace: config.Namespace,
+			},
+			Spec: vmoprvhub.VirtualMachineClassSpec{
+				Hardware: vmoprvhub.VirtualMachineClassHardware{
+					Cpus:   vmc.Cpus,
+					Memory: vmc.Memory,
+				},
+			},
+		}
+		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+			retryError = nil
+			if err := c.Get(ctx, client.ObjectKeyFromObject(vmClass), vmClass); err != nil {
+				if !apierrors.IsNotFound(err) {
+					retryError = errors.Wrapf(err, "failed to get vm-operator VirtualMachineClass %s", vmClass.Name)
+					return false, nil
+				}
+				if err := c.Create(ctx, vmClass); err != nil {
+					retryError = errors.Wrapf(err, "failed to create vm-operator VirtualMachineClass %s", vmClass.Name)
+					return false, nil
+				}
+				log.Info("Created vm-operator VirtualMachineClass", "VirtualMachineClass", klog.KObj(vmClass))
+			}
+			return true, nil
+		})
+		if retryError != nil {
+			return retryError
+		}
+	}
 	return nil
 }
 

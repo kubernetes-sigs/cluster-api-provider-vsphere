@@ -33,7 +33,8 @@ import (
 )
 
 type VMOperatorDependenciesReconciler struct {
-	Client client.Client
+	Client            client.Client
+	VMOperatorSimMode bool
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -78,6 +79,19 @@ func (r *VMOperatorDependenciesReconciler) Reconcile(ctx context.Context, req ct
 func (r *VMOperatorDependenciesReconciler) reconcileNormal(ctx context.Context, vmOperatorDependencies *vcsimv1.VMOperatorDependencies) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling VCSim VMOperatorDependencies")
+
+	// When simulating vm-operator, only a minimal part of the
+	// VMOperatorDependencies is required because used by CAPV.
+	if r.VMOperatorSimMode {
+		err := vmoperator.ReconcileDependenciesVMOperatorSimMode(ctx, r.Client, vmOperatorDependencies)
+		if err != nil {
+			vmOperatorDependencies.Status.Ready = false
+			return err
+		}
+
+		vmOperatorDependencies.Status.Ready = true
+		return nil
+	}
 
 	err := vmoperator.ReconcileDependencies(ctx, r.Client, vmOperatorDependencies)
 	if err != nil {

@@ -8,6 +8,9 @@ CAPV, when running in supervisor mode, delegates the responsibility to create an
 **NOTE:** The vm-operator manifest in this folder and everything else described in this page is **not** designed for
 production use and is intended for CAPV development and test only.
 
+**NOTE:** If your test is focused on CAPV supervisor mode only, and you don't have to generate real VMs and/or validate
+interactions with vm-operator, you can consider using vcsim provider with the `--vm-operator-sim-mode` flag set to true.
+
 ## "limited version of the supervisor"
 
 This project has the requirement to test CAPV in supervisor mode using  all the supported versions of

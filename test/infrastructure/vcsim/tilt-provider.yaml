@@ -20,5 +20,5 @@
       - controllers
       - server
     label: VCSIM
-    additional_resources:
+    additional_uncategorized_resources:
     - config/crd/vm-operator/vm-operator-v1.9.0-567-g93918c59.yaml

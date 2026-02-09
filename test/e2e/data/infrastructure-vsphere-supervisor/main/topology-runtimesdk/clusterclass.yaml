@@ -1,3 +1,6 @@
 - op: replace
   path: /spec/topology/classRef/name
   value: ${CLUSTER_CLASS_NAME}-runtimesdk
+- op: add
+  path: /spec/topology/classRef/namespace
+  value: ${CLUSTER_CLASS_NAMESPACE:-${NAMESPACE}}

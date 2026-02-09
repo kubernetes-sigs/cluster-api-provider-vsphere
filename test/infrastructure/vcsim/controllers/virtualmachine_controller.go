@@ -75,6 +75,7 @@ type VirtualMachineReconciler struct {
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+	log.Info("Reconciling VirtualMachine")
 
 	// Fetch the VirtualMachine instance
 	virtualMachine := &vmoprvhub.VirtualMachine{}
@@ -177,13 +178,13 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if _, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup); err != nil {
+		log.Error(err, "Got error when calling WorkloadClusterByResourceGroup")
 		l := &vcsimv1.ControlPlaneEndpointList{}
 		if err := r.Client.List(ctx, l); err != nil {
 			return ctrl.Result{}, err
 		}
 		found := false
 		for _, c := range l.Items {
-			c := c
 			if c.Status.Host != cluster.Spec.ControlPlaneEndpoint.Host || c.Status.Port != cluster.Spec.ControlPlaneEndpoint.Port {
 				continue
 			}
@@ -235,7 +236,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}()
 
 	// Handle deleted machines
-	if !vSphereMachine.DeletionTimestamp.IsZero() {
+	if !virtualMachine.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, cluster, machine, virtualMachine, conditionsTracker)
 	}
 
@@ -337,7 +338,7 @@ func (r *VirtualMachineReconciler) getVCenterSession(ctx context.Context) (*sess
 }
 
 var ( // TODO: make this configurable
-	vmPowerOnDuration = 10 * time.Second
+	vmPowerOnDuration = 30 * time.Second
 	vmPowerOnJitter   = 0.3
 )
 
@@ -423,7 +424,7 @@ func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context
 	start := conditions.Get(virtualMachine, vmoprvhub.VirtualMachineConditionCreated).LastTransitionTime
 	if now.Before(start.Add(vmPowerOnDuration)) {
 		remainingTime := start.Add(vmPowerOnDuration).Sub(now)
-		log.Info("Waiting for VM to be created", "Start", start, "Duration", vmPowerOnDuration, "RemainingTime", remainingTime)
+		log.Info("Waiting for VM to power on", "Start", start, "Duration", vmPowerOnDuration, "RemainingTime", remainingTime)
 		return ctrl.Result{RequeueAfter: remainingTime}, nil
 	}
 

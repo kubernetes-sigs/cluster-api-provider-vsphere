@@ -52,7 +52,6 @@ spec:
       generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
       settings:
         testMode: govmomi
-      validateTopologyExtension: validate-topology.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
     name: test-patch
   - definitions:
     - jsonPatches:

@@ -23,6 +23,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	cnstypes "github.com/vmware/govmomi/cns/types"
@@ -148,6 +149,20 @@ func (s *Janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 		if managedObjectVM.Summary.Config.Template {
 			// Skip templates for deletion.
 			continue
+		}
+
+		var foundKeepDate bool
+		var keepDate string
+		for _, opt := range managedObjectVM.Config.ExtraConfig {
+			if v := opt.GetOptionValue(); v != nil && v.Key == "keep-at-least-until" {
+				keepDate, foundKeepDate = v.Value.(string)
+			}
+		}
+		if foundKeepDate {
+			if keepDateTime, err := time.Parse("2006-01-02", keepDate); err == nil && keepDateTime.After(time.Now()) {
+				log.Info(fmt.Sprintf("Skip deleting vm because it has \"keep-at-least-until\"=%s", keepDate), "vm", managedObjectVM.Config.Name)
+				continue
+			}
 		}
 
 		vm := &virtualMachine{

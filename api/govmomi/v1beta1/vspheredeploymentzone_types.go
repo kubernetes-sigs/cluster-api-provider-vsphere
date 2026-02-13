@@ -120,6 +120,21 @@ type VSphereDeploymentZoneSpec struct {
 	// Server is the address of the vSphere endpoint.
 	Server string `json:"server,omitempty"`
 
+	// Thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate.
+	// If not specified and the zone's server matches the VSphereCluster's server, the cluster-level
+	// thumbprint is used.
+	// +optional
+	Thumbprint string `json:"thumbprint,omitempty"`
+
+	// IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+	// the identity to use when connecting to this deployment zone's vCenter.
+	// If not specified, the controller falls back to:
+	//   1. The VSphereCluster's IdentityRef (if the zone's server matches the cluster's server)
+	//   2. The CAPV manager's bootstrap credentials
+	// This field is only used when the MultiVCenterFailureDomains feature gate is enabled.
+	// +optional
+	IdentityRef *VSphereIdentityReference `json:"identityRef,omitempty"`
+
 	// FailureDomain is the name of the VSphereFailureDomain used for this VSphereDeploymentZone
 	FailureDomain string `json:"failureDomain,omitempty"`
 

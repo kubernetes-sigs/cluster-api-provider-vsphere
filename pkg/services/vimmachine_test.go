@@ -128,6 +128,59 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g.Expect(vm.Spec.Datacenter).To(Equal("dc-one"))
 	})
 
+	t.Run("overrides the template from the failure domain topology", func(t *testing.T) {
+		g := NewWithT(t)
+		fdWithTemplate := &infrav1.VSphereFailureDomain{
+			ObjectMeta: metav1.ObjectMeta{Name: "fd-one"},
+			Spec: infrav1.VSphereFailureDomainSpec{
+				Topology: infrav1.Topology{
+					Datacenter: "dc-one",
+					Datastore:  "ds-one",
+					Networks:   []string{"nw-one"},
+					Template:   "/dc-one/vm/templates/photon-5-kube-v1.32.0",
+				},
+			},
+		}
+		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), fdWithTemplate, failureDomain("two"))
+		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
+		vimMachineService := &VimMachineService{controllerManagerContext.Client}
+
+		overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
+		g.Expect(ok).To(BeTrue())
+
+		vm := &infrav1.VSphereVM{Spec: infrav1.VSphereVMSpec{
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Template: "original-template",
+			},
+		}}
+		overrideFunc(vm)
+
+		g.Expect(vm.Spec.Template).To(Equal("/dc-one/vm/templates/photon-5-kube-v1.32.0"))
+		g.Expect(vm.Spec.Server).To(Equal("server-one"))
+		g.Expect(vm.Spec.Datacenter).To(Equal("dc-one"))
+	})
+
+	t.Run("does not override template when failure domain topology template is empty", func(t *testing.T) {
+		g := NewWithT(t)
+		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
+		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
+		vimMachineService := &VimMachineService{controllerManagerContext.Client}
+
+		overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
+		g.Expect(ok).To(BeTrue())
+
+		vm := &infrav1.VSphereVM{Spec: infrav1.VSphereVMSpec{
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Template: "original-template",
+			},
+		}}
+		overrideFunc(vm)
+
+		g.Expect(vm.Spec.Template).To(Equal("original-template"))
+	})
+
 	t.Run("fails to generate an override function for non-existent failure domain value", func(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))

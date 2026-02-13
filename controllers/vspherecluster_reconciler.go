@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -275,6 +276,11 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
+	// When multi-vCenter support is enabled, populate per-vCenter availability status.
+	if feature.Gates.Enabled(feature.MultiVCenterFailureDomains) {
+		r.reconcileVCenterStatuses(ctx, clusterCtx)
+	}
+
 	// Reconcile vCenter availability.
 	if err := r.reconcileIdentitySecret(ctx, clusterCtx); err != nil {
 		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.VCenterAvailableV1Beta1Condition, infrav1.VCenterUnreachableV1Beta1Reason, clusterv1.ConditionSeverityError, "%v", err)
@@ -427,10 +433,15 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 		return false, pkgerrors.Wrap(err, "unable to list VSphereDeploymentZones")
 	}
 
+	multiVCEnabled := feature.Gates.Enabled(feature.MultiVCenterFailureDomains)
+
 	readyNotReported, notReady := 0, 0
 	var failureDomains []clusterv1.FailureDomain
 	for _, zone := range deploymentZoneList.Items {
-		if zone.Spec.Server != clusterCtx.VSphereCluster.Spec.Server {
+		// When the MultiVCenterFailureDomains feature gate is disabled, only consider
+		// deployment zones whose server matches the cluster's primary server.
+		// When enabled, accept deployment zones from any vCenter.
+		if !multiVCEnabled && zone.Spec.Server != clusterCtx.VSphereCluster.Spec.Server {
 			continue
 		}
 
@@ -495,6 +506,70 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 		deprecatedv1beta1conditions.Delete(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableV1Beta1Condition)
 	}
 	return true, nil
+}
+
+// reconcileVCenterStatuses collects the unique vCenter servers from the cluster's
+// active deployment zones and records their availability in the cluster status.
+// This is only called when the MultiVCenterFailureDomains feature gate is enabled.
+func (r *clusterReconciler) reconcileVCenterStatuses(ctx context.Context, clusterCtx *capvcontext.ClusterContext) {
+	if clusterCtx.VSphereCluster.Spec.FailureDomainSelector == nil {
+		clusterCtx.VSphereCluster.Status.VCenters = nil
+		return
+	}
+
+	// Collect unique servers from the failure domains in the cluster status.
+	serverSet := map[string]struct{}{}
+	// The primary server is always included.
+	if clusterCtx.VSphereCluster.Spec.Server != "" {
+		serverSet[clusterCtx.VSphereCluster.Spec.Server] = struct{}{}
+	}
+
+	selector, err := metav1.LabelSelectorAsSelector(clusterCtx.VSphereCluster.Spec.FailureDomainSelector)
+	if err != nil {
+		return
+	}
+
+	var deploymentZoneList infrav1.VSphereDeploymentZoneList
+	if err := r.Client.List(ctx, &deploymentZoneList, client.MatchingLabelsSelector{Selector: selector}); err != nil {
+		return
+	}
+
+	for _, zone := range deploymentZoneList.Items {
+		if zone.Spec.Server != "" {
+			serverSet[zone.Spec.Server] = struct{}{}
+		}
+	}
+
+	// Only populate VCenters status when there are deployment zones from multiple vCenters.
+	if len(serverSet) <= 1 {
+		clusterCtx.VSphereCluster.Status.VCenters = nil
+		return
+	}
+
+	// Build the VCenters status slice based on deployment zone readiness.
+	var vcenterStatuses []infrav1.VCenterStatus
+	for server := range serverSet {
+		status := infrav1.VCenterStatus{
+			Server:    server,
+			Available: false,
+		}
+
+		// A vCenter is considered available if at least one of its deployment zones is ready.
+		for _, zone := range deploymentZoneList.Items {
+			if zone.Spec.Server == server && zone.Status.Ready != nil && *zone.Status.Ready {
+				status.Available = true
+				break
+			}
+		}
+
+		if !status.Available {
+			status.Message = "no ready deployment zones found for this vCenter"
+		}
+
+		vcenterStatuses = append(vcenterStatuses, status)
+	}
+
+	clusterCtx.VSphereCluster.Status.VCenters = vcenterStatuses
 }
 
 func (r *clusterReconciler) reconcileClusterModules(ctx context.Context, clusterCtx *capvcontext.ClusterContext) (reconcile.Result, error) {
@@ -603,15 +678,34 @@ func (r *clusterReconciler) deploymentZoneToCluster(ctx context.Context, o clien
 		return requests
 	}
 
+	multiVCEnabled := feature.Gates.Enabled(feature.MultiVCenterFailureDomains)
+
 	for _, cluster := range clusterList.Items {
+		shouldReconcile := false
+
 		if obj.Spec.Server == cluster.Spec.Server {
-			r := reconcile.Request{
+			// Always reconcile when the server matches (existing behavior).
+			shouldReconcile = true
+		} else if multiVCEnabled && cluster.Spec.FailureDomainSelector != nil {
+			// When multi-vCenter is enabled, also reconcile if the deployment zone's labels
+			// match the cluster's FailureDomainSelector, regardless of server.
+			selector, selectorErr := metav1.LabelSelectorAsSelector(cluster.Spec.FailureDomainSelector)
+			if selectorErr != nil {
+				log.V(4).Error(selectorErr, "Failed to parse FailureDomainSelector for VSphereCluster", "VSphereCluster", klog.KRef(cluster.Namespace, cluster.Name))
+				continue
+			}
+			if selector.Matches(labels.Set(obj.Labels)) {
+				shouldReconcile = true
+			}
+		}
+
+		if shouldReconcile {
+			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      cluster.Name,
 					Namespace: cluster.Namespace,
 				},
-			}
-			requests = append(requests, r)
+			})
 		}
 	}
 	return requests

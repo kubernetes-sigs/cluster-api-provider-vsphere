@@ -203,9 +203,42 @@ type VSphereClusterStatus struct {
 	// +kubebuilder:validation:MaxLength=256
 	VCenterVersion VCenterVersion `json:"vCenterVersion,omitempty"`
 
+	// vCenters contains the observed status of all vCenters associated with
+	// this cluster's deployment zones. This field is populated only when the
+	// MultiVCenterFailureDomains feature gate is enabled and the cluster uses
+	// deployment zones from multiple vCenter instances.
+	// +optional
+	// +listType=map
+	// +listMapKey=server
+	// +kubebuilder:validation:MaxItems=32
+	VCenters []VCenterStatus `json:"vCenters,omitempty"`
+
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *VSphereClusterDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// VCenterStatus represents the observed status of a vCenter instance associated with the cluster.
+type VCenterStatus struct {
+	// server is the address of the vCenter.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	Server string `json:"server"`
+
+	// version is the vCenter version.
+	// +optional
+	// +kubebuilder:validation:MaxLength=256
+	Version VCenterVersion `json:"version,omitempty"`
+
+	// available indicates whether the vCenter is reachable.
+	// +optional
+	Available bool `json:"available"`
+
+	// message provides additional information about the vCenter availability.
+	// +optional
+	// +kubebuilder:validation:MaxLength=10000
+	Message string `json:"message,omitempty"`
 }
 
 // VSphereClusterInitializationStatus provides observations of the VSphereCluster initialization process.

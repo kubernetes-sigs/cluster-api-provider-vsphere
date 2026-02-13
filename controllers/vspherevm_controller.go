@@ -169,7 +169,14 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	authSession, err := r.retrieveVcenterSession(ctx, vsphereVM)
+	// When the MultiVCenterFailureDomains feature gate is enabled, look up the
+	// deployment zone for this VM so we can use zone-level credentials if available.
+	var deploymentZone *infrav1.VSphereDeploymentZone
+	if feature.Gates.Enabled(feature.MultiVCenterFailureDomains) {
+		deploymentZone = r.getDeploymentZoneForVM(ctx, vsphereVM)
+	}
+
+	authSession, err := r.retrieveVcenterSession(ctx, vsphereVM, deploymentZone)
 	if err != nil {
 		deprecatedv1beta1conditions.MarkFalse(vsphereVM, infrav1.VCenterAvailableV1Beta1Condition, infrav1.VCenterUnreachableV1Beta1Reason, clusterv1.ConditionSeverityError, "%v", err)
 		conditions.Set(vsphereVM, metav1.Condition{
@@ -649,7 +656,7 @@ func (r vmReconciler) ipAddressClaimToVSphereVM(_ context.Context, a ctrlclient.
 	return requests
 }
 
-func (r vmReconciler) retrieveVcenterSession(ctx context.Context, vsphereVM *infrav1.VSphereVM) (*session.Session, error) {
+func (r vmReconciler) retrieveVcenterSession(ctx context.Context, vsphereVM *infrav1.VSphereVM, deploymentZone *infrav1.VSphereDeploymentZone) (*session.Session, error) {
 	log := ctrl.LoggerFrom(ctx)
 	// Get cluster object and then get VSphereCluster object
 
@@ -658,6 +665,25 @@ func (r vmReconciler) retrieveVcenterSession(ctx context.Context, vsphereVM *inf
 		WithDatacenter(vsphereVM.Spec.Datacenter).
 		WithUserInfo(r.ControllerManagerContext.Username, r.ControllerManagerContext.Password).
 		WithThumbprint(vsphereVM.Spec.Thumbprint)
+
+	// When multi-vCenter support is enabled and a deployment zone with its own
+	// IdentityRef is available, use zone-level credentials. This is the primary
+	// credential resolution path for VMs placed in zones pointing at non-primary
+	// vCenter instances.
+	if feature.Gates.Enabled(feature.MultiVCenterFailureDomains) && deploymentZone != nil && deploymentZone.Spec.IdentityRef != nil {
+		log.V(4).Info("Using deployment zone IdentityRef to create the authenticated session",
+			"deploymentZone", deploymentZone.Name,
+			"server", deploymentZone.Spec.Server)
+		if deploymentZone.Spec.Thumbprint != "" {
+			params = params.WithThumbprint(deploymentZone.Spec.Thumbprint)
+		}
+		creds, err := identity.GetCredentialsForIdentityRef(ctx, r.Client, deploymentZone.Spec.IdentityRef, r.ControllerManagerContext.Namespace)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get credentials from deployment zone %s IdentityRef", deploymentZone.Name)
+		}
+		params = params.WithUserInfo(creds.Username, creds.Password)
+		return session.GetOrCreate(ctx, params)
+	}
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereVM.ObjectMeta)
 	if err != nil {
@@ -691,6 +717,41 @@ func (r vmReconciler) retrieveVcenterSession(ctx context.Context, vsphereVM *inf
 	// Fallback to using credentials provided to the manager
 	log.V(4).Info("Using credentials provided to the manager to create the authenticated session")
 	return session.GetOrCreate(ctx, params)
+}
+
+// getDeploymentZoneForVM looks up the VSphereDeploymentZone for a given VSphereVM
+// by tracing the ownership chain: VSphereVM -> VSphereMachine -> Machine, and reading
+// the CAPI Machine's failure domain.
+// Returns nil if the deployment zone cannot be determined (no owner, no failure domain, etc.).
+func (r vmReconciler) getDeploymentZoneForVM(ctx context.Context, vsphereVM *infrav1.VSphereVM) *infrav1.VSphereDeploymentZone {
+	log := ctrl.LoggerFrom(ctx)
+
+	vsphereMachine, err := util.GetOwnerVSphereMachine(ctx, r.Client, vsphereVM.ObjectMeta)
+	if err != nil || vsphereMachine == nil {
+		log.V(4).Info("Could not determine deployment zone: VSphereMachine owner not found")
+		return nil
+	}
+
+	// The failure domain is set on the CAPI Machine object.
+	machine, err := clusterutilv1.GetOwnerMachine(ctx, r.Client, vsphereMachine.ObjectMeta)
+	if err != nil || machine == nil {
+		log.V(4).Info("Could not determine deployment zone: Machine owner not found")
+		return nil
+	}
+
+	failureDomain := machine.Spec.FailureDomain
+	if failureDomain == "" {
+		log.V(4).Info("Could not determine deployment zone: no failure domain set on Machine")
+		return nil
+	}
+
+	deploymentZone := &infrav1.VSphereDeploymentZone{}
+	if err := r.Client.Get(ctx, apitypes.NamespacedName{Name: failureDomain}, deploymentZone); err != nil {
+		log.V(4).Error(err, "Could not determine deployment zone: failed to get VSphereDeploymentZone", "deploymentZone", failureDomain)
+		return nil
+	}
+
+	return deploymentZone
 }
 
 func (r vmReconciler) fetchClusterModuleInfo(ctx context.Context, clusterModInput fetchClusterModuleInput) (*string, error) {

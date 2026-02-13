@@ -51,6 +51,30 @@ spec:
                 description: FailureDomain is the name of the VSphereFailureDomain
                   used for this VSphereDeploymentZone
                 type: string
+              identityRef:
+                description: |-
+                  IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+                  the identity to use when connecting to this deployment zone's vCenter.
+                  If not specified, the controller falls back to:
+                    1. The VSphereCluster's IdentityRef (if the zone's server matches the cluster's server)
+                    2. The CAPV manager's bootstrap credentials
+                  This field is only used when the MultiVCenterFailureDomains feature gate is enabled.
+                properties:
+                  kind:
+                    description: Kind of the identity. Can either be VSphereClusterIdentity
+                      or Secret
+                    enum:
+                    - VSphereClusterIdentity
+                    - Secret
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               placementConstraint:
                 description: |-
                   PlacementConstraint encapsulates the placement constraints
@@ -69,6 +93,12 @@ spec:
                 type: object
               server:
                 description: Server is the address of the vSphere endpoint.
+                type: string
+              thumbprint:
+                description: |-
+                  Thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate.
+                  If not specified and the zone's server matches the VSphereCluster's server, the cluster-level
+                  thumbprint is used.
                 type: string
             required:
             - placementConstraint
@@ -244,6 +274,31 @@ spec:
                 maxLength: 253
                 minLength: 1
                 type: string
+              identityRef:
+                description: |-
+                  identityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+                  the identity to use when connecting to this deployment zone's vCenter.
+                  If not specified, the controller falls back to:
+                    1. The VSphereCluster's identityRef (if the zone's server matches the cluster's server)
+                    2. The CAPV manager's bootstrap credentials
+                  This field is only used when the MultiVCenterFailureDomains feature gate is enabled.
+                properties:
+                  kind:
+                    description: kind of the identity. Can either be VSphereClusterIdentity
+                      or Secret
+                    enum:
+                    - VSphereClusterIdentity
+                    - Secret
+                    type: string
+                  name:
+                    description: name of the identity.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               placementConstraint:
                 description: |-
                   placementConstraint encapsulates the placement constraints
@@ -269,6 +324,12 @@ spec:
                 description: server is the address of the vSphere endpoint.
                 maxLength: 1024
                 minLength: 1
+                type: string
+              thumbprint:
+                description: |-
+                  thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate.
+                  If not specified and the zone's server matches the VSphereCluster's server, the cluster-level
+                  thumbprint is used.
                 type: string
             required:
             - failureDomain

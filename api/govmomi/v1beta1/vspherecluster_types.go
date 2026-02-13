@@ -159,6 +159,23 @@ type ClusterModule struct {
 	ModuleUUID string `json:"moduleUUID"`
 }
 
+// VCenterStatus represents the observed status of a vCenter instance associated with the cluster.
+type VCenterStatus struct {
+	// Server is the address of the vCenter.
+	Server string `json:"server"`
+
+	// Version is the vCenter version.
+	// +optional
+	Version VCenterVersion `json:"version,omitempty"`
+
+	// Available indicates whether the vCenter is reachable.
+	Available bool `json:"available"`
+
+	// Message provides additional information about the vCenter availability.
+	// +optional
+	Message string `json:"message,omitempty"`
+}
+
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.
 type VSphereClusterStatus struct {
 	// +optional
@@ -173,6 +190,13 @@ type VSphereClusterStatus struct {
 
 	// VCenterVersion defines the version of the vCenter server defined in the spec.
 	VCenterVersion VCenterVersion `json:"vCenterVersion,omitempty"`
+
+	// VCenters contains the observed status of all vCenters associated with
+	// this cluster's deployment zones. This field is populated only when the
+	// MultiVCenterFailureDomains feature gate is enabled and the cluster uses
+	// deployment zones from multiple vCenter instances.
+	// +optional
+	VCenters []VCenterStatus `json:"vCenters,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in VSphereCluster's status with the V1Beta2 version.
 	// +optional

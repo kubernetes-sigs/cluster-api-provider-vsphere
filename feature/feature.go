@@ -61,6 +61,12 @@ const (
 	//
 	// beta: v1.16
 	ReconcilerRateLimiting featuregate.Feature = "ReconcilerRateLimiting"
+
+	// MultiVCenterFailureDomains is a feature gate that enables support for spanning a single
+	// Kubernetes cluster across multiple vCenter instances using failure domains and deployment zones.
+	//
+	// alpha: v1.12
+	MultiVCenterFailureDomains featuregate.Feature = "MultiVCenterFailureDomains"
 )
 
 func init() {
@@ -70,10 +76,11 @@ func init() {
 // defaultCAPVFeatureGates consists of all known capv-specific feature keys.
 // To add a new feature, define a key for it above and add it here.
 var defaultCAPVFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
-	PriorityQueue:          {Default: true, PreRelease: featuregate.Beta},
-	ReconcilerRateLimiting: {Default: true, PreRelease: featuregate.Beta},
-	NodeAntiAffinity:       {Default: false, PreRelease: featuregate.Alpha},
-	NamespaceScopedZones:   {Default: false, PreRelease: featuregate.Alpha},
-	NodeAutoPlacement:      {Default: false, PreRelease: featuregate.Alpha},
-	MultiNetworks:          {Default: false, PreRelease: featuregate.Alpha},
+	PriorityQueue:              {Default: true, PreRelease: featuregate.Beta},
+	ReconcilerRateLimiting:     {Default: true, PreRelease: featuregate.Beta},
+	NodeAntiAffinity:           {Default: false, PreRelease: featuregate.Alpha},
+	NamespaceScopedZones:       {Default: false, PreRelease: featuregate.Alpha},
+	NodeAutoPlacement:          {Default: false, PreRelease: featuregate.Alpha},
+	MultiNetworks:              {Default: false, PreRelease: featuregate.Alpha},
+	MultiVCenterFailureDomains: {Default: false, PreRelease: featuregate.Alpha},
 }

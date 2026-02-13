@@ -92,6 +92,11 @@ type Topology struct {
 	// virtual machine is created/located.
 	// +optional
 	Datastore string `json:"datastore,omitempty"`
+
+	// Template is the name or inventory path of the template used to clone
+	// new machines in this failure domain.
+	// +optional
+	Template string `json:"template,omitempty"`
 }
 
 // NetworkConfiguration defines a network configuration that should be used when consuming

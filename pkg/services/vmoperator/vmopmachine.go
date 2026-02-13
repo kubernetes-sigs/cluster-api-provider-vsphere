@@ -656,7 +656,8 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	// for a MachineDeployment are placed in the same failureDomain.
 	// Note: no matter of the different placement behaviour, we are setting affinity rules on all machines for consistency.
 	if affinityInfo != nil {
-		if vmOperatorVM.Spec.Affinity == nil {
+		// Only set spec.affinity on create as the field is immutable.
+		if vmOperatorVM.CreationTimestamp.IsZero() {
 			vmOperatorVM.Spec.Affinity = &affinityInfo.affinitySpec
 		}
 		if vmOperatorVM.Spec.GroupName == "" {

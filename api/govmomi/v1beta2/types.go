@@ -102,18 +102,18 @@ type VirtualMachineCloneSpec struct {
 	Template string `json:"template,omitempty"`
 
 	// cloneMode specifies the type of clone operation.
-	// The LinkedClone mode is only support for templates that have at least
+	// The linkedClone mode is only support for templates that have at least
 	// one snapshot. If the template has no snapshots, then CloneMode defaults
-	// to FullClone.
-	// When LinkedClone mode is enabled the DiskGiB field is ignored as it is
+	// to fullClone.
+	// When linkedClone mode is enabled the DiskGiB field is ignored as it is
 	// not possible to expand disks of linked clones.
-	// Defaults to LinkedClone, but fails gracefully to FullClone if the source
+	// Defaults to linkedClone, but fails gracefully to fullClone if the source
 	// of the clone operation has no snapshots.
 	// +optional
 	CloneMode CloneMode `json:"cloneMode,omitempty"`
 
 	// snapshot is the name of the snapshot from which to create a linked clone.
-	// This field is ignored if LinkedClone is not enabled.
+	// This field is ignored if linkedClone is not enabled.
 	// Defaults to the source's current snapshot.
 	// +optional
 	// +kubebuilder:validation:MinLength=1

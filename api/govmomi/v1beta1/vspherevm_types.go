@@ -243,14 +243,14 @@ type VSphereVMStatus struct {
 	Addresses []string `json:"addresses,omitempty"`
 
 	// CloneMode is the type of clone operation used to clone this VM. Since
-	// LinkedMode is the default but fails gracefully if the source of the
+	// linkedClone is the default but fails gracefully if the source of the
 	// clone has no snapshots, this field may be used to determine the actual
 	// type of clone operation used to create this VM.
 	// +optional
 	CloneMode CloneMode `json:"cloneMode,omitempty"`
 
 	// Snapshot is the name of the snapshot from which the VM was cloned if
-	// LinkedMode is enabled.
+	// linkedClone is enabled.
 	// +optional
 	Snapshot string `json:"snapshot,omitempty"`
 

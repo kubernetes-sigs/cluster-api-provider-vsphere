@@ -1,0 +1,30 @@
+- op: add
+  path: /spec/topology/controlPlane/healthCheck
+  value:
+    checks:
+      nodeStartupTimeoutSeconds: 900
+      unhealthyNodeConditions:
+        - type: Ready
+          status: Unknown
+          timeoutSeconds: 300
+        - type: Ready
+          status: "False"
+          timeoutSeconds: 300
+    remediation:
+      triggerIf:
+        unhealthyLessThanOrEqualTo: 100%
+- op: add
+  path: /spec/topology/workers/machineDeployments/0/healthCheck
+  value:
+    checks:
+      nodeStartupTimeoutSeconds: 900
+      unhealthyNodeConditions:
+        - type: Ready
+          status: Unknown
+          timeoutSeconds: 300
+        - type: Ready
+          status: "False"
+          timeoutSeconds: 300
+    remediation:
+      triggerIf:
+        unhealthyLessThanOrEqualTo: 100%

@@ -27,7 +27,7 @@
       - internal
       - pkg
     label: CAPV
-    kustomize_folder: "/config/supervisor"
+    kustomize_folder: "/config/supervisor-tilt"
 
 # IMPORTANT: run "VM_OPERATOR_VERSION=v1.8.6-0-gde75746a VM_OPERATOR_COMMIT=de75746a9505ef3161172d99b735d6593c54f0c5 make checkout-vm-operator generate-manifests-vm-operator" before using this "provider" with tilt
 - name: vm-operator-v1.8.6-0-gde75746a

@@ -4,7 +4,6 @@
   - name: test-patch
     external:
       generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
-      validateTopologyExtension: validate-topology.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
       discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
       settings:
         testMode: supervisor

@@ -1,0 +1,17 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-state-metrics-custom-resource-capv
+  labels:
+    kube-state-metrics/aggregate-to-manager: "true"
+rules:
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - vsphereclusters
+  - vspheremachines
+  verbs:
+  - get
+  - list
+  - watch

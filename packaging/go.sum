@@ -135,8 +135,8 @@ github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719 h1:
 github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719/go.mod h1:nWTPpxfe4gHuuYuFcrs86+NMxfkqPk3a3IlvI8TCWak=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20251029150609-93918c59a719 h1:DMU/4SC3yshdE6mahrfpj0B1tTK2+7PV3gUD7sy13Xo=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20251029150609-93918c59a719/go.mod h1:vyehM6sDYoSoIuNg2rjzH+yxQmcjipS6YtKNHevymXk=
-github.com/vmware/govmomi v0.53.0-alpha.0.0.20260109165523-c553d2674d6c h1:jh8ecB2S+lTVPwZcfUbiPH5hkHDhvJ777e/5s7wWO7Y=
-github.com/vmware/govmomi v0.53.0-alpha.0.0.20260109165523-c553d2674d6c/go.mod h1:gzou1RcSADxSSxa19ueHegcq2DKa+GfHm/r+r47hEqc=
+github.com/vmware/govmomi v0.53.0 h1:e1bZCotAq7wm4xy95ePN2uoWwz28pNp/ewZZhpBY7/4=
+github.com/vmware/govmomi v0.53.0/go.mod h1:EWfuzPfxT5NV+aS2we02SLFdhvJkgeY7t7+TszgBSMY=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 github.com/xlab/treeprint v1.2.0 h1:HzHnuAF1plUN2zGlAFHbSQP2qJ0ZAD3XF5XD7OesXRQ=

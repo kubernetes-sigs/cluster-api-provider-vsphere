@@ -179,7 +179,7 @@ GOVULNCHECK_VER := v1.1.4
 GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
 GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
 
-GOVC_VER := "v0.52.0" # Tmp while we wait for a govc release $(shell cat go.mod | grep "github.com/vmware/govmomi" | awk '{print $$NF}')
+GOVC_VER := $(shell cat go.mod | grep "github.com/vmware/govmomi" | awk '{print $$NF}')
 GOVC_BIN := govc
 GOVC := $(abspath $(TOOLS_BIN_DIR)/$(GOVC_BIN)-$(GOVC_VER))
 GOVC_INSTALL := ./hack/govc-install.sh

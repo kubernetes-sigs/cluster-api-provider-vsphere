@@ -278,13 +278,22 @@ func reconcileVSphereVMOnTaskCompletion(ctx context.Context, vmCtx *capvcontext.
 		"taskDescriptionID", task.Info.DescriptionId)
 
 	reconcileVSphereVMOnFuncCompletion(ctx, vmCtx, func() ([]interface{}, error) {
+		// Note: Using a separate context as the ctx passed into reconcileVSphereVMOnTaskCompletion
+		// might timeout or be cancelled at some point (e.g. through controller-runtime ReconciliationTimeout).
+		ctx := context.Background()
 		taskInfo, err := taskHelper.WaitForResult(ctx)
 
 		// An error is only returned if the process of waiting for the result
 		// failed, *not* if the task itself failed.
-		if err != nil && taskInfo == nil {
+		if err != nil {
 			return nil, err
 		}
+
+		// Return if the taskInfo is nil, there is nothing we can do without a task.
+		if taskInfo == nil {
+			return nil, nil
+		}
+
 		// do not queue in the event channel when task fails as we don't
 		// want to retry right away
 		if taskInfo.State == types.TaskInfoStateError {

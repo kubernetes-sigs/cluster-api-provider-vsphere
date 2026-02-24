@@ -37,13 +37,13 @@ import (
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbldr "sigs.k8s.io/controller-runtime/pkg/builder"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -82,7 +82,7 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vspherevm")
 
-	return ctrl.NewControllerManagedBy(mgr).
+	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		// Watch the controlled, infrastructure resource.
 		For(&infrav1.VSphereVM{}).
 		WithOptions(options).
@@ -105,17 +105,16 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 		Watches(
 			&infrav1.VSphereCluster{},
 			handler.EnqueueRequestsFromMapFunc(r.vsphereClusterToVSphereVMs),
-			ctrlbldr.WithPredicates(
-				predicate.Funcs{
-					UpdateFunc: func(e event.UpdateEvent) bool {
-						oldCluster := e.ObjectOld.(*infrav1.VSphereCluster)
-						newCluster := e.ObjectNew.(*infrav1.VSphereCluster)
-						return !clustermodule.Compare(oldCluster.Spec.ClusterModules, newCluster.Spec.ClusterModules)
-					},
-					CreateFunc:  func(event.CreateEvent) bool { return false },
-					DeleteFunc:  func(event.DeleteEvent) bool { return false },
-					GenericFunc: func(event.GenericEvent) bool { return false },
-				}),
+			predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					oldCluster := e.ObjectOld.(*infrav1.VSphereCluster)
+					newCluster := e.ObjectNew.(*infrav1.VSphereCluster)
+					return !clustermodule.Compare(oldCluster.Spec.ClusterModules, newCluster.Spec.ClusterModules)
+				},
+				CreateFunc:  func(event.CreateEvent) bool { return false },
+				DeleteFunc:  func(event.DeleteEvent) bool { return false },
+				GenericFunc: func(event.GenericEvent) bool { return false },
+			},
 		).
 		Watches(
 			&ipamv1.IPAddressClaim{},

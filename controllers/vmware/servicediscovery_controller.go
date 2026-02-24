@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -95,7 +96,8 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 	if err := mgr.Add(configMapCache); err != nil {
 		return errors.Wrapf(err, "failed to add ConfigMap cache")
 	}
-	return ctrl.NewControllerManagedBy(mgr).For(&vmwarev1.VSphereCluster{}).
+	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
+		For(&vmwarev1.VSphereCluster{}).
 		Named("servicediscovery/vspherecluster").
 		WithOptions(options).
 		Watches(

@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -77,7 +78,8 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 	// sequentially in a single Reconcile.
 	// If we get events of multiple ProviderServiceAccounts of a VSphereCluster at the same time,
 	// controller-runtime will deduplicate the reconcile request for us.
-	return ctrl.NewControllerManagedBy(mgr).For(&vmwarev1.VSphereCluster{}).
+	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
+		For(&vmwarev1.VSphereCluster{}).
 		// We have to set the Name specifically here. Otherwise the name of the controller
 		// would be "vspherecluster" (the controller name will show up in logs and workqueue metrics).
 		Named("providerserviceaccount").

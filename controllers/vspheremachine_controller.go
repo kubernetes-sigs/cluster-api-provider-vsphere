@@ -36,13 +36,13 @@ import (
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbldr "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -108,7 +108,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			return errors.Wrap(err, "failed to create watch object for VirtualMachine")
 		}
 
-		return ctrl.NewControllerManagedBy(mgr).
+		return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 			// Watch the controlled, infrastructure resource.
 			For(&vmwarev1.VSphereMachine{}).
 			WithOptions(options).
@@ -120,9 +120,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			Watches(
 				&clusterv1.Cluster{},
 				handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
-				ctrlbldr.WithPredicates(
-					predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
-				),
+				predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 			).
 			// Watch a GenericEvent channel for the controlled resource.
 			//
@@ -141,7 +139,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			Complete(r)
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		// Watch the controlled, infrastructure resource.
 		For(&infrav1.VSphereMachine{}).
 		WithOptions(options).
@@ -166,20 +164,18 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		Watches(
 			&infrav1.VSphereVM{},
 			handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &infrav1.VSphereMachine{}),
-			ctrlbldr.WithPredicates(predicate.Funcs{
+			predicate.Funcs{
 				// ignore creation events since this controller is responsible for
 				// the creation of the type.
 				CreateFunc: func(event.CreateEvent) bool {
 					return false
 				},
-			}),
+			},
 		).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
-			ctrlbldr.WithPredicates(
-				predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
-			),
+			predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 		).Complete(r)
 }
 

@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
@@ -64,7 +65,7 @@ func AddVSphereDeploymentZoneControllerToManager(ctx context.Context, controller
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vspheredeploymentzone")
 
-	return ctrl.NewControllerManagedBy(mgr).
+	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&infrav1.VSphereDeploymentZone{}).
 		WithOptions(options).
 		Watches(

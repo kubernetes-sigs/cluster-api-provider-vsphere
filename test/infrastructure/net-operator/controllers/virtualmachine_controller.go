@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -105,14 +106,16 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *VirtualMachineReconciler) SetupWithManager(_ context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 	vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
 	if err != nil {
 		return errors.Wrap(err, "failed to create watch object for VirtualMachines")
 	}
 
-	err = ctrl.NewControllerManagedBy(mgr).
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "virtualmachine")
+
+	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(vm).
 		WithOptions(options).
 		Complete(r)

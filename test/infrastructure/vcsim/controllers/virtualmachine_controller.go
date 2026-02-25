@@ -36,6 +36,7 @@ import (
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -354,13 +355,11 @@ func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context
 	defer func() {
 		patch, err := conversionclient.MergeFrom(ctx, r.Client, original)
 		if err != nil {
-			ret = ctrl.Result{}
 			retErr = kerrors.NewAggregate([]error{retErr, errors.Wrapf(err, "failed to create patch for VirtualMachine object")})
 			return
 		}
 
 		if err := r.Client.Status().Patch(ctx, virtualMachine, patch); err != nil {
-			ret = ctrl.Result{}
 			retErr = kerrors.NewAggregate([]error{retErr, errors.Wrapf(err, "failed to create patch for VirtualMachine object")})
 		}
 	}()
@@ -445,14 +444,16 @@ func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *VirtualMachineReconciler) SetupWithManager(_ context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 	vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
 	if err != nil {
 		return errors.Wrap(err, "failed to create watch object for VirtualMachine")
 	}
 
-	err = ctrl.NewControllerManagedBy(mgr).
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "virtualmachine")
+
+	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(vm).
 		WithOptions(options).
 		Complete(r)

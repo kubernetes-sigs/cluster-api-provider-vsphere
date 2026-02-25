@@ -22,9 +22,9 @@ import (
 	"github.com/pkg/errors"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbldr "sigs.k8s.io/controller-runtime/pkg/builder"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -54,7 +54,7 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 		return errors.Wrapf(err, "failed to create watch object for VirtualMachineGroup")
 	}
 
-	builder := ctrl.NewControllerManagedBy(mgr).
+	builder := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).
 		// Set the controller's name explicitly to virtualmachinegroup.
@@ -62,26 +62,24 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 		Watches(
 			vmGroup,
 			handler.EnqueueRequestForOwner(mgr.GetScheme(), reconciler.Client.RESTMapper(), &clusterv1.Cluster{}),
-			ctrlbldr.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		Watches(
 			&vmwarev1.VSphereMachine{},
 			handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToCluster),
-			ctrlbldr.WithPredicates(
-				predicate.Funcs{
-					UpdateFunc: func(event.UpdateEvent) bool { return false },
-					CreateFunc: func(e event.CreateEvent) bool {
-						// Only handle VSphereMachine which belongs to a MachineDeployment
-						_, found := e.Object.GetLabels()[clusterv1.MachineDeploymentNameLabel]
-						return found
-					},
-					DeleteFunc: func(e event.DeleteEvent) bool {
-						// Only handle VSphereMachine which belongs to a MachineDeployment
-						_, found := e.Object.GetLabels()[clusterv1.MachineDeploymentNameLabel]
-						return found
-					},
-					GenericFunc: func(event.GenericEvent) bool { return false },
-				}),
+			predicate.Funcs{
+				UpdateFunc: func(event.UpdateEvent) bool { return false },
+				CreateFunc: func(e event.CreateEvent) bool {
+					// Only handle VSphereMachine which belongs to a MachineDeployment
+					_, found := e.Object.GetLabels()[clusterv1.MachineDeploymentNameLabel]
+					return found
+				},
+				DeleteFunc: func(e event.DeleteEvent) bool {
+					// Only handle VSphereMachine which belongs to a MachineDeployment
+					_, found := e.Object.GetLabels()[clusterv1.MachineDeploymentNameLabel]
+					return found
+				},
+				GenericFunc: func(event.GenericEvent) bool { return false },
+			},
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue))
 

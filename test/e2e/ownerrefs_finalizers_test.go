@@ -172,7 +172,11 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					// Note: we are not checking resourceVersions on VirtualMachine (reconciled by VM-Operator)
 					// as well as other VM Operator related kinds.
 					By("Checking that resourceVersions are stable")
-					framework.ValidateResourceVersionStable(ctx, proxy, namespace, FilterObjectsWithKindAndName(clusterName))
+					framework.ValidateResourceVersionStable(ctx, framework.ValidateResourceVersionStableInput{
+						ClusterProxy:             proxy,
+						Namespace:                namespace,
+						OwnerGraphFilterFunction: FilterObjectsWithKindAndName(clusterName),
+					})
 				},
 			}
 		})

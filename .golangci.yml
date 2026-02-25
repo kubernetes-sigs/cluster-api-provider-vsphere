@@ -17,6 +17,7 @@ linters:
     - durationcheck # multiplying two durations
     - errcheck # unchecked errors
     - errchkjson # invalid types passed to json encoder
+    - forbidigo # allows to block usage of funcs
     - ginkgolinter # ginkgo and gomega
     - goconst
     - gocritic # bugs, performance, style (we could add custom ones to this one)
@@ -55,6 +56,10 @@ linters:
           deny:
             - pkg: "github.com/vmware-tanzu/vm-operator/api"
               desc: Use vmoprvhub in prod code instead
+    forbidigo:
+      forbid:
+        - pattern: ctrl.NewControllerManagedBy
+          msg: Use capicontrollerutil.NewControllerManagedBy instead
     ginkgolinter:
       forbid-focus-container: true
     gocritic:
@@ -169,6 +174,8 @@ linters:
           alias: ""
         - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
           alias: deprecatedv1beta1conditions
+        - pkg: sigs.k8s.io/cluster-api/util/controller
+          alias: "capicontrollerutil"
         # CAPI addons
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
           alias: addonsv1

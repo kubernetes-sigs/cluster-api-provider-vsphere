@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,7 +58,7 @@ func AddVSphereMachineTemplateControllerToManager(ctx context.Context, controlle
 		return errors.Wrap(err, "failed to create watch object for VirtualMachineClass")
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&vmwarev1.VSphereMachineTemplate{}).
 		WithOptions(options).
 		Watches(

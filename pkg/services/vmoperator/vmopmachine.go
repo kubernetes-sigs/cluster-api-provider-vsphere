@@ -524,7 +524,7 @@ func convertKeyValueSlice(pairs []vmoprv1common.KeyValuePair) []vmwarev1.KeyValu
 func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) bool {
 	// Propagate VM status.network.interfaces to VSphereMachine.Status.NetworkInterfaces
 	if vm.Status.Network != nil {
-		interfaces := make([]vmwarev1.VSphereMachineNetworkInterfaceStatus, 0, len(vm.Status.Network.Interfaces))
+		var interfaces []vmwarev1.VSphereMachineNetworkInterfaceStatus
 		for _, vmIface := range vm.Status.Network.Interfaces {
 			iface := vmwarev1.VSphereMachineNetworkInterfaceStatus{
 				Name:      vmIface.Name,

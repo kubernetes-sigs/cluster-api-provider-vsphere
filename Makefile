@@ -148,7 +148,7 @@ GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
 SHELLCHECK_VER := v0.9.0
 
-TRIVY_VER := 0.49.1
+TRIVY_VER := 0.69.2
 
 KPROMO_VER := 5ab0dbc74b0228c22a93d240596dff77464aee8f
 KPROMO_BIN := kpromo

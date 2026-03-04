@@ -46,7 +46,7 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 	BeforeEach(func() {
 		var clusterCacheCtx context.Context
 		clusterCacheCtx, clusterCacheCancel = context.WithCancel(ctx)
-		testEnv, clusterCache = setup(clusterCacheCtx)
+		testEnv, _, clusterCache = setup(clusterCacheCtx)
 		intCtx = vmwarehelpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 
 		By(fmt.Sprintf("Creating the Cluster (%s), vSphereCluster (%s) and KubeconfigSecret", intCtx.Cluster.Name, intCtx.VSphereCluster.Name), func() {

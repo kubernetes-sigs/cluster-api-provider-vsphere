@@ -46,14 +46,12 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -83,19 +81,6 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "servicediscovery/vspherecluster")
 
-	configMapCache, err := cache.New(mgr.GetConfig(), cache.Options{
-		Scheme: mgr.GetScheme(),
-		Mapper: mgr.GetRESTMapper(),
-		// TODO: Reintroduce the cache sync period
-		// Resync:    ctx.SyncPeriod,
-		DefaultNamespaces: map[string]cache.Config{metav1.NamespacePublic: {}},
-	})
-	if err != nil {
-		return errors.Wrapf(err, "failed to create ConfigMap cache")
-	}
-	if err := mgr.Add(configMapCache); err != nil {
-		return errors.Wrapf(err, "failed to add ConfigMap cache")
-	}
 	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&vmwarev1.VSphereCluster{}).
 		Named("servicediscovery/vspherecluster").
@@ -104,12 +89,9 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 			&corev1.Service{},
 			handler.EnqueueRequestsFromMapFunc(r.serviceToClusters),
 		).
-		WatchesRawSource(
-			source.Kind(
-				configMapCache,
-				&corev1.ConfigMap{},
-				handler.TypedEnqueueRequestsFromMapFunc(r.configMapToClusters),
-			),
+		Watches(
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.configMapToClusters),
 		).
 		// watch the CAPI cluster
 		Watches(
@@ -508,7 +490,7 @@ func (r *serviceDiscoveryReconciler) serviceToClusters(ctx context.Context, o cl
 
 // configMapToClusters is a mapper function used to enqueue reconcile.Requests
 // It watches for cluster-info configmaps for the supervisor api-server.
-func (r *serviceDiscoveryReconciler) configMapToClusters(ctx context.Context, o *corev1.ConfigMap) []reconcile.Request {
+func (r *serviceDiscoveryReconciler) configMapToClusters(ctx context.Context, o client.Object) []reconcile.Request {
 	if o.GetNamespace() != metav1.NamespacePublic || o.GetName() != bootstrapapi.ConfigMapClusterInfo {
 		return nil
 	}

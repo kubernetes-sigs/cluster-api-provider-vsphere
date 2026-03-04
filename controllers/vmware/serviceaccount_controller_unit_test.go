@@ -48,7 +48,8 @@ func unitTestsReconcileNormal() {
 		// Note: The service account provider requires a reference to the vSphereCluster hence the need to create
 		// a fake vSphereCluster in the test and pass it to during context setup.
 		reconciler = ServiceAccountReconciler{
-			Client: controllerCtx.ControllerManagerContext.Client,
+			Client:              controllerCtx.ControllerManagerContext.Client,
+			SecretCachingClient: controllerCtx.ControllerManagerContext.Client,
 		}
 		_, err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext)
 		Expect(err).NotTo(HaveOccurred())

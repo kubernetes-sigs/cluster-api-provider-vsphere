@@ -35,7 +35,7 @@ func NewVmwareClusterContext(ctx context.Context, controllerManagerCtx *capvcont
 	}
 
 	// Add the cluster resources to the fake cluster client.
-	if err := controllerManagerCtx.Client.Create(ctx, &cluster); err != nil {
+	if err := controllerManagerCtx.Client.Create(ctx, cluster); err != nil {
 		panic(err)
 	}
 	if err := controllerManagerCtx.Client.Create(ctx, vsphereCluster); err != nil {
@@ -43,6 +43,7 @@ func NewVmwareClusterContext(ctx context.Context, controllerManagerCtx *capvcont
 	}
 
 	return &vmware.ClusterContext{
+		Cluster:        cluster,
 		VSphereCluster: vsphereCluster,
 	}
 }

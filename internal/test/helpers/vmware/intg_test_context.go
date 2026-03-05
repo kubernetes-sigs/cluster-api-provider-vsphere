@@ -137,6 +137,9 @@ func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestC
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: testCtx.Namespace,
 				Name:      fmt.Sprintf("%s-kubeconfig", testCtx.Cluster.Name),
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: testCtx.Cluster.Name,
+				},
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						APIVersion: clusterv1.GroupVersion.String(),

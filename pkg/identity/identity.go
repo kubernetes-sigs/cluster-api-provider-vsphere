@@ -128,6 +128,63 @@ func validateInputs(c client.Client, cluster *infrav1.VSphereCluster) error {
 	return nil
 }
 
+// GetCredentialsForIdentityRef returns the VCenter credentials for an arbitrary IdentityRef.
+// Unlike GetCredentials, this does not require a VSphereCluster object.
+// The identityRef must point to a VSphereClusterIdentity (cluster-scoped) or a Secret.
+// For Secrets, the controllerNamespace is used as the namespace since the deployment zone
+// is cluster-scoped and has no namespace of its own.
+func GetCredentialsForIdentityRef(ctx context.Context, c client.Client, identityRef *infrav1.VSphereIdentityReference, controllerNamespace string) (*Credentials, error) {
+	if c == nil {
+		return nil, errors.New("kubernetes client is required")
+	}
+	if identityRef == nil {
+		return nil, errors.New("identityRef is required")
+	}
+
+	secret := &corev1.Secret{}
+	var secretKey client.ObjectKey
+
+	switch identityRef.Kind {
+	case infrav1.SecretKind:
+		// For deployment zone secrets, use the controller namespace since
+		// deployment zones are cluster-scoped resources.
+		secretKey = client.ObjectKey{
+			Namespace: controllerNamespace,
+			Name:      identityRef.Name,
+		}
+	case infrav1.VSphereClusterIdentityKind:
+		identity := &infrav1.VSphereClusterIdentity{}
+		key := client.ObjectKey{
+			Name: identityRef.Name,
+		}
+		if err := c.Get(ctx, key, identity); err != nil {
+			return nil, err
+		}
+
+		if !ptr.Deref(identity.Status.Ready, false) {
+			return nil, errors.New("identity isn't ready to be used yet")
+		}
+
+		secretKey = client.ObjectKey{
+			Name:      identity.Spec.SecretName,
+			Namespace: controllerNamespace,
+		}
+	default:
+		return nil, fmt.Errorf("unknown type %s used for Identity", identityRef.Kind)
+	}
+
+	if err := c.Get(ctx, secretKey, secret); err != nil {
+		return nil, err
+	}
+
+	credentials := &Credentials{
+		Username: getData(secret, UsernameKey),
+		Password: getData(secret, PasswordKey),
+	}
+
+	return credentials, nil
+}
+
 // IsSecretIdentity returns true if the VSphereCluster identity is a Secret.
 func IsSecretIdentity(cluster *infrav1.VSphereCluster) bool {
 	if cluster == nil || !cluster.Spec.IdentityRef.IsDefined() {

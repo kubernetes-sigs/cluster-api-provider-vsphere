@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
@@ -269,19 +270,38 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 
 func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, datacenter string) (*session.Session, error) {
 	log := ctrl.LoggerFrom(ctx)
+	zone := deploymentZoneCtx.VSphereDeploymentZone
 
 	params := session.NewParams().
-		WithServer(deploymentZoneCtx.VSphereDeploymentZone.Spec.Server).
+		WithServer(zone.Spec.Server).
 		WithDatacenter(datacenter).
 		WithUserInfo(r.ControllerManagerContext.Username, r.ControllerManagerContext.Password)
 
+	// 1. When the MultiVCenterFailureDomains feature gate is enabled and the zone has its
+	//    own IdentityRef, use the zone-level credentials directly.
+	if feature.Gates.Enabled(feature.MultiVCenterFailureDomains) && zone.Spec.IdentityRef != nil {
+		log.V(4).Info("Using credentials from VSphereDeploymentZone IdentityRef to create the authenticated session")
+
+		if zone.Spec.Thumbprint != "" {
+			params = params.WithThumbprint(zone.Spec.Thumbprint)
+		}
+
+		creds, err := identity.GetCredentialsForIdentityRef(ctx, r.Client, zone.Spec.IdentityRef, r.Namespace)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving credentials from deployment zone IdentityRef")
+		}
+		params = params.WithUserInfo(creds.Username, creds.Password)
+		return session.GetOrCreate(ctx, params)
+	}
+
+	// 2. Fall back to finding a VSphereCluster with a matching server and using its IdentityRef.
 	clusterList := &infrav1.VSphereClusterList{}
 	if err := r.Client.List(ctx, clusterList); err != nil {
 		return nil, errors.Wrapf(err, "failed to list VSphereClusters")
 	}
 
 	for _, vsphereCluster := range clusterList.Items {
-		if deploymentZoneCtx.VSphereDeploymentZone.Spec.Server != vsphereCluster.Spec.Server || !vsphereCluster.Spec.IdentityRef.IsDefined() {
+		if zone.Spec.Server != vsphereCluster.Spec.Server || !vsphereCluster.Spec.IdentityRef.IsDefined() {
 			continue
 		}
 
@@ -301,7 +321,13 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, 
 		return session.GetOrCreate(ctx, params)
 	}
 
-	// Fallback to using credentials provided to the manager
+	// 3. Fallback to using credentials provided to the manager.
+	// Also use zone-level thumbprint if available (even when the feature gate is enabled
+	// but no IdentityRef is set on the zone).
+	if zone.Spec.Thumbprint != "" {
+		params = params.WithThumbprint(zone.Spec.Thumbprint)
+	}
+
 	log.V(4).Info("Using credentials provided to the manager to create the authenticated session")
 	return session.GetOrCreate(ctx, params)
 }

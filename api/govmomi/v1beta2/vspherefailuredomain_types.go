@@ -106,6 +106,16 @@ type Topology struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
 	Datastore string `json:"datastore,omitempty"`
+
+	// template is the name or inventory path of the template used to clone
+	// new machines in this failure domain. When specified, this overrides the
+	// template defined in the VSphereMachineTemplate. This is useful in
+	// multi-vCenter topologies where each vCenter has its own copy of the
+	// VM template in a different inventory path or datacenter.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	Template string `json:"template,omitempty"`
 }
 
 // NetworkConfiguration defines a network configuration that should be used when consuming

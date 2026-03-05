@@ -337,6 +337,34 @@ spec:
                 description: VCenterVersion defines the version of the vCenter server
                   defined in the spec.
                 type: string
+              vCenters:
+                description: |-
+                  VCenters contains the observed status of all vCenters associated with
+                  this cluster's deployment zones. This field is populated only when the
+                  MultiVCenterFailureDomains feature gate is enabled and the cluster uses
+                  deployment zones from multiple vCenter instances.
+                items:
+                  description: VCenterStatus represents the observed status of a vCenter
+                    instance associated with the cluster.
+                  properties:
+                    available:
+                      description: Available indicates whether the vCenter is reachable.
+                      type: boolean
+                    message:
+                      description: Message provides additional information about the
+                        vCenter availability.
+                      type: string
+                    server:
+                      description: Server is the address of the vCenter.
+                      type: string
+                    version:
+                      description: Version is the vCenter version.
+                      type: string
+                  required:
+                  - available
+                  - server
+                  type: object
+                type: array
             type: object
         type: object
     served: true
@@ -724,6 +752,41 @@ spec:
                 maxLength: 256
                 minLength: 1
                 type: string
+              vCenters:
+                description: |-
+                  vCenters contains the observed status of all vCenters associated with
+                  this cluster's deployment zones. This field is populated only when the
+                  MultiVCenterFailureDomains feature gate is enabled and the cluster uses
+                  deployment zones from multiple vCenter instances.
+                items:
+                  description: VCenterStatus represents the observed status of a vCenter
+                    instance associated with the cluster.
+                  properties:
+                    available:
+                      description: available indicates whether the vCenter is reachable.
+                      type: boolean
+                    message:
+                      description: message provides additional information about the
+                        vCenter availability.
+                      maxLength: 10000
+                      type: string
+                    server:
+                      description: server is the address of the vCenter.
+                      maxLength: 1024
+                      minLength: 1
+                      type: string
+                    version:
+                      description: version is the vCenter version.
+                      maxLength: 256
+                      type: string
+                  required:
+                  - server
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - server
+                x-kubernetes-list-type: map
             type: object
         required:
         - spec

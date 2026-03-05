@@ -291,6 +291,11 @@ spec:
                     items:
                       type: string
                     type: array
+                  template:
+                    description: |-
+                      Template is the name or inventory path of the template used to clone
+                      new machines in this failure domain.
+                    type: string
                 required:
                 - datacenter
                 type: object
@@ -650,6 +655,16 @@ spec:
                     maxItems: 128
                     type: array
                     x-kubernetes-list-type: atomic
+                  template:
+                    description: |-
+                      template is the name or inventory path of the template used to clone
+                      new machines in this failure domain. When specified, this overrides the
+                      template defined in the VSphereMachineTemplate. This is useful in
+                      multi-vCenter topologies where each vCenter has its own copy of the
+                      VM template in a different inventory path or datacenter.
+                    maxLength: 2048
+                    minLength: 1
+                    type: string
                 required:
                 - datacenter
                 type: object

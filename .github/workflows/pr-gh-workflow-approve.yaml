@@ -1,7 +1,7 @@
 name: PR approve GH Workflows
 
 on:
-  pull_request_target:
+  pull_request:
     types:
       - edited
       - labeled

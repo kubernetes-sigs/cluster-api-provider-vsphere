@@ -36427,7 +36427,7 @@ spec:
         - --v=10
         command:
         - /kube-rbac-proxy
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.4.0
+        image: gcr.io/k8s-staging-capi-vsphere/extra/kube-rbac-proxy:v0.5.0
         imagePullPolicy: IfNotPresent
         name: kube-rbac-proxy
         ports:

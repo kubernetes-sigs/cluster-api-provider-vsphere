@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -46,16 +47,17 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 	// Otherwise the workload cluster's kube-apiserver would not shutdown due to the global
 	// test's clustercache still being running.
 	var (
-		intCtx             *vmwarehelpers.IntegrationTestContext
-		testEnv            *helpers.TestEnvironment
-		clusterCache       clustercache.ClusterCache
-		clusterCacheCancel context.CancelFunc
+		intCtx              *vmwarehelpers.IntegrationTestContext
+		testEnv             *helpers.TestEnvironment
+		secretCachingClient client.Client
+		clusterCache        clustercache.ClusterCache
+		clusterCacheCancel  context.CancelFunc
 	)
 
 	BeforeEach(func() {
 		var clusterCacheCtx context.Context
 		clusterCacheCtx, clusterCacheCancel = context.WithCancel(ctx)
-		testEnv, clusterCache = setup(clusterCacheCtx)
+		testEnv, secretCachingClient, clusterCache = setup(clusterCacheCtx)
 		intCtx = vmwarehelpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 	})
 
@@ -133,6 +135,38 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 			It("Should reconcile", func() {
 				By("Creating the target secret in the target namespace")
 				assertTargetSecret(ctx, intCtx.GuestClient, pSvcAccount.Spec.TargetNamespace, testTargetSecret)
+
+				secretKey := client.ObjectKey{
+					Namespace: pSvcAccount.Namespace,
+					Name:      getServiceAccountSecretName(*pSvcAccount),
+				}
+
+				By("Validate ServiceAccount secret is available in the secretCachingClient")
+				secret := &corev1.Secret{}
+				Eventually(func(g Gomega) {
+					g.Expect(secretCachingClient.Get(ctx, secretKey, secret)).To(Succeed())
+				}, 10*time.Second).Should(Succeed())
+				Expect(secret.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, intCtx.Cluster.Name))
+
+				By("Removing the cluster name label to simulate the adoption case")
+				original := secret.DeepCopy()
+				delete(secret.Labels, clusterv1.ClusterNameLabel)
+				Expect(intCtx.Client.Patch(ctx, secret, client.MergeFrom(original))).To(Succeed())
+				Expect(secret.Labels).ToNot(HaveKeyWithValue(clusterv1.ClusterNameLabel, intCtx.Cluster.Name))
+
+				By("Patch the ProviderServiceAccount to trigger a reconcile (we are not watching Secrets without cluster-name label)")
+				originalPSA := pSvcAccount.DeepCopy()
+				if pSvcAccount.Labels == nil {
+					pSvcAccount.Labels = map[string]string{}
+				}
+				pSvcAccount.Labels["reconcile"] = "now"
+				Expect(intCtx.Client.Patch(ctx, pSvcAccount, client.MergeFrom(originalPSA))).To(Succeed())
+
+				By("Validate ServiceAccount secret is available (again) in the secretCachingClient after adoption")
+				Eventually(func(g Gomega) {
+					g.Expect(secretCachingClient.Get(ctx, secretKey, secret)).To(Succeed())
+				}, 10*time.Second).Should(Succeed())
+				Expect(secret.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, intCtx.Cluster.Name))
 			})
 		})
 

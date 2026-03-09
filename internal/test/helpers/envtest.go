@@ -37,7 +37,9 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -50,6 +52,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -176,8 +179,38 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 		}
 	}
 
+	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
+	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
+
 	managerOpts := manager.Options{
 		Options: ctrl.Options{
+			Cache: cache.Options{
+				ByObject: map[client.Object]cache.ByObject{
+					&corev1.Secret{}: {
+						Label: clusterSecretCacheSelector,
+						// Drop data of secrets that we don't use.
+						Transform: func(in any) (any, error) {
+							if s, ok := in.(*corev1.Secret); ok {
+								s.SetManagedFields(nil)
+								if !strings.HasSuffix(s.Name, "-kubeconfig") && s.Type != corev1.SecretTypeServiceAccountToken {
+									s.Data = nil
+								}
+							}
+							return in, nil
+						},
+					},
+				},
+			},
+			Client: client.Options{
+				Cache: &client.CacheOptions{
+					DisableFor: []client.Object{
+						// We are configuring the mgr.GetClient() to not use the cache for secrets, so that if we miss some
+						// Secret Get calls they are not hitting a cache with partial data.
+						// If Secrets from the cache should be accessed, we should use the secretCachingClient instead.
+						&corev1.Secret{},
+					},
+				},
+			},
 			Controller: config.Controller{
 				UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
 			},

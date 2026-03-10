@@ -137,9 +137,6 @@ func (r *EnvVarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 }
 
 func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.EnvVar, vCenterSimulator *vcsimv1.VCenterSimulator, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling VCSim EnvVar")
-
 	if controlPlaneEndpoint.Status.Host == "" {
 		return ctrl.Result{Requeue: true}, nil
 	}
@@ -171,7 +168,6 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 
 		sshKey = string(publicKeyBytes)
 		r.sshKeys[key] = sshKey
-		log.Info("Created ssh authorized key")
 	}
 
 	// Variables required only when the vcsim controller is used in combination with Tilt (E2E tests provide this value in other ways)

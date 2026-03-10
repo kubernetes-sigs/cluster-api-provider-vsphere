@@ -114,7 +114,7 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 	if !ok {
 		return errors.New("received unexpected SupervisorMachineContext type")
 	}
-	log.Info("Destroying VM")
+	log.Info("Deleting VirtualMachine")
 
 	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
 	if log.V(5).Enabled() {
@@ -200,6 +200,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	if err != nil {
 		return false, err
 	}
+
+	log = log.WithValues("VirtualMachine", klog.KRef(vmKey.Namespace, vmKey.Name))
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// When creating a new cluster and the user doesn't provide info about placement of VMs in a specific failure domain,
 	// CAPV will define affinity rules to ensure proper placement of the machine.
@@ -391,7 +394,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				Reason:  c.Reason,
 				Message: c.Message,
 			})
-			return false, errors.Errorf("vm prerequisites check failed for condition %s: %s", condition, supervisorMachineCtx)
+			return false, errors.Errorf("vm prerequisites check failed for condition %s: %s", condition, klog.KObj(vmOperatorVM))
 		}
 
 		// All the pre-requisites are in place but the machines is not yet created, report it.
@@ -427,7 +430,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.VSphereMachineVirtualMachineWaitingForNetworkAddressReason,
 		})
-		log.Info(fmt.Sprintf("VM does not have an IP address: %s", supervisorMachineCtx))
+		log.Info("VM does not have an IP address")
 		return true, nil
 	}
 
@@ -438,7 +441,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.VSphereMachineVirtualMachineWaitingForBIOSUUIDReason,
 		})
-		log.Info(fmt.Sprintf("VM does not have a BIOS UUID: %s", supervisorMachineCtx))
+		log.Info("VM does not have a BIOS UUID")
 		return true, nil
 	}
 
@@ -454,18 +457,19 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	providerID := fmt.Sprintf("vsphere://%s", vmOperatorVM.Status.BiosUUID)
 	if supervisorMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
 		supervisorMachineCtx.VSphereMachine.Spec.ProviderID = providerID
-		log.Info("Updated providerID", "providerID", providerID)
 	}
 
 	if supervisorMachineCtx.VSphereMachine.Status.BiosUUID != vmOperatorVM.Status.BiosUUID {
 		supervisorMachineCtx.VSphereMachine.Status.BiosUUID = vmOperatorVM.Status.BiosUUID
-		log.Info("Updated VM ID", "vmID", vmOperatorVM.Status.BiosUUID)
 	}
 
 	// Surface placement.
 	supervisorMachineCtx.VSphereMachine.Status.FailureDomain = vmOperatorVM.Status.Zone
 
 	// Mark the VSphereMachine as Ready
+	if !ptr.Deref(supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned, false) {
+		log.Info("VSphereMachine provisioning complete")
+	}
 	supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
 	deprecatedv1beta1conditions.MarkTrue(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition)
 	conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{

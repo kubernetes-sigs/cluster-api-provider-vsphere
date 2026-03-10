@@ -234,6 +234,8 @@ func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
 }
 
 func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Get any failure domains to report back to the CAPI core controller.
 	failureDomains, err := r.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
 	if err != nil {
@@ -277,6 +279,9 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 		return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", clusterCtx.VSphereCluster.Name)
 	}
 
+	if !ptr.Deref(clusterCtx.VSphereCluster.Status.Initialization.Provisioned, false) {
+		log.Info("VSphereCluster provisioning complete")
+	}
 	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = ptr.To(true)
 	return nil
 }
@@ -287,6 +292,12 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 	if !clusterCtx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
 		clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = clusterCtx.Cluster.Spec.ControlPlaneEndpoint.Host
 		clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = clusterCtx.Cluster.Spec.ControlPlaneEndpoint.Port
+		if !conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterLoadBalancerReadyCondition) {
+			log.Info("Skipping control plane endpoint reconciliation",
+				"reason", "ControlPlaneEndpoint already set on Cluster",
+				"controlPlaneEndpoint", clusterCtx.Cluster.Spec.ControlPlaneEndpoint.String())
+		}
+
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:   vmwarev1.VSphereClusterLoadBalancerReadyCondition,
 			Status: metav1.ConditionTrue,
@@ -295,13 +306,16 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 		if r.NetworkProvider.HasLoadBalancer() {
 			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition)
 		}
-		log.Info("Skipping control plane endpoint reconciliation",
-			"reason", "ControlPlaneEndpoint already set on Cluster",
-			"controlPlaneEndpoint", clusterCtx.Cluster.Spec.ControlPlaneEndpoint.String())
 		return nil
 	}
 
 	if !clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
+		if !conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterLoadBalancerReadyCondition) {
+			log.Info("Skipping control plane endpoint reconciliation",
+				"reason", "ControlPlaneEndpoint already set on VSphereCluster",
+				"controlPlaneEndpoint", clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
+		}
+
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:   vmwarev1.VSphereClusterLoadBalancerReadyCondition,
 			Status: metav1.ConditionTrue,
@@ -310,9 +324,6 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 		if r.NetworkProvider.HasLoadBalancer() {
 			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition)
 		}
-		log.Info("Skipping control plane endpoint reconciliation",
-			"reason", "ControlPlaneEndpoint already set on VSphereCluster",
-			"controlPlaneEndpoint", clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
 		return nil
 	}
 

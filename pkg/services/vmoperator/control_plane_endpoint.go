@@ -71,9 +71,6 @@ type CPService struct {
 
 // ReconcileControlPlaneEndpointService manages the lifecycle of a control plane endpoint managed by a vmoperator VirtualMachineService.
 func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, clusterCtx *vmware.ClusterContext, netProvider services.NetworkProvider) (*vmwarev1.APIEndpoint, error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Reconciling control plane VirtualMachineService for cluster")
-
 	// If the NetworkProvider does not support a load balancer, this should be a no-op
 	if !netProvider.HasLoadBalancer() {
 		return nil, nil

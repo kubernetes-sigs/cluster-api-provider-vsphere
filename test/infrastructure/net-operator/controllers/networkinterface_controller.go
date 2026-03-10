@@ -47,7 +47,6 @@ type NetworkInterfaceReconciler struct {
 
 func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling NetworkInterface")
 
 	// Fetch the NetworkInterface instance
 	networkInterface := &netopv1alpha1.NetworkInterface{}

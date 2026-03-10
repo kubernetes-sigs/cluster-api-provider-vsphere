@@ -91,7 +91,6 @@ const (
 func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesConfig *vcsimv1.VMOperatorDependencies) error {
 	var retryError error
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling dependencies for the VMOperator Deployment")
 
 	config := dependenciesConfig.DeepCopy()
 

@@ -59,7 +59,7 @@ func (dst *VSphereCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -119,7 +119,7 @@ func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.ID = nil
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -155,7 +155,7 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.FailureDomain = nil
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *ProviderServiceAccount) ConvertTo(dstRaw conversion.Hub) error {

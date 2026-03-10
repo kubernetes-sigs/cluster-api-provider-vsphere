@@ -110,7 +110,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 						framework.CoreOwnerReferenceAssertion,
 						framework.KubeadmBootstrapOwnerReferenceAssertions,
-						framework.KubeadmControlPlaneOwnerReferenceAssertions,
+						framework.KubeadmControlPlaneOwnerReferenceAssertions(false),
 						framework.ExpOwnerReferenceAssertions,
 						VSphereKubernetesReferenceAssertions,
 						VSphereReferenceAssertions(),
@@ -120,7 +120,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 						framework.CoreOwnerReferenceAssertion,
 						framework.KubeadmBootstrapOwnerReferenceAssertions,
-						framework.KubeadmControlPlaneOwnerReferenceAssertions,
+						framework.KubeadmControlPlaneOwnerReferenceAssertions(false),
 						framework.ExpOwnerReferenceAssertions,
 						VSphereKubernetesReferenceAssertions,
 						VSphereReferenceAssertions(),
@@ -217,7 +217,9 @@ var (
 		if testMode == SupervisorTestMode {
 			return map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
 				"VSphereCluster": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-					return framework.HasExactOwners(owners, clusterController)
+					// Note: As our test case is using a Cluster without ClusterClass the ownerRef is only a
+					// regular ownerRef and not a controller ownerRef.
+					return framework.HasExactOwners(owners, clusterOwner)
 				},
 				"VSphereClusterTemplate": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 					return framework.HasExactOwners(owners, clusterClassOwner)
@@ -250,7 +252,9 @@ var (
 
 		return map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
 			"VSphereCluster": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-				return framework.HasExactOwners(owners, clusterController)
+				// Note: As our test case is using a Cluster without ClusterClass the ownerRef is only a
+				// regular ownerRef and not a controller ownerRef.
+				return framework.HasExactOwners(owners, clusterOwner)
 			},
 			"VSphereClusterTemplate": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 				return framework.HasExactOwners(owners, clusterClassOwner)
@@ -295,7 +299,6 @@ var (
 	// CAPI owners.
 	clusterClassOwner       = metav1.OwnerReference{Kind: "ClusterClass", APIVersion: clusterv1.GroupVersion.String()}
 	clusterOwner            = metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()}
-	clusterController       = metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Controller: ptr.To(true)}
 	machineController       = metav1.OwnerReference{Kind: "Machine", APIVersion: clusterv1.GroupVersion.String(), Controller: ptr.To(true)}
 	clusterResourceSetOwner = metav1.OwnerReference{Kind: "ClusterResourceSet", APIVersion: addonsv1.GroupVersion.String()}
 

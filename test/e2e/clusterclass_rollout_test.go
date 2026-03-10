@@ -36,7 +36,7 @@ var _ = Describe("When testing ClusterClass rollouts [vcsim] [supervisor] [Clust
 				BootstrapClusterProxy:          bootstrapClusterProxy,
 				ArtifactFolder:                 artifactFolder,
 				SkipCleanup:                    skipCleanup,
-				Flavor:                         testSpecificSettingsGetter().FlavorForMode("topology"),
+				Flavor:                         testSpecificSettingsGetter().FlavorForMode("topology-taints"),
 				PostNamespaceCreated:           testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				InfrastructureProvider:         ptr.To("vsphere"),
 				FilterMetadataBeforeValidation: filterMetadataBeforeValidation,

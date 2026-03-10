@@ -189,7 +189,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			}
 
 			listenerName := klog.KObj(&c).String()
-			log.Info("Registering ResourceGroup for ControlPlaneEndpoint", "ResourceGroup", resourceGroup, "ControlPlaneEndpoint", listenerName)
+			log.V(4).Info("Registering ResourceGroup for ControlPlaneEndpoint", "ResourceGroup", resourceGroup, "ControlPlaneEndpoint", listenerName)
 			err := r.APIServerMux.RegisterResourceGroup(listenerName, resourceGroup)
 			if err != nil {
 				return ctrl.Result{}, err

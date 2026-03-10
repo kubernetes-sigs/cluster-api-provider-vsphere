@@ -88,10 +88,7 @@ func (r *ControlPlaneEndpointReconciler) Reconcile(ctx context.Context, req ctrl
 	return ctrl.Result{}, r.reconcileNormal(ctx, controlPlaneEndpoint)
 }
 
-func (r *ControlPlaneEndpointReconciler) reconcileNormal(ctx context.Context, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling VCSim ControlPlaneEndpoint")
-
+func (r *ControlPlaneEndpointReconciler) reconcileNormal(_ context.Context, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) error {
 	// Initialize a listener for the workload cluster.
 	// IMPORTANT: The fact that both the listener and the resourceGroup for a workload cluster have
 	// the same name is used as assumptions in other part of the implementation.
@@ -107,9 +104,7 @@ func (r *ControlPlaneEndpointReconciler) reconcileNormal(ctx context.Context, co
 	return nil
 }
 
-func (r *ControlPlaneEndpointReconciler) reconcileDelete(ctx context.Context, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling delete VCSim ControlPlaneEndpoint")
+func (r *ControlPlaneEndpointReconciler) reconcileDelete(_ context.Context, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) error {
 	listenerName := klog.KObj(controlPlaneEndpoint).String()
 
 	// Delete the resource group hosting all the cloud resources belonging the workload cluster;

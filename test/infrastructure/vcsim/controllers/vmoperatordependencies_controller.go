@@ -78,9 +78,6 @@ func (r *VMOperatorDependenciesReconciler) Reconcile(ctx context.Context, req ct
 }
 
 func (r *VMOperatorDependenciesReconciler) reconcileNormal(ctx context.Context, vmOperatorDependencies *vcsimv1.VMOperatorDependencies) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling VCSim VMOperatorDependencies")
-
 	// When simulating vm-operator, only a minimal part of the
 	// VMOperatorDependencies is required because used by CAPV.
 	if r.VMOperatorSimMode {

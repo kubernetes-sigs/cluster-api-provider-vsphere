@@ -76,7 +76,6 @@ type VirtualMachineReconciler struct {
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling VirtualMachine")
 
 	// Fetch the VirtualMachine instance
 	virtualMachine := &vmoprvhub.VirtualMachine{}
@@ -191,9 +190,8 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			}
 
 			listenerName := klog.KObj(&c).String()
-			log.Info("Registering ResourceGroup for ControlPlaneEndpoint", "ResourceGroup", resourceGroup, "ControlPlaneEndpoint", listenerName)
-			err := r.APIServerMux.RegisterResourceGroup(listenerName, resourceGroup)
-			if err != nil {
+			log.V(4).Info("Registering ResourceGroup for ControlPlaneEndpoint", "ResourceGroup", resourceGroup, "ControlPlaneEndpoint", listenerName)
+			if err := r.APIServerMux.RegisterResourceGroup(listenerName, resourceGroup); err != nil {
 				return ctrl.Result{}, err
 			}
 			found = true

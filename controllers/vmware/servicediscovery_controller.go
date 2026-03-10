@@ -284,7 +284,7 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 		return nil
 	}
 
-	log.Info("Discovered supervisor API server endpoint", "host", supervisorHost, "port", supervisorPort)
+	log.V(5).Info("Discovered supervisor API server endpoint", "host", supervisorHost, "port", supervisorPort)
 	// CreateOrPatch the newEndpoints with the discovered supervisor api server address
 	newEndpoints := newSupervisorHeadlessServiceEndpoints(
 		supervisorHost,

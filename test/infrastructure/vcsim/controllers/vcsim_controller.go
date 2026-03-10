@@ -129,7 +129,6 @@ func (r *VCenterSimulatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimulator) error {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling VCenter")
 
 	// When simulating vm-operator, there is no need of a vcenter/vcsim.
 	// Note. We keep using the VCenterSimulator CR also in this case to avoid introducing code branches in the test framework.
@@ -307,8 +306,6 @@ func createGovmomiFailureDomainTags(vCenterSimulator *vcsimv1.VCenterSimulator) 
 
 func (r *VCenterSimulatorReconciler) reconcileDelete(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimulator) {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling delete VCenter server")
-
 	r.lock.Lock()
 	defer r.lock.Unlock()
 

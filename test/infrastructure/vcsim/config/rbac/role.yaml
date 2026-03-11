@@ -9,7 +9,6 @@ rules:
   resources:
   - configmaps
   - resourcequotas
-  - secrets
   verbs:
   - create
   - get
@@ -22,6 +21,18 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ""
@@ -63,6 +74,8 @@ rules:
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - cns.vmware.com

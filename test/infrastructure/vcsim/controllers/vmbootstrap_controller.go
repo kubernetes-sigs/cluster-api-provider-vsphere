@@ -29,10 +29,12 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	capiutil "sigs.k8s.io/cluster-api/util"
@@ -128,6 +130,9 @@ const (
 
 	// EtcdMemberRemoved is added to etcd pods which have been removed from the etcd cluster.
 	EtcdMemberRemoved = "etcd.inmemory.infrastructure.cluster.x-k8s.io/member-removed"
+
+	// MachineBootstrappedAnnotationName is added to the Machine once the machine is entirely bootstrapped.
+	MachineBootstrappedAnnotationName = "machine.inmemory.infrastructure.cluster.x-k8s.io/bootstrapped"
 )
 
 type ConditionsTracker interface {
@@ -199,23 +204,63 @@ func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *
 		}
 		res = capiutil.LowestNonZeroResult(res, phaseResult)
 	}
-	return res, kerrors.NewAggregate(errs)
+
+	if len(errs) > 0 {
+		return res, kerrors.NewAggregate(errs)
+	}
+
+	if (util.IsControlPlaneMachine(machine) && v1beta1conditions.IsTrue(conditionsTracker, APIServerProvisionedCondition)) ||
+		(!util.IsControlPlaneMachine(machine) && v1beta1conditions.IsTrue(conditionsTracker, NodeProvisionedCondition)) {
+		if hasBootstrappedAnnotation(machine) {
+			return res, nil
+		}
+
+		// Try to patch first with v1beta2 and only if that doesn't work with v1beta1.
+		// v1beta1 might be needed for clusterctl upgrade tests that use old versions of CAPI.
+		// We have to try to avoid using v1beta1 as it introduces SSA issues on Machines with taints
+		// which then leads to a failure in the ClusterClass rollout test.
+		machineObj := &unstructured.Unstructured{}
+		machineObj.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
+		machineObj.SetNamespace(machine.Namespace)
+		machineObj.SetName(machine.Name)
+		original := machineObj.DeepCopy()
+		machineObj.SetAnnotations(map[string]string{
+			MachineBootstrappedAnnotationName: "",
+		})
+		if err := r.Client.Patch(ctx, machineObj, client.MergeFrom(original)); err != nil {
+			machineObj := &unstructured.Unstructured{}
+			machineObj.SetGroupVersionKind(clusterv1beta1.GroupVersion.WithKind("Machine"))
+			machineObj.SetNamespace(machine.Namespace)
+			machineObj.SetName(machine.Name)
+			original := machineObj.DeepCopy()
+			machineObj.SetAnnotations(map[string]string{
+				MachineBootstrappedAnnotationName: "",
+			})
+			if err := r.Client.Patch(ctx, machineObj, client.MergeFrom(original)); err != nil {
+				return res, err
+			}
+		}
+	}
+
+	return res, nil
 }
 
 func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	nodeName := conditionsTracker.GetName()
 
-	provisioningDuration := nodeStartupDuration
-	provisioningDuration += time.Duration(rand.Float64() * nodeStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+	if !hasBootstrappedAnnotation(machine) {
+		provisioningDuration := nodeStartupDuration
+		provisioningDuration += time.Duration(rand.Float64() * nodeStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
 
-	start := v1beta1conditions.Get(conditionsTracker, VMProvisionedCondition).LastTransitionTime
-	now := time.Now()
-	if now.Before(start.Add(provisioningDuration)) {
-		v1beta1conditions.MarkFalse(conditionsTracker, NodeProvisionedCondition, NodeWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
-		remainingTime := start.Add(provisioningDuration).Sub(now)
-		log.Info("Waiting for Node to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Node", nodeName)
-		return ctrl.Result{RequeueAfter: remainingTime}, nil
+		start := v1beta1conditions.Get(conditionsTracker, VMProvisionedCondition).LastTransitionTime
+		now := time.Now()
+		if now.Before(start.Add(provisioningDuration)) {
+			v1beta1conditions.MarkFalse(conditionsTracker, NodeProvisionedCondition, NodeWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
+			remainingTime := start.Add(provisioningDuration).Sub(now)
+			log.Info("Waiting for Node to start", "creationTimestamp", machine.CreationTimestamp, "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Node", nodeName)
+			return ctrl.Result{RequeueAfter: remainingTime}, nil
+		}
 	}
 
 	// Compute the resource group unique name.
@@ -307,17 +352,19 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 		return ctrl.Result{}, nil
 	}
 
-	// Wait for the etcd pod to start up; etcd pod start happens a configurable time after the Node is provisioned.
-	provisioningDuration := etcdStartupDuration
-	provisioningDuration += time.Duration(rand.Float64() * etcdStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+	if !hasBootstrappedAnnotation(machine) {
+		// Wait for the etcd pod to start up; etcd pod start happens a configurable time after the Node is provisioned.
+		provisioningDuration := etcdStartupDuration
+		provisioningDuration += time.Duration(rand.Float64() * etcdStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
 
-	start := v1beta1conditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
-	now := time.Now()
-	if now.Before(start.Add(provisioningDuration)) {
-		v1beta1conditions.MarkFalse(conditionsTracker, EtcdProvisionedCondition, EtcdWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
-		remainingTime := start.Add(provisioningDuration).Sub(now)
-		log.Info("Waiting for etcd Pod to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Pod", klog.KRef(metav1.NamespaceSystem, etcdMember))
-		return ctrl.Result{RequeueAfter: remainingTime}, nil
+		start := v1beta1conditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
+		now := time.Now()
+		if now.Before(start.Add(provisioningDuration)) {
+			v1beta1conditions.MarkFalse(conditionsTracker, EtcdProvisionedCondition, EtcdWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
+			remainingTime := start.Add(provisioningDuration).Sub(now)
+			log.Info("Waiting for etcd Pod to start", "creationTimestamp", machine.CreationTimestamp, "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Pod", klog.KRef(metav1.NamespaceSystem, etcdMember))
+			return ctrl.Result{RequeueAfter: remainingTime}, nil
+		}
 	}
 
 	// Compute the resource group unique name.
@@ -451,17 +498,19 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 		return ctrl.Result{}, nil
 	}
 
-	// Wait for the API server pod to start up; API server pod start happens a configurable time after the Node is provisioned.
-	provisioningDuration := apiServerStartupDuration
-	provisioningDuration += time.Duration(rand.Float64() * apiServerStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+	if !hasBootstrappedAnnotation(machine) {
+		// Wait for the API server pod to start up; API server pod start happens a configurable time after the Node is provisioned.
+		provisioningDuration := apiServerStartupDuration
+		provisioningDuration += time.Duration(rand.Float64() * apiServerStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
 
-	start := v1beta1conditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
-	now := time.Now()
-	if now.Before(start.Add(provisioningDuration)) {
-		v1beta1conditions.MarkFalse(conditionsTracker, APIServerProvisionedCondition, APIServerWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
-		remainingTime := start.Add(provisioningDuration).Sub(now)
-		log.Info("Waiting for API server Pod to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Pod", klog.KRef(metav1.NamespaceSystem, apiServer))
-		return ctrl.Result{RequeueAfter: remainingTime}, nil
+		start := v1beta1conditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
+		now := time.Now()
+		if now.Before(start.Add(provisioningDuration)) {
+			v1beta1conditions.MarkFalse(conditionsTracker, APIServerProvisionedCondition, APIServerWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
+			remainingTime := start.Add(provisioningDuration).Sub(now)
+			log.Info("Waiting for API server Pod to start", "creationTimestamp", machine.CreationTimestamp, "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Pod", klog.KRef(metav1.NamespaceSystem, apiServer))
+			return ctrl.Result{RequeueAfter: remainingTime}, nil
+		}
 	}
 
 	// Compute the resource group unique name.
@@ -1033,4 +1082,9 @@ func (r *vmBootstrapReconciler) getEtcdInfo(ctx context.Context, inmemoryClient 
 	}
 
 	return info, nil
+}
+
+func hasBootstrappedAnnotation(machine *clusterv1beta1.Machine) bool {
+	_, ok := machine.Annotations[MachineBootstrappedAnnotationName]
+	return ok
 }

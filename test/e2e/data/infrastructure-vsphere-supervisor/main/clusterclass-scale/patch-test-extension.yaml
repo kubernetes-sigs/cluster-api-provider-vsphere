@@ -1,0 +1,11 @@
+- op: replace
+  path: /spec/patches
+  value:
+  - name: test-patch
+    external:
+      generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:=scale}
+      discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:=scale}
+      settings:
+        testMode: supervisor
+- op: remove
+  path: /spec/variables

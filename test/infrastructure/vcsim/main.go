@@ -47,6 +47,7 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -59,6 +60,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -174,7 +176,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&vSphereVMConcurrency, "vsphere-vm-concurrency", 10,
 		"Number of VSphereVM to process simultaneously")
 
-	fs.IntVar(&virtualMachineConcurrency, "virtual-machine-concurrency", 10,
+	fs.IntVar(&virtualMachineConcurrency, "virtual-machine-concurrency", 100,
 		"Number of VirtualMachine to process simultaneously")
 
 	fs.IntVar(&vCenterSimulatorConcurrency, "vcenter-simulator-concurrency", 10,
@@ -192,10 +194,14 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	fs.Float32Var(&restConfigQPS, "kube-api-qps", 100,
+	// Note: We're using 1000 here instead of the much lower value we usually use in other
+	// production controllers to ensure vcsim does not become the bottleneck in scale tests.
+	fs.Float32Var(&restConfigQPS, "kube-api-qps", 1000,
 		"Maximum queries per second from the controller client to the Kubernetes API server.")
 
-	fs.IntVar(&restConfigBurst, "kube-api-burst", 200,
+	// Note: We're using 1000 here instead of the much lower value we usually use in other
+	// production controllers to ensure vcsim does not become the bottleneck in scale tests.
+	fs.IntVar(&restConfigBurst, "kube-api-burst", 1000,
 		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
@@ -261,6 +267,9 @@ func main() {
 	}
 
 	ctrlOptions := ctrl.Options{
+		Controller: config.Controller{
+			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,
 		LeaderElectionID:           "vcsim-controller-leader-election-capi",

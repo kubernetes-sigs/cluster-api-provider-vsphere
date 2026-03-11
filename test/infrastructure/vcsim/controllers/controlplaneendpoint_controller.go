@@ -93,7 +93,7 @@ func (r *ControlPlaneEndpointReconciler) reconcileNormal(_ context.Context, cont
 	// IMPORTANT: The fact that both the listener and the resourceGroup for a workload cluster have
 	// the same name is used as assumptions in other part of the implementation.
 	listenerName := klog.KObj(controlPlaneEndpoint).String()
-	listener, err := r.APIServerMux.InitWorkloadClusterListener(listenerName)
+	listener, err := r.APIServerMux.InitWorkloadClusterListenerWithPort(listenerName, controlPlaneEndpoint.Status.Port)
 	if err != nil {
 		return errors.Wrapf(err, "failed to init the listener for the control plane endpoint")
 	}

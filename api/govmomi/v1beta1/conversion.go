@@ -77,7 +77,7 @@ func (dst *VSphereCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -118,7 +118,7 @@ func (dst *VSphereClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *VSphereClusterIdentity) ConvertTo(dstRaw conversion.Hub) error {
@@ -143,7 +143,7 @@ func (dst *VSphereClusterIdentity) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *VSphereDeploymentZone) ConvertTo(dstRaw conversion.Hub) error {
@@ -283,7 +283,7 @@ func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.NamingStrategy.Template = nil
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -364,7 +364,7 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.NamingStrategy.Template = nil
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
@@ -461,7 +461,7 @@ func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
-	return utilconversion.MarshalData(src, dst)
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *infrav1.VSphereClusterSpec, out *VSphereClusterSpec, s apimachineryconversion.Scope) error {

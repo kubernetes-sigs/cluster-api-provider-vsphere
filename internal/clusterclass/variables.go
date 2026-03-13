@@ -37,6 +37,9 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 			},
 		},
 		{
+			// Note: Please note that this variable is handled & used both in the test/extension
+			// and in the vcsim controller. If changes are made we should check if these places have
+			// to be adjusted as well.
 			Name:     "controlPlaneIpAddr",
 			Required: ptr.To(true),
 			Schema: clusterv1.VariableSchema{

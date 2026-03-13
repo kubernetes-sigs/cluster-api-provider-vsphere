@@ -1,0 +1,57 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.128.0/24
+  topology:
+    classRef:
+      name: ${CLUSTER_CLASS_NAME}-scale
+      namespace: ${CLUSTER_CLASS_NAMESPACE:-${NAMESPACE}}
+    controlPlane:
+      healthCheck:
+        checks:
+          nodeStartupTimeoutSeconds: 3600
+          unhealthyNodeConditions:
+          - status: Unknown
+            timeoutSeconds: 900
+            type: TestCondition
+          - status: "False"
+            timeoutSeconds: 900
+            type: TestCondition
+        remediation:
+          triggerIf:
+            unhealthyLessThanOrEqualTo: 100%
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+    variables:
+    - name: sshKey
+      value: ${VSPHERE_SSH_AUTHORIZED_KEY}
+    - name: controlPlaneIpAddr
+      value: ${CONTROL_PLANE_ENDPOINT_IP}
+    - name: controlPlanePort
+      value: ${CONTROL_PLANE_ENDPOINT_PORT:=6443}
+    version: ${KUBERNETES_VERSION}
+    workers:
+      machineDeployments:
+      - class: ${CLUSTER_CLASS_NAME}-worker
+        healthCheck:
+          checks:
+            nodeStartupTimeoutSeconds: 3600
+            unhealthyNodeConditions:
+            - status: Unknown
+              timeoutSeconds: 900
+              type: TestCondition
+            - status: "False"
+              timeoutSeconds: 900
+              type: TestCondition
+          remediation:
+            triggerIf:
+              unhealthyLessThanOrEqualTo: 100%
+        name: md-0
+        replicas: ${WORKER_MACHINE_COUNT}

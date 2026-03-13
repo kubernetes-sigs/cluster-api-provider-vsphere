@@ -20,15 +20,19 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -37,10 +41,12 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
+	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1"
@@ -69,9 +75,10 @@ type VirtualMachineReconciler struct {
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;patch;update;delete
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -178,15 +185,65 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if _, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup); err != nil {
-		log.Error(err, "Got error when calling WorkloadClusterByResourceGroup")
 		l := &vcsimv1.ControlPlaneEndpointList{}
 		if err := r.Client.List(ctx, l); err != nil {
 			return ctrl.Result{}, err
 		}
 		found := false
 		for _, c := range l.Items {
-			if c.Status.Host != cluster.Spec.ControlPlaneEndpoint.Host || c.Status.Port != cluster.Spec.ControlPlaneEndpoint.Port {
+			if c.Status.Port != cluster.Spec.ControlPlaneEndpoint.Port {
 				continue
+			}
+
+			if cluster.Spec.ControlPlaneEndpoint.Host != "" && c.Status.Host != "" &&
+				cluster.Spec.ControlPlaneEndpoint.Host != c.Status.Host {
+				// Note: There's a mismatch between Cluster and ControlPlaneEndpoint port, let's fix it up
+				// This can happen e.g. if the vcsim controller is restarted
+				orig := cluster.DeepCopy()
+				cluster.Spec.ControlPlaneEndpoint.Host = c.Status.Host
+				if cluster.Spec.Topology != nil {
+					for i, variable := range cluster.Spec.Topology.Variables {
+						if variable.Name == "controlPlaneIpAddr" {
+							cluster.Spec.Topology.Variables[i].Value = apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("%q", c.Status.Host))}
+							break
+						}
+					}
+				}
+				if err := r.Client.Patch(ctx, cluster, client.MergeFrom(orig)); err != nil {
+					return ctrl.Result{}, errors.Wrap(err, "failed to fixup controlPlaneEndpoint on Cluster")
+				}
+			}
+
+			// Note: Check if the kubeconfig secret has the wrong controlPlaneEndpoint, if yes, fix it up
+			kubeconfigSecret := &corev1.Secret{}
+			if err := r.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Name + "-kubeconfig"}, kubeconfigSecret); err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to get kubeconfig Secret for Cluster")
+			}
+			data, ok := kubeconfigSecret.Data[secret.KubeconfigDataName]
+			if !ok {
+				return ctrl.Result{}, errors.Errorf("missing key %q in kubeconfig Secret for Cluster", secret.KubeconfigDataName)
+			}
+			config, err := clientcmd.Load(data)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+			}
+			kubeconfigCluster, ok := config.Clusters[cluster.Name]
+			if !ok {
+				return ctrl.Result{}, errors.Errorf("missing clusters map entry in kubeconfig Secret for Cluster")
+			}
+			desiredServer := fmt.Sprintf("https://%s", net.JoinHostPort(c.Status.Host, strconv.Itoa(int(c.Status.Port))))
+			if kubeconfigCluster.Server != desiredServer {
+				original := kubeconfigSecret.DeepCopy()
+				kubeconfigCluster.Server = desiredServer
+				kubeconfigBytes, err := clientcmd.Write(*config)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+				kubeconfigSecret.Data[secret.KubeconfigDataName] = kubeconfigBytes
+				if err := r.Client.Patch(ctx, kubeconfigSecret, client.MergeFrom(original)); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 			}
 
 			listenerName := klog.KObj(&c).String()
@@ -414,15 +471,17 @@ func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context
 		Reason: "VMOperatorSim",
 	})
 
-	vmPowerOnDuration := vmPowerOnDuration
-	vmPowerOnDuration += time.Duration(rand.Float64() * vmPowerOnJitter * float64(vmPowerOnDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+	if !hasBootstrappedAnnotation(machine) {
+		vmPowerOnDuration := vmPowerOnDuration
+		vmPowerOnDuration += time.Duration(rand.Float64() * vmPowerOnJitter * float64(vmPowerOnDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
 
-	now := time.Now()
-	start := conditions.Get(virtualMachine, vmoprvhub.VirtualMachineConditionCreated).LastTransitionTime
-	if now.Before(start.Add(vmPowerOnDuration)) {
-		remainingTime := start.Add(vmPowerOnDuration).Sub(now)
-		log.Info("Waiting for VM to power on", "Start", start, "Duration", vmPowerOnDuration, "RemainingTime", remainingTime)
-		return ctrl.Result{RequeueAfter: remainingTime}, nil
+		now := time.Now()
+		start := conditions.Get(virtualMachine, vmoprvhub.VirtualMachineConditionCreated).LastTransitionTime
+		if now.Before(start.Add(vmPowerOnDuration)) {
+			remainingTime := start.Add(vmPowerOnDuration).Sub(now)
+			log.Info("Waiting for VM to power on", "creationTimestamp", machine.CreationTimestamp, "Start", start, "Duration", vmPowerOnDuration, "RemainingTime", remainingTime)
+			return ctrl.Result{RequeueAfter: remainingTime}, nil
+		}
 	}
 
 	// Simulate VM PowerOn
@@ -453,6 +512,23 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 
 	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(vm).
+		// Ensure the controller waits for these informer to sync to avoid informer sync errors during reconcile
+		Watches(
+			&clusterv1beta1.Machine{},
+			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, _ client.Object) []reconcile.Request { return nil }),
+		).
+		Watches(
+			&clusterv1beta1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, _ client.Object) []reconcile.Request { return nil }),
+		).
+		Watches(
+			&vmwarev1beta1.VSphereMachine{},
+			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, _ client.Object) []reconcile.Request { return nil }),
+		).
+		Watches(
+			&vmwarev1beta1.VSphereCluster{},
+			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, _ client.Object) []reconcile.Request { return nil }),
+		).
 		WithOptions(options).
 		Complete(r)
 

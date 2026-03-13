@@ -48,6 +48,10 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 			if testTarget != VCSimTestTarget {
 				Skip("Test should only be run using vcsim provider")
 			}
+			flavor := testSpecificSettingsGetter().FlavorForMode("topology-scale")
+			if testMode == GovmomiTestMode {
+				flavor = testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")
+			}
 
 			// Cleanup from previous test runs. // TODO: consider moving this into the core CAPI scale test
 			Expect(ctrlclient.IgnoreNotFound(bootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{
@@ -60,7 +64,7 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 				InfrastructureProvider: ptr.To(clusterctl.DefaultInfrastructureProvider),
 				BootstrapClusterProxy:  bootstrapClusterProxy,
 				ArtifactFolder:         artifactFolder,
-				Flavor:                 ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
+				Flavor:                 ptr.To(flavor),
 				SkipUpgrade:            false,
 				SkipCleanup:            skipCleanup,
 				DumpResources:          true,

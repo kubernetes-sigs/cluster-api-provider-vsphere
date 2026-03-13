@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
@@ -49,9 +49,8 @@ type EnvVarReconciler struct {
 	Client         client.Client
 	SupervisorMode bool
 
-	PodIP   string
-	sshKeys map[string]string
-	lock    sync.RWMutex
+	PodIP            string
+	sshAuthorizedKey string
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -138,42 +137,16 @@ func (r *EnvVarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 
 func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.EnvVar, vCenterSimulator *vcsimv1.VCenterSimulator, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) (ctrl.Result, error) {
 	if controlPlaneEndpoint.Status.Host == "" {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	if vCenterSimulator != nil && vCenterSimulator.Status.Host == "" {
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	if r.sshKeys == nil {
-		r.sshKeys = map[string]string{}
-	}
-
-	key := klog.KObj(envVar).String()
-	sshKey, ok := r.sshKeys[key]
-	if !ok {
-		bitSize := 4096
-
-		privateKey, err := generatePrivateKey(bitSize)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to generate private key")
-		}
-
-		publicKeyBytes, err := generatePublicKey(&privateKey.PublicKey)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to generate public key")
-		}
-
-		sshKey = string(publicKeyBytes)
-		r.sshKeys[key] = sshKey
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	// Variables required only when the vcsim controller is used in combination with Tilt (E2E tests provide this value in other ways)
 	envVar.Status.Variables = map[string]string{
 		// Variables for machines ssh key
-		"VSPHERE_SSH_AUTHORIZED_KEY": sshKey,
+		"VSPHERE_SSH_AUTHORIZED_KEY": r.sshAuthorizedKey,
 
 		// other variables required by the cluster template.
 		"NAMESPACE":                   envVar.Spec.Cluster.Namespace,
@@ -390,6 +363,17 @@ func (r *EnvVarReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manage
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
+
+	privateKey, err := generatePrivateKey(4096)
+	if err != nil {
+		return errors.Wrapf(err, "failed to generate private key")
+	}
+	publicKeyBytes, err := generatePublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return errors.Wrapf(err, "failed to generate public key")
+	}
+	r.sshAuthorizedKey = string(publicKeyBytes)
+
 	return nil
 }
 

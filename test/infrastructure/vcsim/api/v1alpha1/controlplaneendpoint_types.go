@@ -43,6 +43,8 @@ type ControlPlaneEndpointStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="ControlPlane Endpoint",type="string",JSONPath=".status.host",description="API Endpoint"
+// +kubebuilder:printcolumn:name="ControlPlane Endpoint Port",type="string",JSONPath=".status.port",description="API Endpoint port"
 
 // ControlPlaneEndpoint is the schema for a cluster virtual ip.
 // IMPORTANT: The name of the ControlPlaneEndpoint should match the name of the cluster.

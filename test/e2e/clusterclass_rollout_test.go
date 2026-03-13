@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers"
 )
 
 var _ = Describe("When testing ClusterClass rollouts [vcsim] [supervisor] [ClusterClass]", func() {
@@ -46,10 +47,12 @@ var _ = Describe("When testing ClusterClass rollouts [vcsim] [supervisor] [Clust
 })
 
 func filterMetadataBeforeValidation(object client.Object) clusterv1.ObjectMeta {
-	// CAPV adds an extra label node.cluster.x-k8s.io/esxi-host on Machine, we need to filter it out to pass the
-	// clusterclass rollout test
 	if machine, ok := object.(*clusterv1.Machine); ok {
+		// CAPV adds an extra label node.cluster.x-k8s.io/esxi-host on Machine, we need to filter it out to pass the
+		// clusterclass rollout test
 		delete(machine.Labels, constants.ESXiHostInfoLabel)
+		// vcism adds an additional annotation to Machines
+		delete(machine.Annotations, controllers.MachineBootstrappedAnnotationName)
 		return clusterv1.ObjectMeta{Labels: machine.Labels, Annotations: machine.Annotations}
 	}
 

@@ -16,7 +16,16 @@ spec:
     singular: controlplaneendpoint
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: API Endpoint
+      jsonPath: .status.host
+      name: ControlPlane Endpoint
+      type: string
+    - description: API Endpoint port
+      jsonPath: .status.port
+      name: ControlPlane Endpoint Port
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-

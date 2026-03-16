@@ -18,6 +18,8 @@ package vmoperator
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -26,6 +28,7 @@ import (
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,10 +43,16 @@ import (
 
 func getVirtualMachineService(ctx context.Context, clusterCtx *vmware.ClusterContext, _ ctrlclient.Client, cpService CPService) *vmoprvhub.VirtualMachineService {
 	vms, err := cpService.getVMControlPlaneService(ctx, clusterCtx)
-	if apierrors.IsNotFound(err) {
-		return nil
+	if err != nil {
+		// If it's a NotFound OR our specific Zombie errors, return nil so verifyOutput can run
+		if apierrors.IsNotFound(err) || strings.Contains(err.Error(), "owned by a different VSphereCluster instance") ||
+			strings.Contains(err.Error(), "exists but is being deleted") {
+			return nil
+		}
+		// If it's any other error, the test should fail immediately
+		Expect(err).NotTo(HaveOccurred())
 	}
-	Expect(err).ToNot(HaveOccurred())
+
 	return vms
 }
 
@@ -173,6 +182,87 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 				}
 			}
 		}
+
+		Specify("Handle Zombie VSphereCluster owned VirtualMachineService", func() {
+			By("Creating a VirtualMachineService with a stale Owner UID")
+			vmServiceName := controlPlaneVMServiceName(clusterCtx.Cluster.Name)
+			staleUID := types.UID("stale-cluster-uid-123")
+			zombieVMS := &vmoprvhub.VirtualMachineService{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      vmServiceName,
+					Namespace: clusterCtx.Cluster.Namespace,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: vmwarev1.GroupVersion.String(),
+							Kind:       "VSphereCluster",
+							Name:       clusterCtx.VSphereCluster.Name,
+							UID:        staleUID,
+						},
+					},
+				},
+			}
+			Expect(c.Create(ctx, zombieVMS)).To(Succeed())
+
+			By("Expect the specific UID mismatch error")
+			expectReconcileError = true
+			expectAPIEndpoint = false
+			expectVMS = false
+			expectedConditions = []metav1.Condition{
+				{
+					Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyReason,
+					Message: fmt.Sprintf("owned by a different VSphereCluster instance %s", staleUID),
+				},
+			}
+
+			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("owned by a different VSphereCluster instance"))
+			verifyOutput()
+		})
+
+		Specify("Handle Zombie resource being deleted", func() {
+			By("Creating a VirtualMachineService with a DeletionTimestamp")
+			vmServiceName := controlPlaneVMServiceName(clusterCtx.Cluster.Name)
+			deletingVMS := &vmoprvhub.VirtualMachineService{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       vmServiceName,
+					Namespace:  clusterCtx.Cluster.Namespace,
+					Finalizers: []string{"capv.vmware.com/test-finalizer"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: vmwarev1.GroupVersion.String(),
+							Kind:       "VSphereCluster",
+							Name:       clusterCtx.VSphereCluster.Name,
+							UID:        clusterCtx.VSphereCluster.UID,
+						},
+					},
+				},
+			}
+			Expect(c.Create(ctx, deletingVMS)).To(Succeed())
+			Expect(c.Delete(ctx, deletingVMS)).To(Succeed())
+
+			By("Expect the specific deletion error and condition update")
+			expectReconcileError = true
+			expectAPIEndpoint = false
+			expectVMS = false
+			expectedConditions = []metav1.Condition{
+				{
+					Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyReason,
+					Message: "exists but is being deleted",
+				},
+			}
+
+			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("exists but is being deleted"))
+			verifyOutput()
+		})
 
 		// If there is no load balancer, Reconcile should be a no-op
 		Specify("NetworkProvider has no LoadBalancer", func() {

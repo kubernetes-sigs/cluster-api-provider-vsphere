@@ -287,6 +287,21 @@ func (s *CPService) getVMControlPlaneService(ctx context.Context, clusterCtx *vm
 		}
 	}
 
+	// Verify OwnerReference UID to prevent adopting a service from a
+	// previous cluster with the same name.
+	refs := vmService.GetOwnerReferences()
+	for _, ref := range refs {
+		if ref.Kind == "VSphereCluster" && ref.UID != clusterCtx.VSphereCluster.UID {
+			return nil, fmt.Errorf("VirtualMachineService %s exists but is owned by a different VSphereCluster instance %s", vmServiceKey.Name, ref.UID)
+		}
+	}
+
+	// If the service is being deleted, it could be an old service with the same name,
+	// return error.
+	if !vmService.DeletionTimestamp.IsZero() {
+		return nil, fmt.Errorf("VirtualMachineService %s exists but is being deleted", vmServiceKey.Name)
+	}
+
 	return vmService, nil
 }
 

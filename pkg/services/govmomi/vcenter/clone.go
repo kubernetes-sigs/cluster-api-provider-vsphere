@@ -363,6 +363,14 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 	spec.Location.Disk = getDiskLocators(disks, *datastoreRef, isLinkedClone)
 	spec.Location.Datastore = datastoreRef
 
+	spec.Config.NestedHVEnabled = vmCtx.VSphereVM.Spec.NestedHV
+	if vmCtx.VSphereVM.Spec.FtEncryptionMode == infrav1.FtEncryptionDisabled || vmCtx.VSphereVM.Spec.FtEncryptionMode == infrav1.FtEncryptionOpportunistic || vmCtx.VSphereVM.Spec.FtEncryptionMode == infrav1.FtEncryptionRequired {
+		spec.Config.FtEncryptionMode = string(vmCtx.VSphereVM.Spec.FtEncryptionMode)
+	}
+	if vmCtx.VSphereVM.Spec.MigrateEncryption == infrav1.DisabledMigrateEncryption || vmCtx.VSphereVM.Spec.MigrateEncryption == infrav1.OpportunisticMigrateEncryption || vmCtx.VSphereVM.Spec.MigrateEncryption == infrav1.RequiredMigrateEncryption {
+		spec.Config.MigrateEncryption = string(vmCtx.VSphereVM.Spec.MigrateEncryption)
+	}
+
 	log.Info(fmt.Sprintf("Cloning Machine with clone mode %s", vmCtx.VSphereVM.Status.CloneMode))
 	task, err := tpl.Clone(ctx, folder, vmCtx.VSphereVM.Name, spec)
 	if err != nil {

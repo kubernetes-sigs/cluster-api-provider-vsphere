@@ -53,6 +53,43 @@ const (
 	LinkedClone CloneMode = "linkedClone"
 )
 
+// FtEncryptionMode represents the encrypted fault tolerance mode.
+// +kubebuilder:validation:Enum=ftEncryptionDisabled;ftEncryptionOpportunistic;ftEncryptionRequired
+type FtEncryptionMode string
+
+const (
+	// FtEncryptionDisabled indicates a VM will not use encrypted Fault Tolerance,
+	// even if available.
+	FtEncryptionDisabled FtEncryptionMode = "ftEncryptionDisabled"
+
+	// FtEncryptionOpportunistic indicates a VM will use encrypted Fault Tolerance
+	// if source and destination hosts support it, fall back to unencrypted Fault Tolerance otherwise.
+	FtEncryptionOpportunistic FtEncryptionMode = "ftEncryptionOpportunistic"
+
+	// FtEncryptionRequired indicates a VM will allow only encrypted Fault Tolerance.
+	// If either the source or destination host does not support encrypted Fault Tolerance,
+	// do not allow the Fault Tolerance to occur.
+	FtEncryptionRequired FtEncryptionMode = "ftEncryptionRequired"
+)
+
+// MigrateEncryption represents the encrypted vMotion mode.
+// +kubebuilder:validation:Enum=disabled;opportunistic;required
+type MigrateEncryption string
+
+const (
+	// DisabledMigrateEncryption indicates a VM will not use encrypted vMotion, even if available.
+	DisabledMigrateEncryption MigrateEncryption = "disabled"
+
+	// OpportunisticMigrateEncryption indicates a VM Use encrypted vMotion
+	// if source and destination hosts support it, fall back to unencrypted vMotion otherwise.
+	OpportunisticMigrateEncryption MigrateEncryption = "opportunistic"
+
+	// RequiredMigrateEncryption indicates a VM will Allow only encrypted vMotion.
+	// If the source or destination host does not support vMotion encryption,
+	// do not allow the vMotion to occur.
+	RequiredMigrateEncryption MigrateEncryption = "required"
+)
+
 // OS is the type of Operating System the virtual machine uses.
 type OS string
 
@@ -216,6 +253,27 @@ type VirtualMachineCloneSpec struct {
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=29
 	DataDisks []VSphereDisk `json:"dataDisks,omitempty"`
+
+	// nestedHV controls nested hardware-assisted virtualization.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// Check the compatibility with the ESXi version before setting the value.
+	// +optional
+	NestedHV *bool `json:"nestedHV,omitempty"`
+
+	// ftEncryptionMode is the encrypted fault tolerance mode.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// Check the compatibility with the ESXi version before setting the value.
+	// +optional
+	FtEncryptionMode FtEncryptionMode `json:"ftEncryptionMode,omitempty"`
+
+	// migrateEncryption is the encrypted vMotion mode.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// Check the compatibility with the ESXi version before setting the value.
+	// +optional
+	MigrateEncryption MigrateEncryption `json:"migrateEncryption,omitempty"`
 }
 
 // VirtualMachineResources is the definition of the VM's cpu and memory

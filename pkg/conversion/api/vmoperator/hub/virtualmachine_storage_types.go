@@ -198,6 +198,23 @@ type PersistentVolumeClaimVolumeSource struct {
 	// Please note the value 7 is invalid if controllerType=SCSI as 7 is the
 	// unit number of the SCSI controller on its own bus.
 	UnitNumber *int32 `json:"unitNumber,omitempty"`
+
+	// +optional
+	// +kubebuilder:default=true
+
+	// Removable describes whether or not this volume may be removed from
+	// spec.volumes. This is a safety measure that allows users to prevent the
+	// accidental removal of disks from a VM that should not be removed, such as
+	// the VM's boot disk(s).
+	//
+	// Users may change this value at any time.
+	//
+	// When deploying a VM, disks from the VM image are automatically marked as
+	// removable=false in order to prevent the accidental removal of the disks
+	// needed to boot the VM.
+	//
+	// Defaults to true.
+	Removable *bool `json:"removable,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=FromImage;FromVM

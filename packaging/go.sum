@@ -110,6 +110,10 @@ github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sergi/go-diff v1.2.0 h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=
 github.com/sergi/go-diff v1.2.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
+github.com/shutingm-kubernetes/vm-operator/api v0.0.0-20260316022432-be295049b1c5 h1:WhRlZoHo6mt6o1mGHB8aXdXyuoxFFgzv8b2nZ5ZPfC4=
+github.com/shutingm-kubernetes/vm-operator/api v0.0.0-20260316022432-be295049b1c5/go.mod h1:nWTPpxfe4gHuuYuFcrs86+NMxfkqPk3a3IlvI8TCWak=
+github.com/shutingm-kubernetes/vm-operator/external/ncp v0.0.0-20260316022432-be295049b1c5 h1:DADI3i4VfriuXUuinf2HTdITcxbGYtjO3vg+I9WfINI=
+github.com/shutingm-kubernetes/vm-operator/external/ncp v0.0.0-20260316022432-be295049b1c5/go.mod h1:vyehM6sDYoSoIuNg2rjzH+yxQmcjipS6YtKNHevymXk=
 github.com/spf13/cobra v1.10.2 h1:DMTTonx5m65Ic0GOoRY2c16WCbHxOOw6xxezuLaBpcU=
 github.com/spf13/cobra v1.10.2/go.mod h1:7C1pvHqHw5A4vrJfjNwvOdzYu0Gml16OCs2GRiTUUS4=
 github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
@@ -131,10 +135,6 @@ github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b h1:4
 github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b/go.mod h1:w6QJGm3crIA16ZIz1FVQXD2NVeJhOgGXxW05RbVTSTo=
 github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20250813103855-288a237381b5 h1:OUPe+BjC/XWqHRWYHDCtTa/lZpEz6U8YmZcZi1Rp5BU=
 github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20250813103855-288a237381b5/go.mod h1:Q4JzNkNMvjo7pXtlB5/R3oME4Nhah7fAObWgghVmtxk=
-github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719 h1:nb/5ytRj7E/5eo9UzLfaR29JytMtbGpqMVs3hjaRwZ0=
-github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719/go.mod h1:nWTPpxfe4gHuuYuFcrs86+NMxfkqPk3a3IlvI8TCWak=
-github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20251029150609-93918c59a719 h1:DMU/4SC3yshdE6mahrfpj0B1tTK2+7PV3gUD7sy13Xo=
-github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20251029150609-93918c59a719/go.mod h1:vyehM6sDYoSoIuNg2rjzH+yxQmcjipS6YtKNHevymXk=
 github.com/vmware/govmomi v0.53.0 h1:e1bZCotAq7wm4xy95ePN2uoWwz28pNp/ewZZhpBY7/4=
 github.com/vmware/govmomi v0.53.0/go.mod h1:EWfuzPfxT5NV+aS2we02SLFdhvJkgeY7t7+TszgBSMY=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=

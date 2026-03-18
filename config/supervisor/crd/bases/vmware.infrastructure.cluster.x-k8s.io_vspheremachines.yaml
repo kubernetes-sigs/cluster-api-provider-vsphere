@@ -1152,6 +1152,51 @@ spec:
                         minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
+                      vlans:
+                        description: |-
+                          vlans is a list of VLAN sub-interfaces to be configured on the secondary
+                          network interfaces. Each VLAN is linked to a specific secondary interface
+                          via the link field.
+                        items:
+                          description: VLANSpec defines a VLAN sub-interface configuration
+                            linked to a secondary interface.
+                          properties:
+                            id:
+                              description: |-
+                                id is the VLAN ID used to tag traffic on this sub-interface,
+                                a number between 0 and 4094.
+                              format: int64
+                              maximum: 4094
+                              minimum: 0
+                              type: integer
+                            link:
+                              description: link is the name of the secondary interface
+                                this VLAN is associated with.
+                              maxLength: 15
+                              minLength: 1
+                              pattern: ^[a-zA-Z0-9][a-zA-Z0-9._-]*$
+                              type: string
+                            name:
+                              description: |-
+                                name is the name of the VLAN sub-interface as it appears inside
+                                the guest operating system.
+
+                                The name must conform to Linux network interface naming rules:
+                                it must be between 1 and 15 characters long, start with an
+                                alphanumeric character, and contain only alphanumeric characters,
+                                hyphens, underscores, or dots.
+                              maxLength: 15
+                              minLength: 1
+                              pattern: ^[a-zA-Z0-9][a-zA-Z0-9._-]*$
+                              type: string
+                          required:
+                          - id
+                          - link
+                          - name
+                          type: object
+                        maxItems: 100
+                        type: array
+                        x-kubernetes-list-type: atomic
                     type: object
                 type: object
               powerOffMode:

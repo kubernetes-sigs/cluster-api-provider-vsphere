@@ -30,7 +30,7 @@ import (
 
 	conversionmeta "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta"
 	testhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/test/api/hub"
-	testv1alpha5 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/test/api/v1alpha5"
+	testv1alpha6 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/internal/test/api/v1alpha6"
 )
 
 // Note: test API types are defined in pkg/conversion/internal/test/api, however some types
@@ -55,11 +55,11 @@ func init() {
 }
 
 var (
-	v1alpha5GroupVersion = schema.GroupVersion{Group: "vmoperator.vmware.com", Version: "v1alpha5"}
+	v1alpha6GroupVersion = schema.GroupVersion{Group: "vmoperator.vmware.com", Version: "v1alpha6"}
 
-	v1alpha5ConverterBuilder = NewConverterBuilder(v1alpha5GroupVersion)
+	v1alpha6ConverterBuilder = NewConverterBuilder(v1alpha6GroupVersion)
 
-	AddV1alpha5ToConverter = v1alpha5ConverterBuilder.AddToConverter
+	AddV1alpha6ToConverter = v1alpha6ConverterBuilder.AddToConverter
 )
 
 var (
@@ -67,8 +67,8 @@ var (
 )
 
 func init() {
-	v1alpha5ConverterBuilder.AddConversion(
-		NewAddConversionBuilder(testv1alpha5.ConvertAFromHubToV1alpha5, testv1alpha5.ConvertAFromV1alpha5ToHub),
+	v1alpha6ConverterBuilder.AddConversion(
+		NewAddConversionBuilder(testv1alpha6.ConvertAFromHubToV1alpha6, testv1alpha6.ConvertAFromV1alpha6ToHub),
 	)
 }
 
@@ -223,7 +223,7 @@ func Test_converter_AddHubTypes(t *testing.T) {
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddHubTypes(v1alpha5GroupVersion, &testhub.A{})
+		err = c.AddHubTypes(v1alpha6GroupVersion, &testhub.A{})
 		g.Expect(err).To(HaveOccurred())
 	})
 }
@@ -232,11 +232,11 @@ func TestConverter_AddConversion(t *testing.T) {
 	c := NewConverter(panicVersionSelector)
 	utilruntime.Must(addHubToConverter(c))
 
-	convertAFromHubToV1alpha5 := func(ctx context.Context, hub runtime.Object, spoke runtime.Object) error {
-		return testv1alpha5.ConvertAFromHubToV1alpha5(ctx, hub.(*testhub.A), spoke.(*testv1alpha5.A))
+	convertAFromHubToV1alpha6 := func(ctx context.Context, hub runtime.Object, spoke runtime.Object) error {
+		return testv1alpha6.ConvertAFromHubToV1alpha6(ctx, hub.(*testhub.A), spoke.(*testv1alpha6.A))
 	}
-	convertAFromV1alpha5ToHub := func(ctx context.Context, spoke runtime.Object, hub runtime.Object) error {
-		return testv1alpha5.ConvertAFromV1alpha5ToHub(ctx, spoke.(*testv1alpha5.A), hub.(*testhub.A))
+	convertAFromV1alpha6ToHub := func(ctx context.Context, spoke runtime.Object, hub runtime.Object) error {
+		return testv1alpha6.ConvertAFromV1alpha6ToHub(ctx, spoke.(*testv1alpha6.A), hub.(*testhub.A))
 	}
 	tests := []struct {
 		name         string
@@ -254,19 +254,19 @@ func TestConverter_AddConversion(t *testing.T) {
 			name:         "Add conversion",
 			gvHub:        hubGroupVersion,
 			hub:          &testhub.A{},
-			gvSpoke:      v1alpha5GroupVersion,
-			spoke:        &testv1alpha5.A{},
-			hubToSpoke:   convertAFromHubToV1alpha5,
-			spokeToHub:   convertAFromV1alpha5ToHub,
+			gvSpoke:      v1alpha6GroupVersion,
+			spoke:        &testv1alpha6.A{},
+			hubToSpoke:   convertAFromHubToV1alpha6,
+			spokeToHub:   convertAFromV1alpha6ToHub,
 			wantHubGvk:   hubGroupVersion.WithKind("A"),
-			wantSpokeGvk: v1alpha5GroupVersion.WithKind("A"),
+			wantSpokeGvk: v1alpha6GroupVersion.WithKind("A"),
 		},
 		{
 			name:    "Fails for empty group",
 			gvHub:   hubGroupVersion,
 			hub:     &testhub.A{},
 			gvSpoke: schema.GroupVersion{Group: "", Version: "foo"},
-			spoke:   &testv1alpha5.A{},
+			spoke:   &testv1alpha6.A{},
 			wantErr: true,
 		},
 		{
@@ -274,14 +274,14 @@ func TestConverter_AddConversion(t *testing.T) {
 			gvHub:   hubGroupVersion,
 			hub:     &testhub.A{},
 			gvSpoke: schema.GroupVersion{Group: "foo", Version: ""},
-			spoke:   &testv1alpha5.A{},
+			spoke:   &testv1alpha6.A{},
 			wantErr: true,
 		},
 		{
 			name:    "Fails when hub kind has List suffix",
 			gvHub:   hubGroupVersion,
 			hub:     &testhub.AList{},
-			gvSpoke: v1alpha5GroupVersion,
+			gvSpoke: v1alpha6GroupVersion,
 			spoke:   &BList{},
 			wantErr: true,
 		},
@@ -297,7 +297,7 @@ func TestConverter_AddConversion(t *testing.T) {
 			name:    "Fails when hub and spoke kind differ",
 			gvHub:   hubGroupVersion,
 			hub:     &testhub.A{},
-			gvSpoke: v1alpha5GroupVersion,
+			gvSpoke: v1alpha6GroupVersion,
 			spoke:   &B{},
 			wantErr: true,
 		},
@@ -335,10 +335,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &testv1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &testv1alpha6.A{}, convertAFromHubToV1alpha6, convertAFromV1alpha6ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &testv1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &testv1alpha6.A{}, convertAFromHubToV1alpha6, convertAFromV1alpha6ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 	})
 	t.Run("Fails when a gvk is registered twice for different types", func(t *testing.T) {
@@ -349,10 +349,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &testv1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &testv1alpha6.A{}, convertAFromHubToV1alpha6, convertAFromV1alpha6ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &A{}, convertAFromHubToV1alpha6, convertAFromV1alpha6ToHub)
 		g.Expect(err).To(HaveOccurred())
 	})
 	t.Run("Fails when a type is registered twice for different gvk", func(t *testing.T) {
@@ -363,10 +363,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &testv1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &testv1alpha6.A{}, convertAFromHubToV1alpha6, convertAFromV1alpha6ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha2GroupVersion.Version, &testv1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha2GroupVersion.Version, &testv1alpha6.A{}, convertAFromHubToV1alpha6, convertAFromV1alpha6ToHub)
 		g.Expect(err).To(HaveOccurred())
 	})
 	t.Run("Fails when the same conversion is registered twice but with a different conversion func", func(t *testing.T) {
@@ -377,10 +377,10 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &testv1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &testv1alpha6.A{}, convertAFromHubToV1alpha6, convertAFromV1alpha6ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &testv1alpha5.A{}, func(_ context.Context, _ runtime.Object, _ runtime.Object) error { return nil }, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &testv1alpha6.A{}, func(_ context.Context, _ runtime.Object, _ runtime.Object) error { return nil }, convertAFromV1alpha6ToHub)
 		g.Expect(err).To(HaveOccurred())
 	})
 	t.Run("Fails when the same conversion is registered twice but with a different conversion func", func(t *testing.T) {
@@ -391,18 +391,18 @@ func TestConverter_AddConversion(t *testing.T) {
 		err := c.AddHubTypes(hubGroupVersion, &testhub.A{})
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &testv1alpha5.A{}, convertAFromHubToV1alpha5, convertAFromV1alpha5ToHub)
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &testv1alpha6.A{}, convertAFromHubToV1alpha6, convertAFromV1alpha6ToHub)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = c.AddConversion(&testhub.A{}, v1alpha5GroupVersion.Version, &testv1alpha5.A{}, convertAFromHubToV1alpha5, func(_ context.Context, _ runtime.Object, _ runtime.Object) error { return nil })
+		err = c.AddConversion(&testhub.A{}, v1alpha6GroupVersion.Version, &testv1alpha6.A{}, convertAFromHubToV1alpha6, func(_ context.Context, _ runtime.Object, _ runtime.Object) error { return nil })
 		g.Expect(err).To(HaveOccurred())
 	})
 }
 
 func Test_converter_Convert(t *testing.T) {
-	c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
+	c := NewConverter(sameVersionForAllGroupsSelector(v1alpha6GroupVersion.Version))
 	utilruntime.Must(addHubToConverter(c))
-	utilruntime.Must(AddV1alpha5ToConverter(c))
+	utilruntime.Must(AddV1alpha6ToConverter(c))
 
 	tests := []struct {
 		name      string
@@ -416,18 +416,18 @@ func Test_converter_Convert(t *testing.T) {
 			name:      "Convert from convertible object to another version",
 			converter: c,
 			src:       &testhub.A{Foo: "bar"},
-			dst:       &testv1alpha5.A{},
-			wantDst:   &testv1alpha5.A{Foo: "bar"},
+			dst:       &testv1alpha6.A{},
+			wantDst:   &testv1alpha6.A{Foo: "bar"},
 		},
 		{
 			name:      "Convert from another version to convertible object",
 			converter: c,
-			src:       &testv1alpha5.A{Foo: "bar"},
+			src:       &testv1alpha6.A{Foo: "bar"},
 			dst:       &testhub.A{},
 			wantDst: &testhub.A{
 				Foo: "bar",
 				Source: conversionmeta.SourceTypeMeta{
-					APIVersion: v1alpha5GroupVersion.String(),
+					APIVersion: v1alpha6GroupVersion.String(),
 				},
 			},
 		},
@@ -440,7 +440,7 @@ func Test_converter_Convert(t *testing.T) {
 					APIVersion: v1alpha2GroupVersion.String(),
 				},
 			},
-			dst:     &testv1alpha5.A{},
+			dst:     &testv1alpha6.A{},
 			wantErr: true,
 		},
 		{
@@ -453,11 +453,11 @@ func Test_converter_Convert(t *testing.T) {
 		{
 			name: "Fails when conversion fail",
 			converter: func() *Converter {
-				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha6GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				_ = c.AddConversion(
 					&testhub.A{},
-					v1alpha5GroupVersion.Version, &testv1alpha5.A{},
+					v1alpha6GroupVersion.Version, &testv1alpha6.A{},
 					func(_ context.Context, _ runtime.Object, _ runtime.Object) error {
 						return errors.New("fail")
 					}, func(_ context.Context, _ runtime.Object, _ runtime.Object) error {
@@ -467,7 +467,7 @@ func Test_converter_Convert(t *testing.T) {
 				return c
 			}(),
 			src:     &testhub.A{},
-			dst:     &testv1alpha5.A{},
+			dst:     &testv1alpha6.A{},
 			wantErr: true,
 		},
 		{
@@ -517,7 +517,7 @@ func Test_converter_Convert(t *testing.T) {
 func Test_converter_IsHub(t *testing.T) {
 	c := NewConverter(panicVersionSelector)
 	utilruntime.Must(addHubToConverter(c))
-	utilruntime.Must(AddV1alpha5ToConverter(c))
+	utilruntime.Must(AddV1alpha6ToConverter(c))
 
 	tests := []struct {
 		name string
@@ -531,7 +531,7 @@ func Test_converter_IsHub(t *testing.T) {
 		},
 		{
 			name: "Return false for a spoke object",
-			obj:  &testv1alpha5.A{},
+			obj:  &testv1alpha6.A{},
 			want: false,
 		},
 		{
@@ -556,9 +556,9 @@ func Test_converter_IsHub(t *testing.T) {
 }
 
 func Test_converter_TargetGroupVersionKindFor(t *testing.T) {
-	c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
+	c := NewConverter(sameVersionForAllGroupsSelector(v1alpha6GroupVersion.Version))
 	utilruntime.Must(addHubToConverter(c))
-	utilruntime.Must(AddV1alpha5ToConverter(c))
+	utilruntime.Must(AddV1alpha6ToConverter(c))
 
 	tests := []struct {
 		name      string
@@ -571,18 +571,18 @@ func Test_converter_TargetGroupVersionKindFor(t *testing.T) {
 			name:      "Get gvk for hub object",
 			converter: c,
 			obj:       &testhub.A{},
-			wantGvk:   v1alpha5GroupVersion.WithKind("A"),
+			wantGvk:   v1alpha6GroupVersion.WithKind("A"),
 		},
 		{
 			name:      "Get gvk for hub objectList",
 			converter: c,
 			obj:       &testhub.AList{},
-			wantGvk:   v1alpha5GroupVersion.WithKind("AList"),
+			wantGvk:   v1alpha6GroupVersion.WithKind("AList"),
 		},
 		{
 			name: "Fails when conversions to the target version are not registered",
 			converter: func() *Converter {
-				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha6GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				return c
 			}(),
@@ -592,7 +592,7 @@ func Test_converter_TargetGroupVersionKindFor(t *testing.T) {
 		{
 			name:      "Fails for a type a spoke object",
 			converter: c,
-			obj:       &testv1alpha5.A{},
+			obj:       &testv1alpha6.A{},
 			wantErr:   true,
 		},
 		{
@@ -645,18 +645,18 @@ func Test_converter_GroupVersionKindFor(t *testing.T) {
 		{
 			name: "Get gvk for a spoke object",
 			converter: func() *Converter {
-				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha6GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
-				utilruntime.Must(AddV1alpha5ToConverter(c))
+				utilruntime.Must(AddV1alpha6ToConverter(c))
 				return c
 			}(),
-			obj:     &testv1alpha5.A{},
-			wantGvk: v1alpha5GroupVersion.WithKind("A"),
+			obj:     &testv1alpha6.A{},
+			wantGvk: v1alpha6GroupVersion.WithKind("A"),
 		},
 		{
 			name: "Fails for nil type",
 			converter: func() *Converter {
-				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha6GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				return c
 			}(),
@@ -666,7 +666,7 @@ func Test_converter_GroupVersionKindFor(t *testing.T) {
 		{
 			name: "Fails for unknown type",
 			converter: func() *Converter {
-				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha5GroupVersion.Version))
+				c := NewConverter(sameVersionForAllGroupsSelector(v1alpha6GroupVersion.Version))
 				utilruntime.Must(addHubToConverter(c))
 				return c
 			}(),

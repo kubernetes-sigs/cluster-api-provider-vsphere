@@ -26,8 +26,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
-	vmoprv1alpha5common "github.com/vmware-tanzu/vm-operator/api/v1alpha5/common"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
+	vmoprv1alpha6common "github.com/vmware-tanzu/vm-operator/api/v1alpha6/common"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -50,9 +50,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-func getReconciledVM(ctx context.Context, vmService VmopMachineService, supervisorMachineContext *vmware.SupervisorMachineContext) *vmoprv1alpha5.VirtualMachine {
+func getReconciledVM(ctx context.Context, vmService VmopMachineService, supervisorMachineContext *vmware.SupervisorMachineContext) *vmoprv1alpha6.VirtualMachine {
 	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-	vm := &vmoprv1alpha5.VirtualMachine{}
+	vm := &vmoprv1alpha6.VirtualMachine{}
 	nsname := types.NamespacedName{
 		Namespace: supervisorMachineContext.Machine.Namespace,
 		Name:      supervisorMachineContext.Machine.Name,
@@ -65,12 +65,12 @@ func getReconciledVM(ctx context.Context, vmService VmopMachineService, supervis
 	return vm
 }
 
-func patchReconciledVMStatus(ctx context.Context, vmService VmopMachineService, vm, original *vmoprv1alpha5.VirtualMachine) {
+func patchReconciledVMStatus(ctx context.Context, vmService VmopMachineService, vm, original *vmoprv1alpha6.VirtualMachine) {
 	err := vmService.Client.Status().Patch(ctx, vm, client.MergeFrom(original))
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func verifyVMAffinityRules(vmopVM *vmoprv1alpha5.VirtualMachine, machineDeploymentName string) {
+func verifyVMAffinityRules(vmopVM *vmoprv1alpha6.VirtualMachine, machineDeploymentName string) {
 	Expect(vmopVM.Spec.Affinity.VMAffinity).ShouldNot(BeNil())
 	Expect(vmopVM.Spec.Affinity.VMAffinity.RequiredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
 
@@ -79,7 +79,7 @@ func verifyVMAffinityRules(vmopVM *vmoprv1alpha5.VirtualMachine, machineDeployme
 	Expect(vmAffinityTerm.TopologyKey).To(Equal(corev1.LabelTopologyZone))
 }
 
-func verifyVMAntiAffinityRules(vmopVM *vmoprv1alpha5.VirtualMachine, machineDeploymentName string, extraMDs ...string) {
+func verifyVMAntiAffinityRules(vmopVM *vmoprv1alpha6.VirtualMachine, machineDeploymentName string, extraMDs ...string) {
 	Expect(vmopVM.Spec.Affinity.VMAntiAffinity).ShouldNot(BeNil())
 
 	expectedNumAntiAffinityTerms := 1
@@ -178,7 +178,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		supervisorMachineContext *vmware.SupervisorMachineContext
 
 		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-		vmopVM    *vmoprv1alpha5.VirtualMachine
+		vmopVM    *vmoprv1alpha6.VirtualMachine
 		vmService VmopMachineService
 	)
 
@@ -230,7 +230,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Spec.Reserved).ToNot(BeNil())
 				Expect(vmopVM.Spec.Reserved.ResourcePolicyName).To(Equal(resourcePolicyName))
 				Expect(vmopVM.Spec.MinHardwareVersion).To(Equal(minHardwareVersion))
-				Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1alpha5.VirtualMachinePowerStateOn))
+				Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1alpha6.VirtualMachinePowerStateOn))
 				Expect(vmopVM.ObjectMeta.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(ControlPlaneVMClusterModuleGroupName))
 				Expect(vmopVM.ObjectMeta.Annotations[ProviderTagsAnnotationKey]).To(Equal(ControlPlaneVMVMAntiAffinityTagValue))
 
@@ -312,7 +312,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal := vmopVM.DeepCopy()
 			vmopVM.Status.Conditions = append(vmopVM.Status.Conditions, metav1.Condition{
-				Type:               vmoprv1alpha5.VirtualMachineConditionCreated,
+				Type:               vmoprv1alpha6.VirtualMachineConditionCreated,
 				Status:             metav1.ConditionTrue,
 				LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
 				Reason:             string(metav1.ConditionTrue),
@@ -328,7 +328,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("VirtualMachine is powered on")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal = vmopVM.DeepCopy()
-			vmopVM.Status.PowerState = vmoprv1alpha5.VirtualMachinePowerStateOn
+			vmopVM.Status.PowerState = vmoprv1alpha6.VirtualMachinePowerStateOn
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
 			expectedState = vmwarev1.VSphereMachinePhasePoweredOn
 			// we expect the reconciliation waiting for VM to have an IP
@@ -341,30 +341,30 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal = vmopVM.DeepCopy()
 			if vmopVM.Status.Network == nil {
-				vmopVM.Status.Network = &vmoprv1alpha5.VirtualMachineNetworkStatus{}
+				vmopVM.Status.Network = &vmoprv1alpha6.VirtualMachineNetworkStatus{}
 			}
 			vmopVM.Status.Network.PrimaryIP4 = vmIP
-			vmopVM.Status.Network.Interfaces = []vmoprv1alpha5.VirtualMachineNetworkInterfaceStatus{
+			vmopVM.Status.Network.Interfaces = []vmoprv1alpha6.VirtualMachineNetworkInterfaceStatus{
 				{
 					Name:      "eth0",
 					DeviceKey: 4000,
-					IP: &vmoprv1alpha5.VirtualMachineNetworkInterfaceIPStatus{
+					IP: &vmoprv1alpha6.VirtualMachineNetworkInterfaceIPStatus{
 						AutoConfigurationEnabled: ptr.To(true),
 						MACAddr:                  "00:50:56:00:00:01",
-						DHCP: &vmoprv1alpha5.VirtualMachineNetworkDHCPStatus{
-							IP4: vmoprv1alpha5.VirtualMachineNetworkDHCPOptionsStatus{
+						DHCP: &vmoprv1alpha6.VirtualMachineNetworkDHCPStatus{
+							IP4: vmoprv1alpha6.VirtualMachineNetworkDHCPOptionsStatus{
 								Enabled: true,
-								Config: []vmoprv1alpha5common.KeyValuePair{
+								Config: []vmoprv1alpha6common.KeyValuePair{
 									{Key: "1", Value: "timeout 60;"},
 									{Key: "2", Value: "reboot 10;"},
 								},
 							},
-							IP6: vmoprv1alpha5.VirtualMachineNetworkDHCPOptionsStatus{
+							IP6: vmoprv1alpha6.VirtualMachineNetworkDHCPOptionsStatus{
 								Enabled: false,
-								Config:  []vmoprv1alpha5common.KeyValuePair{},
+								Config:  []vmoprv1alpha6common.KeyValuePair{},
 							},
 						},
-						Addresses: []vmoprv1alpha5.VirtualMachineNetworkInterfaceIPAddrStatus{
+						Addresses: []vmoprv1alpha6.VirtualMachineNetworkInterfaceIPAddrStatus{
 							{
 								Address:  vmIP + "/24",
 								Lifetime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
@@ -373,7 +373,7 @@ var _ = Describe("VirtualMachine tests", func() {
 							},
 						},
 					},
-					DNS: &vmoprv1alpha5.VirtualMachineNetworkDNSStatus{
+					DNS: &vmoprv1alpha6.VirtualMachineNetworkDNSStatus{
 						DHCP:          true,
 						DomainName:    "test.local",
 						HostName:      "test-vm",
@@ -513,7 +513,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal := vmopVM.DeepCopy()
 			vmopVM.Status.Conditions = append(vmopVM.Status.Conditions, metav1.Condition{
-				Type:               vmoprv1alpha5.VirtualMachineConditionCreated,
+				Type:               vmoprv1alpha6.VirtualMachineConditionCreated,
 				Status:             metav1.ConditionTrue,
 				LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
 				Reason:             string(metav1.ConditionTrue),
@@ -528,7 +528,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("VirtualMachine is powered on")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal = vmopVM.DeepCopy()
-			vmopVM.Status.PowerState = vmoprv1alpha5.VirtualMachinePowerStateOn
+			vmopVM.Status.PowerState = vmoprv1alpha6.VirtualMachinePowerStateOn
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
 			expectedState = vmwarev1.VSphereMachinePhasePoweredOn
 			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressV1Beta1Reason
@@ -540,7 +540,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal = vmopVM.DeepCopy()
 			if vmopVM.Status.Network == nil {
-				vmopVM.Status.Network = &vmoprv1alpha5.VirtualMachineNetworkStatus{}
+				vmopVM.Status.Network = &vmoprv1alpha6.VirtualMachineNetworkStatus{}
 			}
 			vmopVM.Status.Network.PrimaryIP4 = vmIP
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
@@ -573,7 +573,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVMOriginal = vmopVM.DeepCopy()
 			if vmopVM.Status.Network == nil {
-				vmopVM.Status.Network = &vmoprv1alpha5.VirtualMachineNetworkStatus{}
+				vmopVM.Status.Network = &vmoprv1alpha6.VirtualMachineNetworkStatus{}
 			}
 			vmopVM.Status.Network.PrimaryIP4 = vmIP
 			patchReconciledVMStatus(ctx, vmService, vmopVM, vmopVMOriginal)
@@ -619,7 +619,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			vmopVMOriginal := vmopVM.DeepCopy()
 			errMessage := "TestVirtualMachineClassBinding not found"
 			vmopVM.Status.Conditions = append(vmopVM.Status.Conditions, metav1.Condition{
-				Type:               vmoprv1alpha5.VirtualMachineConditionClassReady,
+				Type:               vmoprv1alpha6.VirtualMachineConditionClassReady,
 				Status:             metav1.ConditionFalse,
 				LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
 				Reason:             "NotFound",
@@ -664,10 +664,10 @@ var _ = Describe("VirtualMachine tests", func() {
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
-			vmVolume := vmoprv1alpha5.VirtualMachineVolume{
+			vmVolume := vmoprv1alpha6.VirtualMachineVolume{
 				Name: "test",
-				VirtualMachineVolumeSource: vmoprv1alpha5.VirtualMachineVolumeSource{
-					PersistentVolumeClaim: &vmoprv1alpha5.PersistentVolumeClaimVolumeSource{
+				VirtualMachineVolumeSource: vmoprv1alpha6.VirtualMachineVolumeSource{
+					PersistentVolumeClaim: &vmoprv1alpha6.PersistentVolumeClaimVolumeSource{
 						PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 							ClaimName: "test-pvc",
 							ReadOnly:  false,
@@ -678,7 +678,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			By("Updating the Volumes field")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-			vmopVM.Spec.Volumes = []vmoprv1alpha5.VirtualMachineVolume{vmVolume}
+			vmopVM.Spec.Volumes = []vmoprv1alpha6.VirtualMachineVolume{vmVolume}
 			Expect(vmService.Client.Update(ctx, vmopVM)).To(Succeed())
 
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -723,10 +723,10 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			for i, volume := range vsphereMachine.Spec.Volumes {
 				name := volumeName(vsphereMachine, volume)
-				vmVolume := vmoprv1alpha5.VirtualMachineVolume{
+				vmVolume := vmoprv1alpha6.VirtualMachineVolume{
 					Name: name,
-					VirtualMachineVolumeSource: vmoprv1alpha5.VirtualMachineVolumeSource{
-						PersistentVolumeClaim: &vmoprv1alpha5.PersistentVolumeClaimVolumeSource{
+					VirtualMachineVolumeSource: vmoprv1alpha6.VirtualMachineVolumeSource{
+						PersistentVolumeClaim: &vmoprv1alpha6.PersistentVolumeClaimVolumeSource{
 							PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 								ClaimName: name,
 								ReadOnly:  false,
@@ -799,7 +799,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				var (
 					machineDeploymentName string
 					workerMachineName     string
-					vmGroup               *vmoprv1alpha5.VirtualMachineGroup
+					vmGroup               *vmoprv1alpha6.VirtualMachineGroup
 				)
 
 				BeforeEach(func() {
@@ -863,7 +863,7 @@ var _ = Describe("VirtualMachine tests", func() {
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 						Expect(err).ShouldNot(HaveOccurred())
 						Expect(requeue).Should(BeTrue())
-						vm := &vmoprv1alpha5.VirtualMachine{}
+						vm := &vmoprv1alpha6.VirtualMachine{}
 						nsname := types.NamespacedName{
 							Namespace: vsphereMachineNoVMG.Namespace,
 							Name:      vsphereMachineNoVMG.Name,
@@ -877,15 +877,15 @@ var _ = Describe("VirtualMachine tests", func() {
 				Context("when VirtualMachineGroup exists", func() {
 					BeforeEach(func() {
 						// Create a VirtualMachineGroup for the cluster
-						vmGroup = &vmoprv1alpha5.VirtualMachineGroup{
+						vmGroup = &vmoprv1alpha6.VirtualMachineGroup{
 							ObjectMeta: metav1.ObjectMeta{
 								Name:      clusterName,
 								Namespace: corev1.NamespaceDefault,
 							},
-							Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
-								BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
+							Spec: vmoprv1alpha6.VirtualMachineGroupSpec{
+								BootOrder: []vmoprv1alpha6.VirtualMachineGroupBootOrderGroup{
 									{
-										Members: []vmoprv1alpha5.GroupMember{
+										Members: []vmoprv1alpha6.GroupMember{
 											{
 												Name: workerMachineName,
 												Kind: "VirtualMachine",
@@ -938,7 +938,7 @@ var _ = Describe("VirtualMachine tests", func() {
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 						Expect(err).ShouldNot(HaveOccurred())
 						Expect(requeue).Should(BeTrue())
-						vm := &vmoprv1alpha5.VirtualMachine{}
+						vm := &vmoprv1alpha6.VirtualMachine{}
 						nsname := types.NamespacedName{
 							Namespace: vsphereMachineNotMember.Namespace,
 							Name:      vsphereMachineNotMember.Name,
@@ -1020,7 +1020,7 @@ var _ = Describe("VirtualMachine tests", func() {
 						supervisorMachineContext.ControllerManagerContext = fdControllerManagerContext
 
 						// Create a VirtualMachineGroup for the cluster with per-md zone annotation
-						vmGroup := &vmoprv1alpha5.VirtualMachineGroup{
+						vmGroup := &vmoprv1alpha6.VirtualMachineGroup{
 							ObjectMeta: metav1.ObjectMeta{
 								Name:      fdClusterName,
 								Namespace: corev1.NamespaceDefault,
@@ -1028,10 +1028,10 @@ var _ = Describe("VirtualMachine tests", func() {
 									fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, machineDeploymentName): failureDomainName,
 								},
 							},
-							Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
-								BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
+							Spec: vmoprv1alpha6.VirtualMachineGroupSpec{
+								BootOrder: []vmoprv1alpha6.VirtualMachineGroupBootOrderGroup{
 									{
-										Members: []vmoprv1alpha5.GroupMember{
+										Members: []vmoprv1alpha6.GroupMember{
 											{
 												Name: workerMachineName,
 												Kind: "VirtualMachine",

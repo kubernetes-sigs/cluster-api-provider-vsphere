@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha6
 
 import (
 	"context"
 
-	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
-	vmoprv1alpha2common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
+	vmoprv1alpha6common "github.com/vmware-tanzu/vm-operator/api/v1alpha6/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -29,7 +29,7 @@ import (
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
-func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, src *vmoprv1alpha2.VirtualMachine, dst *vmoprvhub.VirtualMachine) error {
+func convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(_ context.Context, src *vmoprv1alpha6.VirtualMachine, dst *vmoprvhub.VirtualMachine) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.Affinity != nil {
@@ -123,6 +123,16 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
 		}
+		if src.Spec.Network.VLANs != nil {
+			dst.Spec.Network.VLANs = []vmoprvhub.VirtualMachineNetworkVLANSpec{}
+			for _, vlan := range src.Spec.Network.VLANs {
+				dst.Spec.Network.VLANs = append(dst.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
+					Name: vlan.Name,
+					ID:   vlan.ID,
+					Link: vlan.Link,
+				})
+			}
+		}
 	}
 	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
 	dst.Spec.PowerOffMode = vmoprvhub.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
@@ -160,15 +170,19 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
 					}
 				}
-				// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
-				// - ApplicationType
-				// - ControllerBusNumber
-				// - ControllerType
-				// - DiskMode
-				// - SharingMode
-				// - UnitNumber
-				// - UnmanagedVolumeClaim
-				// - Removable
+				v.PersistentVolumeClaim.ApplicationType = vmoprvhub.VolumeApplicationType(volume.ApplicationType)
+				if volume.ControllerBusNumber != nil {
+					v.PersistentVolumeClaim.ControllerBusNumber = ptr.To(*volume.ControllerBusNumber)
+				}
+				v.PersistentVolumeClaim.ControllerType = vmoprvhub.VirtualControllerType(volume.ControllerType)
+				v.PersistentVolumeClaim.DiskMode = vmoprvhub.VolumeDiskMode(volume.DiskMode)
+				v.PersistentVolumeClaim.SharingMode = vmoprvhub.VolumeSharingMode(volume.SharingMode)
+				if volume.UnitNumber != nil {
+					v.PersistentVolumeClaim.UnitNumber = ptr.To(*volume.UnitNumber)
+				}
+				if volume.Removable != nil {
+					v.PersistentVolumeClaim.Removable = ptr.To(*volume.Removable)
+				}
 			}
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
@@ -252,24 +266,24 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 		dst.Status.Network.PrimaryIP4 = src.Status.Network.PrimaryIP4
 		dst.Status.Network.PrimaryIP6 = src.Status.Network.PrimaryIP6
 	}
-	dst.Status.NodeName = src.Status.Host // Field renamed in hub
+	dst.Status.NodeName = src.Status.NodeName
 	dst.Status.PowerState = vmoprvhub.VirtualMachinePowerState(src.Status.PowerState)
 	dst.Status.Zone = src.Status.Zone
 
 	return nil
 }
 
-func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, src *vmoprvhub.VirtualMachine, dst *vmoprv1alpha2.VirtualMachine) error {
+func convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(_ context.Context, src *vmoprvhub.VirtualMachine, dst *vmoprv1alpha6.VirtualMachine) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.Affinity != nil {
-		dst.Spec.Affinity = &vmoprv1alpha2.AffinitySpec{}
+		dst.Spec.Affinity = &vmoprv1alpha6.AffinitySpec{}
 		if src.Spec.Affinity.VMAffinity != nil {
-			dst.Spec.Affinity.VMAffinity = &vmoprv1alpha2.VMAffinitySpec{}
+			dst.Spec.Affinity.VMAffinity = &vmoprv1alpha6.VMAffinitySpec{}
 			if src.Spec.Affinity.VMAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
-				terms := []vmoprv1alpha2.VMAffinityTerm{}
+				terms := []vmoprv1alpha6.VMAffinityTerm{}
 				for _, term := range src.Spec.Affinity.VMAffinity.RequiredDuringSchedulingPreferredDuringExecution {
-					t := vmoprv1alpha2.VMAffinityTerm{
+					t := vmoprv1alpha6.VMAffinityTerm{
 						TopologyKey: term.TopologyKey,
 					}
 					if term.LabelSelector != nil {
@@ -281,11 +295,11 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 			}
 		}
 		if src.Spec.Affinity.VMAntiAffinity != nil {
-			dst.Spec.Affinity.VMAntiAffinity = &vmoprv1alpha2.VMAntiAffinitySpec{}
+			dst.Spec.Affinity.VMAntiAffinity = &vmoprv1alpha6.VMAntiAffinitySpec{}
 			if src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution != nil {
-				terms := []vmoprv1alpha2.VMAffinityTerm{}
+				terms := []vmoprv1alpha6.VMAffinityTerm{}
 				for _, term := range src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution {
-					t := vmoprv1alpha2.VMAffinityTerm{
+					t := vmoprv1alpha6.VMAffinityTerm{
 						TopologyKey: term.TopologyKey,
 					}
 					if term.LabelSelector != nil {
@@ -298,11 +312,11 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 		}
 	}
 	if src.Spec.Bootstrap != nil {
-		dst.Spec.Bootstrap = &vmoprv1alpha2.VirtualMachineBootstrapSpec{}
+		dst.Spec.Bootstrap = &vmoprv1alpha6.VirtualMachineBootstrapSpec{}
 		if src.Spec.Bootstrap.CloudInit != nil {
-			dst.Spec.Bootstrap.CloudInit = &vmoprv1alpha2.VirtualMachineBootstrapCloudInitSpec{}
+			dst.Spec.Bootstrap.CloudInit = &vmoprv1alpha6.VirtualMachineBootstrapCloudInitSpec{}
 			if src.Spec.Bootstrap.CloudInit.RawCloudConfig != nil {
-				dst.Spec.Bootstrap.CloudInit.RawCloudConfig = &vmoprv1alpha2common.SecretKeySelector{
+				dst.Spec.Bootstrap.CloudInit.RawCloudConfig = &vmoprv1alpha6common.SecretKeySelector{
 					Name: src.Spec.Bootstrap.CloudInit.RawCloudConfig.Name,
 					Key:  src.Spec.Bootstrap.CloudInit.RawCloudConfig.Key,
 				}
@@ -313,11 +327,11 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 	dst.Spec.GroupName = src.Spec.GroupName
 	dst.Spec.ImageName = src.Spec.ImageName
 	if src.Spec.Network != nil {
-		dst.Spec.Network = &vmoprv1alpha2.VirtualMachineNetworkSpec{}
+		dst.Spec.Network = &vmoprv1alpha6.VirtualMachineNetworkSpec{}
 		if src.Spec.Network.Interfaces != nil {
-			dst.Spec.Network.Interfaces = []vmoprv1alpha2.VirtualMachineNetworkInterfaceSpec{}
+			dst.Spec.Network.Interfaces = []vmoprv1alpha6.VirtualMachineNetworkInterfaceSpec{}
 			for _, iface := range src.Spec.Network.Interfaces {
-				d := vmoprv1alpha2.VirtualMachineNetworkInterfaceSpec{}
+				d := vmoprv1alpha6.VirtualMachineNetworkInterfaceSpec{}
 				d.Addresses = iface.Addresses
 				d.DHCP4 = iface.DHCP4
 				d.DHCP6 = iface.DHCP6
@@ -327,7 +341,7 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 					d.MTU = ptr.To(*iface.MTU)
 				}
 				if iface.Network != nil {
-					d.Network = &vmoprv1alpha2common.PartialObjectRef{
+					d.Network = &vmoprv1alpha6common.PartialObjectRef{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       iface.Network.Kind,
 							APIVersion: iface.Network.APIVersion,
@@ -340,9 +354,9 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 				d.Nameservers = iface.Nameservers
 				d.MACAddr = iface.MACAddr
 				if iface.Routes != nil {
-					d.Routes = []vmoprv1alpha2.VirtualMachineNetworkRouteSpec{}
+					d.Routes = []vmoprv1alpha6.VirtualMachineNetworkRouteSpec{}
 					for _, route := range iface.Routes {
-						d.Routes = append(d.Routes, vmoprv1alpha2.VirtualMachineNetworkRouteSpec{
+						d.Routes = append(d.Routes, vmoprv1alpha6.VirtualMachineNetworkRouteSpec{
 							To:     route.To,
 							Via:    route.Via,
 							Metric: route.Metric,
@@ -353,52 +367,66 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
 		}
+		if src.Spec.Network.VLANs != nil {
+			dst.Spec.Network.VLANs = []vmoprv1alpha6.VirtualMachineNetworkVLANSpec{}
+			for _, vlan := range src.Spec.Network.VLANs {
+				dst.Spec.Network.VLANs = append(dst.Spec.Network.VLANs, vmoprv1alpha6.VirtualMachineNetworkVLANSpec{
+					Name: vlan.Name,
+					ID:   vlan.ID,
+					Link: vlan.Link,
+				})
+			}
+		}
 	}
 	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
-	dst.Spec.PowerOffMode = vmoprv1alpha2.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
-	dst.Spec.PowerState = vmoprv1alpha2.VirtualMachinePowerState(src.Spec.PowerState)
+	dst.Spec.PowerOffMode = vmoprv1alpha6.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
+	dst.Spec.PowerState = vmoprv1alpha6.VirtualMachinePowerState(src.Spec.PowerState)
 	if src.Spec.ReadinessProbe != nil {
-		dst.Spec.ReadinessProbe = &vmoprv1alpha2.VirtualMachineReadinessProbeSpec{}
+		dst.Spec.ReadinessProbe = &vmoprv1alpha6.VirtualMachineReadinessProbeSpec{}
 		if src.Spec.ReadinessProbe.TCPSocket != nil {
-			dst.Spec.ReadinessProbe.TCPSocket = &vmoprv1alpha2.TCPSocketAction{
+			dst.Spec.ReadinessProbe.TCPSocket = &vmoprv1alpha6.TCPSocketAction{
 				Port: src.Spec.ReadinessProbe.TCPSocket.Port,
 				Host: src.Spec.ReadinessProbe.TCPSocket.Host,
 			}
 		}
 	}
 	if src.Spec.Reserved != nil {
-		dst.Spec.Reserved = &vmoprv1alpha2.VirtualMachineReservedSpec{
+		dst.Spec.Reserved = &vmoprv1alpha6.VirtualMachineReservedSpec{
 			ResourcePolicyName: src.Spec.Reserved.ResourcePolicyName,
 		}
 	}
 	dst.Spec.StorageClass = src.Spec.StorageClass
 	if src.Spec.Volumes != nil {
-		dst.Spec.Volumes = []vmoprv1alpha2.VirtualMachineVolume{}
+		dst.Spec.Volumes = []vmoprv1alpha6.VirtualMachineVolume{}
 		for _, volume := range src.Spec.Volumes {
-			v := vmoprv1alpha2.VirtualMachineVolume{}
+			v := vmoprv1alpha6.VirtualMachineVolume{}
 			v.Name = volume.Name
 			if volume.PersistentVolumeClaim != nil {
-				v.PersistentVolumeClaim = &vmoprv1alpha2.PersistentVolumeClaimVolumeSource{
+				v.PersistentVolumeClaim = &vmoprv1alpha6.PersistentVolumeClaimVolumeSource{
 					PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 						ClaimName: volume.PersistentVolumeClaim.ClaimName,
 						ReadOnly:  volume.PersistentVolumeClaim.ReadOnly,
 					},
 				}
 				if volume.PersistentVolumeClaim.InstanceVolumeClaim != nil {
-					v.PersistentVolumeClaim.InstanceVolumeClaim = &vmoprv1alpha2.InstanceVolumeClaimVolumeSource{
+					v.PersistentVolumeClaim.InstanceVolumeClaim = &vmoprv1alpha6.InstanceVolumeClaimVolumeSource{
 						StorageClass: volume.PersistentVolumeClaim.InstanceVolumeClaim.StorageClass,
 						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
 					}
 				}
-				// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
-				// - ApplicationType
-				// - ControllerBusNumber
-				// - ControllerType
-				// - DiskMode
-				// - SharingMode
-				// - UnitNumber
-				// - UnmanagedVolumeClaim
-				// - Removable
+				v.ApplicationType = vmoprv1alpha6.VolumeApplicationType(volume.PersistentVolumeClaim.ApplicationType)
+				if volume.PersistentVolumeClaim.ControllerBusNumber != nil {
+					v.ControllerBusNumber = ptr.To(*volume.PersistentVolumeClaim.ControllerBusNumber)
+				}
+				v.ControllerType = vmoprv1alpha6.VirtualControllerType(volume.PersistentVolumeClaim.ControllerType)
+				v.DiskMode = vmoprv1alpha6.VolumeDiskMode(volume.PersistentVolumeClaim.DiskMode)
+				v.SharingMode = vmoprv1alpha6.VolumeSharingMode(volume.PersistentVolumeClaim.SharingMode)
+				if volume.PersistentVolumeClaim.UnitNumber != nil {
+					v.UnitNumber = ptr.To(*volume.PersistentVolumeClaim.UnitNumber)
+				}
+				if volume.PersistentVolumeClaim.Removable != nil {
+					v.Removable = ptr.To(*volume.PersistentVolumeClaim.Removable)
+				}
 			}
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
@@ -411,17 +439,17 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 			dst.Status.Conditions = append(dst.Status.Conditions, condition)
 		}
 	}
-	dst.Status.Host = src.Status.NodeName // Field renamed in hub
+	dst.Status.NodeName = src.Status.NodeName
 	if src.Status.Network != nil {
-		dst.Status.Network = &vmoprv1alpha2.VirtualMachineNetworkStatus{}
+		dst.Status.Network = &vmoprv1alpha6.VirtualMachineNetworkStatus{}
 		dst.Status.Network.HostName = src.Status.Network.HostName
 		if src.Status.Network.Interfaces != nil {
-			dst.Status.Network.Interfaces = []vmoprv1alpha2.VirtualMachineNetworkInterfaceStatus{}
+			dst.Status.Network.Interfaces = []vmoprv1alpha6.VirtualMachineNetworkInterfaceStatus{}
 			for _, iface := range src.Status.Network.Interfaces {
-				d := vmoprv1alpha2.VirtualMachineNetworkInterfaceStatus{}
+				d := vmoprv1alpha6.VirtualMachineNetworkInterfaceStatus{}
 				d.DeviceKey = iface.DeviceKey
 				if iface.DNS != nil {
-					d.DNS = &vmoprv1alpha2.VirtualMachineNetworkDNSStatus{
+					d.DNS = &vmoprv1alpha6.VirtualMachineNetworkDNSStatus{
 						DHCP:          iface.DNS.DHCP,
 						HostName:      iface.DNS.HostName,
 						DomainName:    iface.DNS.DomainName,
@@ -430,13 +458,13 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 					}
 				}
 				if iface.IP != nil {
-					d.IP = &vmoprv1alpha2.VirtualMachineNetworkInterfaceIPStatus{
+					d.IP = &vmoprv1alpha6.VirtualMachineNetworkInterfaceIPStatus{
 						MACAddr: iface.IP.MACAddr,
 					}
 					if iface.IP.Addresses != nil {
-						d.IP.Addresses = []vmoprv1alpha2.VirtualMachineNetworkInterfaceIPAddrStatus{}
+						d.IP.Addresses = []vmoprv1alpha6.VirtualMachineNetworkInterfaceIPAddrStatus{}
 						for _, addr := range iface.IP.Addresses {
-							d.IP.Addresses = append(d.IP.Addresses, vmoprv1alpha2.VirtualMachineNetworkInterfaceIPAddrStatus{
+							d.IP.Addresses = append(d.IP.Addresses, vmoprv1alpha6.VirtualMachineNetworkInterfaceIPAddrStatus{
 								Address:  addr.Address,
 								Lifetime: addr.Lifetime,
 								Origin:   addr.Origin,
@@ -448,27 +476,27 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 						d.IP.AutoConfigurationEnabled = ptr.To(*iface.IP.AutoConfigurationEnabled)
 					}
 					if iface.IP.DHCP != nil {
-						d.IP.DHCP = &vmoprv1alpha2.VirtualMachineNetworkDHCPStatus{
-							IP4: vmoprv1alpha2.VirtualMachineNetworkDHCPOptionsStatus{
+						d.IP.DHCP = &vmoprv1alpha6.VirtualMachineNetworkDHCPStatus{
+							IP4: vmoprv1alpha6.VirtualMachineNetworkDHCPOptionsStatus{
 								Enabled: iface.IP.DHCP.IP4.Enabled,
 							},
-							IP6: vmoprv1alpha2.VirtualMachineNetworkDHCPOptionsStatus{
+							IP6: vmoprv1alpha6.VirtualMachineNetworkDHCPOptionsStatus{
 								Enabled: iface.IP.DHCP.IP6.Enabled,
 							},
 						}
 						if iface.IP.DHCP.IP4.Config != nil {
-							d.IP.DHCP.IP4.Config = []vmoprv1alpha2common.KeyValuePair{}
+							d.IP.DHCP.IP4.Config = []vmoprv1alpha6common.KeyValuePair{}
 							for _, pair := range iface.IP.DHCP.IP4.Config {
-								d.IP.DHCP.IP4.Config = append(d.IP.DHCP.IP4.Config, vmoprv1alpha2common.KeyValuePair{
+								d.IP.DHCP.IP4.Config = append(d.IP.DHCP.IP4.Config, vmoprv1alpha6common.KeyValuePair{
 									Key:   pair.Key,
 									Value: pair.Value,
 								})
 							}
 						}
 						if iface.IP.DHCP.IP6.Config != nil {
-							d.IP.DHCP.IP6.Config = []vmoprv1alpha2common.KeyValuePair{}
+							d.IP.DHCP.IP6.Config = []vmoprv1alpha6common.KeyValuePair{}
 							for _, pair := range iface.IP.DHCP.IP6.Config {
-								d.IP.DHCP.IP6.Config = append(d.IP.DHCP.IP6.Config, vmoprv1alpha2common.KeyValuePair{
+								d.IP.DHCP.IP6.Config = append(d.IP.DHCP.IP6.Config, vmoprv1alpha6common.KeyValuePair{
 									Key:   pair.Key,
 									Value: pair.Value,
 								})
@@ -483,7 +511,7 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 		dst.Status.Network.PrimaryIP4 = src.Status.Network.PrimaryIP4
 		dst.Status.Network.PrimaryIP6 = src.Status.Network.PrimaryIP6
 	}
-	dst.Status.PowerState = vmoprv1alpha2.VirtualMachinePowerState(src.Status.PowerState)
+	dst.Status.PowerState = vmoprv1alpha6.VirtualMachinePowerState(src.Status.PowerState)
 	dst.Status.Zone = src.Status.Zone
 
 	return nil
@@ -491,6 +519,6 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 
 func init() {
 	converterBuilder.AddConversion(
-		conversion.NewAddConversionBuilder(convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine, convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine),
+		conversion.NewAddConversionBuilder(convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine, convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine),
 	)
 }

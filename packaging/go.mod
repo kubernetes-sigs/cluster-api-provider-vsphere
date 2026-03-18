@@ -6,6 +6,11 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-beta.0
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
+replace (
+	github.com/vmware-tanzu/vm-operator/api => github.com/shutingm-kubernetes/vm-operator/api v0.0.0-20260316022432-be295049b1c5
+	github.com/vmware-tanzu/vm-operator/external/ncp => github.com/shutingm-kubernetes/vm-operator/external/ncp v0.0.0-20260316022432-be295049b1c5
+)
+
 require (
 	github.com/onsi/gomega v1.39.1
 	github.com/pkg/errors v0.9.1

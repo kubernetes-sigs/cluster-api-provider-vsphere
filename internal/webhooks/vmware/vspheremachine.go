@@ -159,6 +159,62 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 					interfaceNames[secondaryInterface.Name] = struct{}{}
 				}
 			}
+
+			allErrs = append(allErrs, validateVLANs(network, fldPath)...)
+		}
+	}
+	return allErrs
+}
+
+func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if len(network.Interfaces.VLANs) == 0 {
+		return allErrs
+	}
+
+	if len(network.Interfaces.Secondary) == 0 {
+		allErrs = append(allErrs, field.Forbidden(
+			fldPath.Child("interfaces", "vlans"),
+			"vlans require at least one secondary interface"))
+		return allErrs
+	}
+
+	secondaryNames := map[string]bool{}
+	for _, sec := range network.Interfaces.Secondary {
+		secondaryNames[sec.Name] = true
+	}
+
+	vlanNames := map[string]bool{}
+	vlanIDsPerLink := map[string]map[int64]bool{}
+	for i, vlan := range network.Interfaces.VLANs {
+		vlanFldPath := fldPath.Child("interfaces", "vlans").Index(i)
+
+		if _, ok := secondaryNames[vlan.Link]; !ok {
+			allErrs = append(allErrs, field.Invalid(
+				vlanFldPath.Child("link"), vlan.Link,
+				"link must reference an existing secondary interface name"))
+		}
+
+		if _, ok := vlanNames[vlan.Name]; ok {
+			allErrs = append(allErrs, field.Invalid(
+				vlanFldPath.Child("name"), vlan.Name,
+				"VLAN name must be unique"))
+		} else {
+			vlanNames[vlan.Name] = true
+		}
+
+		if vlan.ID != nil {
+			if _, ok := vlanIDsPerLink[vlan.Link]; !ok {
+				vlanIDsPerLink[vlan.Link] = map[int64]bool{}
+			}
+			if _, ok := vlanIDsPerLink[vlan.Link][*vlan.ID]; ok {
+				allErrs = append(allErrs, field.Invalid(
+					vlanFldPath.Child("id"), *vlan.ID,
+					"VLAN ID must be unique per link"))
+			} else {
+				vlanIDsPerLink[vlan.Link][*vlan.ID] = true
+			}
 		}
 	}
 	return allErrs

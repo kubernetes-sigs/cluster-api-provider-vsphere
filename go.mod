@@ -4,6 +4,11 @@ go 1.25.0
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-beta.0
 
+replace (
+	github.com/vmware-tanzu/vm-operator/api => github.com/shutingm-kubernetes/vm-operator/api v0.0.0-20260318064121-58e6fa6a2baf
+	github.com/vmware-tanzu/vm-operator/external/ncp => github.com/shutingm-kubernetes/vm-operator/external/ncp v0.0.0-20260318064121-58e6fa6a2baf
+)
+
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b
 	github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20250813103855-288a237381b5

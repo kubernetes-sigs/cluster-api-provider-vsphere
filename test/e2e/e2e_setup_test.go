@@ -26,7 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -386,7 +386,7 @@ func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framew
 
 func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
 	// Use latest vm-operator API version or the API version defined in the VM_OPERATOR_API_VERSION env var.
-	apiVersionVMOperator := vmoprv1alpha5.GroupVersion.Version
+	apiVersionVMOperator := vmoprv1alpha6.GroupVersion.Version
 	if v := e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"); v != "" {
 		apiVersionVMOperator = v
 	}

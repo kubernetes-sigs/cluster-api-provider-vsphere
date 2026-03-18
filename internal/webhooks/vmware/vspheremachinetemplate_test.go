@@ -279,6 +279,88 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:            "vlans without secondary interfaces",
+			featureGate:     true,
+			networkProvider: manager.NSXVPCNetworkProvider,
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+							Name:       "primary-subnetset",
+						},
+					},
+					VLANs: []vmwarev1.VLANSpec{
+						{Name: "vlan100", ID: ptr.To[int64](100), Link: "eth1"},
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "vlans require at least one secondary interface",
+		},
+		{
+			name:            "vlan link references non-existent secondary interface",
+			featureGate:     true,
+			networkProvider: manager.NSXVPCNetworkProvider,
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: "eth1",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+								Name:       "secondary-subnet",
+							},
+						},
+					}},
+					VLANs: []vmwarev1.VLANSpec{
+						{Name: "vlan100", ID: ptr.To[int64](100), Link: "eth99"},
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "link must reference an existing secondary interface name",
+		},
+		{
+			name:            "valid vlans with secondary interfaces",
+			featureGate:     true,
+			networkProvider: manager.NSXVPCNetworkProvider,
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet1",
+								},
+							},
+						},
+						{
+							Name: "eth2",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet2",
+								},
+							},
+						},
+					},
+					VLANs: []vmwarev1.VLANSpec{
+						{Name: "vlan100a", ID: ptr.To[int64](100), Link: "eth1"},
+						{Name: "vlan200", ID: ptr.To[int64](200), Link: "eth1"},
+						{Name: "vlan100b", ID: ptr.To[int64](100), Link: "eth2"},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tc := range tests {

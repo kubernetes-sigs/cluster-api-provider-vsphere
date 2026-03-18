@@ -251,7 +251,7 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 			break
 		}
 
-		// Tolerate enums where only the type name is equal. e.g. hub.VirtualMachinePowerState is considered equal to v1alpha5.VirtualMachinePowerState.
+		// Tolerate enums where only the type name is equal. e.g. hub.VirtualMachinePowerState is considered equal to v1alpha6.VirtualMachinePowerState.
 		// TODO: implement checks to ensure that values for enum types in hub are a superset of corresponding values in spoke
 		if hubT.Name() == spokeT.Name() {
 			break

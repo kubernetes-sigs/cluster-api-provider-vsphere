@@ -288,6 +288,15 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.Vi
 	if len(machine.Spec.Network.Interfaces.Secondary) == 0 {
 		return
 	}
+
+	for _, vlan := range machine.Spec.Network.Interfaces.VLANs {
+		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
+			Name: vlan.Name,
+			ID:   ptr.Deref(vlan.ID, 0),
+			Link: vlan.Link,
+		})
+	}
+
 	for _, secondaryInterface := range machine.Spec.Network.Interfaces.Secondary {
 		var mtu *int64
 		if secondaryInterface.MTU != 0 {

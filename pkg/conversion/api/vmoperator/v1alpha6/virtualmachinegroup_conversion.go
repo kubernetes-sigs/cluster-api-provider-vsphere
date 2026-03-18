@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha5
+package v1alpha6
 
 import (
 	"context"
 
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -27,7 +27,7 @@ import (
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
-func convert_v1alpha5_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.Context, src *vmoprv1alpha5.VirtualMachineGroup, dst *vmoprvhub.VirtualMachineGroup) error {
+func convert_v1alpha6_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.Context, src *vmoprv1alpha6.VirtualMachineGroup, dst *vmoprvhub.VirtualMachineGroup) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.BootOrder != nil {
@@ -94,17 +94,17 @@ func convert_v1alpha5_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 	return nil
 }
 
-func convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup(_ context.Context, src *vmoprvhub.VirtualMachineGroup, dst *vmoprv1alpha5.VirtualMachineGroup) error {
+func convert_hub_VirtualMachineGroup_To_v1alpha6_VirtualMachineGroup(_ context.Context, src *vmoprvhub.VirtualMachineGroup, dst *vmoprv1alpha6.VirtualMachineGroup) error {
 	dst.ObjectMeta = src.ObjectMeta
 
 	if src.Spec.BootOrder != nil {
-		dst.Spec.BootOrder = []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{}
+		dst.Spec.BootOrder = []vmoprv1alpha6.VirtualMachineGroupBootOrderGroup{}
 		for _, bootOrderGroup := range src.Spec.BootOrder {
-			bg := vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{}
+			bg := vmoprv1alpha6.VirtualMachineGroupBootOrderGroup{}
 			if bootOrderGroup.Members != nil {
-				bg.Members = []vmoprv1alpha5.GroupMember{}
+				bg.Members = []vmoprv1alpha6.GroupMember{}
 				for _, member := range bootOrderGroup.Members {
-					bg.Members = append(bg.Members, vmoprv1alpha5.GroupMember{
+					bg.Members = append(bg.Members, vmoprv1alpha6.GroupMember{
 						Name: member.Name,
 						Kind: member.Kind,
 					})
@@ -115,23 +115,23 @@ func convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup(_ context.C
 		}
 	}
 	if src.Status.Members != nil {
-		dst.Status.Members = []vmoprv1alpha5.VirtualMachineGroupMemberStatus{}
+		dst.Status.Members = []vmoprv1alpha6.VirtualMachineGroupMemberStatus{}
 		for _, member := range src.Status.Members {
-			m := vmoprv1alpha5.VirtualMachineGroupMemberStatus{
+			m := vmoprv1alpha6.VirtualMachineGroupMemberStatus{
 				Name: member.Name,
 				Kind: member.Kind,
 				UID:  member.UID,
 			}
 			if member.Placement != nil {
-				m.Placement = &vmoprv1alpha5.VirtualMachinePlacementStatus{
+				m.Placement = &vmoprv1alpha6.VirtualMachinePlacementStatus{
 					Zone: member.Placement.Zone,
 					Node: member.Placement.Node,
 					Pool: member.Placement.Pool,
 				}
 				if member.Placement.Datastores != nil {
-					m.Placement.Datastores = []vmoprv1alpha5.VirtualMachineGroupPlacementDatastoreStatus{}
+					m.Placement.Datastores = []vmoprv1alpha6.VirtualMachineGroupPlacementDatastoreStatus{}
 					for _, datastore := range member.Placement.Datastores {
-						d := vmoprv1alpha5.VirtualMachineGroupPlacementDatastoreStatus{
+						d := vmoprv1alpha6.VirtualMachineGroupPlacementDatastoreStatus{
 							Name:                             datastore.Name,
 							ID:                               datastore.ID,
 							URL:                              datastore.URL,
@@ -146,7 +146,7 @@ func convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup(_ context.C
 				}
 			}
 			if member.PowerState != nil {
-				m.PowerState = ptr.To(vmoprv1alpha5.VirtualMachinePowerState(*member.PowerState))
+				m.PowerState = ptr.To(vmoprv1alpha6.VirtualMachinePowerState(*member.PowerState))
 			}
 			if member.Conditions != nil {
 				m.Conditions = []metav1.Condition{}
@@ -163,6 +163,6 @@ func convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup(_ context.C
 
 func init() {
 	converterBuilder.AddConversion(
-		conversion.NewAddConversionBuilder(convert_hub_VirtualMachineGroup_To_v1alpha5_VirtualMachineGroup, convert_v1alpha5_VirtualMachineGroup_To_hub_VirtualMachineGroup),
+		conversion.NewAddConversionBuilder(convert_hub_VirtualMachineGroup_To_v1alpha6_VirtualMachineGroup, convert_v1alpha6_VirtualMachineGroup_To_hub_VirtualMachineGroup),
 	)
 }

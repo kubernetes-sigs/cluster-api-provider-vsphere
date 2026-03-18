@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,7 +34,7 @@ import (
 func Test_MergeFrom(t *testing.T) {
 	g := NewWithT(t)
 
-	cc, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha5Converter)
+	cc, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha6Converter)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	fromHub := &vmoprvhub.VirtualMachine{
@@ -52,7 +52,7 @@ func Test_MergeFrom(t *testing.T) {
 		},
 	}
 
-	toSpoke := &vmoprv1alpha5.VirtualMachine{
+	toSpoke := &vmoprv1alpha6.VirtualMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-vm",
 			Namespace: "test-ns",
@@ -129,7 +129,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 	g := NewWithT(t)
 	v1alpha2ConversionClient, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha2Converter)
 	g.Expect(err).NotTo(HaveOccurred())
-	v1alpha5ConversionClient, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha5Converter)
+	v1alpha6ConversionClient, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha6Converter)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	tests := []struct {
@@ -141,8 +141,8 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name:          "Generates patch data when obj needs conversion to v1alpha5",
-			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			name:          "Generates patch data when obj needs conversion to v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
 			patch: &conversionMergePatch{
 				from: &vmoprvhub.VirtualMachine{
 					ObjectMeta: metav1.ObjectMeta{
@@ -150,7 +150,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 						Namespace: "test-ns",
 					},
 				},
-				client: v1alpha5ConversionClient.(*conversionClient),
+				client: v1alpha6ConversionClient.(*conversionClient),
 			},
 			obj: &vmoprvhub.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -164,8 +164,8 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 			wantData: []byte(`{"metadata":{"labels":{"foo":"bar"}}}`),
 		},
 		{
-			name:          "Generates patch data when obj is already converted to v1alpha5",
-			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			name:          "Generates patch data when obj is already converted to v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
 			patch: &conversionMergePatch{
 				from: &vmoprvhub.VirtualMachine{
 					ObjectMeta: metav1.ObjectMeta{
@@ -173,9 +173,9 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 						Namespace: "test-ns",
 					},
 				},
-				client: v1alpha5ConversionClient.(*conversionClient),
+				client: v1alpha6ConversionClient.(*conversionClient),
 			},
-			obj: &vmoprv1alpha5.VirtualMachine{
+			obj: &vmoprv1alpha6.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-vm",
 					Namespace: "test-ns",
@@ -234,7 +234,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 		},
 		{
 			name:          "Fails when obj is already converted but to a wrong version",
-			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
 			patch: &conversionMergePatch{
 				from: &vmoprvhub.VirtualMachine{
 					ObjectMeta: metav1.ObjectMeta{
@@ -242,7 +242,7 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 						Namespace: "test-ns",
 					},
 				},
-				client: v1alpha5ConversionClient.(*conversionClient),
+				client: v1alpha6ConversionClient.(*conversionClient),
 			},
 			obj: &vmoprv1alpha2.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{

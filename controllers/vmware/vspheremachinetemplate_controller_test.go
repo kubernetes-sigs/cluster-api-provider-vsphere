@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
-	vmoprv1alpha5common "github.com/vmware-tanzu/vm-operator/api/v1alpha5/common"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
+	vmoprv1alpha6common "github.com/vmware-tanzu/vm-operator/api/v1alpha6/common"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +46,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(vmoprvhub.AddToScheme(scheme)).To(Succeed())
-	g.Expect(vmoprv1alpha5.AddToScheme(scheme)).To(Succeed())
+	g.Expect(vmoprv1alpha6.AddToScheme(scheme)).To(Succeed())
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -94,7 +94,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			name:                   "VirtualMachineClass does exist and has cpu and memory set",
 			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-class", "vm-class", "test-image", nil),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha6.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 				clusterVirtualMachineImage("test-image", "linux", "amd64"),
 			},
 			wantErr: "",
@@ -118,7 +118,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 				},
 			}),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 2, Memory: quantity(2048)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha6.VirtualMachineClassHardware{Cpus: 2, Memory: quantity(2048)}),
 				clusterVirtualMachineImage("test-image", "linux", "amd64"),
 			},
 			wantErr: "",
@@ -137,7 +137,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			name:                   "ClusterVirtualMachineImage with OS and Architecture info",
 			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-image", "vm-class", "ubuntu-2204-image", &vmwarev1.VSphereMachineTemplateStatus{}),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha6.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 				clusterVirtualMachineImage("ubuntu-2204-image", "linux", "amd64"),
 			},
 			wantErr: "",
@@ -156,7 +156,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			name:                   "ClusterVirtualMachineImage with Windows and arm64",
 			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-windows-image", "vm-class", "windows-2022-image", &vmwarev1.VSphereMachineTemplateStatus{}),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 2, Memory: quantity(2048)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha6.VirtualMachineClassHardware{Cpus: 2, Memory: quantity(2048)}),
 				clusterVirtualMachineImage("windows-2022-image", "windows", "arm64"),
 			},
 			wantErr: "",
@@ -205,7 +205,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			name:                   "ClusterVirtualMachineImage with invalid OS and Architecture",
 			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-invalid-image", "vm-class", "invalid-image", &vmwarev1.VSphereMachineTemplateStatus{}),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha6.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 				clusterVirtualMachineImage("invalid-image", "macos", "x86"),
 			},
 			wantErr: "",
@@ -221,7 +221,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			name:                   "ClusterVirtualMachineImage does not exist",
 			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-missing-image", "vm-class", "missing-image", &vmwarev1.VSphereMachineTemplateStatus{}),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha6.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 			},
 			wantErr: "",
 			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
@@ -236,7 +236,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			name:                   "ClusterVirtualMachineImage without vmwareSystemProperties",
 			vSphereMachineTemplate: vSphereMachineTemplateWithImage(namespace.Name, "with-empty-props-image", "vm-class", "empty-props-image", &vmwarev1.VSphereMachineTemplateStatus{}),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha6.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 				clusterVirtualMachineImageWithoutProperties("empty-props-image"),
 			},
 			wantErr: "",
@@ -252,7 +252,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			name:                   "Empty imageName",
 			vSphereMachineTemplate: vSphereMachineTemplate(namespace.Name, "with-empty-image", "vm-class", nil),
 			objects: []client.Object{
-				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha5.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
+				virtualMachineClass(namespace.Name, "vm-class", &vmoprv1alpha6.VirtualMachineClassHardware{Cpus: 1, Memory: quantity(1024)}),
 			},
 			wantErr: "",
 			wantStatus: &vmwarev1.VSphereMachineTemplateStatus{
@@ -270,7 +270,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 			fakeClientBuilder := fake.NewClientBuilder().
 				WithScheme(scheme).
 				WithObjects(append([]client.Object{namespace}, tt.objects...)...).
-				WithStatusSubresource(&vmoprv1alpha5.ClusterVirtualMachineImage{})
+				WithStatusSubresource(&vmoprv1alpha6.ClusterVirtualMachineImage{})
 
 			vSphereMachineTemplateName := "not-exists"
 			if tt.vSphereMachineTemplate != nil {
@@ -289,7 +289,7 @@ func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 
 			c, err := conversionclient.NewWithConverter(
 				fakeClientBuilder.Build(),
-				conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
+				conversionapi.DefaultConverterFor(vmoprv1alpha6.GroupVersion),
 			)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -360,8 +360,8 @@ func vSphereMachineTemplateWithImage(namespace, name, className, imageName strin
 	return tpl
 }
 
-func virtualMachineClass(namespace, name string, hardware *vmoprv1alpha5.VirtualMachineClassHardware) *vmoprv1alpha5.VirtualMachineClass {
-	class := &vmoprv1alpha5.VirtualMachineClass{
+func virtualMachineClass(namespace, name string, hardware *vmoprv1alpha6.VirtualMachineClassHardware) *vmoprv1alpha6.VirtualMachineClass {
+	class := &vmoprv1alpha6.VirtualMachineClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
@@ -375,13 +375,13 @@ func virtualMachineClass(namespace, name string, hardware *vmoprv1alpha5.Virtual
 	return class
 }
 
-func clusterVirtualMachineImage(name, osType, arch string) *vmoprv1alpha5.ClusterVirtualMachineImage {
-	return &vmoprv1alpha5.ClusterVirtualMachineImage{
+func clusterVirtualMachineImage(name, osType, arch string) *vmoprv1alpha6.ClusterVirtualMachineImage {
+	return &vmoprv1alpha6.ClusterVirtualMachineImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Status: vmoprv1alpha5.VirtualMachineImageStatus{
-			VMwareSystemProperties: []vmoprv1alpha5common.KeyValuePair{
+		Status: vmoprv1alpha6.VirtualMachineImageStatus{
+			VMwareSystemProperties: []vmoprv1alpha6common.KeyValuePair{
 				{
 					Key:   vmwarev1.VMwareSystemOSTypePropertyKey,
 					Value: osType,
@@ -395,13 +395,13 @@ func clusterVirtualMachineImage(name, osType, arch string) *vmoprv1alpha5.Cluste
 	}
 }
 
-func clusterVirtualMachineImageWithoutProperties(name string) *vmoprv1alpha5.ClusterVirtualMachineImage {
-	return &vmoprv1alpha5.ClusterVirtualMachineImage{
+func clusterVirtualMachineImageWithoutProperties(name string) *vmoprv1alpha6.ClusterVirtualMachineImage {
+	return &vmoprv1alpha6.ClusterVirtualMachineImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Status: vmoprv1alpha5.VirtualMachineImageStatus{
-			VMwareSystemProperties: []vmoprv1alpha5common.KeyValuePair{},
+		Status: vmoprv1alpha6.VirtualMachineImageStatus{
+			VMwareSystemProperties: []vmoprv1alpha6common.KeyValuePair{},
 		},
 	}
 }

@@ -86,12 +86,12 @@ func TestFuzzyConversion(t *testing.T) {
 func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubPersistentVolumeClaimVolumeSource,
+		hubVirtualMachineNetworkSpec,
 	}
 }
 
 func hubPersistentVolumeClaimVolumeSource(in *vmoprvhub.PersistentVolumeClaimVolumeSource, c randfill.Continue) {
 	c.FillNoCustom(in)
-	// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
 	in.ApplicationType = ""
 	in.ControllerBusNumber = nil
 	in.ControllerType = ""
@@ -99,4 +99,10 @@ func hubPersistentVolumeClaimVolumeSource(in *vmoprvhub.PersistentVolumeClaimVol
 	in.SharingMode = ""
 	in.UnitNumber = nil
 	in.UnmanagedVolumeClaim = nil
+	in.Removable = nil
+}
+
+func hubVirtualMachineNetworkSpec(in *vmoprvhub.VirtualMachineNetworkSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	in.VLANs = nil
 }

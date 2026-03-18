@@ -139,6 +139,8 @@ linters:
           alias: vmoprv1alpha2conversion
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha5
           alias: vmoprv1alpha5conversion
+        - pkg: sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha6
+          alias: vmoprv1alpha6conversion
         # VM Operator
         - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha2
           alias: vmoprv1alpha2
@@ -148,6 +150,10 @@ linters:
           alias: vmoprv1alpha5
         - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha5/common
           alias: vmoprv1alpha5common
+        - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha6
+          alias: vmoprv1alpha6
+        - pkg: github.com/vmware-tanzu/vm-operator/api/v1alpha6/common
+          alias: vmoprv1alpha6common
         # NSX Operator
         - pkg: github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1
           alias: nsxvpcv1

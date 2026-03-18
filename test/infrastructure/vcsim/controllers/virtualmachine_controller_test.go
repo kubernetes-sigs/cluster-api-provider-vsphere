@@ -21,7 +21,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -96,7 +96,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 		}
 
 		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-		virtualMachine := &vmoprv1alpha5.VirtualMachine{
+		virtualMachine := &vmoprv1alpha6.VirtualMachine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
@@ -117,7 +117,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 		// Controller runtime client
 		crclient, err := conversionclient.NewWithConverter(
 			fake.NewClientBuilder().WithObjects(cluster, vsphereCluster, machine, vSphereMachine, virtualMachine).WithScheme(scheme).Build(),
-			conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
+			conversionapi.DefaultConverterFor(vmoprv1alpha6.GroupVersion),
 		)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -230,7 +230,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 		}
 
 		// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-		virtualMachine := &vmoprv1alpha5.VirtualMachine{
+		virtualMachine := &vmoprv1alpha6.VirtualMachine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
@@ -246,20 +246,20 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 					vcsimv1.VMFinalizer, // Adding this to move past the first reconcile
 				},
 			},
-			Status: vmoprv1alpha5.VirtualMachineStatus{
+			Status: vmoprv1alpha6.VirtualMachineStatus{
 				// Those values are required to unblock provisioning of node
 				BiosUUID: "foo",
-				Network: &vmoprv1alpha5.VirtualMachineNetworkStatus{
+				Network: &vmoprv1alpha6.VirtualMachineNetworkStatus{
 					PrimaryIP4: "1.2.3.4",
 				},
-				PowerState: vmoprv1alpha5.VirtualMachinePowerStateOn,
+				PowerState: vmoprv1alpha6.VirtualMachinePowerStateOn,
 			},
 		}
 
 		// Controller runtime client
 		crclient, err := conversionclient.NewWithConverter(
 			fake.NewClientBuilder().WithObjects(cluster, vsphereCluster, machine, vSphereMachine, virtualMachine).WithScheme(scheme).Build(),
-			conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
+			conversionapi.DefaultConverterFor(vmoprv1alpha6.GroupVersion),
 		)
 		g.Expect(err).ToNot(HaveOccurred())
 

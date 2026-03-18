@@ -134,10 +134,17 @@ func hubVSphereClusterTemplateResource(in *vmwarev1.VSphereClusterTemplateResour
 
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubInterfacesSpec,
 		hubVSphereMachineStatus,
 		spokeVSphereMachineSpec,
 		spokeVSphereMachineStatus,
 	}
+}
+
+func hubInterfacesSpec(in *vmwarev1.InterfacesSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.VLANs = nil // Field does not exist in v1beta1.
 }
 
 func hubVSphereMachineStatus(in *vmwarev1.VSphereMachineStatus, c randfill.Continue) {
@@ -220,6 +227,7 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 
 func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubInterfacesSpec,
 		hubVSphereMachineTemplateResource,
 		spokeVSphereMachineSpec,
 	}

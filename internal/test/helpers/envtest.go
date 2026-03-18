@@ -30,6 +30,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/pkg/errors"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	"github.com/vmware/govmomi/simulator"
 	"golang.org/x/tools/go/packages"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -95,6 +96,7 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha6.AddToScheme(scheme))
 
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, ok := goruntime.Caller(0)
@@ -229,7 +231,7 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 		KubeConfig: env.Config,
 		Username:   simr.Username(),
 		Password:   simr.Password(),
-		Converter:  conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
+		Converter:  conversionapi.DefaultConverterFor(vmoprv1alpha6.GroupVersion),
 	}
 	managerOpts.AddToManager = func(_ context.Context, _ *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		if err := (&webhooks.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {

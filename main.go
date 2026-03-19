@@ -133,22 +133,22 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
 
-	fs.IntVar(&vSphereClusterConcurrency, "vspherecluster-concurrency", 10,
+	fs.IntVar(&vSphereClusterConcurrency, "vspherecluster-concurrency", 50,
 		"Number of vSphere clusters to process simultaneously")
 
-	fs.IntVar(&vSphereMachineConcurrency, "vspheremachine-concurrency", 10,
+	fs.IntVar(&vSphereMachineConcurrency, "vspheremachine-concurrency", 100,
 		"Number of vSphere machines to process simultaneously")
 
 	fs.IntVar(&vSphereMachineTemplateConcurrency, "vspheremachinetemplate-concurrency", 10,
 		"Number of vSphere machine templates to process simultaneously")
 
-	fs.IntVar(&providerServiceAccountConcurrency, "providerserviceaccount-concurrency", 10,
+	fs.IntVar(&providerServiceAccountConcurrency, "providerserviceaccount-concurrency", 50,
 		"Number of provider service accounts to process simultaneously")
 
-	fs.IntVar(&serviceDiscoveryConcurrency, "servicediscovery-concurrency", 10,
+	fs.IntVar(&serviceDiscoveryConcurrency, "servicediscovery-concurrency", 50,
 		"Number of vSphere clusters for service discovery to process simultaneously")
 
-	fs.IntVar(&vSphereVMConcurrency, "vspherevm-concurrency", 10,
+	fs.IntVar(&vSphereVMConcurrency, "vspherevm-concurrency", 100,
 		"Number of vSphere vms to process simultaneously")
 
 	fs.IntVar(&vSphereClusterIdentityConcurrency, "vsphereclusteridentity-concurrency", 10,
@@ -157,7 +157,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&vSphereDeploymentZoneConcurrency, "vspheredeploymentzone-concurrency", 10,
 		"Number of vSphere deployment zones to process simultaneously")
 
-	fs.IntVar(&virtualMachineGroupConcurrency, "virtualmachinegroup-concurrency", 10,
+	fs.IntVar(&virtualMachineGroupConcurrency, "virtualmachinegroup-concurrency", 50,
 		"Number of virtual machine group to process simultaneously")
 
 	fs.StringVar(
@@ -553,6 +553,9 @@ func main() {
 	managerOpts.Metrics = *metricsOptions
 	managerOpts.Controller = config.Controller{
 		UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+		// Give the manager more time to sync the caches during startup. This is required
+		// in high scale environments when they are more objects in the system (default is 3m).
+		CacheSyncTimeout: 5 * time.Minute,
 	}
 	managerOpts.Converter = converter
 

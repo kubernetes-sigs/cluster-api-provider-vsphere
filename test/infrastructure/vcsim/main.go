@@ -173,7 +173,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
 		"Enable block profiling")
 
-	fs.IntVar(&vSphereVMConcurrency, "vsphere-vm-concurrency", 10,
+	fs.IntVar(&vSphereVMConcurrency, "vsphere-vm-concurrency", 100,
 		"Number of VSphereVM to process simultaneously")
 
 	fs.IntVar(&virtualMachineConcurrency, "virtual-machine-concurrency", 100,
@@ -182,13 +182,13 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&vCenterSimulatorConcurrency, "vcenter-simulator-concurrency", 10,
 		"Number of VCenterSimulator to process simultaneously")
 
-	fs.IntVar(&controlPlaneEndpointConcurrency, "controlplane-endpoint-concurrency", 10,
+	fs.IntVar(&controlPlaneEndpointConcurrency, "controlplane-endpoint-concurrency", 50,
 		"Number of ControlPlaneEndpoint to process simultaneously")
 
-	fs.IntVar(&envsubstConcurrency, "envsubst-concurrency", 10,
+	fs.IntVar(&envsubstConcurrency, "envsubst-concurrency", 50,
 		"Number of Envsubst to process simultaneously")
 
-	fs.IntVar(&vmOperatorDependenciesConcurrency, "vm-operator-dependencies-concurrency", 10,
+	fs.IntVar(&vmOperatorDependenciesConcurrency, "vm-operator-dependencies-concurrency", 50,
 		"Number of VMOperatorDependencies to process simultaneously")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
@@ -273,6 +273,9 @@ func main() {
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
 			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			// Give the manager more time to sync the caches during startup. This is required
+			// in high scale environments when they are more objects in the system (default is 3m).
+			CacheSyncTimeout: 15 * time.Minute,
 		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,

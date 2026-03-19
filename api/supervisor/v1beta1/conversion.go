@@ -322,11 +322,6 @@ func Convert_v1beta2_InterfaceSpec_To_v1beta1_InterfaceSpec(in *vmwarev1.Interfa
 	return nil
 }
 
-func Convert_v1beta2_InterfacesSpec_To_v1beta1_InterfacesSpec(in *vmwarev1.InterfacesSpec, out *InterfacesSpec, s apimachineryconversion.Scope) error {
-	// VLANs field does not exist in v1beta1 and is intentionally dropped.
-	return autoConvert_v1beta2_InterfacesSpec_To_v1beta1_InterfacesSpec(in, out, s)
-}
-
 func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *vmwarev1.VSphereMachineStatus, out *VSphereMachineStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in, out, s); err != nil {
 		return err

@@ -370,9 +370,21 @@ func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clust
 			if !conditions.IsTrue(&member, vmoprvhub.VirtualMachineGroupMemberConditionPlacementReady) {
 				continue
 			}
+
+			// For VM which go through placement process, final placement decision will be stored in member.Placement, including Zone info.
 			if member.Placement != nil && member.Placement.Zone != "" {
 				log.Info(fmt.Sprintf("MachineDeployment %s has been placed to failure domain %s", md.Name, member.Placement.Zone), "MachineDeployment", klog.KObj(&md))
 				machineDeploymentToFailureDomainMapping[md.Name] = member.Placement.Zone
+				break
+			}
+
+			// For VM which didn't go through placement process, for e.g. VM created before it becomes a member of VMG, there's a contract with VM Service that
+			// Zone info will be stored in the PlacementReady condition's message field.
+			// Refer to: https://github.com/vmware-tanzu/vm-operator/pull/1388, https://github.com/vmware-tanzu/vm-operator/pull/1392
+			placementCondition := conditions.Get(&member, vmoprvhub.VirtualMachineGroupMemberConditionPlacementReady)
+			if placementCondition != nil && placementCondition.Reason == "AlreadyPlaced" && placementCondition.Message != "" {
+				log.Info(fmt.Sprintf("MachineDeployment %s is already placed to failure domain %s", md.Name, placementCondition.Message), "MachineDeployment", klog.KObj(&md))
+				machineDeploymentToFailureDomainMapping[md.Name] = placementCondition.Message
 				break
 			}
 		}

@@ -47,7 +47,7 @@ var (
 	testEnv       *envtest.Environment
 	restConfig    *rest.Config
 	ctx, cancel   = context.WithCancel(context.Background())
-	clusterAPIDir = findModuleDir("sigs.k8s.io/cluster-api")
+	clusterAPIDir = findModuleDir(ctx, "sigs.k8s.io/cluster-api")
 )
 
 func init() {
@@ -109,8 +109,8 @@ var _ = AfterSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 })
 
-func findModuleDir(module string) string {
-	cmd := exec.Command("go", "list", "-json", "-m", module)
+func findModuleDir(ctx context.Context, module string) string {
+	cmd := exec.CommandContext(ctx, "go", "list", "-json", "-m", module)
 	out, err := cmd.Output()
 	if err != nil {
 		klog.Fatalf("Failed to run go list to find module %q directory", module)

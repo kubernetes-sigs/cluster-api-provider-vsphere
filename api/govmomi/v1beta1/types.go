@@ -274,6 +274,19 @@ type VirtualMachineCloneSpec struct {
 	// Check the compatibility with the ESXi version before setting the value.
 	// +optional
 	MigrateEncryption MigrateEncryption `json:"migrateEncryption,omitempty"`
+
+	// cryptoKeyID is the crypto key id.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	CryptoKeyID string `json:"cryptoKeyID,omitempty"`
+
+	// cryptoProfile of the storage encryption policy to use with this
+	// Virtual Machine.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	CryptoProfile string `json:"cryptoProfile,omitempty"`
 }
 
 // VirtualMachineResources is the definition of the VM's cpu and memory

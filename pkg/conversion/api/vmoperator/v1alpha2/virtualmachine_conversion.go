@@ -167,7 +167,7 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 				// - DiskMode
 				// - SharingMode
 				// - UnitNumber
-				// - UnmanagedVolumeClaim
+				// - Removable
 			}
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
@@ -396,7 +396,7 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 				// - DiskMode
 				// - SharingMode
 				// - UnitNumber
-				// - UnmanagedVolumeClaim
+				// - Removable
 			}
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}

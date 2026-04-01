@@ -245,8 +245,8 @@ VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
 # VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
 # VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
 # note: this is the commit we are also importing in go.mod (replace with the actual tag as soon as a tagged release is available)
-VM_OPERATOR_COMMIT ?= 93918c59a71918f6395fd319fa4dd5b9a3f57e24
-VM_OPERATOR_VERSION ?= v1.9.0-567-g93918c59
+VM_OPERATOR_COMMIT ?= 856fecea3786351fcc5f714cff962c772bc05370
+VM_OPERATOR_VERSION ?= v1.9.0-899-g856fecea
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
 VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
@@ -959,7 +959,7 @@ generate-manifests-vm-operator-v1.8.6-0-gde75746a:
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
 	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
-generate-manifests-vm-operator-v1.9.0-567-g93918c59:
+generate-manifests-vm-operator-v1.9.0-899-g856fecea:
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
 	make kustomize-wcp
 	@cd "$(ROOT_DIR)"
@@ -977,7 +977,7 @@ docker-build-vm-operator-vm-operator-v1.8.6-0-gde75746a:
 	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) GOARCH=amd64 docker-build
 	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-arm64 IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) GOARCH=arm64 docker-build
 
-docker-build-vm-operator-vm-operator-v1.9.0-567-g93918c59:
+docker-build-vm-operator-vm-operator-v1.9.0-899-g856fecea:
 	@if [ -z "${VM_OPERATOR_IMAGE_TAG}" ]; then echo "VM_OPERATOR_IMAGE_TAG is not set"; exit 1; fi
 	cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
 	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_FILE=artifacts/vm-operator-amd64.tar make image-build-amd64; \

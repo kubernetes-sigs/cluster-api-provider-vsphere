@@ -65,10 +65,11 @@ func convert_v1alpha2_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 					m.Placement.Datastores = []vmoprvhub.VirtualMachineGroupPlacementDatastoreStatus{}
 					for _, datastore := range member.Placement.Datastores {
 						d := vmoprvhub.VirtualMachineGroupPlacementDatastoreStatus{
-							Name:                 datastore.Name,
-							ID:                   datastore.ID,
-							URL:                  datastore.URL,
-							SupportedDiskFormats: datastore.SupportedDiskFormats,
+							Name:                            datastore.Name,
+							ID:                              datastore.ID,
+							URL:                             datastore.URL,
+							SupportedDiskFormats:            datastore.SupportedDiskFormats,
+							TopLevelDirectoryCreateSupported: datastore.TopLevelDirectoryCreateSupported,
 						}
 						if datastore.DiskKey != nil {
 							d.DiskKey = ptr.To(*datastore.DiskKey)
@@ -131,10 +132,11 @@ func convert_hub_VirtualMachineGroup_To_v1alpha2_VirtualMachineGroup(_ context.C
 					m.Placement.Datastores = []vmoprv1alpha2.VirtualMachineGroupPlacementDatastoreStatus{}
 					for _, datastore := range member.Placement.Datastores {
 						d := vmoprv1alpha2.VirtualMachineGroupPlacementDatastoreStatus{
-							Name:                 datastore.Name,
-							ID:                   datastore.ID,
-							URL:                  datastore.URL,
-							SupportedDiskFormats: datastore.SupportedDiskFormats,
+							Name:                            datastore.Name,
+							ID:                              datastore.ID,
+							URL:                             datastore.URL,
+							SupportedDiskFormats:            datastore.SupportedDiskFormats,
+							TopLevelDirectoryCreateSupported: datastore.TopLevelDirectoryCreateSupported,
 						}
 						if datastore.DiskKey != nil {
 							d.DiskKey = ptr.To(*datastore.DiskKey)

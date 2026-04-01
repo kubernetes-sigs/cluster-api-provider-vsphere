@@ -18,7 +18,7 @@ images:
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-test-extension-{ARCH}:dev
     loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.9.0-567-g93918c59
+  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.9.0-899-g856fecea
     loadBehavior: tryLoad
 
 providers:
@@ -253,9 +253,9 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: v1.9.0-567-g93918c59
+      - name: v1.9.0-899-g856fecea
         # Use manifest from source files
-        value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-v1.9.0-567-g93918c59.yaml"
+        value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-v1.9.0-899-g856fecea.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/vmoperator/v1.9/metadata.yaml"

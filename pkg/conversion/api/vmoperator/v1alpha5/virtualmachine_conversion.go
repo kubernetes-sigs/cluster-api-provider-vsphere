@@ -154,29 +154,25 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 						ReadOnly:  volume.PersistentVolumeClaim.ReadOnly,
 					},
 				}
-				v.PersistentVolumeClaim.ApplicationType = vmoprvhub.VolumeApplicationType(volume.PersistentVolumeClaim.ApplicationType)
-				if volume.PersistentVolumeClaim.ControllerBusNumber != nil {
-					v.PersistentVolumeClaim.ControllerBusNumber = ptr.To(*volume.PersistentVolumeClaim.ControllerBusNumber)
-				}
-				v.PersistentVolumeClaim.ControllerType = vmoprvhub.VirtualControllerType(volume.PersistentVolumeClaim.ControllerType)
-				v.PersistentVolumeClaim.DiskMode = vmoprvhub.VolumeDiskMode(volume.PersistentVolumeClaim.DiskMode)
 				if volume.PersistentVolumeClaim.InstanceVolumeClaim != nil {
 					v.PersistentVolumeClaim.InstanceVolumeClaim = &vmoprvhub.InstanceVolumeClaimVolumeSource{
 						StorageClass: volume.PersistentVolumeClaim.InstanceVolumeClaim.StorageClass,
 						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
 					}
 				}
-				v.PersistentVolumeClaim.SharingMode = vmoprvhub.VolumeSharingMode(volume.PersistentVolumeClaim.SharingMode)
-				if volume.PersistentVolumeClaim.UnitNumber != nil {
-					v.PersistentVolumeClaim.UnitNumber = ptr.To(*volume.PersistentVolumeClaim.UnitNumber)
-				}
-				if volume.PersistentVolumeClaim.UnmanagedVolumeClaim != nil {
-					v.PersistentVolumeClaim.UnmanagedVolumeClaim = &vmoprvhub.UnmanagedVolumeClaimVolumeSource{
-						Type: vmoprvhub.UnmanagedVolumeClaimVolumeType(volume.PersistentVolumeClaim.UnmanagedVolumeClaim.Type),
-						Name: volume.PersistentVolumeClaim.UnmanagedVolumeClaim.Name,
-						UUID: volume.PersistentVolumeClaim.UnmanagedVolumeClaim.UUID,
-					}
-				}
+			}
+			if volume.Removable != nil {
+				v.Removable = ptr.To(*volume.Removable)
+			}
+			v.ApplicationType = vmoprvhub.VolumeApplicationType(volume.ApplicationType)
+			if volume.ControllerBusNumber != nil {
+				v.ControllerBusNumber = ptr.To(*volume.ControllerBusNumber)
+			}
+			v.ControllerType = vmoprvhub.VirtualControllerType(volume.ControllerType)
+			v.DiskMode = vmoprvhub.VolumeDiskMode(volume.DiskMode)
+			v.SharingMode = vmoprvhub.VolumeSharingMode(volume.SharingMode)
+			if volume.UnitNumber != nil {
+				v.UnitNumber = ptr.To(*volume.UnitNumber)
 			}
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
@@ -392,29 +388,25 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 						ReadOnly:  volume.PersistentVolumeClaim.ReadOnly,
 					},
 				}
-				v.PersistentVolumeClaim.ApplicationType = vmoprv1alpha5.VolumeApplicationType(volume.PersistentVolumeClaim.ApplicationType)
-				if volume.PersistentVolumeClaim.ControllerBusNumber != nil {
-					v.PersistentVolumeClaim.ControllerBusNumber = ptr.To(*volume.PersistentVolumeClaim.ControllerBusNumber)
-				}
-				v.PersistentVolumeClaim.ControllerType = vmoprv1alpha5.VirtualControllerType(volume.PersistentVolumeClaim.ControllerType)
-				v.PersistentVolumeClaim.DiskMode = vmoprv1alpha5.VolumeDiskMode(volume.PersistentVolumeClaim.DiskMode)
 				if volume.PersistentVolumeClaim.InstanceVolumeClaim != nil {
 					v.PersistentVolumeClaim.InstanceVolumeClaim = &vmoprv1alpha5.InstanceVolumeClaimVolumeSource{
 						StorageClass: volume.PersistentVolumeClaim.InstanceVolumeClaim.StorageClass,
 						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
 					}
 				}
-				v.PersistentVolumeClaim.SharingMode = vmoprv1alpha5.VolumeSharingMode(volume.PersistentVolumeClaim.SharingMode)
-				if volume.PersistentVolumeClaim.UnitNumber != nil {
-					v.PersistentVolumeClaim.UnitNumber = ptr.To(*volume.PersistentVolumeClaim.UnitNumber)
-				}
-				if volume.PersistentVolumeClaim.UnmanagedVolumeClaim != nil {
-					v.PersistentVolumeClaim.UnmanagedVolumeClaim = &vmoprv1alpha5.UnmanagedVolumeClaimVolumeSource{
-						Type: vmoprv1alpha5.UnmanagedVolumeClaimVolumeType(volume.PersistentVolumeClaim.UnmanagedVolumeClaim.Type),
-						Name: volume.PersistentVolumeClaim.UnmanagedVolumeClaim.Name,
-						UUID: volume.PersistentVolumeClaim.UnmanagedVolumeClaim.UUID,
-					}
-				}
+			}
+			if volume.Removable != nil {
+				v.Removable = ptr.To(*volume.Removable)
+			}
+			v.ApplicationType = vmoprv1alpha5.VolumeApplicationType(volume.ApplicationType)
+			if volume.ControllerBusNumber != nil {
+				v.ControllerBusNumber = ptr.To(*volume.ControllerBusNumber)
+			}
+			v.ControllerType = vmoprv1alpha5.VirtualControllerType(volume.ControllerType)
+			v.DiskMode = vmoprv1alpha5.VolumeDiskMode(volume.DiskMode)
+			v.SharingMode = vmoprv1alpha5.VolumeSharingMode(volume.SharingMode)
+			if volume.UnitNumber != nil {
+				v.UnitNumber = ptr.To(*volume.UnitNumber)
 			}
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}

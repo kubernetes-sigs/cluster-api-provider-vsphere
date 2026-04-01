@@ -4,7 +4,7 @@ go 1.25.0
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-beta.1
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.13.0-beta.0
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.13.0-beta.1
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 

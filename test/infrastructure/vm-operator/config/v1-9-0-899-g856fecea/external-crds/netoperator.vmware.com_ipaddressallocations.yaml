@@ -1,0 +1,116 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: ipaddressallocations.netoperator.vmware.com
+spec:
+  group: netoperator.vmware.com
+  names:
+    kind: IPAddressAllocation
+    listKind: IPAddressAllocationList
+    plural: ipaddressallocations
+    singular: ipaddressallocation
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: IPAddressAllocation represents a request for IP address allocation,
+          including the desired state and current status.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: IPAddressAllocationSpec defines the desired state of an IPAddressAllocation,
+              including the pool reference and an optional requested IP.
+            properties:
+              poolRef:
+                description: |-
+                  PoolRef is the reference to the network's IP pool within the namespace.
+                  It currently only supports reference to a Network.
+                properties:
+                  apiGroup:
+                    description: |-
+                      APIGroup is the group for the resource being referenced.
+                      If APIGroup is not specified, the specified Kind must be in the core API group.
+                      For any other third-party types, APIGroup is required.
+                    type: string
+                  kind:
+                    description: Kind is the type of resource being referenced
+                    type: string
+                  name:
+                    description: Name is the name of resource being referenced
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+                x-kubernetes-map-type: atomic
+              requestedIP:
+                description: |-
+                  RequestedIP is an optional field for a user to specify a particular IP they want to request.
+                  If omitted, the system will allocate a single IP address.
+                type: string
+            required:
+            - poolRef
+            type: object
+          status:
+            description: IPAddressAllocationStatus contains the current status of
+              an IPAddressAllocation, including the allocated IP address and conditions.
+            properties:
+              conditions:
+                description: Conditions provide detailed information about the status
+                  of the allocation.
+                items:
+                  description: IPAddressAllocationCondition describes the state of
+                    an IPAddressAllocation at a specific point in time.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the timestamp of the last
+                        change to the condition's status.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message provides a human-readable explanation for
+                        the last status transition.
+                      type: string
+                    reason:
+                      description: Reason provides a machine-readable explanation
+                        for the last status transition.
+                      type: string
+                    status:
+                      description: Status reflects whether the condition is True,
+                        False, or Unknown.
+                      type: string
+                    type:
+                      description: Type is the type of the condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              ipaddress:
+                description: IPAddress is the actually allocated IP address.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true

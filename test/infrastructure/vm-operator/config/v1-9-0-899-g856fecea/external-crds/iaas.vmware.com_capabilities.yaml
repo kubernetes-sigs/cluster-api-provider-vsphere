@@ -1,0 +1,270 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: capabilities.iaas.vmware.com
+spec:
+  group: iaas.vmware.com
+  names:
+    kind: Capabilities
+    listKind: CapabilitiesList
+    plural: capabilities
+    singular: capabilities
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Capabilities may be summarized as follows:
+          1. Supervisor capabilities are exposed at the supervisor level to identify the new functionality added to Supervisor. Any supervisor service can have its local set of capabilities that may or may not rely on the supervisor capabilities. If a supervisor service needs an infrastructure change, then a capability to be defined at the supervisor level and then define VC-level capability if VC changes are required.
+          2. Supervisor capability can exist independently or depend on Kubernetes versions and/or VC capabilities.
+          3. The supervisor capabilities specification defines supervisor-level capabilities and their dependencies (if any) with Kubernetes version and VC capabilities. Each capability will transition through the states enable=false --> enable=true --> (enable=true, activated=false) --> (enable=true, activated=true) --> Deprecate. The enable status is statically set in-house at the time of feature completion, and the activated state is evaluated at runtime during supervisor install and upgrade. To define such a structure, a CRD is helpful and will be extensible for future use cases. Evaluation of the activated state is performed in WCP Service as it is needed to find feature incompatibilities with infrastructure. IaaS controllers will use the activated state to turn on the new functionality.
+          4. A static supervisor capabilities file will exist in CSP for component owners to start their feature development, or component owners can also come up with a capability patch managed in their component SCM repository. The CSP build will merge all the documents into a single manifest YAML.
+          5. The supervisor capabilities manifest YAML is distributed along with an async release for WCP Service to find feature incompatibilities and evaluate the activated state and then update the state during supervisor install and upgrade.
+          A supervisor service would re-release a new patch if one of its local capability runs into issue.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CapabilitiesSpec defines the overall infra and supervisor
+              capabilities
+            properties:
+              infra:
+                description: InfraCapabilities Infrastructure capabilities. This structure
+                  include all the VCenter capabilities.
+                items:
+                  description: Capability represents a feature and its specification
+                    (enablement status, activation rules, user facing).
+                  properties:
+                    activatedWhenRule:
+                      description: |-
+                        ActivatedWhenRule is the CEL-Go(https://github.com/google/cel-go?tab=readme-ov-file) rule(s) that helps in computing the effective status of the supervisor capability at runtime.
+                        If ActivatedWhenRule is not specified, that means the supervisor capability is not dependent on infra(VC) or Service capabilities.
+                        In that case, Supervisor Capability enabled value will be considered as effective activated status value.
+                      type: string
+                    activationRule:
+                      description: |-
+                        ActivationRule is the CEL-Go(https://github.com/google/cel-go?tab=readme-ov-file) rule(s) that helps in computing the effective status of the supervisor capability at runtime.
+                        If ActivationRule is not specified, that means the supervisor capability is not dependent on infra(VC) or Service capabilities.
+                        In that case, Supervisor Capability enabled value will be considered as effective activated status value.
+                      type: string
+                    description:
+                      description: Description of the capability
+                      type: string
+                    enabled:
+                      default: false
+                      description: Enabled represents if the capability is enabled
+                        or not. This is a build time status, and it need not necessarily
+                        mean its activated.
+                      type: boolean
+                    name:
+                      description: Name of the capability. For e.g. supports_supervisor_async_upgrade
+                      type: string
+                    type:
+                      description: Type of the capability (optional), it can be VCenter
+                        or Supervisor
+                      enum:
+                      - VCenter
+                      - Supervisor
+                      - Service
+                      type: string
+                    userFacing:
+                      default: false
+                      description: UserFacing represents if the capability is user
+                        facing or not.
+                      type: boolean
+                  required:
+                  - enabled
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              services:
+                description: ServiceCapabilities contains all the Supervisor Service
+                  capabilities.
+                items:
+                  description: ServiceCapability defines the overall capabilities
+                    presented by a Supervisor Service.
+                  properties:
+                    capabilities:
+                      description: Capabilities contains a list of the all the Capability
+                        specifications provided by the Service.
+                      items:
+                        description: Capability represents a feature and its specification
+                          (enablement status, activation rules, user facing).
+                        properties:
+                          activatedWhenRule:
+                            description: |-
+                              ActivatedWhenRule is the CEL-Go(https://github.com/google/cel-go?tab=readme-ov-file) rule(s) that helps in computing the effective status of the supervisor capability at runtime.
+                              If ActivatedWhenRule is not specified, that means the supervisor capability is not dependent on infra(VC) or Service capabilities.
+                              In that case, Supervisor Capability enabled value will be considered as effective activated status value.
+                            type: string
+                          activationRule:
+                            description: |-
+                              ActivationRule is the CEL-Go(https://github.com/google/cel-go?tab=readme-ov-file) rule(s) that helps in computing the effective status of the supervisor capability at runtime.
+                              If ActivationRule is not specified, that means the supervisor capability is not dependent on infra(VC) or Service capabilities.
+                              In that case, Supervisor Capability enabled value will be considered as effective activated status value.
+                            type: string
+                          description:
+                            description: Description of the capability
+                            type: string
+                          enabled:
+                            default: false
+                            description: Enabled represents if the capability is enabled
+                              or not. This is a build time status, and it need not
+                              necessarily mean its activated.
+                            type: boolean
+                          name:
+                            description: Name of the capability. For e.g. supports_supervisor_async_upgrade
+                            type: string
+                          type:
+                            description: Type of the capability (optional), it can
+                              be VCenter or Supervisor
+                            enum:
+                            - VCenter
+                            - Supervisor
+                            - Service
+                            type: string
+                          userFacing:
+                            default: false
+                            description: UserFacing represents if the capability is
+                              user facing or not.
+                            type: boolean
+                        required:
+                        - enabled
+                        - name
+                        type: object
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - name
+                      x-kubernetes-list-type: map
+                    serviceID:
+                      description: ServiceID is the service's ID.
+                      type: string
+                  required:
+                  - serviceID
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - serviceID
+                x-kubernetes-list-type: map
+              supervisor:
+                description: |-
+                  SupervisorCapabilities Supervisor cluster capabilities. This structure will include all the Supervisor cluster level capabilities that
+                  exist either independently or depend on the infrastructure or service capabilities.
+                items:
+                  description: Capability represents a feature and its specification
+                    (enablement status, activation rules, user facing).
+                  properties:
+                    activatedWhenRule:
+                      description: |-
+                        ActivatedWhenRule is the CEL-Go(https://github.com/google/cel-go?tab=readme-ov-file) rule(s) that helps in computing the effective status of the supervisor capability at runtime.
+                        If ActivatedWhenRule is not specified, that means the supervisor capability is not dependent on infra(VC) or Service capabilities.
+                        In that case, Supervisor Capability enabled value will be considered as effective activated status value.
+                      type: string
+                    activationRule:
+                      description: |-
+                        ActivationRule is the CEL-Go(https://github.com/google/cel-go?tab=readme-ov-file) rule(s) that helps in computing the effective status of the supervisor capability at runtime.
+                        If ActivationRule is not specified, that means the supervisor capability is not dependent on infra(VC) or Service capabilities.
+                        In that case, Supervisor Capability enabled value will be considered as effective activated status value.
+                      type: string
+                    description:
+                      description: Description of the capability
+                      type: string
+                    enabled:
+                      default: false
+                      description: Enabled represents if the capability is enabled
+                        or not. This is a build time status, and it need not necessarily
+                        mean its activated.
+                      type: boolean
+                    name:
+                      description: Name of the capability. For e.g. supports_supervisor_async_upgrade
+                      type: string
+                    type:
+                      description: Type of the capability (optional), it can be VCenter
+                        or Supervisor
+                      enum:
+                      - VCenter
+                      - Supervisor
+                      - Service
+                      type: string
+                    userFacing:
+                      default: false
+                      description: UserFacing represents if the capability is user
+                        facing or not.
+                      type: boolean
+                  required:
+                  - enabled
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+            type: object
+          status:
+            description: Status represents the final computed supervisor capabilities
+              (based on infra and supervisor)
+            properties:
+              services:
+                additionalProperties:
+                  additionalProperties:
+                    description: CapabilityStatus represents capability status for
+                      given capability
+                    properties:
+                      activated:
+                        description: Activated status represents the effective supervisor
+                          capability that decides whether the supervisor supports
+                          the capability or not
+                        type: boolean
+                    required:
+                    - activated
+                    type: object
+                  type: object
+                description: Services map of service to service capability to its
+                  activated status.
+                type: object
+              supervisor:
+                additionalProperties:
+                  description: CapabilityStatus represents capability status for given
+                    capability
+                  properties:
+                    activated:
+                      description: Activated status represents the effective supervisor
+                        capability that decides whether the supervisor supports the
+                        capability or not
+                      type: boolean
+                  required:
+                  - activated
+                  type: object
+                description: Supervisor map of supervisor capability to its activated
+                  status
+                type: object
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

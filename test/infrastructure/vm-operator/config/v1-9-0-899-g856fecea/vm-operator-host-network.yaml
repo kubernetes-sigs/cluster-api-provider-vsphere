@@ -1,0 +1,10 @@
+# Set hostNetwork: false because we are running out of the supervisor
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmware-system-vmop-controller-manager
+  namespace: vmware-system-vmop
+spec:
+  template:
+    spec:
+      hostNetwork: false

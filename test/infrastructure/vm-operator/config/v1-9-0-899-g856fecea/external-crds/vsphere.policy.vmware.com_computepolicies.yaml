@@ -1,0 +1,348 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: computepolicies.vsphere.policy.vmware.com
+spec:
+  group: vsphere.policy.vmware.com
+  names:
+    kind: ComputePolicy
+    listKind: ComputePolicyList
+    plural: computepolicies
+    singular: computepolicy
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.enforcementMode
+      name: Enforcement-Mode
+      type: string
+    - jsonPath: .spec.description
+      name: Description
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ComputePolicy is the schema for the ComputePolicy API and
+          represents the desired state and observed status of a ComputePolicy
+          resource.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ComputePolicySpec defines the desired state of ComputePolicy.
+            properties:
+              description:
+                description: Description specifies the desired description of the
+                  policy.
+                type: string
+              enforcementMode:
+                default: Mandatory
+                description: |-
+                  EnforcementMode specifies how the policy is enforced.
+
+                  The valid modes include: Mandatory and Optional.
+                enum:
+                - Mandatory
+                - Optional
+                type: string
+              match:
+                description: |-
+                  Match is used to match workloads to which this policy should be applied.
+
+                  A mandatory policy with this field unset is applied to all workloads in
+                  the namespace.
+                properties:
+                  image:
+                    description: Image matches information about the image used by
+                      the workload.
+                    properties:
+                      labels:
+                        description: Labels matches labels on the image.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                      name:
+                        description: Name matches the image name.
+                        properties:
+                          op:
+                            default: Equal
+                            description: Op describes the operation performed against
+                              the specified value.
+                            enum:
+                            - Equal
+                            - NotEqual
+                            - Contains
+                            - NotContains
+                            - HasPrefix
+                            - NotHasPrefix
+                            - HasSuffix
+                            - NotHasSuffix
+                            - Match
+                            - NotMatch
+                            type: string
+                          value:
+                            description: Value describes the subject of the evaluation.
+                            type: string
+                        type: object
+                    type: object
+                  match:
+                    description: |-
+                      Match describes additional matchers that are evaluated using the boolean
+                      operation described by the op field.
+                    x-kubernetes-preserve-unknown-fields: true
+                  op:
+                    default: And
+                    description: |-
+                      Op describes the boolean operation used to evaluate the elements from
+                      the match field.
+
+                      Please note, this field does *not* apply to the image and workload
+                      fields. They are *always* boolean And'd together with the results of the
+                      match field.
+
+                      The default operation is a boolean And.
+                    enum:
+                    - And
+                    - Or
+                    type: string
+                  workload:
+                    description: Workload matches information about the workload.
+                    properties:
+                      guest:
+                        description: Guest matches information about the workload's
+                          guest operating system.
+                        properties:
+                          guestFamily:
+                            description: |-
+                              GuestFamily matches the workload's guest family.
+                              Valid values are: Darwin, Linux, Netware, Other, Solaris, and Windows.
+                            properties:
+                              op:
+                                default: Equal
+                                description: Op describes the operation performed
+                                  against the specified value.
+                                enum:
+                                - Equal
+                                - NotEqual
+                                - Contains
+                                - NotContains
+                                - HasPrefix
+                                - NotHasPrefix
+                                - HasSuffix
+                                - NotHasSuffix
+                                - Match
+                                - NotMatch
+                                type: string
+                              value:
+                                description: Value describes the subject of the evaluation.
+                                enum:
+                                - Darwin
+                                - Linux
+                                - Netware
+                                - Other
+                                - Solaris
+                                - Windows
+                                type: string
+                            type: object
+                          guestID:
+                            description: |-
+                              GuestID matches the workload's guest ID.
+
+                              Please the following location for the valid values:
+                              https://developer.broadcom.com/xapis/vsphere-web-services-api/latest/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html.
+                            properties:
+                              op:
+                                default: Equal
+                                description: Op describes the operation performed
+                                  against the specified value.
+                                enum:
+                                - Equal
+                                - NotEqual
+                                - Contains
+                                - NotContains
+                                - HasPrefix
+                                - NotHasPrefix
+                                - HasSuffix
+                                - NotHasSuffix
+                                - Match
+                                - NotMatch
+                                type: string
+                              value:
+                                description: Value describes the subject of the evaluation.
+                                type: string
+                            type: object
+                        type: object
+                      kind:
+                        description: |-
+                          Kind describes the kind of workload to match.
+                          Valid values are Pod and VirtualMachine.
+                          Omitting this field is also valid, which means all kinds are matched.
+                        enum:
+                        - Pod
+                        - VirtualMachine
+                        type: string
+                      labels:
+                        description: Labels matches labels on the workload in question.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              policyID:
+                description: |-
+                  PolicyID specifies the ID of the underlying vSphere compute policy, if
+                  one is associated with this IaaS object.
+                type: string
+              tags:
+                description: |-
+                  Tags specifies the names of the TagPolicy objects in the same namespace
+                  that contain the information about the vSphere tags used to activate this
+                  policy.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+            type: object
+          status:
+            description: ComputePolicyStatus defines the observed state of ComputePolicy.
+            properties:
+              conditions:
+                description: Conditions describes any conditions associated with this
+                  object.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                description: |-
+                  ObservedGeneration describes the value of the metadata.generation field
+                  the last time this object was reconciled by its primary controller.
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

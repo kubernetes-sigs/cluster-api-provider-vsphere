@@ -1,0 +1,88 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: cnsnodevmattachments.cns.vmware.com
+spec:
+  group: cns.vmware.com
+  names:
+    kind: CnsNodeVmAttachment
+    listKind: CnsNodeVmAttachmentList
+    plural: cnsnodevmattachments
+    singular: cnsnodevmattachment
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: CnsNodeVmAttachment is the Schema for the cnsnodevmattachments
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CnsNodeVmAttachmentSpec defines the desired state of CnsNodeVmAttachment
+            properties:
+              nodeuuid:
+                description: |-
+                  NodeUUID indicates the UUID of the node where the volume needs to be attached to.
+                  Here NodeUUID is the bios UUID of the node.
+                type: string
+              volumename:
+                description: |-
+                  VolumeName indicates the name of the volume on the supervisor Cluster.
+                  This is guaranteed to be unique in Supervisor cluster.
+                type: string
+            required:
+            - nodeuuid
+            - volumename
+            type: object
+          status:
+            description: CnsNodeVmAttachmentStatus defines the observed state of CnsNodeVmAttachment
+            properties:
+              attached:
+                description: |-
+                  Indicates the volume is successfully attached.
+                  This field must only be set by the entity completing the attach
+                  operation, i.e. the CNS Operator.
+                type: boolean
+              error:
+                description: |-
+                  The last error encountered during attach/detach operation, if any.
+                  This field must only be set by the entity completing the attach
+                  operation, i.e. the CNS Operator.
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Before successful attach, this field is populated with CNS volume ID.
+                  Upon successful attach, this field is populated with any information
+                  returned by the attach operation. This field must only be set by the entity
+                  completing the attach operation, i.e. the CNS Operator
+                type: object
+            required:
+            - attached
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

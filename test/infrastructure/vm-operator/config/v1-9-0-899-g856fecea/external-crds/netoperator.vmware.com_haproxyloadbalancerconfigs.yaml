@@ -1,0 +1,103 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: haproxyloadbalancerconfigs.netoperator.vmware.com
+spec:
+  group: netoperator.vmware.com
+  names:
+    kind: HAProxyLoadBalancerConfig
+    listKind: HAProxyLoadBalancerConfigList
+    plural: haproxyloadbalancerconfigs
+    singular: haproxyloadbalancerconfig
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HAProxyLoadBalancerConfig is the Schema for the HAProxyLoadBalancerConfigs
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              HAProxyLoadBalancerConfigSpec defines the configuration for an HAProxyLoadBalancerConfig instance.
+              The spec is used to configure the HAProxyLoadBalancer instance to correctly route traffic to services.
+              This spec supports HAProxyLoadBalancerConfig Dataplane API 2.0+ sidecar
+            properties:
+              credentialSecretRef:
+                description: "CredentialSecretRef is an object name of kind Secret.\nIt
+                  will be used to access and configure the HAProxy load balancer DataPlane
+                  API servers.\nThe following fields are optional:\n\n* certificateAuthorityData
+                  - CertificateAuthorityData contains PEM-encoded certificate authority
+                  certificates.\n\n* clientCertificateData - ClientCertificateData
+                  contains PEM-encoded data from a client cert file.\n\n* clientKeyData
+                  - ClientKeyData contains PEM-encoded data from a client key file
+                  for TLS.\n\n* username - Username is the username for basic authentication.
+                  Defaults to \"client\".\n\n* password - Password is the password
+                  for basic authentication. Defaults to \"cert\".\n\nSample of a secret:\n\napiVersion:
+                  v1\nkind: Secret\nmetadata:\nname: haproxy-lb-config\nnamespace:
+                  vmware-system-netop\ndata:\n\t certificateAuthorityData: <base64_Encoded>\n\t
+                  clientCertificateData: <base64_Encoded>\n\t clientKeyData: <base64_Encoded>\n
+                  \ username: <base64_Encoded>\n  password: <base64_Encoded>"
+                properties:
+                  name:
+                    description: Name is the name of resource being referenced.
+                    type: string
+                  namespace:
+                    default: default
+                    description: Namespace of the resource being referenced. If empty,
+                      cluster scoped resource is assumed.
+                    type: string
+                required:
+                - name
+                type: object
+              endPointURLs:
+                description: |-
+                  EndPointURLs is a list of the addresses for the DataPlane API servers used
+                  to configure HAProxy.
+                  One or more DataPlane API endpoints are possible due to the following topologies:
+                  Single Node Topology
+                  Multi-Node Active/Passive Topology
+                  The strings should include the host, port, and API version, ex.:
+                  https://hostname:port/v1
+                items:
+                  type: string
+                minItems: 1
+                type: array
+              serverName:
+                description: |-
+                  ServerName is used to verify the hostname on the returned
+                  certificates. It is also included
+                  in the client's handshake to support virtual hosting unless it is
+                  an IP address.
+                  Defaults to the host part parsed from Server
+                type: string
+            required:
+            - endPointURLs
+            type: object
+          status:
+            description: HAProxyLoadBalancerConfigStatus is unused. This is because
+              HAProxyLoadBalancerConfig is purely a configuration resource
+            type: object
+        type: object
+    served: true
+    storage: true

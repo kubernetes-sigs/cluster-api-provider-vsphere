@@ -1,0 +1,651 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: contentlibraryitemimportrequests.imageregistry.vmware.com
+spec:
+  group: imageregistry.vmware.com
+  names:
+    kind: ContentLibraryItemImportRequest
+    listKind: ContentLibraryItemImportRequestList
+    plural: contentlibraryitemimportrequests
+    shortNames:
+    - libitemimport
+    singular: contentlibraryitemimportrequest
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.target.library.name
+      name: ContentLibraryRef
+      type: string
+    - jsonPath: .status.itemRef.name
+      name: ContentLibraryItemRef
+      type: string
+    - jsonPath: .status.conditions[?(.type=='Complete')].status
+      name: Ready
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ContentLibraryItemImportRequest defines the information necessary to import a VM image
+          template as a ContentLibraryItem to a Content Library in vSphere.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ContentLibraryItemImportRequestSpec defines the desired state of a
+              ContentLibraryItemImportRequest.
+            properties:
+              source:
+                description: |-
+                  Source is the source of the import request which includes an external URL
+                  pointing to a VM image template.
+                  Source and Target will be immutable if the SourceValid and TargetValid conditions are true.
+                properties:
+                  checksum:
+                    description: |-
+                      Checksum contains the checksum algorithm and value calculated for the
+                      file specified in the URL. If omitted, the import request will not verify
+                      the checksum of the file.
+                    properties:
+                      algorithm:
+                        default: SHA256
+                        description: |-
+                          Algorithm is the algorithm used to calculate the checksum. Supported
+                          algorithms are "SHA256" and "SHA512". If omitted, "SHA256" will be used
+                          as the default algorithm.
+                        enum:
+                        - SHA256
+                        - SHA512
+                        type: string
+                      value:
+                        description: Value is the checksum value calculated by the
+                          specified algorithm.
+                        type: string
+                    required:
+                    - value
+                    type: object
+                  sslCertificate:
+                    description: |-
+                      PEM encoded SSL Certificate for this endpoint specified by the URL. It is only used for HTTPS connections.
+                      If set, the remote endpoint's SSL certificate is only accepted if it matches this certificate, and no other
+                      certificate validation is performed.
+                      If unset, the remote endpoint's SSL certificate must be trusted by vSphere trusted root CA certificates,
+                      otherwise the SSL certification verification may fail and thus fail the import request.
+                    type: string
+                  url:
+                    description: |-
+                      URL is the endpoint that points to a file that is to be imported as a new Content Library Item in
+                      the target vSphere Content Library. If the target item type is ContentLibraryItemTypeOvf, the URL
+                      should point to an OVF descriptor file (.ovf), an OVA file (.ova), or an ISO file (.iso). Otherwise,
+                      the SourceValid condition will become false in the status.
+                    type: string
+                required:
+                - url
+                type: object
+              target:
+                description: |-
+                  Target is the target of the import request which includes the content library item
+                  information and a ContentLibrary resource.
+                  Source and Target will be immutable if the SourceValid and TargetValid conditions are true.
+                properties:
+                  item:
+                    description: |-
+                      Item contains information about the content library item to which
+                      the template will be imported in vSphere.
+                      If omitted, the content library item will be created with the same name as the name
+                      of the image specified in the spec.source.url in the specified vSphere Content Library.
+                      If an item with the same name already exists in the specified vSphere Content Library,
+                      the TargetValid condition will become false in the status.
+                    properties:
+                      description:
+                        description: Description is a description for a vSphere Content
+                          Library Item.
+                        type: string
+                      name:
+                        description: |-
+                          Name is the name of the new content library item that will be created in vSphere.
+                          If omitted, the content library item will be created with the same name as the name
+                          of the image specified in the spec.source.url in the specified vSphere Content Library.
+                          If an item with the same name already exists in the specified vSphere Content Library,
+                          the TargetValid condition will become false in the status.
+                        type: string
+                      type:
+                        description: |-
+                          Type is the type of the new content library item that will be created in vSphere.
+                          Currently only ContentLibraryItemTypeOvf is supported, if it is omitted or other item type
+                          is specified, the TargetValid condition will become false in the status. For the item type
+                          of ContentLibraryItemTypeOvf, it is required that the default OVF security policy is configured
+                          on the target content library for the import request, otherwise the TargetValid condition will
+                          become false in the status.
+                        type: string
+                    type: object
+                  library:
+                    description: |-
+                      Library contains information about the library in which the library item
+                      will be created in vSphere.
+                    properties:
+                      apiVersion:
+                        description: |-
+                          APIVersion defines the versioned schema of this representation of an
+                          object. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                        type: string
+                      kind:
+                        description: |-
+                          Kind is a string value representing the kind of resource to which this
+                          object refers.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                        type: string
+                      name:
+                        description: |-
+                          Name refers to a unique resource in the current namespace.
+                          More info: http://kubernetes.io/docs/user-guide/identifiers#names
+                        type: string
+                    required:
+                    - apiVersion
+                    - kind
+                    - name
+                    type: object
+                required:
+                - library
+                type: object
+              ttlSecondsAfterFinished:
+                description: |-
+                  TTLSecondsAfterFinished is the time-to-live duration for how long this
+                  resource will be allowed to exist once the import operation
+                  completes. After the TTL expires, the resource will be automatically
+                  deleted without the user having to take any direct action.
+                  If this field is unset then the request resource will not be
+                  automatically deleted. If this field is set to zero then the request
+                  resource is eligible for deletion immediately after it finishes.
+                format: int64
+                minimum: 0
+                type: integer
+            required:
+            - source
+            - target
+            type: object
+          status:
+            description: |-
+              ContentLibraryItemImportRequestStatus defines the observed state of a
+              ContentLibraryItemImportRequest.
+            properties:
+              completionTime:
+                description: |-
+                  CompletionTime represents time when the request was completed.
+                  The value of this field should be equal to the value of the
+                  LastTransitionTime for the status condition Type=Complete.
+                format: date-time
+                type: string
+              conditions:
+                description: |-
+                  Conditions describes the current condition information of the ContentLibraryItemImportRequest.
+                  The conditions present will be:
+                    * SourceValid
+                    * TargetValid
+                    * ContentLibraryItemCreated
+                    * TemplateUploaded
+                    * ContentLibraryItemReady
+                    * Complete
+                items:
+                  description: Condition defines an observation of an Image Registry
+                    Operator API resource operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              fileUploadStatus:
+                description: FileUpload indicates the upload status of files belonging
+                  to the template.
+                properties:
+                  fileUploads:
+                    description: FileUploads list the transfer statuses of files being
+                      uploaded and tracked by the upload session.
+                    items:
+                      description: FileTransferStatus indicates the transfer status
+                        of a file belonging to a library item.
+                      properties:
+                        bytesTransferred:
+                          description: BytesTransferred indicates the number of bytes
+                            of this file that have been received by the server.
+                          format: int64
+                          type: integer
+                        errorMessage:
+                          description: ErrorMessage describes the details about the
+                            transfer error if the transfer status is error.
+                          type: string
+                        name:
+                          description: Name specifies the name of the file that is
+                            transferred.
+                          type: string
+                        size:
+                          description: |-
+                            Size indicates the file size in bytes as received by the server, this won't be available
+                            until the transfer status is ready.
+                          format: int64
+                          type: integer
+                        transferStatus:
+                          description: Status indicates the transfer status of the
+                            file.
+                          type: string
+                      required:
+                      - name
+                      - transferStatus
+                      type: object
+                    type: array
+                  sessionUUID:
+                    description: SessionUUID is the identifier that uniquely identifies
+                      the file upload session on the library item in vSphere.
+                    type: string
+                required:
+                - sessionUUID
+                type: object
+              itemRef:
+                description: |-
+                  ItemRef is the reference to the target ContentLibraryItem resource of the import request.
+                  If the ContentLibraryItemImportRequest is deleted when the import operation fails or before
+                  the Complete condition is set to true, the import operation will be cancelled in vSphere
+                  and the corresponding vSphere Content Library Item will be deleted.
+                properties:
+                  apiVersion:
+                    description: |-
+                      APIVersion defines the versioned schema of this representation of an
+                      object. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                    type: string
+                  kind:
+                    description: |-
+                      Kind is a string value representing the kind of resource to which this
+                      object refers.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name refers to a unique resource in the current namespace.
+                      More info: http://kubernetes.io/docs/user-guide/identifiers#names
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                type: object
+              startTime:
+                description: |-
+                  StartTime represents time when the request was acknowledged by the
+                  controller.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .spec.target.libraryName
+      name: ContentLibraryRef
+      type: string
+    - jsonPath: .status.itemName
+      name: ContentLibraryItemRef
+      type: string
+    - jsonPath: .status.conditions[?(.type=='Complete')].status
+      name: Ready
+      type: string
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ContentLibraryItemImportRequest defines the information necessary to import a VM image
+          template as a ContentLibraryItem to a Content Library in vSphere.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ContentLibraryItemImportRequestSpec defines the desired state of a
+              ContentLibraryItemImportRequest.
+            properties:
+              source:
+                description: |-
+                  Source is the source of the import request which includes an external URL
+                  pointing to a VM image template.
+                  Source and Target will be immutable if the SourceValid and TargetValid
+                  conditions are true.
+                properties:
+                  checksum:
+                    description: |-
+                      Checksum contains the checksum algorithm and value calculated for the
+                      file specified in the URL. If omitted, the import request will not verify
+                      the checksum of the file.
+                    properties:
+                      algorithm:
+                        default: SHA256
+                        description: |-
+                          Algorithm is the algorithm used to calculate the checksum. Supported
+                          algorithms are "SHA256" and "SHA512". If omitted, "SHA256" will be used
+                          as the default algorithm.
+                        enum:
+                        - SHA256
+                        - SHA512
+                        type: string
+                      value:
+                        description: Value is the checksum value calculated by the
+                          specified algorithm.
+                        type: string
+                    required:
+                    - value
+                    type: object
+                  sslCertificate:
+                    description: |-
+                      PEM encoded SSL Certificate for this endpoint specified by the URL. It is
+                      only used for HTTPS connections.
+                      If set, the remote endpoint's SSL certificate is only accepted if it
+                      matches this certificate, and no other certificate validation is
+                      performed.
+                      If unset, the remote endpoint's SSL certificate must be trusted by
+                      vSphere trusted root CA certificates, otherwise the SSL certification
+                      verification may fail and thus fail the import request.
+                    type: string
+                  url:
+                    description: |-
+                      URL is the endpoint that points to a file that is to be imported as a new
+                      Content Library Item in the target vSphere Content Library. If the target
+                      item type is ContentLibraryItemTypeOvf, the URL should point to an OVF
+                      descriptor file (.ovf), an OVA file (.ova), or an ISO file (.iso).
+                      Otherwise, the SourceValid condition will become false in the status.
+                    type: string
+                required:
+                - url
+                type: object
+              target:
+                description: |-
+                  Target is the target of the import request which includes the content
+                  library item information and a ContentLibrary resource.
+                  Source and Target will be immutable if the SourceValid and TargetValid
+                  conditions are true.
+                properties:
+                  item:
+                    description: |-
+                      Item contains information about the library item to which the item will
+                      be imported in vSphere.
+
+                      If omitted, the library item will be created with the same name as the
+                      name of the image specified in the spec.source.url in the specified
+                      library.
+
+                      If an item with the same name already exists in the specified library,
+                      the TargetValid condition will be false.
+                    properties:
+                      description:
+                        description: Description is a description for a library item.
+                        type: string
+                      name:
+                        description: |-
+                          Name is the name of the new content library item that will be created
+                          in vSphere.
+                          If omitted, the content library item will be created with the same name
+                          as the name of the image specified in the spec.source.url in the
+                          specified library.
+                          If an item with the same name already exists in the specified library,
+                          the TargetValid condition will become false in the
+                          status.
+                        type: string
+                      type:
+                        description: |-
+                          Type is the type of the new library item that will be created.
+
+                          The valid types depend on the type of underlying library:
+                          - LibraryType=ContentLibrary -- OVF
+                          - LibraryType=ContentLibrary -- ISO
+
+                          If omitted or the type is invalid, the TargetValid condition will be
+                          false.
+
+                          For the item type OVF, the default OVF security policy must be configured
+                          on the target library, otherwise the TargetValid condition will be false.
+                        enum:
+                        - OVF
+                        - ISO
+                        - VM
+                        type: string
+                    type: object
+                  library:
+                    description: |-
+                      Library describes the name of the library in which the item will be
+                      created.
+                    type: string
+                required:
+                - library
+                type: object
+              ttlSecondsAfterFinished:
+                description: |-
+                  TTLSecondsAfterFinished is the time-to-live duration for how long this
+                  resource will be allowed to exist once the import operation
+                  completes. After the TTL expires, the resource will be automatically
+                  deleted without the user having to take any direct action.
+                  If this field is unset then the request resource will not be
+                  automatically deleted. If this field is set to zero then the request
+                  resource is eligible for deletion immediately after it finishes.
+                format: int64
+                minimum: 0
+                type: integer
+            required:
+            - source
+            - target
+            type: object
+          status:
+            description: |-
+              ContentLibraryItemImportRequestStatus defines the observed state of a
+              ContentLibraryItemImportRequest.
+            properties:
+              completionTime:
+                description: |-
+                  CompletionTime represents time when the request was completed.
+                  The value of this field should be equal to the value of the
+                  LastTransitionTime for the status condition Type=Complete.
+                format: date-time
+                type: string
+              conditions:
+                description: |-
+                  Conditions describes the current condition information of the
+                  ContentLibraryItemImportRequest.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              fileUploadStatus:
+                description: FileUpload indicates the upload status of files belonging
+                  to the template.
+                properties:
+                  fileUploads:
+                    description: |-
+                      FileUploads list the transfer statuses of files being uploaded and
+                      tracked by the upload session.
+                    items:
+                      description: |-
+                        FileTransferStatus indicates the transfer status of a file belonging to a
+                        library item.
+                      properties:
+                        bytesTransferred:
+                          description: |-
+                            BytesTransferred indicates the number of bytes of this file that have
+                            been received by the server.
+                          format: int64
+                          type: integer
+                        errorMessage:
+                          description: |-
+                            ErrorMessage describes the details about the transfer error if the
+                            transfer status is error.
+                          type: string
+                        name:
+                          description: Name specifies the name of the file that is
+                            transferred.
+                          type: string
+                        size:
+                          description: |-
+                            Size indicates the file size in bytes as received by the server.
+                            This value will not be available until the transfer status is ready.
+                          format: int64
+                          type: integer
+                        transferStatus:
+                          description: Status indicates the transfer status of the
+                            file.
+                          enum:
+                          - Waiting
+                          - Transferring
+                          - Validating
+                          - Ready
+                          - Error
+                          type: string
+                      required:
+                      - name
+                      - transferStatus
+                      type: object
+                    type: array
+                  sessionUUID:
+                    description: |-
+                      SessionUUID is the identifier that uniquely identifies the file upload
+                      session on the library item in vSphere.
+                    type: string
+                type: object
+              itemName:
+                description: |-
+                  ItemName is the name to the target ContentLibraryItem resource created as
+                  a result of the import.
+                  If the ContentLibraryItemImportRequest is deleted when the import
+                  operation fails or before the Complete condition is set to true, the
+                  import operation will be cancelled in vSphere and the corresponding
+                  vSphere Content Library Item will be deleted.
+                type: string
+              startTime:
+                description: |-
+                  StartTime represents time when the request was acknowledged by the
+                  controller.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

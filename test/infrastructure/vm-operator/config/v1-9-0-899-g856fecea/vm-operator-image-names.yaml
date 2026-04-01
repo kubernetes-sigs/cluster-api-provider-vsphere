@@ -1,0 +1,15 @@
+# Set image names / version to use.
+# Note: we are not building vm-operator images with Tilt, so those images must be available in a public image repository.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmware-system-vmop-controller-manager
+  namespace: vmware-system-vmop
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.9.0-899-g856fecea
+      - name: kube-rbac-proxy
+        image: gcr.io/k8s-staging-capi-vsphere/extra/kube-rbac-proxy:v0.5.0

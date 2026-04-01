@@ -1,0 +1,189 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: vspheredistributednetworks.netoperator.vmware.com
+spec:
+  group: netoperator.vmware.com
+  names:
+    kind: VSphereDistributedNetwork
+    listKind: VSphereDistributedNetworkList
+    plural: vspheredistributednetworks
+    singular: vspheredistributednetwork
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VSphereDistributedNetwork represents schema for a network backed by a vSphere Distributed PortGroup on vSphere
+          Distributed switch.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VSphereDistributedNetworkSpec defines the desired state of
+              VSphereDistributedNetwork.
+            properties:
+              gateway:
+                description: |-
+                  Gateway setting to use for network interfaces. This field should only be set when using
+                  IPAssignmentModeStaticPool. For all other modes (IPAssignmentModeDHCP, IPAssignmentModeNone), this should be set
+                  to an empty string.
+                type: string
+              ipAssignmentMode:
+                description: |-
+                  IPAssignmentMode to use for network interfaces. If unset, defaults to IPAssignmentModeStaticPool.
+                  For IPAssignmentModeDHCP and IPAssignmentModeNone, the IPPools, Gateway and SubnetMask
+                  fields should be empty/unset. When using IPAssignmentModeNone, no IP will be assigned
+                  and no DHCP client will be configured.
+                type: string
+              ipPools:
+                description: |-
+                  IPPools references list of IPPool objects. This field should only be set when using
+                  IPAssignmentModeStaticPool. For all other modes (IPAssignmentModeDHCP, IPAssignmentModeNone), this should be set
+                  to an empty list.
+                items:
+                  properties:
+                    apiVersion:
+                      description: API version of the referent.
+                      type: string
+                    name:
+                      description: Name of the IPPool resource being referenced.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              portGroupID:
+                description: PortGroupID is an existing vSphere Distributed PortGroup
+                  identifier.
+                type: string
+              subnetMask:
+                description: |-
+                  SubnetMask setting to use for network interfaces. This field should only be set when using
+                  IPAssignmentModeStaticPool. For all other modes (IPAssignmentModeDHCP, IPAssignmentModeNone), this should be set
+                  to an empty string.
+                type: string
+            required:
+            - gateway
+            - ipPools
+            - portGroupID
+            - subnetMask
+            type: object
+          status:
+            description: VSphereDistributedNetworkStatus defines the observed state
+              of VSphereDistributedNetwork.
+            properties:
+              conditions:
+                description: Conditions is an array of current observed vSphere Distributed
+                  network conditions.
+                items:
+                  description: VSphereDistributedNetworkCondition describes the state
+                    of a VSphereDistributedNetwork at a certain point.
+                  properties:
+                    lastTransitionTime:
+                      description: Provides a timestamp for when the VSphereDistributedNetwork
+                        object last transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Human-readable message indicating details about
+                        last transition.
+                      type: string
+                    reason:
+                      description: Machine understandable string that gives the reason
+                        for condition's last transition.
+                      type: string
+                    status:
+                      description: |-
+                        Status is the status of the condition.
+                        Can be True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type is the type of VSphereDistributedNetwork condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              defaultPortConfig:
+                description: |-
+                  DefaultPortConfig represents the default port-level configuration that applies to all ports
+                  unless overridden at the individual port level.
+                properties:
+                  vlan:
+                    description: |-
+                      Vlan represents the VLAN configuration for this port.
+                      If unset, indicates that no VLAN configuration has been retrieved yet for this port.
+                    properties:
+                      privateVlanID:
+                        description: |-
+                          PrivateVlanID specifies the private VLAN ID when Type is VLANTypePrivate.
+                          This field is ignored for other VLAN types.
+                        format: int32
+                        type: integer
+                      trunkRange:
+                        description: |-
+                          TrunkRange specifies the ranges of allowed VLANs when Type is VLANTypeTrunk.
+                          This field is ignored for other VLAN types.
+                          Each range's Start and End values must be between 0 and 4094 inclusive.
+                          Overlapping ranges are allowed.
+                        items:
+                          description: VLANTrunkRange represents a range of VLAN IDs
+                            for trunk configuration
+                          properties:
+                            end:
+                              description: End represents the end of the VLAN ID range
+                                (inclusive).
+                              format: int32
+                              type: integer
+                            start:
+                              description: Start represents the beginning of the VLAN
+                                ID range (inclusive).
+                              format: int32
+                              type: integer
+                          required:
+                          - end
+                          - start
+                          type: object
+                        type: array
+                      type:
+                        description: Type indicates the type of VLAN configuration
+                          (standard, trunk, or private).
+                        type: string
+                      vlanID:
+                        description: |-
+                          VlanID specifies the VLAN ID when Type is VLANTypeStandard.
+                          This field is ignored for other VLAN types.
+                          Possible values:
+                          - A value of 0 indicates there is no VLAN configuration for the port.
+                          - A value from 1 to 4094 specifies a VLAN ID for the port.
+                        format: int32
+                        type: integer
+                    required:
+                    - type
+                    type: object
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true

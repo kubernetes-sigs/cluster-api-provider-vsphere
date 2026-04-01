@@ -1,0 +1,102 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: networks.netoperator.vmware.com
+spec:
+  group: netoperator.vmware.com
+  names:
+    kind: Network
+    listKind: NetworkList
+    plural: networks
+    singular: network
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Network is the Schema for the networks API.
+          A Network describes type, class and common attributes of a network available
+          in a namespace. A NetworkInterface resource references a Network.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NetworkSpec defines the state of Network.
+            properties:
+              dns:
+                description: DNS is a list of DNS server IPs to associate with network
+                  interfaces on this network.
+                items:
+                  type: string
+                type: array
+              dnsSearchDomains:
+                description: DNSSearchDomains is a list of DNS search domains to associate
+                  with network interfaces on this network.
+                items:
+                  type: string
+                type: array
+              ntp:
+                description: NTP is a list of NTP server DNS names or IP addresses
+                  to use on this network.
+                items:
+                  type: string
+                type: array
+              providerRef:
+                description: ProviderRef is reference to a network provider object
+                  that provides this type of network.
+                properties:
+                  apiGroup:
+                    description: APIGroup is the group for the resource being referenced.
+                    type: string
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  kind:
+                    description: Kind is the type of resource being referenced.
+                    type: string
+                  name:
+                    description: Name is the name of resource being referenced.
+                    type: string
+                  namespace:
+                    description: Namespace of the resource being referenced. If empty,
+                      cluster scoped resource is assumed.
+                    type: string
+                required:
+                - apiGroup
+                - kind
+                - name
+                type: object
+              type:
+                description: Type describes type of Network. Supported values are
+                  nsx-t, vsphere-distributed.
+                type: string
+            required:
+            - providerRef
+            - type
+            type: object
+          status:
+            description: NetworkStatus is unused. This is because Network is purely
+              a configuration resource.
+            type: object
+        type: object
+    served: true
+    storage: true

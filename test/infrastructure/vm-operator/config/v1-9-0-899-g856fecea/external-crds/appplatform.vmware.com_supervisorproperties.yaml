@@ -1,0 +1,127 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: supervisorproperties.appplatform.vmware.com
+spec:
+  group: appplatform.vmware.com
+  names:
+    kind: SupervisorProperties
+    listKind: SupervisorPropertiesList
+    plural: supervisorproperties
+    singular: supervisorproperty
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: SupervisorProperties is the Schema for the SupervisorProperties
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SupervisorPropertiesSpec defines the values of the properties
+              requested by a Supervisor Service Package.
+            properties:
+              apiServerDNSNames:
+                description: APIServerDNSNames indicates the API server DNS Names
+                  associated with the supervisor.
+                items:
+                  type: string
+                type: array
+              capabilities:
+                description: Capabilities defines the capabilities the Supervisor
+                  has. The common case of the capability is the feature supported
+                  of the vCenter.
+                items:
+                  description: Capability defines the feature supported by the Supervisor.
+                  properties:
+                    name:
+                      description: The name of the capability.
+                      type: string
+                    value:
+                      default: false
+                      description: The value indicates if the capability is supported.
+                      type: boolean
+                  required:
+                  - name
+                  - value
+                  type: object
+                type: array
+              cloudVC:
+                description: CloudVCenter indicates if the vCenter is deployed on
+                  cloud.
+                type: boolean
+              controlPlaneCount:
+                description: ControlPlaneCount indicates the number of control planes
+                  enabled on the Supervisor.
+                type: integer
+              cpVMSize:
+                description: ControlPlaneVMSize indicates the capacity of the Supervisor
+                  Control Plane. It's derived from Supervisor's tshirt size.
+                enum:
+                - TINY
+                - SMALL
+                - MEDIUM
+                - LARGE
+                type: string
+              namespacesCLIPluginVersion:
+                description: NamespacesCLIPluginVersion indicates the Supervisor recommended
+                  namespaces CLIPlugin CR version.
+                type: string
+              networkProvider:
+                description: NetworkProvider indicates the Network Provider used on
+                  Supervisor. (e.g. NSX, nsx-vpc, or vsphere-network)
+                type: string
+              podVMSupported:
+                description: PodVMSupported indicates if the Supervisor supports PodVMs.
+                type: boolean
+              ssoDomain:
+                description: SSODomain indicates the name of the default SSO domain
+                  configured in vCenter.
+                type: string
+              stretchedSupervisor:
+                description: StretchedSupervisor indicates if the Supervisor is enabled
+                  on a set of vSphere Zones.
+                type: boolean
+              tmcNamespace:
+                description: TMCNamespace indicates the namespace used for TMC to
+                  be deployed.
+                type: string
+              vcPNID:
+                description: VCenterPNID indicates the Primary Network Identifier
+                  of vCenter.
+                type: string
+              vcPort:
+                description: VCenterPort indicates the port of vCenter.
+                type: string
+              vcPublicKeys:
+                description: VCenterPublicKeys indicates the base64 encoded vCenter
+                  OIDC issuer, client audience and the public keys in JWKS format.
+                type: string
+              virtualIP:
+                description: VirtualIP indicates the IP address of the Kubernetes
+                  LoadBalancer type service fronting the apiservers.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true

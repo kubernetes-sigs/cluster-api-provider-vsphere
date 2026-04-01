@@ -1,0 +1,547 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: contentlibraries.imageregistry.vmware.com
+spec:
+  group: imageregistry.vmware.com
+  names:
+    kind: ContentLibrary
+    listKind: ContentLibraryList
+    plural: contentlibraries
+    shortNames:
+    - lib
+    - library
+    singular: contentlibrary
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.name
+      name: vSphereName
+      type: string
+    - jsonPath: .status.type
+      name: Type
+      type: string
+    - jsonPath: .spec.writable
+      name: Writable
+      type: boolean
+    - jsonPath: .spec.allowImport
+      name: AllowImport
+      type: boolean
+    - jsonPath: .status.storageBacking.type
+      name: StorageType
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ContentLibrary is the schema for the content library API.
+          Currently, ContentLibrary is immutable to end users.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ContentLibrarySpec defines the desired state of a ContentLibrary.
+            properties:
+              allowImport:
+                default: false
+                description: |-
+                  AllowImport flag indicates if users can import OVF/OVA templates from remote HTTPS URLs
+                  as new content library items in this library.
+                type: boolean
+              resourceNamingStrategy:
+                default: FROM_ITEM_ID
+                description: |-
+                  ResourceNamingStrategy defines the naming strategy for item resources in this content library. If not specified,
+                  naming strategy FROM_ITEM_ID will be used to generate item resource names. This field is immutable.
+                enum:
+                - FROM_ITEM_ID
+                - PREFER_ITEM_SOURCE_ID
+                type: string
+              uuid:
+                description: UUID is the identifier which uniquely identifies the
+                  library in vCenter. This field is immutable.
+                type: string
+              writable:
+                description: Writable flag indicates if users can create new library
+                  items in this library.
+                type: boolean
+            required:
+            - uuid
+            - writable
+            type: object
+          status:
+            description: ContentLibraryStatus defines the observed state of ContentLibrary.
+            properties:
+              conditions:
+                description: Conditions describes the current condition information
+                  of the ContentLibrary.
+                items:
+                  description: Condition defines an observation of an Image Registry
+                    Operator API resource operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              creationTime:
+                description: CreationTime indicates the date and time when this library
+                  was created in vCenter.
+                format: date-time
+                type: string
+              description:
+                description: Description is a human-readable description for this
+                  library in vCenter.
+                type: string
+              lastModifiedTime:
+                description: |-
+                  LastModifiedTime indicates the date and time when this library was last updated in vCenter.
+                  This field is updated only when the library properties are changed. This field is not updated when a library
+                  item is added, modified or deleted or its content is changed.
+                format: date-time
+                type: string
+              lastSyncTime:
+                description: |-
+                  LastSyncTime indicates the date and time when this library was last synchronized in vCenter.
+                  This field applies only if the library is of the "Subscribed" Type.
+                format: date-time
+                type: string
+              name:
+                description: Name specifies the name of the content library in vCenter.
+                type: string
+              publishInfo:
+                description: Published indicates how the library is published so that
+                  it can be subscribed to by a remote subscribed library.
+                properties:
+                  URL:
+                    description: |-
+                      URL to which the library metadata is published by the vSphere Content Library Service.
+                      This value can be used to set the SubscriptionInfo.URL property when creating a subscribed library.
+                    type: string
+                  published:
+                    description: Published indicates if the local library is published
+                      so that it can be subscribed to by a remote subscribed library.
+                    type: boolean
+                required:
+                - URL
+                - published
+                type: object
+              securityPolicyID:
+                description: |-
+                  SecurityPolicyID defines the security policy applied to this library.
+                  Setting this field will make the library secure.
+                type: string
+              serverGUID:
+                description: ServerGUID indicates the unique identifier of the vCenter
+                  server where the library exists.
+                type: string
+              state:
+                description: State indicates the state of this library.
+                enum:
+                - Active
+                - InMaintenance
+                type: string
+              storageBacking:
+                description: StorageBacking indicates the default storage backing
+                  available for this library in vCenter.
+                properties:
+                  datastoreID:
+                    description: |-
+                      DatastoreID indicates the identifier of the datastore used to store the content
+                      in the library for the "Datastore" storageType in vCenter.
+                    type: string
+                  type:
+                    description: Type indicates the type of storage where the content
+                      would be stored.
+                    enum:
+                    - Datastore
+                    - Other
+                    type: string
+                required:
+                - type
+                type: object
+              subscriptionInfo:
+                description: |-
+                  SubscriptionInfo defines how the subscribed library synchronizes to a remote source.
+                  This field is populated only if Type=Subscribed.
+                properties:
+                  URL:
+                    description: |-
+                      URL of the endpoint where the metadata for the remotely published library is being served.
+                      The value from PublishInfo.URL of the published library should be used while creating a subscribed library.
+                    type: string
+                  automaticSync:
+                    description: AutomaticSync indicates whether the library should
+                      participate in automatic library synchronization.
+                    type: boolean
+                  onDemand:
+                    description: OnDemand indicates whether a library item’s content
+                      will be synchronized only on demand.
+                    type: boolean
+                required:
+                - URL
+                - automaticSync
+                - onDemand
+                type: object
+              type:
+                description: ContentLibraryType is a constant type that indicates
+                  the type of a content library in vCenter.
+                enum:
+                - Local
+                - Subscribed
+                type: string
+              version:
+                description: |-
+                  Version is a number that can identify metadata changes. This value is incremented when the library
+                  properties such as name or description are changed in vCenter.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.name
+      name: DisplayName
+      type: string
+    - jsonPath: .spec.allowPublish
+      name: AllowPublish
+      type: boolean
+    - jsonPath: .spec.allowImport
+      name: AllowImport
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: ContentLibrary is the schema for the content library API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ContentLibrarySpec defines the desired state of a ContentLibrary.
+            properties:
+              allowDelete:
+                description: |-
+                  AllowDelete describes whether or not it is possible to delete items from
+                  this library.
+                type: boolean
+              allowImport:
+                description: |-
+                  AllowImport describes whether or not it is possible to import remote
+                  OVA/OVF/ISO content to this library.
+                type: boolean
+              allowPublish:
+                description: |-
+                  AllowPublish describes whether or not it is possible to publish new items
+                  to this library.
+                type: boolean
+              id:
+                description: |-
+                  ID describes the unique identifier used to find the library in vCenter.
+
+                  Please note this value may differ depending on spec.type:
+                  - Type=ContentLibrary -- ID is a content library UUID.
+                  - Type=Inventory      -- ID is a vSphere folder managed object ID.
+                type: string
+              libraryType:
+                default: ContentLibrary
+                description: |-
+                  Type describes the type of library.
+
+                  Defaults to ContentLibrary.
+                enum:
+                - ContentLibrary
+                - Inventory
+                type: string
+              resourceNamingStrategy:
+                default: FromItemID
+                description: |-
+                  ResourceNamingStrategy describes the naming strategy for item resources
+                  in this content library.
+
+                  This field is immutable and defaults to FromItemID.
+
+                  Please note, this is optional and not present on all libraries.
+                enum:
+                - FromItemID
+                - PreferItemSourceID
+                type: string
+              storageClass:
+                description: |-
+                  StorageClass describes the name of the StorageClass used when publishing
+                  images to this library.
+
+                  Please note, this is optional and not present on all libraries.
+                type: string
+            required:
+            - id
+            type: object
+          status:
+            description: ContentLibraryStatus defines the observed state of ContentLibrary.
+            properties:
+              conditions:
+                description: Conditions describes the current condition information
+                  of the library.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              creationTime:
+                description: |-
+                  CreationTime describes the date and time when this library was created
+                  in vCenter.
+                format: date-time
+                type: string
+              description:
+                description: Description describes a human-readable description for
+                  the library.
+                type: string
+              lastModifiedTime:
+                description: |-
+                  LastModifiedTime describes the date and time when the library was last
+                  updated.
+                  This field is updated only when the library properties are changed.
+                  This field is not updated when a library item is added, modified,
+                  deleted, or its content is changed.
+                format: date-time
+                type: string
+              lastSyncTime:
+                description: |-
+                  LastSyncTime describes the date and time when this library was last
+                  synchronized.
+
+                  Please note, this is only applicable for subscribed libraries.
+                format: date-time
+                type: string
+              name:
+                description: Name describes the display name for the library.
+                type: string
+              publishInfo:
+                description: |-
+                  PublishInfo describes how the library is published.
+
+                  Please note, this is only applicable for published libraries.
+                properties:
+                  published:
+                    description: |-
+                      Published indicates if the local library is published so that it can be
+                      subscribed to by a remote subscribed library.
+                    type: boolean
+                  url:
+                    description: |-
+                      URL to which the library metadata is published by the vSphere Content
+                      Library Service.
+                      This value can be used to set the SubscriptionInfo.URL property when
+                      creating a subscribed library.
+                    type: string
+                required:
+                - published
+                - url
+                type: object
+              securityPolicyID:
+                description: |-
+                  SecurityPolicyID describes the security policy applied to the library.
+
+                  Please note, this is optional and not present on all libraries.
+                type: string
+              serverGUID:
+                description: |-
+                  ServerGUID describes the unique identifier of the vCenter server where
+                  the library exists.
+                type: string
+              state:
+                description: State describes the current state of the library.
+                enum:
+                - Active
+                - InMaintenance
+                type: string
+              storageBacking:
+                description: StorageBackings describes the default storage backing
+                  for the library.
+                items:
+                  description: |-
+                    StorageBacking describes the default storage backing which is available for
+                    the library.
+                  properties:
+                    datastoreID:
+                      description: |-
+                        DatastoreID indicates the identifier of the datastore used to store the
+                        content in the library for the "Datastore" storageType in vCenter.
+                      type: string
+                    type:
+                      description: Type indicates the type of storage where the content
+                        would be stored.
+                      enum:
+                      - Datastore
+                      - Other
+                      type: string
+                  required:
+                  - type
+                  type: object
+                type: array
+              subscriptionInfo:
+                description: |-
+                  SubscriptionInfo describes how the library is subscribed.
+
+                  This field is only present for subscribed libraries.
+                properties:
+                  automaticSync:
+                    description: |-
+                      AutomaticSync indicates whether the library should participate in
+                      automatic library synchronization.
+                    type: boolean
+                  onDemand:
+                    description: |-
+                      OnDemand indicates whether a library item’s content will be synchronized
+                      only on demand.
+                    type: boolean
+                  url:
+                    description: |-
+                      URL of the endpoint where the metadata for the remotely published library
+                      is being served.
+                      The value from PublishInfo.URL of the published library should be used
+                      while creating a subscribed library.
+                    type: string
+                required:
+                - automaticSync
+                - onDemand
+                - url
+                type: object
+              version:
+                description: |-
+                  Version describes an optional value that tracks changes to the library's
+                  metadata, such as its name or description.
+
+                  Please note, this is optional and not present on all libraries.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

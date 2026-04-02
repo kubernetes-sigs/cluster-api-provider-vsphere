@@ -244,7 +244,7 @@ providers:
   - name: vm-operator
     type: RuntimeExtensionProvider # vm-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
     versions:
-      - name: 8.0
+      - name: "v8.0.0" # This value is required to be similar to CAPI/provider versions, so adding the v prefix and the .0 patch version
         # Use manifest from source files
         value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-8.0.yaml"
         type: "url"
@@ -253,7 +253,7 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: 9.1
+      - name: "v9.1.0" # This value is required to be similar to CAPI/provider versions, so adding the v prefix and the .0 patch version
         # Use manifest from source files
         value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-9.1.yaml"
         type: "url"

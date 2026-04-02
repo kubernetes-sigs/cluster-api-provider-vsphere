@@ -10,6 +10,6 @@ spec:
     spec:
       containers:
       - name: manager
-        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.9.0-567-g93918c59
+        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:9.1
       - name: kube-rbac-proxy
         image: gcr.io/k8s-staging-capi-vsphere/extra/kube-rbac-proxy:v0.5.0

@@ -241,12 +241,12 @@ VCSIM_CONTROLLER_IMG ?= $(REGISTRY)/$(VCSIM_IMAGE_NAME)
 # vmoperator controller
 VM_OPERATOR_DIR := test/infrastructure/vm-operator
 VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
-# note: this is the commit from 1.8.6 tag
+# VM_OPERATOR_VERSION ?= 8.0
 # VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
-# VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
-# note: this is the commit we are also importing in go.mod (replace with the actual tag as soon as a tagged release is available)
+# VM_OPERATOR_COMMIT_DESCRIBE ?= v1.8.6-0-gde75746a
+VM_OPERATOR_VERSION ?= 9.1
 VM_OPERATOR_COMMIT ?= 93918c59a71918f6395fd319fa4dd5b9a3f57e24
-VM_OPERATOR_VERSION ?= v1.9.0-567-g93918c59
+VM_OPERATOR_COMMIT_DESCRIBE ?= v1.9.0-567-g93918c59
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
 VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
@@ -935,6 +935,8 @@ release-vm-operator-local: docker-build-all-vm-operator generate-manifests-vm-op
 .PHONY: checkout-vm-operator
 checkout-vm-operator:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
+	@if [ -z "${VM_OPERATOR_COMMIT_DESCRIBE}" ]; then echo "VM_OPERATOR_COMMIT_DESCRIBE is not set"; exit 1; fi
+	@if [ -z "${VM_OPERATOR_COMMIT}" ]; then echo "VM_OPERATOR_COMMIT is not set"; exit 1; fi
 	@if [ -d "$(VM_OPERATOR_TMP_DIR)" ]; then \
 		echo "$(VM_OPERATOR_TMP_DIR) exists, skipping clone"; \
 	else \
@@ -943,23 +945,24 @@ checkout-vm-operator:
 		git checkout "$(VM_OPERATOR_COMMIT)"; \
 	fi
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
-	if [ "$$(git describe --no-dirty 2> /dev/null)" != "$(VM_OPERATOR_VERSION)" ]; then \
-		if [ "$$(git describe --no-dirty 2> /dev/null)" != "api/$(VM_OPERATOR_VERSION)" ]; then \
-			echo "ERROR: checked out version $$(git describe --no-dirty 2> /dev/null) does not match expected version $(VM_OPERATOR_VERSION) or api/$(VM_OPERATOR_VERSION)"; \
+	if [ "$$(git describe --no-dirty 2> /dev/null)" != "$(VM_OPERATOR_COMMIT_DESCRIBE)" ]; then \
+		if [ "$$(git describe --no-dirty 2> /dev/null)" != "api/$(VM_OPERATOR_COMMIT_DESCRIBE)" ]; then \
+			echo "ERROR: checked out version $$(git describe --no-dirty 2> /dev/null) does not match expected version $(VM_OPERATOR_COMMIT_DESCRIBE) or api/$(VM_OPERATOR_COMMIT_DESCRIBE)"; \
 			exit 1; \
 		fi \
-	fi
+	fi; \
+	echo "Using vm-operator version $(VM_OPERATOR_VERSION), commit $(VM_OPERATOR_COMMIT), build $(VM_OPERATOR_COMMIT_DESCRIBE)";
 
 .PHONY: generate-manifests-vm-operator
 generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator ## Build the vm-operator manifest yaml file
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	$(MAKE) generate-manifests-vm-operator-$(VM_OPERATOR_VERSION)
 
-generate-manifests-vm-operator-v1.8.6-0-gde75746a:
+generate-manifests-vm-operator-8.0:
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)/vm-operator.yaml"
 	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION_WITHOUT_DOTS)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
-generate-manifests-vm-operator-v1.9.0-567-g93918c59:
+generate-manifests-vm-operator-9.1:
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
 	make kustomize-wcp
 	@cd "$(ROOT_DIR)"
@@ -971,18 +974,19 @@ generate-manifests-vm-operator-v1.9.0-567-g93918c59:
 docker-build-all-vm-operator: checkout-vm-operator
 	$(MAKE) docker-build-vm-operator-vm-operator-$(VM_OPERATOR_VERSION)
 
-docker-build-vm-operator-vm-operator-v1.8.6-0-gde75746a:
+# IMPORTANT: before running this command please add --provenance=false to the docker build command in test/infrastructure/vm-operator/vm-operator.tmp/hack/build-container.sh
+docker-build-vm-operator-vm-operator-8.0:
 	@if [ -z "${VM_OPERATOR_IMAGE_TAG}" ]; then echo "VM_OPERATOR_IMAGE_TAG is not set"; exit 1; fi
-	cd $(VM_OPERATOR_TMP_DIR) && \
-	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) GOARCH=amd64 docker-build
+	cd $(VM_OPERATOR_TMP_DIR); \
+	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) GOARCH=amd64 docker-build ; \
 	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-arm64 IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) GOARCH=arm64 docker-build
 
-docker-build-vm-operator-vm-operator-v1.9.0-567-g93918c59:
+docker-build-vm-operator-vm-operator-9.1:
 	@if [ -z "${VM_OPERATOR_IMAGE_TAG}" ]; then echo "VM_OPERATOR_IMAGE_TAG is not set"; exit 1; fi
-	cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
-	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_FILE=artifacts/vm-operator-amd64.tar make image-build-amd64; \
+	cd $(VM_OPERATOR_TMP_DIR); \
+	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_FILE=artifacts/vm-operator-amd64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-amd64; \
 	docker load -i $(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/vm-operator-amd64.tar; \
-	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-arm64 IMAGE_FILE=artifacts/vm-operator-arm64.tar make image-build-arm64; \
+	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-arm64 IMAGE_FILE=artifacts/vm-operator-arm64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-arm64; \
 	docker load -i $(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/vm-operator-arm64.tar
 
 .PHONY: docker-push-all-vm-operator

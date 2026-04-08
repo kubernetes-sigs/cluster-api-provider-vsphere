@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.25.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-beta.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-rc.0
 
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b

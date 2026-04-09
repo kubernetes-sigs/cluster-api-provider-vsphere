@@ -471,13 +471,23 @@ func shouldCreateVirtualMachineGroup(ctx context.Context, mds []clusterv1.Machin
 		currentVSphereMachineCount++
 	}
 
-	// If the number of workers VSphereMachines matches the number of expected replicas in the MachineDeployments,
-	// then all the VSphereMachines required for the initial placement decision do exist, then it is possible to create
-	// the VirtualMachineGroup.
-	if currentVSphereMachineCount != expectedVSphereMachineCount {
+	// Gate initial VMG creation on having enough worker VSphereMachines for the sum of MachineDeployment replicas.
+	// If current < expected, wait. Initial placement is meant to wait for enough VSphereMachines to be created to form a batch.
+	// When current > expected (for e.g. MachineDeployment surge during a rolling update):
+	// (1) New clusters with Node Auto Placement enabled: worker VSphereMachines are created in a batch, and all are
+	//     included together in the same initial placement, and membership are maintained afterward.
+	// (2) Existing clusters to adopt Node Auto Placement: CAPV can set per-MachineDeployment zone annotations on
+	//     the VMG based on the placement result of exsting MachineDeployments, and pins new VSphereMachines to the right failureDomain. Proceed includes
+	//     all current VSphereMachines, and membership are maintained afterward.
+	if currentVSphereMachineCount < expectedVSphereMachineCount {
 		log.Info(fmt.Sprintf("Waiting for VSphereMachines required for the initial placement (expected %d, current %d)", expectedVSphereMachineCount, currentVSphereMachineCount))
 		return false
 	}
+
+	if currentVSphereMachineCount > expectedVSphereMachineCount {
+		log.Info(fmt.Sprintf("More VSphereMachines than expected replicas; proceeding to create VirtualMachineGroup with all current VSphereMachines (expected %d, current %d)", expectedVSphereMachineCount, currentVSphereMachineCount))
+	}
+
 	return true
 }
 

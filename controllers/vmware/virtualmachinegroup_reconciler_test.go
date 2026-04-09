@@ -106,6 +106,22 @@ func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
 			want: false, // tot replicas = 4, 3 VSphereMachine exist
 		},
 		{
+			name: "Should create a VMG when more VSphereMachines than expected replicas exist",
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", "test-cluster", "", 2),
+				*createMD("md2", "test-cluster", "", 1),
+				*createMD("md3", "test-cluster", "zone1", 1),
+			},
+			vSphereMachines: []vmwarev1.VSphereMachine{
+				*createVSphereMachine("m1", "test-cluster", "md1"),
+				*createVSphereMachine("m2", "test-cluster", "md1"),
+				*createVSphereMachine("m3", "test-cluster", "md1"), // surge: one extra for md1
+				*createVSphereMachine("m4", "test-cluster", "md2"),
+				*createVSphereMachine("m5", "test-cluster", "md3"),
+			},
+			want: true, // tot replicas = 4, 5 VSphereMachines (current > expected)
+		},
+		{
 			name:            "Should not create a VMG there are no expected VSphereMachines",
 			mds:             []clusterv1.MachineDeployment{}, // No Machine deployments
 			vSphereMachines: []vmwarev1.VSphereMachine{},     // No VSphereMachine
@@ -1100,6 +1116,45 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 								{Name: "m1-vm", Kind: "VirtualMachine"},
 								{Name: "m2-vm", Kind: "VirtualMachine"},
 								{Name: "m3", Kind: "VirtualMachine"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "VirtualMachineGroup should be created when more vSphereMachines than replicas exist",
+			cluster: clusterInitialized,
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", clusterInitialized.Name, "zone1", 2),
+				*createMD("md2", clusterInitialized.Name, "", 1),
+			},
+			vSphereMachines: []vmwarev1.VSphereMachine{
+				*createVSphereMachine("m1", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m2", clusterInitialized.Name, "md1", withCustomNamingStrategy()),
+				*createVSphereMachine("m3", clusterInitialized.Name, "md1", withCustomNamingStrategy()), // surge: extra worker for md1
+				*createVSphereMachine("m4", clusterInitialized.Name, "md2"),
+			},
+			existingVMG: nil,
+			wantResult:  ctrl.Result{},
+			wantVMG: &vmoprvhub.VirtualMachineGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: clusterInitialized.Namespace,
+					Name:      clusterInitialized.Name,
+					UID:       types.UID("uid"),
+					Annotations: map[string]string{
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone1", // failureDomain for md1 is explicitly set by the user
+					},
+					// Not setting labels and ownerReferences for sake of simplicity
+				},
+				Spec: vmoprvhub.VirtualMachineGroupSpec{
+					BootOrder: []vmoprvhub.VirtualMachineGroupBootOrderGroup{
+						{
+							Members: []vmoprvhub.GroupMember{
+								{Name: "m1-vm", Kind: "VirtualMachine"},
+								{Name: "m2-vm", Kind: "VirtualMachine"},
+								{Name: "m3-vm", Kind: "VirtualMachine"},
+								{Name: "m4", Kind: "VirtualMachine"},
 							},
 						},
 					},

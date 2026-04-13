@@ -31,6 +31,7 @@ import (
 	"github.com/spf13/pflag"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	"gopkg.in/fsnotify.v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -184,7 +185,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		&apiVersionVMOperator,
 		"vm-operator-api-version",
 		vmoprv1alpha5.GroupVersion.Version,
-		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s, %s", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version),
+		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s, %s, %s", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version, vmoprv1alpha6.GroupVersion.Version),
 	)
 
 	// Flags common between CAPI and CAPV
@@ -355,8 +356,8 @@ func main() {
 	var vm runtime.Object
 	var converter *conversion.Converter
 	if isSupervisorCRDLoaded {
-		if apiVersionVMOperator != vmoprv1alpha2.GroupVersion.Version && apiVersionVMOperator != vmoprv1alpha5.GroupVersion.Version {
-			fmt.Printf("Invalid argument: --vm-operator-api-version must be one of : %s, %s\n", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version)
+		if apiVersionVMOperator != vmoprv1alpha2.GroupVersion.Version && apiVersionVMOperator != vmoprv1alpha5.GroupVersion.Version && apiVersionVMOperator != vmoprv1alpha6.GroupVersion.Version {
+			fmt.Printf("Invalid argument: --vm-operator-api-version must be one of : %s, %s, %s\n", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version, vmoprv1alpha6.GroupVersion.Version)
 			os.Exit(1)
 		}
 		setupLog.Info(fmt.Sprintf("Target API Version for group %s: %s", vmoprvhub.GroupVersion.Group, apiVersionVMOperator))
@@ -379,6 +380,10 @@ func main() {
 		}
 		if err := vmoprv1alpha5.AddToScheme(scheme); err != nil {
 			setupLog.Error(err, "Unable to start manager; failed register v1alpha5 version for vm-operator API types")
+			os.Exit(1)
+		}
+		if err := vmoprv1alpha6.AddToScheme(scheme); err != nil {
+			setupLog.Error(err, "Unable to start manager; failed register v1alpha6 version for vm-operator API types")
 			os.Exit(1)
 		}
 

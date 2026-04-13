@@ -100,6 +100,42 @@ func (webhook *VSphereMachine) ValidateDelete(_ context.Context, _ *vmwarev1.VSp
 func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
+	if len(network.VLANs) > 0 {
+		if !feature.Gates.Enabled(feature.VLANSubinterface) {
+			allErrs = append(allErrs, field.Forbidden(
+				fldPath.Child("vlans"),
+				"vlans can only be set when feature gate VLANSubinterface is enabled"))
+		} else {
+			if !network.Interfaces.IsDefined() || len(network.Interfaces.Secondary) == 0 {
+				allErrs = append(allErrs, field.Required(
+					fldPath.Child("interfaces", "secondary"),
+					"secondary interfaces are required when vlans are specified"))
+			} else {
+				secondaryNames := map[string]struct{}{}
+				for _, s := range network.Interfaces.Secondary {
+					secondaryNames[s.Name] = struct{}{}
+				}
+				vlanNames := map[string]struct{}{}
+				for i, vlan := range network.VLANs {
+					if _, ok := vlanNames[vlan.Name]; ok {
+						allErrs = append(allErrs, field.Invalid(
+							fldPath.Child("vlans").Index(i).Child("name"),
+							vlan.Name,
+							"VLAN name must be unique"))
+					} else {
+						vlanNames[vlan.Name] = struct{}{}
+					}
+					if _, ok := secondaryNames[vlan.Link]; !ok {
+						allErrs = append(allErrs, field.Invalid(
+							fldPath.Child("vlans").Index(i).Child("link"),
+							vlan.Link,
+							"link must reference an existing secondary interface name"))
+					}
+				}
+			}
+		}
+	}
+
 	if network.Interfaces.IsDefined() {
 		if !feature.Gates.Enabled(feature.MultiNetworks) {
 			allErrs = append(allErrs, field.Forbidden(

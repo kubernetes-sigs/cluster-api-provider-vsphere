@@ -49,6 +49,11 @@ const (
 	// alpha: v1.15
 	NodeAutoPlacement featuregate.Feature = "NodeAutoPlacement"
 
+	// VLANSubinterface is a feature gate for the VLAN sub-interface functionality for supervisor.
+	//
+	// alpha: v1.17
+	VLANSubinterface featuregate.Feature = "VLANSubinterface"
+
 	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
 	// instead of the default queue implementation.
 	//
@@ -76,4 +81,5 @@ var defaultCAPVFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	NamespaceScopedZones:   {Default: false, PreRelease: featuregate.Alpha},
 	NodeAutoPlacement:      {Default: false, PreRelease: featuregate.Alpha},
 	MultiNetworks:          {Default: false, PreRelease: featuregate.Alpha},
+	VLANSubinterface:       {Default: false, PreRelease: featuregate.Alpha},
 }

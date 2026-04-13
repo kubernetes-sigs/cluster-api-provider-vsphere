@@ -190,6 +190,18 @@ type VirtualMachineNetworkInterfaceSpec struct {
 	SearchDomains []string `json:"searchDomains,omitempty"`
 }
 
+// VirtualMachineNetworkVLANSpec describes a VLAN sub-interface configuration.
+type VirtualMachineNetworkVLANSpec struct {
+	// Name is the name of this VLAN interface.
+	Name string `json:"name"`
+
+	// ID is the VLAN ID, a number between 0 and 4094.
+	ID int64 `json:"id"`
+
+	// Link is the name of the parent interface on which this VLAN is created.
+	Link string `json:"link"`
+}
+
 // VirtualMachineNetworkSpec defines a VM's desired network configuration.
 type VirtualMachineNetworkSpec struct {
 	// +optional
@@ -205,6 +217,14 @@ type VirtualMachineNetworkSpec struct {
 	// The maximum number of network interface allowed is 10 because a vSphere
 	// virtual machine may not have more than 10 virtual ethernet card devices.
 	Interfaces []VirtualMachineNetworkInterfaceSpec `json:"interfaces,omitempty"`
+
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+
+	// VLANs is a list of VLAN interfaces to be configured on top of the
+	// physical network interfaces.
+	VLANs []VirtualMachineNetworkVLANSpec `json:"vlans,omitempty"`
 }
 
 // VirtualMachineNetworkDNSStatus describes the observed state of the guest's

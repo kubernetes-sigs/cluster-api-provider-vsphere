@@ -20,8 +20,11 @@ import (
 	"testing"
 
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/randfill"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
@@ -39,6 +42,9 @@ func TestFuzzyConversion(t *testing.T) {
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachine{},
 		Spoke:     &vmoprv1alpha5.VirtualMachine{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{
+			virtualMachineFuncs,
+		},
 	}))
 	t.Run("for VirtualMachineClass", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
@@ -70,4 +76,16 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:       &vmoprvhub.ClusterVirtualMachineImage{},
 		Spoke:     &vmoprv1alpha5.ClusterVirtualMachineImage{},
 	}))
+}
+
+func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVirtualMachineNetworkSpec,
+	}
+}
+
+func hubVirtualMachineNetworkSpec(in *vmoprvhub.VirtualMachineNetworkSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// VLANs exist in hub but not in v1alpha5
+	in.VLANs = nil
 }

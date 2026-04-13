@@ -101,6 +101,12 @@ type VirtualMachineGroupPlacementDatastoreStatus struct {
 
 	// +optional
 
+	// TopLevelDirectoryCreateSupported indicates whether or not the datastore
+	// supports creating top-level directories.
+	TopLevelDirectoryCreateSupported bool `json:"topLevelDirectoryCreateSupported,omitempty"`
+
+	// +optional
+
 	// DiskKey describes the device key to which this recommendation applies.
 	// When omitted, this recommendation is for the VM's home directory.
 	DiskKey *int32 `json:"diskKey,omitempty"`

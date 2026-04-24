@@ -351,12 +351,12 @@ func calculateImageName(templateVariables map[string]apiextensionsv1.JSON, isCon
 	}
 
 	// Use known ubuntu-2404 image.
-	if version == "v1.31.0" || version == "v1.32.0" || version == "v1.33.0" || version == "v1.34.0" {
+	if version == "v1.31.0" || version == "v1.32.0" || version == "v1.33.0" || version == "v1.34.0" || version == "v1.35.0" {
 		return fmt.Sprintf("ubuntu-2404-kube-%s", version), nil
 	}
 
 	// Fallback otherwise
-	return "ubuntu-2404-kube-v1.35.0", nil
+	return "ubuntu-2404-kube-v1.36.0", nil
 }
 
 // ValidateTopology implements the HandlerFunc for the ValidateTopology hook.

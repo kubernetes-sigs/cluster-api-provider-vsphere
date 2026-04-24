@@ -30,6 +30,7 @@ import (
 func convert_v1alpha2_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.Context, src *vmoprv1alpha2.VirtualMachineGroup, dst *vmoprvhub.VirtualMachineGroup) error {
 	dst.ObjectMeta = src.ObjectMeta
 
+	dst.Spec.GroupName = src.Spec.GroupName
 	if src.Spec.BootOrder != nil {
 		dst.Spec.BootOrder = []vmoprvhub.VirtualMachineGroupBootOrderGroup{}
 		for _, bootOrderGroup := range src.Spec.BootOrder {
@@ -47,6 +48,11 @@ func convert_v1alpha2_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 			dst.Spec.BootOrder = append(dst.Spec.BootOrder, bg)
 		}
 	}
+	dst.Spec.PowerState = vmoprvhub.VirtualMachinePowerState(src.Spec.PowerState)
+	dst.Spec.NextForcePowerStateSyncTime = src.Spec.NextForcePowerStateSyncTime
+	dst.Spec.PowerOffMode = vmoprvhub.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
+	dst.Spec.SuspendMode = vmoprvhub.VirtualMachinePowerOpMode(src.Spec.SuspendMode)
+
 	if src.Status.Members != nil {
 		dst.Status.Members = []vmoprvhub.VirtualMachineGroupMemberStatus{}
 		for _, member := range src.Status.Members {
@@ -65,10 +71,11 @@ func convert_v1alpha2_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 					m.Placement.Datastores = []vmoprvhub.VirtualMachineGroupPlacementDatastoreStatus{}
 					for _, datastore := range member.Placement.Datastores {
 						d := vmoprvhub.VirtualMachineGroupPlacementDatastoreStatus{
-							Name:                 datastore.Name,
-							ID:                   datastore.ID,
-							URL:                  datastore.URL,
-							SupportedDiskFormats: datastore.SupportedDiskFormats,
+							Name:                             datastore.Name,
+							ID:                               datastore.ID,
+							URL:                              datastore.URL,
+							SupportedDiskFormats:             datastore.SupportedDiskFormats,
+							TopLevelDirectoryCreateSupported: datastore.TopLevelDirectoryCreateSupported,
 						}
 						if datastore.DiskKey != nil {
 							d.DiskKey = ptr.To(*datastore.DiskKey)
@@ -89,6 +96,15 @@ func convert_v1alpha2_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 			dst.Status.Members = append(dst.Status.Members, m)
 		}
 	}
+	if src.Status.LastUpdatedPowerStateTime != nil {
+		dst.Status.LastUpdatedPowerStateTime = src.Status.LastUpdatedPowerStateTime.DeepCopy()
+	}
+	if src.Status.Conditions != nil {
+		dst.Status.Conditions = []metav1.Condition{}
+		for _, condition := range src.Status.Conditions {
+			dst.Status.Conditions = append(dst.Status.Conditions, condition)
+		}
+	}
 
 	return nil
 }
@@ -96,6 +112,7 @@ func convert_v1alpha2_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 func convert_hub_VirtualMachineGroup_To_v1alpha2_VirtualMachineGroup(_ context.Context, src *vmoprvhub.VirtualMachineGroup, dst *vmoprv1alpha2.VirtualMachineGroup) error {
 	dst.ObjectMeta = src.ObjectMeta
 
+	dst.Spec.GroupName = src.Spec.GroupName
 	if src.Spec.BootOrder != nil {
 		dst.Spec.BootOrder = []vmoprv1alpha2.VirtualMachineGroupBootOrderGroup{}
 		for _, bootOrderGroup := range src.Spec.BootOrder {
@@ -113,6 +130,11 @@ func convert_hub_VirtualMachineGroup_To_v1alpha2_VirtualMachineGroup(_ context.C
 			dst.Spec.BootOrder = append(dst.Spec.BootOrder, bg)
 		}
 	}
+	dst.Spec.PowerState = vmoprv1alpha2.VirtualMachinePowerState(src.Spec.PowerState)
+	dst.Spec.NextForcePowerStateSyncTime = src.Spec.NextForcePowerStateSyncTime
+	dst.Spec.PowerOffMode = vmoprv1alpha2.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
+	dst.Spec.SuspendMode = vmoprv1alpha2.VirtualMachinePowerOpMode(src.Spec.SuspendMode)
+
 	if src.Status.Members != nil {
 		dst.Status.Members = []vmoprv1alpha2.VirtualMachineGroupMemberStatus{}
 		for _, member := range src.Status.Members {
@@ -131,10 +153,11 @@ func convert_hub_VirtualMachineGroup_To_v1alpha2_VirtualMachineGroup(_ context.C
 					m.Placement.Datastores = []vmoprv1alpha2.VirtualMachineGroupPlacementDatastoreStatus{}
 					for _, datastore := range member.Placement.Datastores {
 						d := vmoprv1alpha2.VirtualMachineGroupPlacementDatastoreStatus{
-							Name:                 datastore.Name,
-							ID:                   datastore.ID,
-							URL:                  datastore.URL,
-							SupportedDiskFormats: datastore.SupportedDiskFormats,
+							Name:                             datastore.Name,
+							ID:                               datastore.ID,
+							URL:                              datastore.URL,
+							SupportedDiskFormats:             datastore.SupportedDiskFormats,
+							TopLevelDirectoryCreateSupported: datastore.TopLevelDirectoryCreateSupported,
 						}
 						if datastore.DiskKey != nil {
 							d.DiskKey = ptr.To(*datastore.DiskKey)
@@ -153,6 +176,15 @@ func convert_hub_VirtualMachineGroup_To_v1alpha2_VirtualMachineGroup(_ context.C
 				}
 			}
 			dst.Status.Members = append(dst.Status.Members, m)
+		}
+	}
+	if src.Status.LastUpdatedPowerStateTime != nil {
+		dst.Status.LastUpdatedPowerStateTime = src.Status.LastUpdatedPowerStateTime.DeepCopy()
+	}
+	if src.Status.Conditions != nil {
+		dst.Status.Conditions = []metav1.Condition{}
+		for _, condition := range src.Status.Conditions {
+			dst.Status.Conditions = append(dst.Status.Conditions, condition)
 		}
 	}
 

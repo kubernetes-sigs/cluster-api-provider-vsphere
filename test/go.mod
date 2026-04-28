@@ -11,7 +11,7 @@ replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719
+	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20260410045241-141a13693b2a
 	github.com/vmware/govmomi v0.53.0
 )
 
@@ -137,7 +137,7 @@ require (
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
-	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20251029150609-93918c59a719 // indirect
+	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260410045241-141a13693b2a // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.10 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.10 // indirect

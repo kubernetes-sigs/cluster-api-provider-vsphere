@@ -123,6 +123,15 @@ type VSphereMachineNetworkSpec struct {
 	//
 	// +optional
 	Interfaces InterfacesSpec `json:"interfaces,omitempty,omitzero"`
+
+	// vlans is a list of VLAN sub-interfaces to be configured on the secondary
+	// network interfaces. Each VLAN is linked to a specific secondary interface
+	// via the link field.
+	//
+	// +kubebuilder:validation:MaxItems=100
+	// +listType=atomic
+	// +optional
+	VLANs []VLANSpec `json:"vlans,omitempty"`
 }
 
 // IsDefined returns true if the VSphereMachineNetworkSpec is defined.
@@ -406,6 +415,39 @@ type VSphereMachineV1Beta1DeprecatedStatus struct {
 	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
+}
+
+// VLANSpec defines a VLAN sub-interface configuration linked to a secondary interface.
+type VLANSpec struct {
+	// name is the name of the VLAN sub-interface as it appears inside
+	// the guest operating system.
+	//
+	// The name must conform to Linux network interface naming rules:
+	// it must be between 1 and 15 characters long, start with an
+	// alphanumeric character, and contain only alphanumeric characters,
+	// hyphens, underscores, or dots.
+	//
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9][a-zA-Z0-9._-]{1,15}$"
+	Name string `json:"name,omitempty"`
+
+	// id is the VLAN ID used to tag traffic on this sub-interface,
+	// a number between 0 and 4094.
+	//
+	// +required
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4094
+	ID *int32 `json:"id,omitempty"`
+
+	// link is the name of the secondary interface this VLAN is associated with.
+	//
+	// +required
+	// +kubebuilder:validation:Pattern="^[a-z0-9]{2,}$"
+	// +kubebuilder:validation:MinLength=2
+	// +kubebuilder:validation:MaxLength=15
+	Link string `json:"link,omitempty"`
 }
 
 // VSphereMachine is the Schema for the vspheremachines API

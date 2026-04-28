@@ -72,6 +72,12 @@ type VirtualMachineGroupBootOrderGroup struct {
 type VirtualMachineGroupSpec struct {
 	// +optional
 
+	// GroupName indicates the name of the parent VirtualMachineGroup to which
+	// this group belongs.
+	GroupName string `json:"groupName,omitempty"`
+
+	// +optional
+
 	// BootOrder describes the boot sequence for this group members. Each boot
 	// order contains a set of members that will be powered on simultaneously,
 	// with an optional delay before powering on. The orders are processed
@@ -80,6 +86,29 @@ type VirtualMachineGroupSpec struct {
 	//
 	// When powering off, all members are stopped immediately without delays.
 	BootOrder []VirtualMachineGroupBootOrderGroup `json:"bootOrder,omitempty"`
+
+	// +optional
+
+	// PowerState describes the desired power state of the group's members.
+	PowerState VirtualMachinePowerState `json:"powerState,omitempty"`
+
+	// +optional
+
+	// NextForcePowerStateSyncTime may be used to force the group's power
+	// state to be synced.
+	NextForcePowerStateSyncTime string `json:"nextForcePowerStateSyncTime,omitempty"`
+
+	// +optional
+
+	// PowerOffMode describes the desired behavior when powering off the
+	// group's members.
+	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
+
+	// +optional
+
+	// SuspendMode describes the desired behavior when suspending the group's
+	// members.
+	SuspendMode VirtualMachinePowerOpMode `json:"suspendMode,omitempty"`
 }
 
 // VirtualMachineGroupPlacementDatastoreStatus describes the placement datastores for this member.
@@ -104,6 +133,12 @@ type VirtualMachineGroupPlacementDatastoreStatus struct {
 	// DiskKey describes the device key to which this recommendation applies.
 	// When omitted, this recommendation is for the VM's home directory.
 	DiskKey *int32 `json:"diskKey,omitempty"`
+
+	// +optional
+
+	// TopLevelDirectoryCreateSupported indicates whether the datastore supports
+	// creating top-level directories.
+	TopLevelDirectoryCreateSupported bool `json:"topLevelDirectoryCreateSupported,omitempty"`
 }
 
 // VirtualMachinePlacementStatus describes the placement results for this member.
@@ -186,6 +221,17 @@ type VirtualMachineGroupStatus struct {
 
 	// Members describes the observed status of group members.
 	Members []VirtualMachineGroupMemberStatus `json:"members,omitempty"`
+
+	// +optional
+
+	// LastUpdatedPowerStateTime describes the last time the group's power
+	// state was updated.
+	LastUpdatedPowerStateTime *metav1.Time `json:"lastUpdatedPowerStateTime,omitempty"`
+
+	// +optional
+
+	// Conditions describes the observed conditions of the VirtualMachineGroup.
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

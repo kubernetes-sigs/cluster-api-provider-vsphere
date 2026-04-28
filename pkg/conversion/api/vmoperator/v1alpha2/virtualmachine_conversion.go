@@ -160,15 +160,15 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
 					}
 				}
-				// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
-				// - ApplicationType
-				// - ControllerBusNumber
-				// - ControllerType
-				// - DiskMode
-				// - SharingMode
-				// - UnitNumber
-				// - UnmanagedVolumeClaim
 			}
+			// Fields existing in hub.VirtualMachineVolume but not in v1alpha2:
+			// - Removable
+			// - ApplicationType
+			// - ControllerBusNumber
+			// - ControllerType
+			// - DiskMode
+			// - SharingMode
+			// - UnitNumber
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
 	}
@@ -389,15 +389,15 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
 					}
 				}
-				// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
-				// - ApplicationType
-				// - ControllerBusNumber
-				// - ControllerType
-				// - DiskMode
-				// - SharingMode
-				// - UnitNumber
-				// - UnmanagedVolumeClaim
 			}
+			// Fields existing in hub.VirtualMachineVolume but not in v1alpha2:
+			// - Removable
+			// - ApplicationType
+			// - ControllerBusNumber
+			// - ControllerType
+			// - DiskMode
+			// - SharingMode
+			// - UnitNumber
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
 	}

@@ -1,4 +1,5 @@
 resources:
+  - ./namespace.yaml
   - ./crd-clusterrole.yaml
 
 namespace: observability

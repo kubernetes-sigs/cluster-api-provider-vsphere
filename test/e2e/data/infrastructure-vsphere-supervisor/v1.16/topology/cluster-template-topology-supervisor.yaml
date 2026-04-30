@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   labels:
@@ -7,7 +7,8 @@ metadata:
   namespace: '${NAMESPACE}'
 spec:
   topology:
-    class: '${CLUSTER_CLASS_NAME}'
+    classRef:
+      name: '${CLUSTER_CLASS_NAME}'
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     variables:
@@ -18,7 +19,6 @@ spec:
         apiVersion: v1
         kind: Pod
         metadata:
-          creationTimestamp: null
           name: kube-vip
           namespace: kube-system
         spec:
@@ -92,11 +92,10 @@ spec:
     workers:
       machineDeployments:
       - class: ${CLUSTER_CLASS_NAME}-worker
-        metadata: {}
         name: md-0
         replicas: ${WORKER_MACHINE_COUNT}
 ---
-apiVersion: addons.cluster.x-k8s.io/v1beta1
+apiVersion: addons.cluster.x-k8s.io/v1beta2
 kind: ClusterResourceSet
 metadata:
   labels:

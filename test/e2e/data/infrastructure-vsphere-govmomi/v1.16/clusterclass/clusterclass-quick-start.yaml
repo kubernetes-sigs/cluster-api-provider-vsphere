@@ -1,46 +1,37 @@
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereClusterTemplate
 metadata:
   name: '${CLUSTER_CLASS_NAME}'
   namespace: '${NAMESPACE}'
-spec:
-  template:
-    spec: {}
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: '${CLUSTER_CLASS_NAME}'
 spec:
   controlPlane:
     machineInfrastructure:
-      ref:
-        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+      templateRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: VSphereMachineTemplate
         name: ${CLUSTER_CLASS_NAME}-template
-        namespace: '${NAMESPACE}'
-    ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: ${CLUSTER_CLASS_NAME}-controlplane
-      namespace: '${NAMESPACE}'
   infrastructure:
-    ref:
-      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: VSphereClusterTemplate
       name: '${CLUSTER_CLASS_NAME}'
-      namespace: '${NAMESPACE}'
   patches:
   - definitions:
     - jsonPatches:
       - op: add
         path: /spec/template/spec/kubeadmConfigSpec/files
         value: []
-      - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/postKubeadmCommands
-        value: []
       selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -48,11 +39,8 @@ spec:
       - op: add
         path: /spec/template/spec/files
         value: []
-      - op: add
-        path: /spec/template/spec/postKubeadmCommands
-        value: []
       selector:
-        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
         kind: KubeadmConfigTemplate
         matchResources:
           machineDeploymentClass:
@@ -70,7 +58,7 @@ spec:
               - '{{ .sshKey }}'
               sudo: ALL=(ALL) NOPASSWD:ALL
       selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -84,7 +72,7 @@ spec:
               - '{{ .sshKey }}'
               sudo: ALL=(ALL) NOPASSWD:ALL
       selector:
-        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
         kind: KubeadmConfigTemplate
         matchResources:
           machineDeploymentClass:
@@ -95,13 +83,32 @@ spec:
   - definitions:
     - jsonPatches:
       - op: add
+        path: /spec
+        value:
+          template:
+            spec: {}
+      - op: add
         path: /spec/template/spec/controlPlaneEndpoint
         valueFrom:
           template: |
             host: '{{ .controlPlaneIpAddr }}'
             port: {{ .controlPlanePort }}
+      - op: add
+        path: /spec/template/spec/identityRef
+        valueFrom:
+          template: |
+            kind: Secret
+            name: '{{ .credsSecretName }}'
+      - op: add
+        path: /spec/template/spec/server
+        valueFrom:
+          variable: infraServer.url
+      - op: add
+        path: /spec/template/spec/thumbprint
+        valueFrom:
+          variable: infraServer.thumbprint
       selector:
-        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: VSphereClusterTemplate
         matchResources:
           infrastructureCluster: true
@@ -176,59 +183,67 @@ spec:
             path: /etc/pre-kubeadm-commands/50-kube-vip-prepare.sh
             permissions: "0700"
       selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
     name: kubeVipPodManifest
   variables:
-  - metadata: {}
-    name: sshKey
+  - name: sshKey
     required: false
     schema:
       openAPIV3Schema:
         description: Public key to SSH onto the cluster nodes.
         type: string
-  - metadata: {}
-    name: controlPlaneIpAddr
+  - name: controlPlaneIpAddr
     required: true
     schema:
       openAPIV3Schema:
         description: Floating VIP for the control plane.
         type: string
-  - metadata: {}
-    name: controlPlanePort
+  - name: controlPlanePort
     required: true
     schema:
       openAPIV3Schema:
         description: Port for the control plane endpoint.
         type: integer
-  - metadata: {}
-    name: kubeVipPodManifest
+  - name: kubeVipPodManifest
     required: true
     schema:
       openAPIV3Schema:
         description: kube-vip manifest for the control plane.
         type: string
+  - name: infraServer
+    required: true
+    schema:
+      openAPIV3Schema:
+        properties:
+          thumbprint:
+            type: string
+          url:
+            type: string
+        type: object
+  - name: credsSecretName
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: Secret containing the credentials for the infra cluster.
+        type: string
   workers:
     machineDeployments:
-    - class: ${CLUSTER_CLASS_NAME}-worker
-      template:
-        bootstrap:
-          ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-            kind: KubeadmConfigTemplate
-            name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
-            namespace: '${NAMESPACE}'
-        infrastructure:
-          ref:
-            apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
-            kind: VSphereMachineTemplate
-            name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
-            namespace: '${NAMESPACE}'
-        metadata: {}
+    - bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+      class: ${CLUSTER_CLASS_NAME}-worker
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: VSphereMachineTemplate
+          name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-template
@@ -236,12 +251,26 @@ metadata:
 spec:
   template:
     spec:
-      className: ${VSPHERE_MACHINE_CLASS_NAME}
-      imageName: ${VSPHERE_IMAGE_NAME}
-      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
-      storageClass: ${VSPHERE_STORAGE_CLASS}
+      cloneMode: linkedClone
+      datacenter: '${VSPHERE_DATACENTER}'
+      datastore: '${VSPHERE_DATASTORE}'
+      diskGiB: 25
+      folder: '${VSPHERE_FOLDER}'
+      memoryMiB: 8192
+      network:
+        devices:
+        - dhcp4: true
+          dhcp6: false
+          networkName: '${VSPHERE_NETWORK}'
+      numCPUs: 2
+      os: Linux
+      powerOffMode: trySoft
+      resourcePool: '${VSPHERE_RESOURCE_POOL}'
+      server: '${VSPHERE_SERVER}'
+      storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
+      template: '${VSPHERE_TEMPLATE}'
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
@@ -249,12 +278,26 @@ metadata:
 spec:
   template:
     spec:
-      className: ${VSPHERE_MACHINE_CLASS_NAME}
-      imageName: ${VSPHERE_IMAGE_NAME}
-      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
-      storageClass: ${VSPHERE_STORAGE_CLASS}
+      cloneMode: linkedClone
+      datacenter: '${VSPHERE_DATACENTER}'
+      datastore: '${VSPHERE_DATASTORE}'
+      diskGiB: 25
+      folder: '${VSPHERE_FOLDER}'
+      memoryMiB: 8192
+      network:
+        devices:
+        - dhcp4: true
+          dhcp6: false
+          networkName: '${VSPHERE_NETWORK}'
+      numCPUs: 2
+      os: Linux
+      powerOffMode: trySoft
+      resourcePool: '${VSPHERE_RESOURCE_POOL}'
+      server: '${VSPHERE_SERVER}'
+      storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
+      template: '${VSPHERE_TEMPLATE}'
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-controlplane
@@ -266,21 +309,23 @@ spec:
         clusterConfiguration:
           controllerManager:
             extraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
         initConfiguration:
           nodeRegistration:
             criSocket: /var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
             name: '{{ local_hostname }}'
         joinConfiguration:
           nodeRegistration:
             criSocket: /var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
             name: '{{ local_hostname }}'
         preKubeadmCommands:
-        - dhclient eth0
         - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
         - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
           >/etc/hosts
@@ -295,7 +340,7 @@ spec:
           - '${VSPHERE_SSH_AUTHORIZED_KEY}'
           sudo: ALL=(ALL) NOPASSWD:ALL
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
@@ -307,10 +352,10 @@ spec:
         nodeRegistration:
           criSocket: /var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            cloud-provider: external
+          - name: cloud-provider
+            value: external
           name: '{{ local_hostname }}'
       preKubeadmCommands:
-      - dhclient eth0
       - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
       - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
         >/etc/hosts

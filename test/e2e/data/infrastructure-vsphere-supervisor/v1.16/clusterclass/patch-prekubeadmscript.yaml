@@ -12,7 +12,7 @@
             permissions: "0755"
             content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.controlPlane.version)) }}
       selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -26,7 +26,7 @@
             permissions: "0755"
             content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.machineDeployment.version)) }}
       selector:
-        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
         kind: KubeadmConfigTemplate
         matchResources:
           machineDeploymentClass:

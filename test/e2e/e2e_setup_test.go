@@ -142,7 +142,9 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			// Use latest vm-operator or the vm-operator version defined in the VM_OPERATOR_VERSION env var.
 			vmOperator := "vm-operator"
 			if e2eConfig.HasVariable("VM_OPERATOR_VERSION") {
-				vmOperator = fmt.Sprintf("%s:%s", vmOperator, e2eConfig.MustGetVariable("VM_OPERATOR_VERSION"))
+				// Note: VM_OPERATOR_VERSION use a major.minor version.
+				// In order to make this value similar to CAPI/provider versions, as required by clusterctl, add the v prefix and the .0 patch version.
+				vmOperator = fmt.Sprintf("%s:v%s.0", vmOperator, e2eConfig.MustGetVariable("VM_OPERATOR_VERSION"))
 			}
 			runtimeExtensionProviders = append(runtimeExtensionProviders, vmOperator, "net-operator")
 		}

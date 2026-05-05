@@ -19,6 +19,7 @@ package vmoperator
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
 	"net"
 	"net/url"
@@ -40,6 +41,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -84,6 +86,49 @@ const (
 
 	thumbprintSecretKey = "CAPV-TEST-Thumbprint" //nolint:gosec
 )
+
+var (
+	//go:embed vmoperator-capabilities-9.1.yaml
+	capabilities9_1 []byte
+)
+
+// ReconcileCapabilities reconciles the ConfigMap with the list of capabilities for the vm-operator.
+// NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.1.yaml that is
+// used by clusterctl init (init requires all the objects to be in the same namespace).
+func ReconcileCapabilities(ctx context.Context, c client.Client) error {
+	var retryError error
+	log := ctrl.LoggerFrom(ctx)
+
+	objs, err := utilyaml.ToUnstructured(capabilities9_1)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse yaml for vm-operator capabilities ConfigMap")
+	}
+
+	if len(objs) != 1 || objs[0].GetKind() != "ConfigMap" || objs[0].GetName() != "wcp-cluster-capabilities" {
+		return errors.Wrap(err, "invalid yaml for vm-operator capabilities ConfigMap")
+	}
+
+	cm := &objs[0]
+	_ = wait.PollUntilContextTimeout(ctx, 1*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
+		retryError = nil
+		if err := c.Get(ctx, client.ObjectKeyFromObject(cm), cm); err != nil {
+			if !apierrors.IsNotFound(err) {
+				retryError = errors.Wrapf(err, "failed to get vm-operator ConfigMap %s", cm.GetName())
+				return false, nil
+			}
+			if err := c.Create(ctx, cm); err != nil {
+				retryError = errors.Wrapf(err, "failed to create vm-operator ConfigMap %s", cm.GetName())
+				return false, nil
+			}
+			log.Info("Created vm-operator ConfigMap", "ConfigMap", klog.KObj(cm))
+		}
+		return true, nil
+	})
+	if retryError != nil {
+		return retryError
+	}
+	return nil
+}
 
 // ReconcileDependencies reconciles dependencies for the vm-operator.
 // NOTE: This func is idempotent, it creates objects if missing otherwise it uses existing ones

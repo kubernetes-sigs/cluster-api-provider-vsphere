@@ -28,5 +28,6 @@ resources:
   - ../../../../../vm-operator/config/9.1/external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
   - ../../../../../vm-operator/config/9.1/external-crds/netoperator.vmware.com_networkinterfaces.yaml
   - ../../../../../vm-operator/config/9.1/external-crds/cns.vmware.com_cnsnodevmattachments.yaml
+  - ../../../../../vm-operator/config/9.1/external-crds/cns.vmware.com_cnsregistervolumes.yaml
   - ../../../../../vm-operator/config/9.1/external-crds/cns.vmware.com_storagepolicyquotas.yaml
   - ../../../../../vm-operator/config/9.1/external-crds/cns.vmware.com_storagepolicyusages.yaml

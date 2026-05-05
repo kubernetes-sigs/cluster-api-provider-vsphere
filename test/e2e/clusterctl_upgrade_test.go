@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vcsim"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
 )
 
 var (
@@ -91,6 +92,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15
 				// below otherwise there will be no VCSim instance created in the management cluster.
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
+				PreInit: func(managementClusterProxy framework.ClusterProxy) {
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient())).Should(Succeed())
+				},
 			}
 		})
 	},
@@ -145,6 +149,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15
 				// below otherwise there will be no VCSim instance created in the management cluster.
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
+				PreInit: func(managementClusterProxy framework.ClusterProxy) {
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient())).Should(Succeed())
+				},
 			}
 		})
 	},
@@ -199,6 +206,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.14
 				// below otherwise there will be no VCSim instance created in the management cluster.
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
+				PreInit: func(managementClusterProxy framework.ClusterProxy) {
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient())).Should(Succeed())
+				},
 			}
 		})
 	},
@@ -253,6 +263,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13
 				// below otherwise there will be no VCSim instance created in the management cluster.
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
+				PreInit: func(managementClusterProxy framework.ClusterProxy) {
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient())).Should(Succeed())
+				},
 			}
 		})
 	},

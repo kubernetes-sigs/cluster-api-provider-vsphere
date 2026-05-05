@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.25.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-rc.0.0.20260504113540-3466e650b303
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.13.1
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.13.0-rc.0.0.20260504113540-3466e650b303
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -153,7 +153,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.1 // indirect
+	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect

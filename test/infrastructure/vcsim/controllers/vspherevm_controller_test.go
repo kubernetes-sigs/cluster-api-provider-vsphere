@@ -163,7 +163,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		listenerName := "foo/bar"
-		_, err = wcmux.InitWorkloadClusterListener(listenerName)
+		_, err = wcmux.InitWorkloadClusterListener(listenerName, 0)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = wcmux.RegisterResourceGroup(listenerName, resourceGroupName)
@@ -296,7 +296,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		listenerName := "foo/bar"
-		_, err = apiServerMux.InitWorkloadClusterListener(listenerName)
+		_, err = apiServerMux.InitWorkloadClusterListener(listenerName, 0)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = apiServerMux.RegisterResourceGroup(listenerName, resourceGroupName)

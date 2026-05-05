@@ -29,20 +29,24 @@
     label: CAPV
     kustomize_folder: "/config/supervisor-tilt"
 
-# IMPORTANT: run "VM_OPERATOR_VERSION=v1.8.6-0-gde75746a VM_OPERATOR_COMMIT=de75746a9505ef3161172d99b735d6593c54f0c5 make checkout-vm-operator generate-manifests-vm-operator" before using this "provider" with tilt
-- name: vm-operator-v1.8.6-0-gde75746a
+# IMPORTANT: run "VM_OPERATOR_VERSION=8.0 VM_OPERATOR_COMMIT_DESCRIBE=v1.8.6-0-gde75746a VM_OPERATOR_COMMIT=de75746a9505ef3161172d99b735d6593c54f0c5 make generate-manifests-vm-operator" before using this "provider" with tilt
+- name: vm-operator-8.0
   config:
-    version: v1.8.6-0-gde75746a
+    version: "8.0"
     label: VMOP
-    kustomize_folder: "/test/infrastructure/vm-operator/config/v1-8-6-0-gde75746a"
+    kustomize_folder: "/test/infrastructure/vm-operator/config/8.0"
     kustomize_options:
       - "--load-restrictor=LoadRestrictionsNone"
+    resource_deps:
+    - capi_controller # in some cases deploying vm-operator fails because the provider crd is not yet ready. this dependency acts as additional wait.
 
-# IMPORTANT: run "VM_OPERATOR_VERSION=v1.9.0-567-g93918c59 VM_OPERATOR_COMMIT=93918c59a71918f6395fd319fa4dd5b9a3f57e24 make checkout-vm-operator generate-manifests-vm-operator" before using this "provider" with tilt
-- name: vm-operator-v1.9.0-567-g93918c59
+# IMPORTANT: run "VM_OPERATOR_VERSION=9.1 VM_OPERATOR_COMMIT_DESCRIBE=v1.9.0-567-g93918c59 VM_OPERATOR_COMMIT=93918c59a71918f6395fd319fa4dd5b9a3f57e24 make generate-manifests-vm-operator" before using this "provider" with tilt
+- name: vm-operator-9.1
   config:
-    version: v1.9.0-567-g93918c59
+    version: "9.1"
     label: VMOP
-    kustomize_folder: "/test/infrastructure/vm-operator/config/v1-9-0-567-g93918c59"
+    kustomize_folder: "/test/infrastructure/vm-operator/config/9.1"
     kustomize_options:
       - "--load-restrictor=LoadRestrictionsNone"
+    resource_deps:
+    - capi_controller # in some cases deploying vm-operator fails because the provider crd is not yet ready. this dependency acts as additional wait.

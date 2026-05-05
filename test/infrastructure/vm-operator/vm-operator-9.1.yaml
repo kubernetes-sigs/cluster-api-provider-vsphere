@@ -36391,7 +36391,7 @@ spec:
           value: "true"
         - name: FSS_STORAGE_QUOTA_M2
           value: "true"
-        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.9.0-567-g93918c59
+        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:9.1
         imagePullPolicy: Always
         name: manager
         ports:

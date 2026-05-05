@@ -1724,6 +1724,22 @@ spec:
                     VirtualMachineImageDiskInfo describes information about any disks associated with
                     this image.
                   properties:
+                    controllerBusNumber:
+                      description: |-
+                        ControllerBusNumber describes bus number of the controller to which this
+                        disk is attached.
+                      format: int32
+                      type: integer
+                    controllerType:
+                      description: |-
+                        ControllerType describes the type of controller to which this disk is
+                        attached.
+                      enum:
+                      - IDE
+                      - NVME
+                      - SCSI
+                      - SATA
+                      type: string
                     limit:
                       anyOf:
                       - type: integer
@@ -1742,6 +1758,10 @@ spec:
                         the virtual disk.
                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                       x-kubernetes-int-or-string: true
+                    unitNumber:
+                      description: UnitNumber describes the unit number for this disk.
+                      format: int32
+                      type: integer
                   required:
                   - name
                   type: object
@@ -1962,6 +1982,117 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: cnsregistervolumes.cns.vmware.com
+spec:
+  group: cns.vmware.com
+  names:
+    kind: CnsRegisterVolume
+    listKind: CnsRegisterVolumeList
+    plural: cnsregistervolumes
+    singular: cnsregistervolume
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: CnsRegisterVolume is the Schema for the cnsregistervolumes API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CnsRegisterVolumeSpec defines the desired state of CnsRegisterVolume
+            properties:
+              accessMode:
+                description: |-
+                  AccessMode contains the actual access mode the volume backing the
+                  CnsRegisterVolume has.
+                  AccessMode must be specified if VolumeID is specified.
+                type: string
+              backingType:
+                description: |-
+                  BackingType enumerates types of backing for batch attach operations.
+                  These values correspond to the CnsVolumeBackingType enum.
+                type: string
+              diskURLPath:
+                description: |-
+                  DiskUrlPath is URL path to an existing block volume to be imported into
+                  Project Pacific cluster.
+                  VolumeID and DiskUrlPath cannot be specified together.
+                  DiskUrlPath is explicitly used for block volumes. AccessMode need not be
+                  specified and will be defaulted to "ReadWriteOnce".
+                  This field must be in the following format:
+                  Format:
+                  https://<vc_ip>/folder/<vm_vmdk_path>?dcPath=<datacenterName>&dsName=<datastoreName>
+                  Ex: https://10.192.255.221/folder/34a9c05d-5f03-e254-e692-02004479cb91/
+                         vm2_1.vmdk?dcPath=Datacenter-1&dsName=vsanDatastore
+                  This is for a 34a9c05d-5f03-e254-e692-02004479cb91/vm2_1.vmdk
+                  file under datacenter "Datacenter-1" and datastore "vsanDatastore".
+                type: string
+              pvcName:
+                description: Name of the PVC
+                type: string
+              volumeID:
+                description: |-
+                  VolumeID indicates an existing vsphere volume to be imported into Project
+                  Pacific cluster.
+                  If the AccessMode is "ReadWriteMany" or "ReadOnlyMany", then this VolumeID
+                  can be either an existing FileShare (or) CNS file volume backed FileShare.
+                  If the AccessMode is "ReadWriteOnce", then this VolumeID can be either an
+                  existing FCD (or) a CNS backed FCD.
+                  VolumeID and DiskUrlPath cannot be specified together.
+                type: string
+              volumeMode:
+                description: |-
+                  VolumeMode can either be Block (for raw block volume) or
+                  Filesystem. Default values is Filesystem.
+                type: string
+            required:
+            - pvcName
+            type: object
+          status:
+            description: CnsRegisterVolumeStatus defines the observed state of CnsRegisterVolume
+            properties:
+              error:
+                description: |-
+                  The last error encountered during import operation, if any.
+                  This field must only be set by the entity completing the import
+                  operation, i.e. the CNS Operator.
+                type: string
+              registered:
+                description: |-
+                  Indicates the volume is successfully registered.
+                  This field must only be set by the entity completing the register
+                  operation, i.e. the CNS Operator.
+                type: boolean
+            required:
+            - registered
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -5501,6 +5632,12 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                              topLevelDirectoryCreateSupported:
+                                description: |-
+                                  TopLevelDirectoryCreateSupported indicates whether or not the datastore
+                                  supports creating a top-level directory or requires the use of the
+                                  namespace manager (i.e. vSAN).
+                                type: boolean
                               url:
                                 description: URL describes the datastore URL.
                                 type: string
@@ -5888,6 +6025,12 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                              topLevelDirectoryCreateSupported:
+                                description: |-
+                                  TopLevelDirectoryCreateSupported indicates whether or not the datastore
+                                  supports creating a top-level directory or requires the use of the
+                                  namespace manager (i.e. vSAN).
+                                type: boolean
                               url:
                                 description: URL describes the datastore URL.
                                 type: string
@@ -6275,6 +6418,12 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                              topLevelDirectoryCreateSupported:
+                                description: |-
+                                  TopLevelDirectoryCreateSupported indicates whether or not the datastore
+                                  supports creating a top-level directory or requires the use of the
+                                  namespace manager (i.e. vSAN).
+                                type: boolean
                               url:
                                 description: URL describes the datastore URL.
                                 type: string
@@ -6662,6 +6811,12 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                              topLevelDirectoryCreateSupported:
+                                description: |-
+                                  TopLevelDirectoryCreateSupported indicates whether or not the datastore
+                                  supports creating a top-level directory or requires the use of the
+                                  namespace manager (i.e. vSAN).
+                                type: boolean
                               url:
                                 description: URL describes the datastore URL.
                                 type: string
@@ -7377,11 +7532,13 @@ spec:
                       description: |-
                         DatacenterID describes the ID of the datacenter to which the image should
                         be cached.
+                      minLength: 1
                       type: string
                     datastoreID:
                       description: |-
                         DatastoreID describes the ID of the datastore to which the image should
                         be cached.
+                      minLength: 1
                       type: string
                     profileID:
                       description: |-
@@ -7389,6 +7546,7 @@ spec:
                         image.
                         Please note, this profile *must* include the datastore specified by the
                         datastoreID field.
+                      minLength: 1
                       type: string
                   required:
                   - datacenterID
@@ -9018,6 +9176,22 @@ spec:
                     VirtualMachineImageDiskInfo describes information about any disks associated with
                     this image.
                   properties:
+                    controllerBusNumber:
+                      description: |-
+                        ControllerBusNumber describes bus number of the controller to which this
+                        disk is attached.
+                      format: int32
+                      type: integer
+                    controllerType:
+                      description: |-
+                        ControllerType describes the type of controller to which this disk is
+                        attached.
+                      enum:
+                      - IDE
+                      - NVME
+                      - SCSI
+                      - SATA
+                      type: string
                     limit:
                       anyOf:
                       - type: integer
@@ -9036,6 +9210,10 @@ spec:
                         the virtual disk.
                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                       x-kubernetes-int-or-string: true
+                    unitNumber:
+                      description: UnitNumber describes the unit number for this disk.
+                      format: int32
+                      type: integer
                   required:
                   - name
                   type: object
@@ -12044,8 +12222,6 @@ spec:
                                         format: int32
                                         minimum: 0
                                         type: integer
-                                    required:
-                                    - timeZone
                                     type: object
                                   identification:
                                     description: Identification is a representation
@@ -14341,8 +14517,6 @@ spec:
                                         format: int32
                                         minimum: 0
                                         type: integer
-                                    required:
-                                    - timeZone
                                     type: object
                                   identification:
                                     description: Identification is a representation
@@ -16135,22 +16309,34 @@ spec:
                               number of devices it supports. If bootable device is not reached before platform's limit
                               is hit, boot will fail. At least single entry is supported by all products supporting
                               boot order settings.
-
-                              The available devices are:
-
-                              - Disk    -- If there are classic and managed disks, the first classic disk is selected.
-                                           If there are only managed disks, the first disk is selected.
-                              - Network -- The first interface listed in spec.network.interfaces.
-                              - CDRom   -- The first bootable CD-ROM device.
                             items:
                               description: |-
-                                VirtualMachineBootOptionsBootableDevice represents the type of bootable device
+                                VirtualMachineBootOptionsBootableDevice represents a bootable device
                                 that a VM may be booted from.
-                              enum:
-                              - Disk
-                              - Network
-                              - CDRom
-                              type: string
+                              properties:
+                                name:
+                                  description: |-
+                                    Name represents the name of the bootable device. It is
+                                    required for Disk and Network device types, while ignored
+                                    for CDRom device types.
+                                  type: string
+                                type:
+                                  description: |-
+                                    Type represents the type of bootable device.
+
+                                    The available device types are:
+
+                                    - Disk
+                                    - Network
+                                    - CDRom
+                                  enum:
+                                  - Disk
+                                  - Network
+                                  - CDRom
+                                  type: string
+                              required:
+                              - type
+                              type: object
                             type: array
                           bootRetry:
                             default: Disabled
@@ -16187,20 +16373,6 @@ spec:
                             - Enabled
                             - Disabled
                             type: string
-                          enterBootSetup:
-                            default: Disabled
-                            description: |-
-                              EnterBootSetup specifies whether to automatically enter BIOS/EFI setup the next
-                              time the virtual machine boots. The virtual machine resets this flag to false
-                              so that subsequent boots proceed normally. The available values are:
-
-                              - Enabled -- The virtual machine will automatically enter BIOS/EFI setup the next
-                                           time the virtual machine boots.
-                              - Disabled -- The virtual machine will boot normaally.
-                            enum:
-                            - Enabled
-                            - Disabled
-                            type: string
                           firmware:
                             description: |-
                               Firmware represents the firmware for the virtual machine to use. Any update
@@ -16217,11 +16389,11 @@ spec:
 
                               The available values of this field are:
 
-                              - BIOS
-                              - EFI
+                              - bios
+                              - efi
                             enum:
-                            - BIOS
-                            - EFI
+                            - bios
+                            - efi
                             type: string
                           networkBootProtocol:
                             default: IP4
@@ -16880,8 +17052,6 @@ spec:
                                         format: int32
                                         minimum: 0
                                         type: integer
-                                    required:
-                                    - timeZone
                                     type: object
                                   identification:
                                     description: Identification is a representation
@@ -17114,7 +17284,7 @@ spec:
                         type: object
                       class:
                         description: |-
-                          Class describes the VirtualMachineClassInsance resource that is
+                          Class describes the VirtualMachineClassInstance resource that is
                           referenced by this virtual machine. This can be the
                           VirtualMachineClassInstance that the virtual machine was
                           created, or later resized with.
@@ -17241,6 +17411,23 @@ spec:
 
                               Defaults to true if omitted.
                             type: boolean
+                          vTPMMode:
+                            default: New
+                            description: |-
+                              VTPMMode describes the desired behavior when deploying a VirtualMachine
+                              using a VirtualMachine-backed image which created from an encrypted
+                              VirtualMachine with a vTPM.
+
+                              The possible values for this field are:
+
+                              - Clone - The vTPM will be preserved from the VirtualMachineImage.
+                              - New - The vTPM will not be preserved.
+
+                              The default value of this field is New.
+                            enum:
+                            - Clone
+                            - New
+                            type: string
                         type: object
                       currentSnapshotName:
                         description: |-
@@ -17487,15 +17674,6 @@ spec:
                                   maximum: 3
                                   minimum: 0
                                   type: integer
-                                pciSlotNumber:
-                                  description: |-
-                                    PCISlotNumber describes the desired PCI slot number to use for this
-                                    controller.
-
-                                    Please note, most of the time this field should be empty so the system
-                                    can pick an available slot.
-                                  format: int32
-                                  type: integer
                                 sharingMode:
                                   default: None
                                   description: |-
@@ -17529,15 +17707,6 @@ spec:
                                   maximum: 3
                                   minimum: 0
                                   type: integer
-                                pciSlotNumber:
-                                  description: |-
-                                    PCISlotNumber describes the desired PCI slot number to use for this
-                                    controller.
-
-                                    Please note, most of the time this field should be empty so the system
-                                    can pick an available slot.
-                                  format: int32
-                                  type: integer
                               required:
                               - busNumber
                               type: object
@@ -17558,15 +17727,6 @@ spec:
                                   format: int32
                                   maximum: 3
                                   minimum: 0
-                                  type: integer
-                                pciSlotNumber:
-                                  description: |-
-                                    PCISlotNumber describes the desired PCI slot number to use for this
-                                    controller.
-
-                                    Please note, most of the time this field should be empty so the system
-                                    can pick an available slot.
-                                  format: int32
                                   type: integer
                                 sharingMode:
                                   default: None
@@ -18315,6 +18475,102 @@ spec:
                           description: VirtualMachineVolume represents a named volume
                             in a VM.
                           properties:
+                            applicationType:
+                              description: |-
+                                ApplicationType describes the type of application for which this volume
+                                is intended to be used.
+
+                                  - OracleRAC      -- The volume is configured with
+                                                      diskMode=IndependentPersistent and
+                                                      sharingMode=MultiWriter and attached to the first
+                                                      SCSI controller with an available slot and
+                                                      sharingMode=None. If no such controller exists,
+                                                      a new ParaVirtual SCSI controller will be created
+                                                      with sharingMode=None long as there are currently
+                                                      three or fewer SCSI controllers.
+                                  - MicrosoftWSFC  -- The volume is configured with
+                                                      diskMode=IndependentPersistent and attached to a
+                                                      SCSI controller with sharingMode=Physical.
+                                                      If no such controller exists, a new ParaVirtual
+                                                      SCSI controller will be created with
+                                                      sharingMode=Physical as long as there are currently
+                                                      three or fewer SCSI controllers.
+                              enum:
+                              - OracleRAC
+                              - MicrosoftWSFC
+                              type: string
+                            controllerBusNumber:
+                              description: |-
+                                ControllerBusNumber describes the bus number of the controller to which
+                                this volume should be attached.
+
+                                The bus number specifies a controller based on the value of the
+                                controllerType field:
+
+                                  - IDE  -- spec.hardware.ideControllers
+                                  - NVME -- spec.hardware.nvmeControllers
+                                  - SATA -- spec.hardware.sataControllers
+                                  - SCSI -- spec.hardware.scsiControllers
+
+                                If this and controllerType are both omitted, the volume will be attached
+                                to the first available SCSI controller. If there is no SCSI controller
+                                with an available slot, a new ParaVirtual SCSI controller will be added
+                                as long as there are currently three or fewer SCSI controllers.
+
+                                If the specified controller has no available slots, the request will be
+                                denied.
+                              format: int32
+                              type: integer
+                            controllerType:
+                              description: |-
+                                ControllerType describes the type of the controller to which this volume
+                                should be attached.
+
+                                Please keep in mind the number of volumes supported by the different
+                                types of controllers:
+
+                                  - IDE                -- 4 total (2 per controller)
+                                  - NVME               -- 256 total (64 per controller)
+                                  - SATA               -- 120 total (30 per controller)
+                                  - SCSI (ParaVirtual) -- 256 total (64 per controller)
+                                  - SCSI (BusLogic)    -- 60 total (15 per controller)
+                                  - SCSI (LsiLogic)    -- 60 total (15 per controller)
+                                  - SCSI (LsiLogicSAS) -- 60 total (15 per controller)
+
+                                Please note, the number of supported volumes per SCSI controller may seem
+                                off, but remember that a SCSI controller occupies a slot on its own bus.
+                                Thus even though a ParaVirtual SCSI controller supports 65 targets and
+                                the other types of SCSI controllers support 16 targets, one of the
+                                targets is occupied by the controller itself.
+
+                                Defaults to SCSI when controllerBusNumber is also omitted; otherwise the
+                                default value is determined by the logic outlined in the description of
+                                the controllerBusNumber field.
+                              enum:
+                              - IDE
+                              - NVME
+                              - SCSI
+                              - SATA
+                              type: string
+                            diskMode:
+                              description: |-
+                                DiskMode describes the desired mode to use when attaching the volume.
+
+                                Please note, volumes attached as IndependentNonPersistent or
+                                IndependentPersistent are not included in a VM's snapshots or backups.
+
+                                Also, any data written to volumes attached as IndependentNonPersistent or
+                                NonPersistent will be discarded when the VM is powered off.
+
+                                When applicationType=OracleRAC or applicationType=MicrosoftWSFC, this
+                                field defaults to IndependentPersistent.
+                                Otherwise, defaults to Persistent.
+                              enum:
+                              - IndependentNonPersistent
+                              - IndependentPersistent
+                              - NonPersistent
+                              - Persistent
+                              type: string
                             name:
                               description: |-
                                 Name represents the volume's name. Must be a DNS_LABEL and unique within
@@ -18328,107 +18584,10 @@ spec:
                                 More information is available at
                                 https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims.
                               properties:
-                                applicationType:
-                                  description: |-
-                                    ApplicationType describes the type of application for which this volume
-                                    is intended to be used.
-
-                                      - OracleRAC      -- The volume is configured with
-                                                          diskMode=IndependentPersistent and
-                                                          sharingMode=MultiWriter and attached to the first
-                                                          SCSI controller with an available slot and
-                                                          sharingMode=None. If no such controller exists,
-                                                          a new ParaVirtual SCSI controller will be created
-                                                          with sharingMode=None long as there are currently
-                                                          three or fewer SCSI controllers.
-                                      - MicrosoftWSFC  -- The volume is configured with
-                                                          diskMode=IndependentPersistent and attached to a
-                                                          SCSI controller with sharingMode=Physical.
-                                                          If no such controller exists, a new ParaVirtual
-                                                          SCSI controller will be created with
-                                                          sharingMode=Physical as long as there are currently
-                                                          three or fewer SCSI controllers.
-                                  enum:
-                                  - OracleRAC
-                                  - MicrosoftWSFC
-                                  type: string
                                 claimName:
                                   description: |-
                                     claimName is the name of a PersistentVolumeClaim in the same namespace as the pod using this volume.
                                     More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
-                                  type: string
-                                controllerBusNumber:
-                                  description: |-
-                                    ControllerBusNumber describes the bus number of the controller to which
-                                    this volume should be attached.
-
-                                    The bus number specifies a controller based on the value of the
-                                    controllerType field:
-
-                                      - IDE  -- spec.hardware.ideControllers
-                                      - NVME -- spec.hardware.nvmeControllers
-                                      - SATA -- spec.hardware.sataControllers
-                                      - SCSI -- spec.hardware.scsiControllers
-
-                                    If this and controllerType are both omitted, the volume will be attached
-                                    to the first available SCSI controller. If there is no SCSI controller
-                                    with an available slot, a new ParaVirtual SCSI controller will be added
-                                    as long as there are currently three or fewer SCSI controllers.
-
-                                    If the specified controller has no available slots, the request will be
-                                    denied.
-                                  format: int32
-                                  type: integer
-                                controllerType:
-                                  default: SCSI
-                                  description: |-
-                                    ControllerType describes the type of the controller to which this volume
-                                    should be attached.
-
-                                    Please keep in mind the number of volumes supported by the different
-                                    types of controllers:
-
-                                      - IDE                -- 4 total (2 per controller)
-                                      - NVME               -- 256 total (64 per controller)
-                                      - SATA               -- 120 total (30 per controller)
-                                      - SCSI (ParaVirtual) -- 252 total (63 per controller)
-                                      - SCSI (BusLogic)    -- 60 total (15 per controller)
-                                      - SCSI (LsiLogic)    -- 60 total (15 per controller)
-                                      - SCSI (LsiLogicSAS) -- 60 total (15 per controller)
-
-                                    Please note, the number of supported volumes per SCSI controller may seem
-                                    off, but remember that a SCSI controller occupies a slot on its own bus.
-                                    Thus even though a ParaVirtual SCSI controller supports 64 targets and
-                                    the other types of SCSI controllers support 16 targets, one of the
-                                    targets is occupied by the controller itself.
-
-                                    Defaults to SCSI when controllerBusNumber is also omitted; otherwise the
-                                    default value is determined by the logic outlined in the description of
-                                    the controllerBusNumber field.
-                                  enum:
-                                  - IDE
-                                  - NVME
-                                  - SCSI
-                                  - SATA
-                                  type: string
-                                diskMode:
-                                  default: Persistent
-                                  description: |-
-                                    DiskMode describes the desired mode to use when attaching the volume.
-
-                                    Please note, volumes attached as IndependentNonPersistent or
-                                    IndependentPersistent are not included in a VM's snapshots or backups.
-
-                                    Also, any data written to volumes attached as IndependentNonPersistent or
-                                    NonPersistent will be discarded when the VM is powered off.
-
-                                    Defaults to Persistent.
-                                  enum:
-                                  - IndependentNonPersistent
-                                  - IndependentPersistent
-                                  - NonPersistent
-                                  - Persistent
-                                  - Dependent
                                   type: string
                                 instanceVolumeClaim:
                                   description: InstanceVolumeClaim is set if the PVC
@@ -18456,77 +18615,51 @@ spec:
                                     readOnly Will force the ReadOnly setting in VolumeMounts.
                                     Default false.
                                   type: boolean
-                                sharingMode:
-                                  default: None
-                                  description: |-
-                                    SharingMode describes the volume's desired sharing mode.
-
-                                    When applicationType=OracleRAC, the field defaults to MultiWriter.
-                                    Otherwise, defaults to None.
-                                  enum:
-                                  - MultiWriter
-                                  - None
-                                  type: string
-                                unitNumber:
-                                  description: |-
-                                    UnitNumber describes the desired unit number for attaching the volume to
-                                    a storage controller.
-
-                                    When omitted, the next available unit number of the selected controller
-                                    is used.
-
-                                    This value must be unique for the controller referenced by the
-                                    controllerBusNumber and controllerType properties. If the value is
-                                    already used by another device, this volume will not be attached.
-
-                                    Please note the value 7 is invalid if controllerType=SCSI as 7 is the
-                                    unit number of the SCSI controller on its own bus.
-                                  format: int32
-                                  type: integer
-                                unmanagedVolumeClaim:
-                                  description: |-
-                                    UnmanagedVolumeClaim is set if the PVC is backed by an existing,
-                                    unmanaged volume.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        Name describes the name of the unmanaged volume.
-
-                                        For volumes from an image, the name is from the image's
-                                        status.disks[].name field.
-
-                                        For volumes from the VM, the name is from the VM's
-                                        status.volumes[].name field.
-
-                                        Please note, specifying the name of an existing, managed volume is not
-                                        supported and will be ignored.
-                                      type: string
-                                    type:
-                                      description: |-
-                                        Type describes the source of the unmanaged volume.
-
-                                        - FromImage - The source is a disk from the VM image.
-                                        - FromVM    - The source is an unmanaged volume on the current VM.
-                                      enum:
-                                      - FromImage
-                                      - FromVM
-                                      type: string
-                                    uuid:
-                                      description: |-
-                                        UUID describes the UUID of the unmanaged volume.
-
-                                        For volumes from an image, the value is mutated in on create operations.
-
-                                        For volumes from the VM, this field may be omitted as its value is
-                                        already stored in the name field.
-                                      type: string
-                                  required:
-                                  - name
-                                  - type
-                                  type: object
                               required:
                               - claimName
                               type: object
+                            removable:
+                              default: true
+                              description: |-
+                                Removable describes whether or not this volume may be removed from
+                                spec.volumes. This is a safety measure that allows users to prevent the
+                                accidental removal of disks from a VM that should not be removed, such as
+                                the VM's boot disk(s).
+
+                                Users may change this value at any time.
+
+                                When deploying a VM, disks from the VM image are automatically marked as
+                                removable=false in order to prevent the accidental removal of the disks
+                                needed to boot the VM.
+
+                                Defaults to true.
+                              type: boolean
+                            sharingMode:
+                              description: |-
+                                SharingMode describes the volume's desired sharing mode.
+
+                                When applicationType=OracleRAC, this field defaults to MultiWriter.
+                                Otherwise, defaults to None.
+                              enum:
+                              - MultiWriter
+                              - None
+                              type: string
+                            unitNumber:
+                              description: |-
+                                UnitNumber describes the desired unit number for attaching the volume to
+                                a storage controller.
+
+                                When omitted, the next available unit number of the selected controller
+                                is used.
+
+                                This value must be unique for the controller referenced by the
+                                controllerBusNumber and controllerType properties. If the value is
+                                already used by another device, this volume will not be attached.
+
+                                Please note the value 7 is invalid if controllerType=SCSI as 7 is the
+                                unit number of the SCSI controller on its own bus.
+                              format: int32
+                              type: integer
                           required:
                           - name
                           type: object
@@ -23009,8 +23142,6 @@ spec:
                                 format: int32
                                 minimum: 0
                                 type: integer
-                            required:
-                            - timeZone
                             type: object
                           identification:
                             description: Identification is a representation of the
@@ -26015,8 +26146,6 @@ spec:
                                 format: int32
                                 minimum: 0
                                 type: integer
-                            required:
-                            - timeZone
                             type: object
                           identification:
                             description: Identification is a representation of the
@@ -28533,22 +28662,34 @@ spec:
                       number of devices it supports. If bootable device is not reached before platform's limit
                       is hit, boot will fail. At least single entry is supported by all products supporting
                       boot order settings.
-
-                      The available devices are:
-
-                      - Disk    -- If there are classic and managed disks, the first classic disk is selected.
-                                   If there are only managed disks, the first disk is selected.
-                      - Network -- The first interface listed in spec.network.interfaces.
-                      - CDRom   -- The first bootable CD-ROM device.
                     items:
                       description: |-
-                        VirtualMachineBootOptionsBootableDevice represents the type of bootable device
+                        VirtualMachineBootOptionsBootableDevice represents a bootable device
                         that a VM may be booted from.
-                      enum:
-                      - Disk
-                      - Network
-                      - CDRom
-                      type: string
+                      properties:
+                        name:
+                          description: |-
+                            Name represents the name of the bootable device. It is
+                            required for Disk and Network device types, while ignored
+                            for CDRom device types.
+                          type: string
+                        type:
+                          description: |-
+                            Type represents the type of bootable device.
+
+                            The available device types are:
+
+                            - Disk
+                            - Network
+                            - CDRom
+                          enum:
+                          - Disk
+                          - Network
+                          - CDRom
+                          type: string
+                      required:
+                      - type
+                      type: object
                     type: array
                   bootRetry:
                     default: Disabled
@@ -28585,20 +28726,6 @@ spec:
                     - Enabled
                     - Disabled
                     type: string
-                  enterBootSetup:
-                    default: Disabled
-                    description: |-
-                      EnterBootSetup specifies whether to automatically enter BIOS/EFI setup the next
-                      time the virtual machine boots. The virtual machine resets this flag to false
-                      so that subsequent boots proceed normally. The available values are:
-
-                      - Enabled -- The virtual machine will automatically enter BIOS/EFI setup the next
-                                   time the virtual machine boots.
-                      - Disabled -- The virtual machine will boot normaally.
-                    enum:
-                    - Enabled
-                    - Disabled
-                    type: string
                   firmware:
                     description: |-
                       Firmware represents the firmware for the virtual machine to use. Any update
@@ -28615,11 +28742,11 @@ spec:
 
                       The available values of this field are:
 
-                      - BIOS
-                      - EFI
+                      - bios
+                      - efi
                     enum:
-                    - BIOS
-                    - EFI
+                    - bios
+                    - efi
                     type: string
                   networkBootProtocol:
                     default: IP4
@@ -29275,8 +29402,6 @@ spec:
                                 format: int32
                                 minimum: 0
                                 type: integer
-                            required:
-                            - timeZone
                             type: object
                           identification:
                             description: Identification is a representation of the
@@ -29506,7 +29631,7 @@ spec:
                 type: object
               class:
                 description: |-
-                  Class describes the VirtualMachineClassInsance resource that is
+                  Class describes the VirtualMachineClassInstance resource that is
                   referenced by this virtual machine. This can be the
                   VirtualMachineClassInstance that the virtual machine was
                   created, or later resized with.
@@ -29633,6 +29758,23 @@ spec:
 
                       Defaults to true if omitted.
                     type: boolean
+                  vTPMMode:
+                    default: New
+                    description: |-
+                      VTPMMode describes the desired behavior when deploying a VirtualMachine
+                      using a VirtualMachine-backed image which created from an encrypted
+                      VirtualMachine with a vTPM.
+
+                      The possible values for this field are:
+
+                      - Clone - The vTPM will be preserved from the VirtualMachineImage.
+                      - New - The vTPM will not be preserved.
+
+                      The default value of this field is New.
+                    enum:
+                    - Clone
+                    - New
+                    type: string
                 type: object
               currentSnapshotName:
                 description: |-
@@ -29879,15 +30021,6 @@ spec:
                           maximum: 3
                           minimum: 0
                           type: integer
-                        pciSlotNumber:
-                          description: |-
-                            PCISlotNumber describes the desired PCI slot number to use for this
-                            controller.
-
-                            Please note, most of the time this field should be empty so the system
-                            can pick an available slot.
-                          format: int32
-                          type: integer
                         sharingMode:
                           default: None
                           description: |-
@@ -29921,15 +30054,6 @@ spec:
                           maximum: 3
                           minimum: 0
                           type: integer
-                        pciSlotNumber:
-                          description: |-
-                            PCISlotNumber describes the desired PCI slot number to use for this
-                            controller.
-
-                            Please note, most of the time this field should be empty so the system
-                            can pick an available slot.
-                          format: int32
-                          type: integer
                       required:
                       - busNumber
                       type: object
@@ -29950,15 +30074,6 @@ spec:
                           format: int32
                           maximum: 3
                           minimum: 0
-                          type: integer
-                        pciSlotNumber:
-                          description: |-
-                            PCISlotNumber describes the desired PCI slot number to use for this
-                            controller.
-
-                            Please note, most of the time this field should be empty so the system
-                            can pick an available slot.
-                          format: int32
                           type: integer
                         sharingMode:
                           default: None
@@ -30707,6 +30822,102 @@ spec:
                   description: VirtualMachineVolume represents a named volume in a
                     VM.
                   properties:
+                    applicationType:
+                      description: |-
+                        ApplicationType describes the type of application for which this volume
+                        is intended to be used.
+
+                          - OracleRAC      -- The volume is configured with
+                                              diskMode=IndependentPersistent and
+                                              sharingMode=MultiWriter and attached to the first
+                                              SCSI controller with an available slot and
+                                              sharingMode=None. If no such controller exists,
+                                              a new ParaVirtual SCSI controller will be created
+                                              with sharingMode=None long as there are currently
+                                              three or fewer SCSI controllers.
+                          - MicrosoftWSFC  -- The volume is configured with
+                                              diskMode=IndependentPersistent and attached to a
+                                              SCSI controller with sharingMode=Physical.
+                                              If no such controller exists, a new ParaVirtual
+                                              SCSI controller will be created with
+                                              sharingMode=Physical as long as there are currently
+                                              three or fewer SCSI controllers.
+                      enum:
+                      - OracleRAC
+                      - MicrosoftWSFC
+                      type: string
+                    controllerBusNumber:
+                      description: |-
+                        ControllerBusNumber describes the bus number of the controller to which
+                        this volume should be attached.
+
+                        The bus number specifies a controller based on the value of the
+                        controllerType field:
+
+                          - IDE  -- spec.hardware.ideControllers
+                          - NVME -- spec.hardware.nvmeControllers
+                          - SATA -- spec.hardware.sataControllers
+                          - SCSI -- spec.hardware.scsiControllers
+
+                        If this and controllerType are both omitted, the volume will be attached
+                        to the first available SCSI controller. If there is no SCSI controller
+                        with an available slot, a new ParaVirtual SCSI controller will be added
+                        as long as there are currently three or fewer SCSI controllers.
+
+                        If the specified controller has no available slots, the request will be
+                        denied.
+                      format: int32
+                      type: integer
+                    controllerType:
+                      description: |-
+                        ControllerType describes the type of the controller to which this volume
+                        should be attached.
+
+                        Please keep in mind the number of volumes supported by the different
+                        types of controllers:
+
+                          - IDE                -- 4 total (2 per controller)
+                          - NVME               -- 256 total (64 per controller)
+                          - SATA               -- 120 total (30 per controller)
+                          - SCSI (ParaVirtual) -- 256 total (64 per controller)
+                          - SCSI (BusLogic)    -- 60 total (15 per controller)
+                          - SCSI (LsiLogic)    -- 60 total (15 per controller)
+                          - SCSI (LsiLogicSAS) -- 60 total (15 per controller)
+
+                        Please note, the number of supported volumes per SCSI controller may seem
+                        off, but remember that a SCSI controller occupies a slot on its own bus.
+                        Thus even though a ParaVirtual SCSI controller supports 65 targets and
+                        the other types of SCSI controllers support 16 targets, one of the
+                        targets is occupied by the controller itself.
+
+                        Defaults to SCSI when controllerBusNumber is also omitted; otherwise the
+                        default value is determined by the logic outlined in the description of
+                        the controllerBusNumber field.
+                      enum:
+                      - IDE
+                      - NVME
+                      - SCSI
+                      - SATA
+                      type: string
+                    diskMode:
+                      description: |-
+                        DiskMode describes the desired mode to use when attaching the volume.
+
+                        Please note, volumes attached as IndependentNonPersistent or
+                        IndependentPersistent are not included in a VM's snapshots or backups.
+
+                        Also, any data written to volumes attached as IndependentNonPersistent or
+                        NonPersistent will be discarded when the VM is powered off.
+
+                        When applicationType=OracleRAC or applicationType=MicrosoftWSFC, this
+                        field defaults to IndependentPersistent.
+                        Otherwise, defaults to Persistent.
+                      enum:
+                      - IndependentNonPersistent
+                      - IndependentPersistent
+                      - NonPersistent
+                      - Persistent
+                      type: string
                     name:
                       description: |-
                         Name represents the volume's name. Must be a DNS_LABEL and unique within
@@ -30720,107 +30931,10 @@ spec:
                         More information is available at
                         https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims.
                       properties:
-                        applicationType:
-                          description: |-
-                            ApplicationType describes the type of application for which this volume
-                            is intended to be used.
-
-                              - OracleRAC      -- The volume is configured with
-                                                  diskMode=IndependentPersistent and
-                                                  sharingMode=MultiWriter and attached to the first
-                                                  SCSI controller with an available slot and
-                                                  sharingMode=None. If no such controller exists,
-                                                  a new ParaVirtual SCSI controller will be created
-                                                  with sharingMode=None long as there are currently
-                                                  three or fewer SCSI controllers.
-                              - MicrosoftWSFC  -- The volume is configured with
-                                                  diskMode=IndependentPersistent and attached to a
-                                                  SCSI controller with sharingMode=Physical.
-                                                  If no such controller exists, a new ParaVirtual
-                                                  SCSI controller will be created with
-                                                  sharingMode=Physical as long as there are currently
-                                                  three or fewer SCSI controllers.
-                          enum:
-                          - OracleRAC
-                          - MicrosoftWSFC
-                          type: string
                         claimName:
                           description: |-
                             claimName is the name of a PersistentVolumeClaim in the same namespace as the pod using this volume.
                             More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
-                          type: string
-                        controllerBusNumber:
-                          description: |-
-                            ControllerBusNumber describes the bus number of the controller to which
-                            this volume should be attached.
-
-                            The bus number specifies a controller based on the value of the
-                            controllerType field:
-
-                              - IDE  -- spec.hardware.ideControllers
-                              - NVME -- spec.hardware.nvmeControllers
-                              - SATA -- spec.hardware.sataControllers
-                              - SCSI -- spec.hardware.scsiControllers
-
-                            If this and controllerType are both omitted, the volume will be attached
-                            to the first available SCSI controller. If there is no SCSI controller
-                            with an available slot, a new ParaVirtual SCSI controller will be added
-                            as long as there are currently three or fewer SCSI controllers.
-
-                            If the specified controller has no available slots, the request will be
-                            denied.
-                          format: int32
-                          type: integer
-                        controllerType:
-                          default: SCSI
-                          description: |-
-                            ControllerType describes the type of the controller to which this volume
-                            should be attached.
-
-                            Please keep in mind the number of volumes supported by the different
-                            types of controllers:
-
-                              - IDE                -- 4 total (2 per controller)
-                              - NVME               -- 256 total (64 per controller)
-                              - SATA               -- 120 total (30 per controller)
-                              - SCSI (ParaVirtual) -- 252 total (63 per controller)
-                              - SCSI (BusLogic)    -- 60 total (15 per controller)
-                              - SCSI (LsiLogic)    -- 60 total (15 per controller)
-                              - SCSI (LsiLogicSAS) -- 60 total (15 per controller)
-
-                            Please note, the number of supported volumes per SCSI controller may seem
-                            off, but remember that a SCSI controller occupies a slot on its own bus.
-                            Thus even though a ParaVirtual SCSI controller supports 64 targets and
-                            the other types of SCSI controllers support 16 targets, one of the
-                            targets is occupied by the controller itself.
-
-                            Defaults to SCSI when controllerBusNumber is also omitted; otherwise the
-                            default value is determined by the logic outlined in the description of
-                            the controllerBusNumber field.
-                          enum:
-                          - IDE
-                          - NVME
-                          - SCSI
-                          - SATA
-                          type: string
-                        diskMode:
-                          default: Persistent
-                          description: |-
-                            DiskMode describes the desired mode to use when attaching the volume.
-
-                            Please note, volumes attached as IndependentNonPersistent or
-                            IndependentPersistent are not included in a VM's snapshots or backups.
-
-                            Also, any data written to volumes attached as IndependentNonPersistent or
-                            NonPersistent will be discarded when the VM is powered off.
-
-                            Defaults to Persistent.
-                          enum:
-                          - IndependentNonPersistent
-                          - IndependentPersistent
-                          - NonPersistent
-                          - Persistent
-                          - Dependent
                           type: string
                         instanceVolumeClaim:
                           description: InstanceVolumeClaim is set if the PVC is backed
@@ -30848,77 +30962,51 @@ spec:
                             readOnly Will force the ReadOnly setting in VolumeMounts.
                             Default false.
                           type: boolean
-                        sharingMode:
-                          default: None
-                          description: |-
-                            SharingMode describes the volume's desired sharing mode.
-
-                            When applicationType=OracleRAC, the field defaults to MultiWriter.
-                            Otherwise, defaults to None.
-                          enum:
-                          - MultiWriter
-                          - None
-                          type: string
-                        unitNumber:
-                          description: |-
-                            UnitNumber describes the desired unit number for attaching the volume to
-                            a storage controller.
-
-                            When omitted, the next available unit number of the selected controller
-                            is used.
-
-                            This value must be unique for the controller referenced by the
-                            controllerBusNumber and controllerType properties. If the value is
-                            already used by another device, this volume will not be attached.
-
-                            Please note the value 7 is invalid if controllerType=SCSI as 7 is the
-                            unit number of the SCSI controller on its own bus.
-                          format: int32
-                          type: integer
-                        unmanagedVolumeClaim:
-                          description: |-
-                            UnmanagedVolumeClaim is set if the PVC is backed by an existing,
-                            unmanaged volume.
-                          properties:
-                            name:
-                              description: |-
-                                Name describes the name of the unmanaged volume.
-
-                                For volumes from an image, the name is from the image's
-                                status.disks[].name field.
-
-                                For volumes from the VM, the name is from the VM's
-                                status.volumes[].name field.
-
-                                Please note, specifying the name of an existing, managed volume is not
-                                supported and will be ignored.
-                              type: string
-                            type:
-                              description: |-
-                                Type describes the source of the unmanaged volume.
-
-                                - FromImage - The source is a disk from the VM image.
-                                - FromVM    - The source is an unmanaged volume on the current VM.
-                              enum:
-                              - FromImage
-                              - FromVM
-                              type: string
-                            uuid:
-                              description: |-
-                                UUID describes the UUID of the unmanaged volume.
-
-                                For volumes from an image, the value is mutated in on create operations.
-
-                                For volumes from the VM, this field may be omitted as its value is
-                                already stored in the name field.
-                              type: string
-                          required:
-                          - name
-                          - type
-                          type: object
                       required:
                       - claimName
                       type: object
+                    removable:
+                      default: true
+                      description: |-
+                        Removable describes whether or not this volume may be removed from
+                        spec.volumes. This is a safety measure that allows users to prevent the
+                        accidental removal of disks from a VM that should not be removed, such as
+                        the VM's boot disk(s).
+
+                        Users may change this value at any time.
+
+                        When deploying a VM, disks from the VM image are automatically marked as
+                        removable=false in order to prevent the accidental removal of the disks
+                        needed to boot the VM.
+
+                        Defaults to true.
+                      type: boolean
+                    sharingMode:
+                      description: |-
+                        SharingMode describes the volume's desired sharing mode.
+
+                        When applicationType=OracleRAC, this field defaults to MultiWriter.
+                        Otherwise, defaults to None.
+                      enum:
+                      - MultiWriter
+                      - None
+                      type: string
+                    unitNumber:
+                      description: |-
+                        UnitNumber describes the desired unit number for attaching the volume to
+                        a storage controller.
+
+                        When omitted, the next available unit number of the selected controller
+                        is used.
+
+                        This value must be unique for the controller referenced by the
+                        controllerBusNumber and controllerType properties. If the value is
+                        already used by another device, this volume will not be attached.
+
+                        Please note the value 7 is invalid if controllerType=SCSI as 7 is the
+                        unit number of the SCSI controller on its own bus.
+                      format: int32
+                      type: integer
                   required:
                   - name
                   type: object
@@ -31122,10 +31210,6 @@ spec:
                             to the controller.
                           items:
                             properties:
-                              name:
-                                description: Name describes the name of the virtual
-                                  device.
-                                type: string
                               type:
                                 description: Type describes the type of the virtual
                                   device.
@@ -31139,14 +31223,12 @@ spec:
                                 format: int32
                                 type: integer
                             required:
-                            - name
                             - type
                             - unitNumber
                             type: object
                           type: array
                           x-kubernetes-list-map-keys:
-                          - name
-                          - type
+                          - unitNumber
                           x-kubernetes-list-type: map
                         type:
                           description: Type describes the observed type of the controller.
@@ -32038,13 +32120,14 @@ spec:
                         the VirtualMachine or not.
                       type: boolean
                     controllerBusNumber:
-                      description: ControllerBusNumber describes volume's observed
-                        controller's bus number.
+                      description: |-
+                        ControllerBusNumber describes the volume's observed controller bus
+                        number.
                       format: int32
                       type: integer
                     controllerType:
-                      description: ControllerType describes volume's observed controller's
-                        type.
+                      description: ControllerType describes the volume's observed
+                        controller type.
                       enum:
                       - IDE
                       - NVME
@@ -32074,7 +32157,6 @@ spec:
                       - IndependentPersistent
                       - NonPersistent
                       - Persistent
-                      - Dependent
                       type: string
                     diskUUID:
                       description: |-
@@ -32095,7 +32177,7 @@ spec:
                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                       x-kubernetes-int-or-string: true
                     name:
-                      description: Name is the name of the attached volume.
+                      description: Name describes the name of the volume.
                       type: string
                     requested:
                       anyOf:
@@ -32122,6 +32204,11 @@ spec:
                       - Classic
                       - Managed
                       type: string
+                    unitNumber:
+                      description: UnitNumber describes the volume's observed unit
+                        number.
+                      format: int32
+                      type: integer
                     used:
                       anyOf:
                       - type: integer
@@ -33726,7 +33813,7 @@ spec:
                   When set to false, the power state of the snapshot is set to
                   false.
                   For a VM in suspended state, memory is always included
-                  in the snashot.
+                  in the snapshot.
                 type: boolean
               quiesce:
                 description: |-

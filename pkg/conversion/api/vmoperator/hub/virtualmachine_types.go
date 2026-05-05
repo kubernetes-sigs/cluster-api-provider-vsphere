@@ -48,12 +48,19 @@ const (
 	// VirtualMachineConditionNetworkReady indicates that the network prerequisites for the VM are ready.
 	VirtualMachineConditionNetworkReady = "VirtualMachineNetworkReady"
 
+	// VirtualMachineConditionImageCacheReady indicates that the VirtualMachineImageCache for the VM is ready.
+	VirtualMachineConditionImageCacheReady = "VirtualMachineConditionImageCacheReady"
+
 	// VirtualMachineConditionPlacementReady indicates that the placement decision for the VM is ready.
 	VirtualMachineConditionPlacementReady = "VirtualMachineConditionPlacementReady"
 
 	// VirtualMachineEncryptionSynced indicates that the VirtualMachine's
 	// encryption state is synced to the desired encryption state.
 	VirtualMachineEncryptionSynced = "VirtualMachineEncryptionSynced"
+
+	// VirtualMachineDiskPromotionStarted indicates that the VirtualMachine's
+	// disk promotion process has started.
+	VirtualMachineDiskPromotionStarted = "VirtualMachineDiskPromotionStarted"
 
 	// VirtualMachineDiskPromotionSynced indicates that the VirtualMachine's
 	// disk promotion state is synced to the desired promotion state.
@@ -65,6 +72,303 @@ const (
 	// VirtualMachineClassConfigurationSynced indicates that the VM's current configuration is synced to the
 	// current version of its VirtualMachineClass.
 	VirtualMachineClassConfigurationSynced = "VirtualMachineClassConfigurationSynced"
+
+	// VirtualMachineHardwareDeviceConfigVerified indicates that the VM's hardware
+	// device configuration (controllers, volumes, CD-ROM devices) matches the
+	// desired state specified in the spec.
+	VirtualMachineHardwareDeviceConfigVerified = "VirtualMachineHardwareDeviceConfigVerified"
+
+	// VirtualMachineHardwareControllersVerified indicates that the VM's hardware
+	// controllers match the desired state specified in the spec.
+	VirtualMachineHardwareControllersVerified = "VirtualMachineHardwareControllersVerified"
+
+	// VirtualMachineHardwareVolumesVerified indicates that the VM's hardware
+	// volumes match the desired state specified in the spec.
+	VirtualMachineHardwareVolumesVerified = "VirtualMachineHardwareVolumesVerified"
+
+	// VirtualMachineHardwareCDROMVerified indicates that the VM's hardware
+	// CD-ROM devices match the desired state specified in the spec.
+	VirtualMachineHardwareCDROMVerified = "VirtualMachineHardwareCDROMVerified"
+
+	// VirtualMachinePowerStateSynced indicates the VM's power state is synced
+	// to the desired state.
+	VirtualMachinePowerStateSynced = "VirtualMachinePowerStateSynced"
+
+	// VirtualMachineGuestNetworkConfigSynced indicates the VM's guest network
+	// configuration is synced to the desired state, determined by whether or
+	// not the guest is reporting the expected IP address(es).
+	VirtualMachineGuestNetworkConfigSynced = "VirtualMachineGuestNetworkConfigSynced"
+)
+
+const (
+	// VirtualMachineSnapshotRevertSucceeded indicates that the VM
+	// has been reverted to a snapshot.
+	VirtualMachineSnapshotRevertSucceeded = "VirtualMachineSnapshotRevertSucceeded"
+
+	// VirtualMachineSnapshotRevertInProgressReason indicates that the
+	// revert operation is in progress.
+	VirtualMachineSnapshotRevertInProgressReason = "VirtualMachineSnapshotRevertInProgress"
+
+	// VirtualMachineSnapshotRevertTaskFailedReason indicates that the
+	// revert operation is invalid.
+	VirtualMachineSnapshotRevertTaskFailedReason = "VirtualMachineSnapshotRevertTaskFailed"
+
+	// VirtualMachineSnapshotRevertFailedInvalidVMManifestReason indicates
+	// that the revert operation has failed due to invalid VM spec to revert to.
+	VirtualMachineSnapshotRevertFailedInvalidVMManifestReason = "VirtualMachineSnapshotRevertFailedInvalidVMManifest"
+
+	// VirtualMachineSnapshotRevertSkippedReason indicates that the
+	// revert operation was skipped.
+	VirtualMachineSnapshotRevertSkippedReason = "VirtualMachineSnapshotRevertSkipped"
+
+	// VirtualMachineSnapshotRevertFailedReason indicates that the
+	// revert operation failed for some reason.
+	VirtualMachineSnapshotRevertFailedReason = "VirtualMachineSnapshotRevertFailed"
+
+	// VirtualMachineHardwareControllersMismatchReason indicates that the VM's
+	// controller configuration does not match the desired state specified in the spec.
+	VirtualMachineHardwareControllersMismatchReason = "HardwareControllersMismatch"
+
+	// VirtualMachineHardwareVolumesMismatchReason indicates that the VM's
+	// volume configuration does not match the desired state specified in the spec.
+	VirtualMachineHardwareVolumesMismatchReason = "HardwareVolumesMismatch"
+
+	// VirtualMachineHardwareCDROMMismatchReason indicates that the VM's
+	// CD-ROM device configuration does not match the desired state specified in the spec.
+	VirtualMachineHardwareCDROMMismatchReason = "HardwareCDROMMismatch"
+
+	// VirtualMachineHardwareDeviceConfigMismatchReason indicates that the VM's
+	// hardware device configuration does not match the desired state specified
+	// in the spec. This is used for the aggregated condition.
+	VirtualMachineHardwareDeviceConfigMismatchReason = "HardwareDeviceConfigMismatch"
+)
+
+const (
+	// GuestBootstrapCondition exposes the status of guest bootstrap from within
+	// the guest OS, when available.
+	GuestBootstrapCondition = "GuestBootstrap"
+
+	// GuestIDReconfiguredCondition exposes the status of guest ID
+	// reconfiguration after a VM has been created, when available.
+	GuestIDReconfiguredCondition = "GuestIDReconfigured"
+)
+
+const (
+	// GuestCustomizationCondition exposes the status of guest customization
+	// from within the guest OS, when available.
+	GuestCustomizationCondition = "GuestCustomization"
+
+	// GuestCustomizationIdleReason documents that guest
+	// customizations were not applied for the VirtualMachine.
+	GuestCustomizationIdleReason = "GuestCustomizationIdle"
+
+	// GuestCustomizationPendingReason documents that guest
+	// customization is still pending within the guest OS.
+	GuestCustomizationPendingReason = "GuestCustomizationPending"
+
+	// GuestCustomizationRunningReason documents that the guest
+	// customization is now running on the guest OS.
+	GuestCustomizationRunningReason = "GuestCustomizationRunning"
+
+	// GuestCustomizationSucceededReason documents that the
+	// guest customization succeeded within the guest OS.
+	GuestCustomizationSucceededReason = "GuestCustomizationSucceeded"
+
+	// GuestCustomizationFailedReason documents that the guest
+	// customization failed within the guest OS.
+	GuestCustomizationFailedReason = "GuestCustomizationFailed"
+)
+
+const (
+	// VirtualMachineToolsCondition exposes the status of VMware Tools running
+	// in the guest OS, when available.
+	VirtualMachineToolsCondition = "VirtualMachineTools"
+
+	// VirtualMachineToolsNotRunningReason documents that
+	// VMware Tools is not running.
+	VirtualMachineToolsNotRunningReason = "VirtualMachineToolsNotRunning"
+
+	// VirtualMachineToolsRunningReason documents that VMware
+	// Tools is running.
+	VirtualMachineToolsRunningReason = "VirtualMachineToolsRunning"
+)
+
+const (
+	// VirtualMachineReconcileReady exposes the status of VirtualMachine reconciliation.
+	VirtualMachineReconcileReady = "VirtualMachineReconcileReady"
+
+	// VirtualMachineReconcileRunningReason indicates that VirtualMachine
+	// reconciliation is running.
+	VirtualMachineReconcileRunningReason = "VirtualMachineReconcileRunning"
+
+	// VirtualMachineReconcilePausedReason indicates that VirtualMachine
+	// reconciliation is being paused.
+	VirtualMachineReconcilePausedReason = "VirtualMachineReconcilePaused"
+)
+
+const (
+	// PauseAnnotation is an annotation that prevents a VM from being
+	// reconciled.
+	//
+	// This can be used when a VM needs to be modified directly on the
+	// underlying infrastructure without VM Service attempting to direct the
+	// VM back to its intended state.
+	//
+	// The VM will not be reconciled again until this annotation is removed.
+	PauseAnnotation = GroupName + "/paused"
+
+	// InstanceIDAnnotation is an annotation that can be applied to set Cloud-Init metadata Instance ID.
+	//
+	// This cannot be set by users. It is for VM Operator to handle corner cases.
+	//
+	// In a corner case where a VM first boot failed to bootstrap with Cloud-Init, VM Operator sets Instance ID
+	// the same with the first boot Instance ID to prevent Cloud-Init from treating this VM as first boot
+	// due to different Instance ID. This annotation is used in upgrade script.
+	InstanceIDAnnotation = GroupName + "/cloud-init-instance-id"
+
+	// FirstBootDoneAnnotation is an annotation that indicates the VM has been
+	// booted at least once. This annotation cannot be set by users and will not
+	// be removed once set until the VM is deleted.
+	FirstBootDoneAnnotation = "virtualmachine." + GroupName + "/first-boot-done"
+
+	// V1alpha1ConfigMapTransportAnnotation is an annotation that indicates that the VM
+	// was created with the v1alpha1 API and specifies a configMap as the metadata transport resource type.
+	V1alpha1ConfigMapTransportAnnotation = GroupName + "/v1a1-configmap-md-transport"
+
+	// VirtualMachineSameVMClassResizeAnnotation is an annotation that indicates the VM
+	// should be resized as the class it points to changes.
+	VirtualMachineSameVMClassResizeAnnotation = GroupName + "/same-vm-class-resize"
+)
+
+const (
+	// checkAnnotationSubDomain is the sub-domain to be used for all check-style
+	// annotations that enable external components to participate in a VM's
+	// lifecycle events.
+	checkAnnotationSubDomain = "check.vmoperator.vmware.com"
+
+	// CheckAnnotationPowerOn is an annotation that may be used to prevent a
+	// VM from being powered on. A user can still set a VM's spec.powerState to
+	// PoweredOn, but the VM will not be powered on until the check annotation
+	// is removed.
+	//
+	// Please note, there may be multiple check annotations, ex.:
+	//
+	// - poweron.check.vmoperator.vmware.com/component1: "reason"
+	// - poweron.check.vmoperator.vmware.com/component2: "reason"
+	// - poweron.check.vmoperator.vmware.com/component3: "reason"
+	//
+	// All check annotations must be removed before a VM can be powered on.
+	//
+	// This annotation may only be applied when creating a new VM by any user.
+	//
+	// Only privileged users may apply this annotation to existing VMs.
+	//
+	// Only privileged users may remove this annotation from a VM. If a
+	// non-privileged user accidentally adds this annotation when creating a VM,
+	// the recourse is to delete the VM and recreate it without the annotation.
+	CheckAnnotationPowerOn = "poweron." + checkAnnotationSubDomain
+
+	// CheckAnnotationDelete is an annotation that may be used to prevent a
+	// VM from being deleted. A user can still delete the VM, but the VM will
+	// not *actually* be removed until the annotation is removed.
+	//
+	// Unlike a finalizer, this annotation *also* prevents the underlying
+	// vSphere VM from being deleted as well.
+	//
+	// Please note, there may be multiple check annotations, ex.:
+	//
+	// - delete.check.vmoperator.vmware.com/component1: "reason"
+	// - delete.check.vmoperator.vmware.com/component2: "reason"
+	// - delete.check.vmoperator.vmware.com/component3: "reason"
+	//
+	// All check annotations must be removed before a VM can be deleted.
+	//
+	// Only privileged users may add or remove this annotation.
+	CheckAnnotationDelete = "delete." + checkAnnotationSubDomain
+)
+
+const (
+	// ManagedByExtensionKey and ManagedByExtensionType represent the ManagedBy
+	// field on the VM. They are used to differentiate VM Service managed VMs
+	// from traditional vSphere VMs.
+	ManagedByExtensionKey  = "com.vmware.vcenter.wcp"
+	ManagedByExtensionType = "VirtualMachine"
+)
+
+const (
+	// VirtualMachineBackupUpToDateCondition exposes the status of the latest VirtualMachine Backup, when available.
+	VirtualMachineBackupUpToDateCondition = "VirtualMachineBackupUpToDate"
+
+	// VirtualMachineBackupPausedReason documents that VirtualMachine backup is paused.
+	// This can happen after the backing virtual machine is restored by a backup/restore vendor, or a failover operation
+	// by a data protection solution. In either of these operations, VM operator does not persist backup information and
+	// waits for the virtual machine to be (re)-registered with VM Service.
+	VirtualMachineBackupPausedReason = "VirtualMachineBackupPaused"
+
+	// VirtualMachineBackupFailedReason documents that the VirtualMachine backup failed due to an error.
+	VirtualMachineBackupFailedReason = "VirtualMachineBackupFailed"
+)
+
+const (
+	// ForceEnableBackupAnnotation is an annotation that instructs VM operator to
+	// ignore all exclusion rules and persist the configuration of the resource in
+	// virtual machine in relevant ExtraConfig fields.
+	//
+	// This is an experimental flag which only guarantees that the configuration
+	// of the VirtualMachine resource will be persisted in the virtual machine on
+	// vSphere.  There is no guarantee that the registration of the VM will be
+	// successful post a restore or failover operation.
+	ForceEnableBackupAnnotation = GroupName + "/force-enable-backup"
+
+	// VirtualMachineBackupVersionAnnotation is an annotation that indicates the VM's
+	// last backup version. It is a monotonically increasing counter and
+	// is only supposed to be used by IaaS control plane and vCenter for virtual machine registration
+	// post a restore operation.
+	//
+	// The VirtualMachineBackupVersionAnnotation on the VM resource in Supervisor and the BackupVersionExtraConfigKey on the vSphere VM
+	// indicate whether the backups are in sync.
+	VirtualMachineBackupVersionAnnotation = GroupName + "/backup-version"
+)
+
+const (
+	// ManagerID on a VirtualMachine contains the UUID of the
+	// VMware vCenter (VC) that is managing this virtual machine.
+	ManagerID = GroupName + "/manager-id"
+
+	// RestoredVMAnnotation on a VirtualMachine represents that a virtual
+	// machine has been restored using the RegisterVM API, typically by a
+	// VADP based data protection vendor. The presence of this annotation is
+	// used to bypass some validation checks that are otherwise
+	// applicable to all VirtualMachine create/update requests.
+	RestoredVMAnnotation = GroupName + "/restored-vm"
+
+	// ImportedVMAnnotation on a VirtualMachine represents that a traditional virtual
+	// machine has been imported into Supervisor using the ImportVM API. The presence of this
+	// annotation is used to bypass some validation checks that are otherwise applicable
+	// to all VirtualMachine create/update requests.
+	ImportedVMAnnotation = GroupName + "/imported-vm"
+
+	// FailedOverVMAnnotation on a VirtualMachine resource represents that a virtual
+	// machine has been failed over from one site to the other, typically as part of a
+	// disaster recovery workflow.  The presence of this annotation is used to bypass
+	// some validation checks that are otherwise applicable to all VirtualMachine
+	// create/update requests.
+	FailedOverVMAnnotation = GroupName + "/failed-over-vm"
+)
+
+const (
+	// PauseVMExtraConfigKey is the ExtraConfig key to allow override
+	// operations for admins to pause reconciliation of VM Service VM.
+	//
+	// Please note, the value that takes effect is the string "True"(case-insensitive).
+	PauseVMExtraConfigKey = "vmservice.virtualmachine.pause"
+
+	// PausedVMLabelKey is the label key to identify VMs that reconciliation
+	// are paused. Value will specify whose operation is responsible for
+	// the pause. It can be admins or devops or both.
+	//
+	// Only privileged user can edit this label.
+	PausedVMLabelKey = GroupName + "/paused"
 )
 
 // +kubebuilder:validation:Enum=PoweredOff;PoweredOn;Suspended

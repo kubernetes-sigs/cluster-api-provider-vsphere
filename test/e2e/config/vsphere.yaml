@@ -26,6 +26,15 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
+      - name: "v1.14.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20260505/core-components.yaml"
+        type: "url"
+        contract: v1beta2
+        files:
+          - sourcePath: "../data/shared/capi/v1.14/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.13}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.13}/core-components.yaml"
         type: "url"
@@ -53,19 +62,19 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/core-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-          - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
 
   - name: kubeadm
     type: BootstrapProvider
     versions:
+      - name: "v1.14.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20260505/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta2
+        files:
+          - sourcePath: "../data/shared/capi/v1.14/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.13}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.13}/bootstrap-components.yaml"
         type: "url"
@@ -93,19 +102,19 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/bootstrap-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-          - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
 
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
+      - name: "v1.14.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20260505/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta2
+        files:
+          - sourcePath: "../data/shared/capi/v1.14/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.13}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.13}/control-plane-components.yaml"
         type: "url"
@@ -130,15 +139,6 @@ providers:
         contract: v1beta2
         files:
           - sourcePath: "../data/shared/capi/v1.11/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-      - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/control-plane-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-          - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"

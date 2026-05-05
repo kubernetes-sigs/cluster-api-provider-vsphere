@@ -1,7 +1,7 @@
 ---
 - name: vcsim
   config:
-    version: v1.16.99
+    version: v1.17.99
     image: gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller
     live_reload_deps:
       - main.go
@@ -12,7 +12,7 @@
 
 - name: vcsim-vm-operator
   config:
-    version: v1.16.99
+    version: v1.17.99
     image: gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller
     live_reload_deps:
       - main.go

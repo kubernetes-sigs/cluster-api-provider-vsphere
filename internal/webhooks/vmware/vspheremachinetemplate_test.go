@@ -400,3 +400,59 @@ func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
 		})
 	}
 }
+
+func TestVSphereMachineTemplate_ValidateCreate_InfrastructurePolicies(t *testing.T) {
+	policyRef := vmwarev1.InfrastructurePolicyRef{
+		Name:       "my-policy",
+		Kind:       "ComputePolicy",
+		APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+	}
+	tests := []struct {
+		name        string
+		featureGate bool
+		policies    []vmwarev1.InfrastructurePolicyRef
+		wantErr     bool
+	}{
+		{
+			name:        "policies set but feature gate disabled: no validation, no error",
+			featureGate: false,
+			policies:    []vmwarev1.InfrastructurePolicyRef{policyRef},
+			wantErr:     false,
+		},
+		{
+			name:        "feature gate enabled, nil client: skips existence check, no error",
+			featureGate: true,
+			policies:    []vmwarev1.InfrastructurePolicyRef{policyRef},
+			wantErr:     false,
+		},
+		{
+			name:        "feature gate enabled, no policies: no error",
+			featureGate: true,
+			policies:    nil,
+			wantErr:     false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, tc.featureGate)
+			webhook := &VSphereMachineTemplate{}
+			obj := &vmwarev1.VSphereMachineTemplate{
+				Spec: vmwarev1.VSphereMachineTemplateSpec{
+					Template: vmwarev1.VSphereMachineTemplateResource{
+						Spec: vmwarev1.VSphereMachineSpec{
+							InfrastructurePolicies: tc.policies,
+						},
+					},
+				},
+			}
+			_, err := webhook.validate(context.Background(), nil, obj)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}

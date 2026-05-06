@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
@@ -33,6 +34,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	fakeProviderID := "fake-000000"
 	tests := []struct {
 		name              string
+		featureGate       bool
 		oldVSphereMachine *vmwarev1.VSphereMachine
 		vsphereMachine    *vmwarev1.VSphereMachine
 		wantErr           bool
@@ -67,10 +69,68 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 			vsphereMachine:    createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-16"),
 			wantErr:           true,
 		},
+		{
+			name:        "updating InfrastructurePolicies cannot be done when feature gate enabled",
+			featureGate: true,
+			oldVSphereMachine: func() *vmwarev1.VSphereMachine {
+				m := createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15")
+				m.Spec.InfrastructurePolicies = []vmwarev1.InfrastructurePolicyRef{{
+					Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				}}
+				return m
+			}(),
+			vsphereMachine: func() *vmwarev1.VSphereMachine {
+				m := createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15")
+				m.Spec.InfrastructurePolicies = []vmwarev1.InfrastructurePolicyRef{{
+					Name: "policy-b", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				}}
+				return m
+			}(),
+			wantErr: true,
+		},
+		{
+			name:        "updating InfrastructurePolicies is allowed when feature gate disabled",
+			featureGate: false,
+			oldVSphereMachine: func() *vmwarev1.VSphereMachine {
+				m := createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15")
+				m.Spec.InfrastructurePolicies = []vmwarev1.InfrastructurePolicyRef{{
+					Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				}}
+				return m
+			}(),
+			vsphereMachine: func() *vmwarev1.VSphereMachine {
+				m := createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15")
+				m.Spec.InfrastructurePolicies = []vmwarev1.InfrastructurePolicyRef{{
+					Name: "policy-b", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				}}
+				return m
+			}(),
+			wantErr: false,
+		},
+		{
+			name:        "InfrastructurePolicies unchanged is allowed",
+			featureGate: true,
+			oldVSphereMachine: func() *vmwarev1.VSphereMachine {
+				m := createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15")
+				m.Spec.InfrastructurePolicies = []vmwarev1.InfrastructurePolicyRef{{
+					Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				}}
+				return m
+			}(),
+			vsphereMachine: func() *vmwarev1.VSphereMachine {
+				m := createVSphereMachine("", "tkgs-imagename", "best-effort-xsmall", "wcpglobalstorageprofile", "vmx-15")
+				m.Spec.InfrastructurePolicies = []vmwarev1.InfrastructurePolicyRef{{
+					Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				}}
+				return m
+			}(),
+			wantErr: false,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, tc.featureGate)
 
 			webhook := &VSphereMachine{}
 			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
@@ -381,4 +441,156 @@ func TestVSphereMachine_ValidateUpdate_MultiNetwork(t *testing.T) {
 	_, err := webhook.ValidateUpdate(context.Background(), oldVSphereMachine, newVSphereMachine)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("cannot be modified"))
+}
+
+func TestVSphereMachine_ValidateCreate_InfrastructurePolicies(t *testing.T) {
+	policyRef := vmwarev1.InfrastructurePolicyRef{
+		Name:       "my-policy",
+		Kind:       "ComputePolicy",
+		APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+	}
+	tests := []struct {
+		name        string
+		featureGate bool
+		policies    []vmwarev1.InfrastructurePolicyRef
+		wantErr     bool
+		wantErrMsg  string
+	}{
+		{
+			name:        "policies set but feature gate disabled: no validation, no error",
+			featureGate: false,
+			policies:    []vmwarev1.InfrastructurePolicyRef{policyRef},
+			wantErr:     false,
+		},
+		{
+			name:        "feature gate enabled, no client: skips existence check, no error",
+			featureGate: true,
+			policies:    []vmwarev1.InfrastructurePolicyRef{policyRef},
+			// Structural checks (name/kind/apiVersion) pass; existence check is
+			// skipped because the client is nil.
+			wantErr: false,
+		},
+		{
+			name:        "feature gate enabled, empty policies: no error",
+			featureGate: true,
+			policies:    nil,
+			wantErr:     false,
+		},
+		{
+			name:        "unsupported kind is rejected",
+			featureGate: true,
+			policies: []vmwarev1.InfrastructurePolicyRef{
+				{Name: "my-policy", Kind: "UnsupportedPolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+			},
+			wantErr:    true,
+			wantErrMsg: "Unsupported value",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, tc.featureGate)
+			// Client left nil to isolate feature-gate behaviour from existence checks.
+			webhook := &VSphereMachine{}
+			obj := &vmwarev1.VSphereMachine{Spec: vmwarev1.VSphereMachineSpec{InfrastructurePolicies: tc.policies}}
+			_, err := webhook.ValidateCreate(context.Background(), obj)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				if tc.wantErrMsg != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tc.wantErrMsg))
+				}
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+// TestResolveInfrastructurePolicyRef exercises the low-level GVK parser.
+// resolveInfrastructurePolicyRef only validates that apiVersion + kind are
+// present and parseable; it does NOT check against supportedInfrastructurePolicyKinds.
+// Kind-allow-listing is the responsibility of validateInfrastructurePolicies.
+func TestResolveInfrastructurePolicyRef(t *testing.T) {
+	tests := []struct {
+		name    string
+		ref     vmwarev1.InfrastructurePolicyRef
+		wantGVK schema.GroupVersionKind
+		wantErr bool
+	}{
+		{
+			name: "valid ComputePolicy ref",
+			ref: vmwarev1.InfrastructurePolicyRef{
+				Name:       "my-policy",
+				Kind:       "ComputePolicy",
+				APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+			},
+			wantGVK: schema.GroupVersionKind{
+				Group:   "vsphere.policy.vmware.com",
+				Version: "v1alpha1",
+				Kind:    "ComputePolicy",
+			},
+		},
+		{
+			// resolveInfrastructurePolicyRef parses any syntactically valid kind
+			// string; validateInfrastructurePolicies is responsible for rejecting
+			// unknown kinds via supportedInfrastructurePolicyKinds.
+			name: "unknown kind parses successfully (kind-allow-list is in validateInfrastructurePolicies)",
+			ref: vmwarev1.InfrastructurePolicyRef{
+				Name:       "p2",
+				Kind:       "TagPolicy",
+				APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+			},
+			wantGVK: schema.GroupVersionKind{
+				Group:   "vsphere.policy.vmware.com",
+				Version: "v1alpha1",
+				Kind:    "TagPolicy",
+			},
+		},
+		{
+			name:    "missing apiVersion returns error",
+			ref:     vmwarev1.InfrastructurePolicyRef{Name: "x", Kind: "ComputePolicy"},
+			wantErr: true,
+		},
+		{
+			name:    "missing kind returns error",
+			ref:     vmwarev1.InfrastructurePolicyRef{Name: "x", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+			wantErr: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			gvk, err := resolveInfrastructurePolicyRef(tc.ref)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(gvk).To(Equal(tc.wantGVK))
+		})
+	}
+}
+
+// TestValidateInfrastructurePolicies_KindAllowList verifies that the kind
+// allow-list in validateInfrastructurePolicies rejects kinds that are
+// syntactically valid but not in supportedInfrastructurePolicyKinds.
+func TestValidateInfrastructurePolicies_KindAllowList(t *testing.T) {
+	g := NewWithT(t)
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, true)
+
+	// TagPolicy parses fine in resolveInfrastructurePolicyRef, but must be
+	// rejected by validateInfrastructurePolicies because it is not in
+	// supportedInfrastructurePolicyKinds.
+	webhook := &VSphereMachine{}
+	obj := &vmwarev1.VSphereMachine{
+		Spec: vmwarev1.VSphereMachineSpec{
+			InfrastructurePolicies: []vmwarev1.InfrastructurePolicyRef{
+				{Name: "tag-p", Kind: "TagPolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+			},
+		},
+	}
+	_, err := webhook.ValidateCreate(context.Background(), obj)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("Unsupported value"))
 }

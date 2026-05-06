@@ -49,6 +49,13 @@ const (
 	// alpha: v1.15
 	NodeAutoPlacement featuregate.Feature = "NodeAutoPlacement"
 
+	// InfrastructurePolicies is a feature gate for the Support for Supervisor InfrastructurePolicies.
+	// When enabled, VSphereMachine.spec.infrastructurePolicies are validated on admission and
+	// mapped to the underlying VirtualMachine spec.
+	//
+	// alpha: v1.17
+	InfrastructurePolicies featuregate.Feature = "InfrastructurePolicies"
+
 	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
 	// instead of the default queue implementation.
 	//
@@ -76,4 +83,5 @@ var defaultCAPVFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	NamespaceScopedZones:   {Default: false, PreRelease: featuregate.Alpha},
 	NodeAutoPlacement:      {Default: false, PreRelease: featuregate.Alpha},
 	MultiNetworks:          {Default: false, PreRelease: featuregate.Alpha},
+	InfrastructurePolicies: {Default: false, PreRelease: featuregate.Alpha},
 }

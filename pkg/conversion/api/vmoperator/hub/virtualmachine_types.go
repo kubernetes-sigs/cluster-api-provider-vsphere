@@ -609,6 +609,17 @@ type VirtualMachineSpec struct {
 	// When this field is deleted or changed, any existing owner reference to
 	// the previous group will be removed from this VM.
 	GroupName string `json:"groupName,omitempty"`
+
+	// Policies describes a list of policies that should be explicitly applied
+	// to this VM.
+	//
+	// Please note, not all policies may be applied explicitly to a VM. Please
+	// consult a policy to determine if it may be applied directly. For example,
+	// the ComputePolicy object from the vsphere.policy.vmware.com API group
+	// has a field named spec.type. Only ComputePolicy objects with
+	// type=Optional may be applied explicitly to a VM.
+	// +optional
+	Policies []PolicySpec `json:"policies,omitempty"`
 }
 
 // VirtualMachineReservedSpec describes a set of VM configuration options
@@ -662,6 +673,10 @@ type VirtualMachineStatus struct {
 	//
 	// Please note this field may be empty when the cluster is not zone-aware.
 	Zone string `json:"zone,omitempty"`
+
+	// Policies describes the observed policies applied to this VM.
+	// +optional
+	Policies []PolicyStatus `json:"policies,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -18,6 +18,7 @@ resources:
 - external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
 - external-crds/netoperator.vmware.com_networkinterfaces.yaml
 - external-crds/cns.vmware.com_cnsnodevmattachments.yaml
+- external-crds/cns.vmware.com_cnsregistervolumes.yaml
 - external-crds/cns.vmware.com_storagepolicyquotas.yaml
 - external-crds/cns.vmware.com_storagepolicyusages.yaml
 
@@ -45,6 +46,9 @@ patchesStrategicMerge:
 # - Replace all the <..> placeholders as per config/local (including drop PRIVILEGED_USERS)
 # - Also make sure we are not overriding the KUBERNETES_SERVICE_HOST/PORT to use local host.
 - vm-operator-env-var-patch.yaml
+
+# When running with tilt we drop security context for controllers, so we need to enable access to root.
+- vm-operator-fix-certs-volume-permission.yaml
 
 patches:
 # Drop web-console-validator deployment, not used in tilt

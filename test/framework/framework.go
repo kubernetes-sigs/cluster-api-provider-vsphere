@@ -27,12 +27,15 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
 )
 
 type ProviderConfig clusterctl.ProviderConfig
@@ -201,7 +204,10 @@ func SetupBootstrapCluster(ctx context.Context, config *clusterctl.E2EConfig, sc
 		}
 	}
 
-	clusterProxy := framework.NewClusterProxy("bootstrap", kubeconfigPath, scheme)
+	clusterProxy := framework.NewClusterProxy("bootstrap", kubeconfigPath, scheme, framework.WithRESTConfigModifier(func(config *rest.Config) {
+		config.QPS = 100
+		config.Burst = 200
+	}))
 
 	return clusterProvider, clusterProxy, nil
 }
@@ -210,6 +216,7 @@ func InitBootstrapCluster(ctx context.Context, bootstrapClusterProxy framework.C
 	runtimeExtensions := []string{}
 	for _, runtimeExtension := range config.RuntimeExtensionProviders() {
 		if runtimeExtension == "vm-operator" {
+			Expect(vmoperator.ReconcileCapabilities(ctx, bootstrapClusterProxy.GetClient())).Should(Succeed())
 			if config.HasVariable("VM_OPERATOR_VERSION") {
 				// Note: VM_OPERATOR_VERSION use a major.minor version.
 				// In order to make this value similar to CAPI/provider versions, as required by clusterctl, add the v prefix and the .0 patch version.

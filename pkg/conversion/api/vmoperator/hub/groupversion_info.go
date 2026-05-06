@@ -24,9 +24,12 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 )
 
+// GroupName specifies the group name used to register the objects.
+const GroupName = "vmoperator.vmware.com"
+
 var (
 	// GroupVersion is group version used to register these objects.
-	GroupVersion = schema.GroupVersion{Group: "vmoperator.vmware.com", Version: "hub"}
+	GroupVersion = schema.GroupVersion{Group: GroupName, Version: "hub"}
 
 	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)

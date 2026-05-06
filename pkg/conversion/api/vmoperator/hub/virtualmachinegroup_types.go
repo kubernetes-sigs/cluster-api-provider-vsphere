@@ -24,6 +24,14 @@ import (
 )
 
 const (
+	// VirtualMachineGroupMemberConditionGroupLinked indicates that the member
+	// exists and has its "Spec.GroupName" field set to the group's name.
+	VirtualMachineGroupMemberConditionGroupLinked = "GroupLinked"
+
+	// VirtualMachineGroupMemberConditionPowerStateSynced indicates that the
+	// member has been updated to match the group's power state.
+	VirtualMachineGroupMemberConditionPowerStateSynced = "PowerStateSynced"
+
 	// VirtualMachineGroupMemberConditionPlacementReady indicates that the
 	// member has a placement decision ready.
 	VirtualMachineGroupMemberConditionPlacementReady = "PlacementReady"
@@ -104,6 +112,13 @@ type VirtualMachineGroupPlacementDatastoreStatus struct {
 	// DiskKey describes the device key to which this recommendation applies.
 	// When omitted, this recommendation is for the VM's home directory.
 	DiskKey *int32 `json:"diskKey,omitempty"`
+
+	// +optional
+
+	// TopLevelDirectoryCreateSupported indicates whether or not the datastore
+	// supports creating a top-level directory or requires the use of the
+	// namespace manager (i.e. vSAN).
+	TopLevelDirectoryCreateSupported bool `json:"topLevelDirectoryCreateSupported,omitempty"`
 }
 
 // VirtualMachinePlacementStatus describes the placement results for this member.

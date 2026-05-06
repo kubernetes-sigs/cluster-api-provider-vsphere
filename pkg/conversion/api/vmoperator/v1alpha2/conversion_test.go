@@ -60,6 +60,9 @@ func TestFuzzyConversion(t *testing.T) {
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineGroup{},
 		Spoke:     &vmoprv1alpha2.VirtualMachineGroup{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{
+			virtualMachineGroupFuncs,
+		},
 	}))
 	t.Run("for VirtualMachineImage", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
@@ -85,18 +88,30 @@ func TestFuzzyConversion(t *testing.T) {
 
 func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		hubPersistentVolumeClaimVolumeSource,
+		hubVirtualMachineVolume,
 	}
 }
 
-func hubPersistentVolumeClaimVolumeSource(in *vmoprvhub.PersistentVolumeClaimVolumeSource, c randfill.Continue) {
+func hubVirtualMachineVolume(in *vmoprvhub.VirtualMachineVolume, c randfill.Continue) {
 	c.FillNoCustom(in)
-	// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
+	// Fields existing in hub but not in v1alpha2.VirtualMachineVolume
 	in.ApplicationType = ""
 	in.ControllerBusNumber = nil
 	in.ControllerType = ""
 	in.DiskMode = ""
+	in.Removable = nil
 	in.SharingMode = ""
 	in.UnitNumber = nil
-	in.UnmanagedVolumeClaim = nil
+}
+
+func virtualMachineGroupFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVirtualMachineGroupPlacementDatastoreStatus,
+	}
+}
+
+func hubVirtualMachineGroupPlacementDatastoreStatus(in *vmoprvhub.VirtualMachineGroupPlacementDatastoreStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Fields existing in hub but not in v1alpha2.VirtualMachineGroupPlacementDatastoreStatus
+	in.TopLevelDirectoryCreateSupported = false
 }

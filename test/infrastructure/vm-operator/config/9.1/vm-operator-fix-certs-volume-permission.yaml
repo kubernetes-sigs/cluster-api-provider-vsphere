@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmware-system-vmop-controller-manager
+  namespace: vmware-system-vmop
+spec:
+  template:
+    spec:
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 0644
+            secretName: webhook-server-cert
+        - configMap:
+            defaultMode: 0644
+            items:
+              - key: ca.crt
+                path: ca.crt
+            name: kube-root-ca.crt
+          name: client-ca

@@ -18,6 +18,7 @@ limitations under the License.
 package feature
 
 import (
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	"k8s.io/component-base/featuregate"
 )
 
@@ -47,6 +48,13 @@ const (
 	//
 	// alpha: v1.15
 	NodeAutoPlacement featuregate.Feature = "NodeAutoPlacement"
+
+	// InfrastructurePolicies is a feature gate for the Support for Supervisor InfrastructurePolicies.
+	// When enabled, VSphereMachine.spec.infrastructurePolicies are validated on admission and
+	// mapped to the underlying VirtualMachine spec.
+	//
+	// alpha: v1.17
+	InfrastructurePolicies featuregate.Feature = "InfrastructurePolicies"
 
 	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
 	// instead of the default queue implementation.
@@ -87,5 +95,8 @@ var (
 		// FeatureDependingOnV1alpha6: {
 		// 	{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		// },
+		InfrastructurePolicies: {
+			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
 	}
 )

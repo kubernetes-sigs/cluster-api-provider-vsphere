@@ -114,6 +114,39 @@ type VSphereMachineSpec struct {
 	// naming allows configuring the naming strategy used when calculating the name of the VirtualMachine.
 	// +optional
 	Naming VirtualMachineNamingSpec `json:"naming,omitempty,omitzero"`
+
+	// infrastructurePolicies specifies a list of optional infrastructure policies to be applied to the virtual machine.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=1024
+	InfrastructurePolicies []InfrastructurePolicyRef `json:"infrastructurePolicies,omitempty"`
+}
+
+// InfrastructurePolicyRef identifies an optional infrastructure policy to specify for the virtual machine.
+type InfrastructurePolicyRef struct {
+	// name of the infrastructure policy.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
+
+	// kind of the infrastructure policy object being referenced.
+	// The API server validates this against the registered resource types in the cluster.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind"`
+
+	// apiVersion is the fully qualified group/version of the infrastructure policy resource
+	// (for example vsphere.policy.vmware.com/v1alpha1).
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z0-9]+([a-z0-9]*)?$`
+	APIVersion string `json:"apiVersion"`
 }
 
 // VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.

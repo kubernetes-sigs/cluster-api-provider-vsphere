@@ -1253,6 +1253,7 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	out.PowerOffMode = v1beta2.VirtualMachinePowerOpMode(in.PowerOffMode)
 	out.MinHardwareVersion = in.MinHardwareVersion
 	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: out.InfrastructurePolicies requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -1270,6 +1271,7 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 	out.PowerOffMode = VirtualMachinePowerOpMode(in.PowerOffMode)
 	out.MinHardwareVersion = in.MinHardwareVersion
 	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
+	// WARNING: in.InfrastructurePolicies requires manual conversion: does not exist in peer-type
 	return nil
 }
 

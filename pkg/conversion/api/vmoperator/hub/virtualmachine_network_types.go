@@ -17,8 +17,45 @@ limitations under the License.
 package hub
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// VirtualMachineNetworkInterfaceType specifies the NIC device type.
+type VirtualMachineNetworkInterfaceType string
+
+// TxContextThreadingMode specifies the transmit context threading mode for a VMXNet3 interface.
+type TxContextThreadingMode string
+
+// CoalescingScheme specifies the interrupt coalescing scheme for a VMXNet3 interface.
+type CoalescingScheme string
+
+// PNICQueueFeature names one physical NIC queue offload feature for VMXNet3 pnicFeatures.
+type PNICQueueFeature string
+
+// VirtualMachineNetworkInterfaceVMXNet3Spec contains tuning options specific to VMXNet3 interfaces.
+type VirtualMachineNetworkInterfaceVMXNet3Spec struct {
+	// +optional
+	UPTv2Enabled *bool `json:"uptv2Enabled,omitempty"`
+
+	// +optional
+	CtxPerDev *TxContextThreadingMode `json:"ctxPerDev,omitempty"`
+
+	// +optional
+	RSSOffloadEnabled *bool `json:"rssOffloadEnabled,omitempty"`
+
+	// +optional
+	UDPRSSEnabled *bool `json:"udpRSSEnabled,omitempty"`
+
+	// +optional
+	PNICFeatures []PNICQueueFeature `json:"pnicFeatures,omitempty"`
+
+	// +optional
+	CoalescingScheme *CoalescingScheme `json:"coalescingScheme,omitempty"`
+
+	// +optional
+	CoalescingParams *string `json:"coalescingParams,omitempty"`
+}
 
 // VirtualMachineNetworkRouteSpec defines a static route for a guest.
 type VirtualMachineNetworkRouteSpec struct {
@@ -189,6 +226,34 @@ type VirtualMachineNetworkInterfaceSpec struct {
 	// or true, if search domains is not provided, the global search domains
 	// will be used instead.
 	SearchDomains []string `json:"searchDomains,omitempty"`
+
+	// +optional
+
+	// Type is the NIC device model (VMXNet3, SRIOV, E1000, E1000e, VMXNet2, PCNet32).
+	// If omitted, VMXNet3 will be used for new network interfaces.
+	Type VirtualMachineNetworkInterfaceType `json:"type,omitempty"`
+
+	// +optional
+
+	// VMXNet3 contains tuning options specific to VMXNet3 interfaces.
+	VMXNet3 *VirtualMachineNetworkInterfaceVMXNet3Spec `json:"vmxnet3,omitempty"`
+
+	// +optional
+
+	// VNUMANodeID assigns this interface to a specific virtual NUMA node.
+	VNUMANodeID *int32 `json:"vNUMANodeID,omitempty"`
+
+	// +optional
+
+	// AdvancedProperties is a fallback for device-specific VMX properties not
+	// yet exposed as first-class fields.
+	AdvancedProperties []KeyValuePair `json:"advancedProperties,omitempty"`
+
+	// +optional
+
+	// IPAMModes requests which IP address families the network provider allocates
+	// for this interface.
+	IPAMModes []corev1.IPFamily `json:"ipamModes,omitempty"`
 }
 
 // VirtualMachineNetworkSpec defines a VM's desired network configuration.

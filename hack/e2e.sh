@@ -24,6 +24,12 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 # shellcheck source=./hack/ci-e2e-lib.sh
 source "${REPO_ROOT}/hack/ci-e2e-lib.sh"
 
+# TODO: Remove on the PR that implement 9.2 e2e tests
+if [[ "${VM_OPERATOR_VERSION:-''}" == "9.2" ]]; then
+  echo "9.2 tests are not implemented yet, skipping tests"
+  exit 0
+fi
+
 RE_VCSIM='\[vcsim\\]'
 
 # In CI, ARTIFACTS is set to a different directory. This stores the value of

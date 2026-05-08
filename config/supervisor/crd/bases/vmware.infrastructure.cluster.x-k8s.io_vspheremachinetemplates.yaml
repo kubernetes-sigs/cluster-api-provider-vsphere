@@ -470,45 +470,6 @@ spec:
                         maxLength: 2048
                         minLength: 1
                         type: string
-                      infrastructurePolicies:
-                        description: infrastructurePolicies specifies a list of optional
-                          infrastructure policies to be applied to the virtual machine.
-                        items:
-                          description: InfrastructurePolicyRef identifies an optional
-                            infrastructure policy to specify for the virtual machine.
-                          properties:
-                            apiVersion:
-                              description: |-
-                                apiVersion is the fully qualified group/version of the infrastructure policy resource
-                                (for example vsphere.policy.vmware.com/v1alpha1).
-                              maxLength: 253
-                              minLength: 1
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z0-9]+([a-z0-9]*)?$
-                              type: string
-                            kind:
-                              description: |-
-                                kind of the infrastructure policy object being referenced.
-                                The API server validates this against the registered resource types in the cluster.
-                              maxLength: 63
-                              minLength: 1
-                              pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                              type: string
-                            name:
-                              description: |-
-                                name of the infrastructure policy.
-                                name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                              maxLength: 253
-                              minLength: 1
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                              type: string
-                          required:
-                          - apiVersion
-                          - kind
-                          - name
-                          type: object
-                        maxItems: 1024
-                        type: array
-                        x-kubernetes-list-type: atomic
                       minHardwareVersion:
                         description: |-
                           minHardwareVersion specifies the desired minimum hardware version
@@ -743,6 +704,45 @@ spec:
                                 x-kubernetes-list-type: atomic
                             type: object
                         type: object
+                      policies:
+                        description: policies specifies a list of optional infrastructure
+                          policies to be applied to the virtual machine.
+                        items:
+                          description: PolicyRef identifies an optional infrastructure
+                            policy to specify for the virtual machine.
+                          properties:
+                            apiVersion:
+                              description: |-
+                                apiVersion is the fully qualified group/version of the infrastructure policy resource
+                                (for example vsphere.policy.vmware.com/v1alpha1).
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z0-9]+([a-z0-9]*)?$
+                              type: string
+                            kind:
+                              description: |-
+                                kind of the infrastructure policy object being referenced.
+                                The API server validates this against the registered resource types in the cluster.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                              type: string
+                            name:
+                              description: |-
+                                name of the infrastructure policy.
+                                name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                          required:
+                          - apiVersion
+                          - kind
+                          - name
+                          type: object
+                        maxItems: 1024
+                        type: array
+                        x-kubernetes-list-type: atomic
                       powerOffMode:
                         description: |-
                           powerOffMode describes the desired behavior when powering off a VM.

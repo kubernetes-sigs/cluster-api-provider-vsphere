@@ -751,18 +751,18 @@ var _ = Describe("VirtualMachine tests", func() {
 				expectedImageName = imageName
 				expectedRequeue = true
 
-				vsphereMachine.Spec.InfrastructurePolicies = []vmwarev1.InfrastructurePolicyRef{
-					{
-						Name:       "policy-a",
-						Kind:       "ComputePolicy",
-						APIVersion: "vsphere.policy.vmware.com/v1alpha1",
-					},
-					{
-						Name:       "policy-b",
-						Kind:       "ComputePolicy",
-						APIVersion: "vsphere.policy.vmware.com/v1alpha1",
-					},
-				}
+			vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
+				{
+					Name:       "policy-a",
+					Kind:       "ComputePolicy",
+					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				},
+				{
+					Name:       "policy-b",
+					Kind:       "ComputePolicy",
+					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				},
+			}
 
 				By("VirtualMachine is created")
 				requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -799,9 +799,9 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedImageName = imageName
 			expectedRequeue = true
 
-			vsphereMachine.Spec.InfrastructurePolicies = []vmwarev1.InfrastructurePolicyRef{
-				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
-			}
+		vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
+			{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+		}
 
 			By("VirtualMachine is created (gate off)")
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -1376,13 +1376,13 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 	}
 }
 
-func Test_getInfrastructurePolicies(t *testing.T) {
-	policyGVK := func(name, kind, apiVersion string) vmwarev1.InfrastructurePolicyRef {
-		return vmwarev1.InfrastructurePolicyRef{Name: name, Kind: kind, APIVersion: apiVersion}
+func Test_getPolicies(t *testing.T) {
+	policyGVK := func(name, kind, apiVersion string) vmwarev1.PolicyRef {
+		return vmwarev1.PolicyRef{Name: name, Kind: kind, APIVersion: apiVersion}
 	}
 	tests := []struct {
 		name string
-		in   []vmwarev1.InfrastructurePolicyRef
+		in   []vmwarev1.PolicyRef
 		want []vmoprvhub.PolicySpec
 	}{
 		{
@@ -1392,12 +1392,12 @@ func Test_getInfrastructurePolicies(t *testing.T) {
 		},
 		{
 			name: "empty slice returns nil",
-			in:   []vmwarev1.InfrastructurePolicyRef{},
+			in:   []vmwarev1.PolicyRef{},
 			want: nil,
 		},
 		{
 			name: "single ComputePolicy maps to hub PolicySpec",
-			in: []vmwarev1.InfrastructurePolicyRef{
+			in: []vmwarev1.PolicyRef{
 				policyGVK("my-compute-policy", "ComputePolicy", "vsphere.policy.vmware.com/v1alpha1"),
 			},
 			want: []vmoprvhub.PolicySpec{
@@ -1406,7 +1406,7 @@ func Test_getInfrastructurePolicies(t *testing.T) {
 		},
 		{
 			name: "multiple ComputePolicies are sorted by name",
-			in: []vmwarev1.InfrastructurePolicyRef{
+			in: []vmwarev1.PolicyRef{
 				policyGVK("policy-c", "ComputePolicy", "vsphere.policy.vmware.com/v1alpha1"),
 				policyGVK("policy-a", "ComputePolicy", "vsphere.policy.vmware.com/v1alpha1"),
 				policyGVK("policy-b", "ComputePolicy", "vsphere.policy.vmware.com/v1alpha1"),
@@ -1424,11 +1424,11 @@ func Test_getInfrastructurePolicies(t *testing.T) {
 			sm := &vmware.SupervisorMachineContext{
 				VSphereMachine: &vmwarev1.VSphereMachine{
 					Spec: vmwarev1.VSphereMachineSpec{
-						InfrastructurePolicies: tt.in,
+						Policies: tt.in,
 					},
 				},
 			}
-			got := getInfrastructurePolicies(sm)
+			got := getPolicies(sm)
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}

@@ -637,11 +637,11 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		return err
 	}
 
-	// Assign infrastructure policies when the feature gate is enabled; explicitly clear
-	// them otherwise so that create and update are always consistent regardless of whether
-	// the gate was toggled between reconciles.
+	// Assign policies when the feature gate is enabled; explicitly clear them otherwise
+	// so that create and update are always consistent regardless of whether the gate
+	// was toggled between reconciles.
 	if feature.Gates.Enabled(feature.InfrastructurePolicies) {
-		vmOperatorVM.Spec.Policies = getInfrastructurePolicies(supervisorMachineCtx)
+		vmOperatorVM.Spec.Policies = getPolicies(supervisorMachineCtx)
 	} else {
 		vmOperatorVM.Spec.Policies = nil
 	}
@@ -1022,8 +1022,8 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, fa
 	return nil
 }
 
-func getInfrastructurePolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprvhub.PolicySpec {
-	refs := supervisorMachineCtx.VSphereMachine.Spec.InfrastructurePolicies
+func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprvhub.PolicySpec {
+	refs := supervisorMachineCtx.VSphereMachine.Spec.Policies
 	if len(refs) == 0 {
 		return nil
 	}

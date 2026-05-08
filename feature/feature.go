@@ -49,8 +49,8 @@ const (
 	// alpha: v1.15
 	NodeAutoPlacement featuregate.Feature = "NodeAutoPlacement"
 
-	// InfrastructurePolicies is a feature gate for the Support for Supervisor InfrastructurePolicies.
-	// When enabled, VSphereMachine.spec.infrastructurePolicies are validated on admission and
+	// InfrastructurePolicies is a feature gate for the Support for Supervisor infrastructure policies.
+	// When enabled, VSphereMachine.spec.policies are validated on admission and
 	// mapped to the underlying VirtualMachine spec.
 	//
 	// alpha: v1.17

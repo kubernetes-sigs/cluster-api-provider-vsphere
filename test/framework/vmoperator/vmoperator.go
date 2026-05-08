@@ -90,16 +90,19 @@ const (
 var (
 	//go:embed vmoperator-capabilities-9.1.yaml
 	capabilities9_1 []byte
+
+	//go:embed vmoperator-capabilities-9.2.yaml
+	capabilities9_2 []byte
 )
 
 // ReconcileCapabilities reconciles the ConfigMap with the list of capabilities for the vm-operator.
-// NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.1.yaml that is
+// NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.2.yaml that is
 // used by clusterctl init (init requires all the objects to be in the same namespace).
 func ReconcileCapabilities(ctx context.Context, c client.Client) error {
 	var retryError error
 	log := ctrl.LoggerFrom(ctx)
 
-	objs, err := utilyaml.ToUnstructured(capabilities9_1)
+	objs, err := utilyaml.ToUnstructured(capabilities9_2)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse yaml for vm-operator capabilities ConfigMap")
 	}

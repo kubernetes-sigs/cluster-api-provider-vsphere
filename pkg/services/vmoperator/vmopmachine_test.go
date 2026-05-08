@@ -751,18 +751,18 @@ var _ = Describe("VirtualMachine tests", func() {
 				expectedImageName = imageName
 				expectedRequeue = true
 
-			vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
-				{
-					Name:       "policy-a",
-					Kind:       "ComputePolicy",
-					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
-				},
-				{
-					Name:       "policy-b",
-					Kind:       "ComputePolicy",
-					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
-				},
-			}
+				vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
+					{
+						Name:       "policy-a",
+						Kind:       "ComputePolicy",
+						APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+					},
+					{
+						Name:       "policy-b",
+						Kind:       "ComputePolicy",
+						APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+					},
+				}
 
 				By("VirtualMachine is created")
 				requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -799,9 +799,9 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedImageName = imageName
 			expectedRequeue = true
 
-		vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
-			{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
-		}
+			vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
+				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+			}
 
 			By("VirtualMachine is created (gate off)")
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)

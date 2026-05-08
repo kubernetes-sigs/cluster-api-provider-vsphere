@@ -400,4 +400,3 @@ func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
 		})
 	}
 }
-

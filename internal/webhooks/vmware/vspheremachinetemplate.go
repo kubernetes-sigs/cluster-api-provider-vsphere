@@ -26,11 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api/util/topology"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -42,17 +40,12 @@ import (
 type VSphereMachineTemplate struct {
 	// NetworkProvider is the network provider used by Supervisor based clusters
 	NetworkProvider string
-	// Client is used to validate references; it defaults to mgr.GetClient() from SetupWebhookWithManager.
-	Client client.Client
 }
 
 var _ admission.Defaulter[*vmwarev1.VSphereMachineTemplate] = &VSphereMachineTemplate{}
 var _ admission.Validator[*vmwarev1.VSphereMachineTemplate] = &VSphereMachineTemplate{}
 
 func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	if webhook.Client == nil {
-		webhook.Client = mgr.GetClient()
-	}
 	return ctrl.NewWebhookManagedBy(mgr, &vmwarev1.VSphereMachineTemplate{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
@@ -103,12 +96,8 @@ func (webhook *VSphereMachineTemplate) ValidateUpdate(ctx context.Context, oldOb
 	return webhook.validate(ctx, nil, newObj)
 }
 
-func (webhook *VSphereMachineTemplate) validate(ctx context.Context, _, newVSphereMachineTemplate *vmwarev1.VSphereMachineTemplate) (admission.Warnings, error) {
+func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphereMachineTemplate *vmwarev1.VSphereMachineTemplate) (admission.Warnings, error) {
 	allErrs := validateNetwork(webhook.NetworkProvider, newVSphereMachineTemplate.Spec.Template.Spec.Network, field.NewPath("spec", "template", "spec", "network"))
-	if feature.Gates.Enabled(feature.InfrastructurePolicies) {
-		allErrs = append(allErrs, validateInfrastructurePolicies(ctx, webhook.Client, newVSphereMachineTemplate.Namespace, newVSphereMachineTemplate.Spec.Template.Spec.InfrastructurePolicies,
-			field.NewPath("spec", "template", "spec", "infrastructurePolicies"))...)
-	}
 
 	// Validate namingStrategy
 	namingStrategy := newVSphereMachineTemplate.Spec.Template.Spec.Naming

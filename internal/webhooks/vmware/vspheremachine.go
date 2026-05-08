@@ -21,15 +21,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sort"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
@@ -45,28 +39,19 @@ import (
 type VSphereMachine struct {
 	// NetworkProvider is the network provider used by Supervisor based clusters
 	NetworkProvider string
-	// Client is used to validate references; it defaults to mgr.GetClient() from SetupWebhookWithManager.
-	Client client.Client
 }
 
 var _ admission.Validator[*vmwarev1.VSphereMachine] = &VSphereMachine{}
 
 func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	if webhook.Client == nil {
-		webhook.Client = mgr.GetClient()
-	}
 	return ctrl.NewWebhookManagedBy(mgr, &vmwarev1.VSphereMachine{}).
 		WithValidator(webhook).
 		Complete()
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereMachine) ValidateCreate(ctx context.Context, objTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
+func (webhook *VSphereMachine) ValidateCreate(_ context.Context, objTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
 	allErrs := validateNetwork(webhook.NetworkProvider, objTyped.Spec.Network, field.NewPath("spec", "network"))
-	if feature.Gates.Enabled(feature.InfrastructurePolicies) {
-		allErrs = append(allErrs, validateInfrastructurePolicies(ctx, webhook.Client, objTyped.Namespace, objTyped.Spec.InfrastructurePolicies,
-			field.NewPath("spec", "infrastructurePolicies"))...)
-	}
 
 	return nil, webhooks.AggregateObjErrors(objTyped.GroupVersionKind().GroupKind(), objTyped.Name, allErrs)
 }
@@ -98,12 +83,6 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTy
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "minHardwareVersion"), "cannot be modified"))
 	}
 
-	if feature.Gates.Enabled(feature.InfrastructurePolicies) {
-		if !reflect.DeepEqual(newSpec.InfrastructurePolicies, oldSpec.InfrastructurePolicies) {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "infrastructurePolicies"), "cannot be modified"))
-		}
-	}
-
 	if !reflect.DeepEqual(newSpec.Network.Interfaces, oldSpec.Network.Interfaces) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "network", "interfaces"), "cannot be modified"))
 	}
@@ -116,83 +95,6 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTy
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *VSphereMachine) ValidateDelete(_ context.Context, _ *vmwarev1.VSphereMachine) (admission.Warnings, error) {
 	return nil, nil
-}
-
-// supportedInfrastructurePolicyKinds is the set of policy Kinds that may be
-// referenced via spec.infrastructurePolicies. Add new entries here when
-// additional policy types are supported.
-var supportedInfrastructurePolicyKinds = map[string]struct{}{
-	"ComputePolicy": {},
-}
-
-func resolveInfrastructurePolicyRef(ref vmwarev1.InfrastructurePolicyRef) (schema.GroupVersionKind, error) {
-	if ref.APIVersion == "" {
-		return schema.GroupVersionKind{}, fmt.Errorf("apiVersion is required")
-	}
-	if ref.Kind == "" {
-		return schema.GroupVersionKind{}, fmt.Errorf("kind is required")
-	}
-	gv, err := schema.ParseGroupVersion(ref.APIVersion)
-	if err != nil {
-		return schema.GroupVersionKind{}, fmt.Errorf("invalid apiVersion %q: %w", ref.APIVersion, err)
-	}
-	return gv.WithKind(ref.Kind), nil
-}
-
-func validateInfrastructurePolicies(ctx context.Context, c client.Client, namespace string, policies []vmwarev1.InfrastructurePolicyRef, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-	for i, ref := range policies {
-		idxPath := fldPath.Index(i)
-
-		// Structural field checks — no API server required.
-		if ref.Name == "" {
-			allErrs = append(allErrs, field.Required(idxPath.Child("name"), ""))
-			continue
-		}
-		if ref.Kind == "" {
-			allErrs = append(allErrs, field.Required(idxPath.Child("kind"), ""))
-			continue
-		}
-		if _, ok := supportedInfrastructurePolicyKinds[ref.Kind]; !ok {
-			supported := make([]string, 0, len(supportedInfrastructurePolicyKinds))
-			for k := range supportedInfrastructurePolicyKinds {
-				supported = append(supported, k)
-			}
-			sort.Strings(supported)
-			allErrs = append(allErrs, field.NotSupported(idxPath.Child("kind"), ref.Kind, supported))
-			continue
-		}
-		if ref.APIVersion == "" {
-			allErrs = append(allErrs, field.Required(idxPath.Child("apiVersion"), ""))
-			continue
-		}
-		gvk, err := resolveInfrastructurePolicyRef(ref)
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(idxPath, ref, err.Error()))
-			continue
-		}
-
-		// Existence check — requires a live client; skipped in unit tests that
-		// pass a nil client to isolate structural validation.
-		if c == nil {
-			continue
-		}
-		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(gvk)
-		key := client.ObjectKey{Namespace: namespace, Name: ref.Name}
-		if err := c.Get(ctx, key, obj); err != nil {
-			if apierrors.IsNotFound(err) {
-				allErrs = append(allErrs, field.Invalid(idxPath, ref, fmt.Sprintf("referenced infrastructure policy does not exist (%s %s/%s)", gvk.Kind, namespace, ref.Name)))
-				continue
-			}
-			if meta.IsNoMatchError(err) {
-				allErrs = append(allErrs, field.Invalid(idxPath, gvk, fmt.Sprintf("no matching resource type in the cluster: %v", err)))
-				continue
-			}
-			allErrs = append(allErrs, field.InternalError(idxPath, fmt.Errorf("failed to get infrastructure policy %s: %w", gvk.String(), err)))
-		}
-	}
-	return allErrs
 }
 
 func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Path) field.ErrorList {

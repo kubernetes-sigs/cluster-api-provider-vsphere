@@ -115,15 +115,15 @@ type VSphereMachineSpec struct {
 	// +optional
 	Naming VirtualMachineNamingSpec `json:"naming,omitempty,omitzero"`
 
-	// infrastructurePolicies specifies a list of optional infrastructure policies to be applied to the virtual machine.
+	// policies specifies a list of optional infrastructure policies to be applied to the virtual machine.
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=1024
-	InfrastructurePolicies []InfrastructurePolicyRef `json:"infrastructurePolicies,omitempty"`
+	Policies []PolicyRef `json:"policies,omitempty"`
 }
 
-// InfrastructurePolicyRef identifies an optional infrastructure policy to specify for the virtual machine.
-type InfrastructurePolicyRef struct {
+// PolicyRef identifies an optional infrastructure policy to specify for the virtual machine.
+type PolicyRef struct {
 	// name of the infrastructure policy.
 	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
 	// +required

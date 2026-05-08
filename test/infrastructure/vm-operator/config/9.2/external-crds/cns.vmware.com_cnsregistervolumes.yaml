@@ -1,0 +1,111 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: cnsregistervolumes.cns.vmware.com
+spec:
+  group: cns.vmware.com
+  names:
+    kind: CnsRegisterVolume
+    listKind: CnsRegisterVolumeList
+    plural: cnsregistervolumes
+    singular: cnsregistervolume
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: CnsRegisterVolume is the Schema for the cnsregistervolumes API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CnsRegisterVolumeSpec defines the desired state of CnsRegisterVolume
+            properties:
+              accessMode:
+                description: |-
+                  AccessMode contains the actual access mode the volume backing the
+                  CnsRegisterVolume has.
+                  AccessMode must be specified if VolumeID is specified.
+                type: string
+              backingType:
+                description: |-
+                  BackingType enumerates types of backing for batch attach operations.
+                  These values correspond to the CnsVolumeBackingType enum.
+                type: string
+              diskURLPath:
+                description: |-
+                  DiskUrlPath is URL path to an existing block volume to be imported into
+                  Project Pacific cluster.
+                  VolumeID and DiskUrlPath cannot be specified together.
+                  DiskUrlPath is explicitly used for block volumes. AccessMode need not be
+                  specified and will be defaulted to "ReadWriteOnce".
+                  This field must be in the following format:
+                  Format:
+                  https://<vc_ip>/folder/<vm_vmdk_path>?dcPath=<datacenterName>&dsName=<datastoreName>
+                  Ex: https://10.192.255.221/folder/34a9c05d-5f03-e254-e692-02004479cb91/
+                         vm2_1.vmdk?dcPath=Datacenter-1&dsName=vsanDatastore
+                  This is for a 34a9c05d-5f03-e254-e692-02004479cb91/vm2_1.vmdk
+                  file under datacenter "Datacenter-1" and datastore "vsanDatastore".
+                type: string
+              pvcName:
+                description: Name of the PVC
+                type: string
+              volumeID:
+                description: |-
+                  VolumeID indicates an existing vsphere volume to be imported into Project
+                  Pacific cluster.
+                  If the AccessMode is "ReadWriteMany" or "ReadOnlyMany", then this VolumeID
+                  can be either an existing FileShare (or) CNS file volume backed FileShare.
+                  If the AccessMode is "ReadWriteOnce", then this VolumeID can be either an
+                  existing FCD (or) a CNS backed FCD.
+                  VolumeID and DiskUrlPath cannot be specified together.
+                type: string
+              volumeMode:
+                description: |-
+                  VolumeMode can either be Block (for raw block volume) or
+                  Filesystem. Default values is Filesystem.
+                type: string
+            required:
+            - pvcName
+            type: object
+          status:
+            description: CnsRegisterVolumeStatus defines the observed state of CnsRegisterVolume
+            properties:
+              error:
+                description: |-
+                  The last error encountered during import operation, if any.
+                  This field must only be set by the entity completing the import
+                  operation, i.e. the CNS Operator.
+                type: string
+              registered:
+                description: |-
+                  Indicates the volume is successfully registered.
+                  This field must only be set by the entity completing the register
+                  operation, i.e. the CNS Operator.
+                type: boolean
+            required:
+            - registered
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

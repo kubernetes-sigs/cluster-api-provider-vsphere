@@ -245,9 +245,12 @@ VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
 # VM_OPERATOR_VERSION ?= 8.0
 # VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
 # VM_OPERATOR_COMMIT_DESCRIBE ?= v1.8.6-0-gde75746a
-VM_OPERATOR_VERSION ?= 9.1
-VM_OPERATOR_COMMIT ?= v1.10.0
-VM_OPERATOR_COMMIT_DESCRIBE ?= release-vc-9.1.0-0-g77005588
+# VM_OPERATOR_VERSION ?= 9.1
+# VM_OPERATOR_COMMIT ?= v1.10.0
+# VM_OPERATOR_COMMIT_DESCRIBE ?= release-vc-9.1.0-0-g77005588
+VM_OPERATOR_VERSION ?= 9.2
+VM_OPERATOR_COMMIT ?= 46e3104c57d1af6b113e841ea9a7aca56eed8fbc
+VM_OPERATOR_COMMIT_DESCRIBE ?= v1.9.0-987-g46e3104c
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
 VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
@@ -967,6 +970,14 @@ generate-manifests-vm-operator-9.1:
 	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VCSIM_VM_OPERATOR_CRD_ROOT)/$(VM_OPERATOR_VERSION)" > "$(VCSIM_VM_OPERATOR_CRD_ROOT)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
+generate-manifests-vm-operator-9.2:
+	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
+	GOTOOLCHAIN=auto make kustomize-wcp
+	@cd "$(ROOT_DIR)"
+	cp "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/local-deployment.yaml" "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION)/vm-operator.yaml"
+	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VCSIM_VM_OPERATOR_CRD_ROOT)/$(VM_OPERATOR_VERSION)" > "$(VCSIM_VM_OPERATOR_CRD_ROOT)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+
 .PHONY: docker-build-all-vm-operator
 docker-build-all-vm-operator: checkout-vm-operator
 	$(MAKE) docker-build-vm-operator-vm-operator-$(VM_OPERATOR_VERSION)
@@ -984,6 +995,14 @@ docker-build-vm-operator-vm-operator-9.1:
 	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_FILE=artifacts/vm-operator-amd64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-amd64; \
 	docker load -i $(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/vm-operator-amd64.tar; \
 	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-arm64 IMAGE_FILE=artifacts/vm-operator-arm64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-arm64; \
+	docker load -i $(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/vm-operator-arm64.tar
+
+docker-build-vm-operator-vm-operator-9.2:
+	@if [ -z "${VM_OPERATOR_IMAGE_TAG}" ]; then echo "VM_OPERATOR_IMAGE_TAG is not set"; exit 1; fi
+	cd $(VM_OPERATOR_TMP_DIR); \
+	GOTOOLCHAIN=auto IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_FILE=artifacts/vm-operator-amd64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-amd64; \
+	docker load -i $(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/vm-operator-amd64.tar; \
+	GOTOOLCHAIN=auto IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-arm64 IMAGE_FILE=artifacts/vm-operator-arm64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-arm64; \
 	docker load -i $(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/vm-operator-arm64.tar
 
 .PHONY: docker-push-all-vm-operator

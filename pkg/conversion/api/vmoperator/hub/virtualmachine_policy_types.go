@@ -17,14 +17,14 @@ limitations under the License.
 package hub
 
 import (
-	vmopv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha5/common"
+	vmoprv1alpha5common "github.com/vmware-tanzu/vm-operator/api/v1alpha5/common"
 )
 
 // PolicySpec and PolicyStatus must stay aligned with vm-operator:
 // https://github.com/vmware-tanzu/vm-operator/blob/main/api/v1alpha5/virtualmachine_policy_types.go
 // Copy definitions from that file when vm-operator bumps; do not invent parallel shapes here.
 
-type PolicySpec vmopv1common.LocalObjectRef
+type PolicySpec vmoprv1alpha5common.LocalObjectRef
 
 type PolicyStatus struct {
 	PolicySpec `json:",inline"`

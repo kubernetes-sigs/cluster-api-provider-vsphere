@@ -382,4 +382,3 @@ func TestVSphereMachine_ValidateUpdate_MultiNetwork(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("cannot be modified"))
 }
-

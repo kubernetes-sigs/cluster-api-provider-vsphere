@@ -130,7 +130,7 @@ type PolicyRef struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// kind of the infrastructure policy object being referenced.
 	// The API server validates this against the registered resource types in the cluster.
@@ -138,7 +138,7 @@ type PolicyRef struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
-	Kind string `json:"kind"`
+	Kind string `json:"kind,omitempty"`
 
 	// apiVersion is the fully qualified group/version of the infrastructure policy resource
 	// (for example vsphere.policy.vmware.com/v1alpha1).
@@ -146,7 +146,7 @@ type PolicyRef struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z0-9]+([a-z0-9]*)?$`
-	APIVersion string `json:"apiVersion"`
+	APIVersion string `json:"apiVersion,omitempty"`
 }
 
 // VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.

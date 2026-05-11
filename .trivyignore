@@ -1,2 +1,4 @@
 # otel CVE on BSD/solarix
 CVE-2026-39883
+# CVE-2026-29181: Cluster API is not using the affected otel packages (verified via govulncheck)
+CVE-2026-29181

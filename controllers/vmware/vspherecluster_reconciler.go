@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -510,8 +509,8 @@ func (r *ClusterReconciler) ZoneToVSphereClusters(ctx context.Context, o client.
 }
 
 // getFailureDomains returns the failure domain information discovered on the cluster
-// hosting this controller. The spec's controlPlaneFailureDomains / controlPlaneFailureDomainSelector
-// fields are used to set the ControlPlane boolean on each domain.
+// hosting this controller. The spec's controlPlaneFailureDomains
+// field is used to set the ControlPlane boolean on each domain.
 func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string, spec vmwarev1.VSphereClusterSpec) ([]clusterv1.FailureDomain, error) {
 	failureDomains := []clusterv1.FailureDomain{}
 	// Determine the source of failure domain based on feature gates NamespaceScopedZones.
@@ -539,7 +538,7 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 		}
 
 		var err error
-		failureDomains, err = applyControlPlaneFilter(failureDomains, zoneLabels(zoneList), spec)
+		failureDomains, err = applyControlPlaneFilter(failureDomains, spec)
 		if err != nil {
 			return nil, err
 		}
@@ -569,7 +568,7 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 	}
 
 	var err error
-	failureDomains, err = applyControlPlaneFilter(failureDomains, availabilityZoneLabels(availabilityZoneList), spec)
+	failureDomains, err = applyControlPlaneFilter(failureDomains, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -584,49 +583,25 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 	return failureDomains, nil
 }
 
-// zoneLabels returns a map of zone name → labels for namespaced Zone objects.
-func zoneLabels(zoneList *topologyv1.ZoneList) map[string]map[string]string {
-	m := make(map[string]map[string]string, len(zoneList.Items))
-	for _, z := range zoneList.Items {
-		m[z.Name] = z.Labels
-	}
-	return m
-}
-
-// availabilityZoneLabels returns a map of zone name → labels for cluster-scoped AvailabilityZone objects.
-func availabilityZoneLabels(azList *topologyv1.AvailabilityZoneList) map[string]map[string]string {
-	m := make(map[string]map[string]string, len(azList.Items))
-	for _, az := range azList.Items {
-		m[az.Name] = az.Labels
-	}
-	return m
-}
-
 // applyControlPlaneFilter stamps the ControlPlane boolean on each failure domain according to
 // the VSphereClusterSpec's control-plane placement constraints:
 //
 //   - If ControlPlaneFailureDomains (explicit list) is set, ControlPlane is true only for
 //     domains whose name appears in that list. Any name in the list that does not match a
 //     known domain is returned as an error.
-//   - If ControlPlaneFailureDomainSelector (label selector) is set, ControlPlane is true only
-//     for domains whose labels match the selector.
-//   - If neither field is set, ControlPlane is true for all domains (backwards-compatible default).
+//   - If ControlPlaneFailureDomains is not set, ControlPlane is true for all domains (backwards-compatible default).
 //
 // The domainLabels map must contain one entry per failure domain, keyed by domain name.
 func applyControlPlaneFilter(
 	domains []clusterv1.FailureDomain,
-	domainLabels map[string]map[string]string,
 	spec vmwarev1.VSphereClusterSpec,
 ) ([]clusterv1.FailureDomain, error) {
 	switch {
 	case len(spec.ControlPlaneFailureDomains) > 0:
 		return applyControlPlaneExplicitList(domains, spec.ControlPlaneFailureDomains)
 
-	case spec.ControlPlaneFailureDomainSelector != nil:
-		return applyControlPlaneLabelSelector(domains, domainLabels, spec.ControlPlaneFailureDomainSelector)
-
 	default:
-		// Neither constraint is set: all domains are eligible for control plane placement.
+		// ControlPlaneFailureDomains is not set: all domains are eligible for control plane placement.
 		for i := range domains {
 			domains[i].ControlPlane = ptr.To(true)
 		}
@@ -659,29 +634,4 @@ func applyControlPlaneExplicitList(domains []clusterv1.FailureDomain, allowList 
 		domains[i].ControlPlane = ptr.To(inList)
 	}
 	return domains, nil
-}
-
-// applyControlPlaneLabelSelector sets ControlPlane=true only for domains whose labels match
-// the given selector.
-func applyControlPlaneLabelSelector(
-	domains []clusterv1.FailureDomain,
-	domainLabels map[string]map[string]string,
-	selector *metav1.LabelSelector,
-) ([]clusterv1.FailureDomain, error) {
-	labelSel, err := metav1.LabelSelectorAsSelector(selector)
-	if err != nil {
-		return nil, fmt.Errorf("invalid controlPlaneFailureDomainSelector: %w", err)
-	}
-	for i := range domains {
-		labels := domainLabels[domains[i].Name]
-		matches := labelSel.Matches(labelsAsSet(labels))
-		domains[i].ControlPlane = ptr.To(matches)
-	}
-	return domains, nil
-}
-
-// labelsAsSet converts a plain map[string]string into a labels.Labels interface value
-// (which is itself a map[string]string alias) for use with label selectors.
-func labelsAsSet(m map[string]string) labels.Set {
-	return labels.Set(m)
 }

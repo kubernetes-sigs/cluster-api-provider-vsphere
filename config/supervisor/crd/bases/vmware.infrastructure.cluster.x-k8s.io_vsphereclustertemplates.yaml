@@ -190,6 +190,18 @@ spec:
                             minimum: 1
                             type: integer
                         type: object
+                      controlPlaneFailureDomains:
+                        description: |-
+                          controlPlaneFailureDomains is an optional explicit list of failure domain names
+                          where control plane nodes should be placed.
+                          If the field is not set, control plane nodes may be placed in any available failure domain.
+                        items:
+                          maxLength: 256
+                          minLength: 1
+                          type: string
+                        maxItems: 128
+                        type: array
+                        x-kubernetes-list-type: set
                       network:
                         description: network defines the network configuration for
                           the cluster with different network providers.

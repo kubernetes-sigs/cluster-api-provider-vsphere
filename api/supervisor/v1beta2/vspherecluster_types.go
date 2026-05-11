@@ -157,7 +157,6 @@ func (r *Network) IsDefined() bool {
 
 // VSphereClusterSpec defines the desired state of VSphereCluster.
 // +kubebuilder:validation:XValidation:rule="has(self.network) == has(oldSelf.network)",message="field 'network' cannot be added or removed after creation"
-// +kubebuilder:validation:XValidation:rule="!(has(self.controlPlaneFailureDomainSelector) && has(self.controlPlaneFailureDomains))",message="controlPlaneFailureDomainSelector and controlPlaneFailureDomains are mutually exclusive"
 // +kubebuilder:validation:MinProperties=1
 type VSphereClusterSpec struct {
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
@@ -170,19 +169,13 @@ type VSphereClusterSpec struct {
 
 	// controlPlaneFailureDomains is an optional explicit list of failure domain names
 	// where control plane nodes should be placed.
-	// Mutually exclusive with controlPlaneFailureDomainSelector.
-	// If neither field is set, control plane nodes may be placed in any available failure domain.
+	// If the field is not set, control plane nodes may be placed in any available failure domain.
 	// +optional
 	// +listType=set
-	// +kubebuilder:validation:MaxItems=32
+	// +kubebuilder:validation:MaxItems=128
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=256
 	ControlPlaneFailureDomains []string `json:"controlPlaneFailureDomains,omitempty"`
-
-	// controlPlaneFailureDomainSelector is a label selector used to identify the failure domains
-	// where control plane nodes should be placed.
-	// Mutually exclusive with controlPlaneFailureDomains.
-	// If neither field is set, control plane nodes may be placed in any available failure domain.
-	// +optional
-	ControlPlaneFailureDomainSelector *metav1.LabelSelector `json:"controlPlaneFailureDomainSelector,omitempty"`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.

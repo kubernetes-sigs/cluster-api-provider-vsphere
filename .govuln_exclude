@@ -1,0 +1,2 @@
+# GO-2026-4918: This should not be an issue as CAPV govmomi mode only uses the affected code to communicate with vCenter.
+GO-2026-4918

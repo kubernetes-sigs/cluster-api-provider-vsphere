@@ -167,9 +167,10 @@ GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 
 GOVULNCHECK_BIN := govulncheck
-GOVULNCHECK_VER := v1.1.4
-GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
-GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
+GOVULNCHECK_VER := v1.3.0
+GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN))
+GOVULNCHECK_DIR := hack/tools/govulncheck
+GOVULNCHECK_TMP_DIR ?= $(GOVULNCHECK_DIR)/govulncheck.tmp
 
 GOVC_VER := $(shell cat go.mod | grep "github.com/vmware/govmomi" | awk '{print $$NF}')
 GOVC_BIN := govc
@@ -1112,9 +1113,6 @@ $(GINKGO): # Build ginkgo.
 $(GOLANGCI_LINT): # Build golangci-lint.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
 
-$(GOVULNCHECK): # Build govulncheck.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
-
 $(GOVC): # Build GOVC.
 	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVC_PKG) $(GOVC_BIN) $(GOVC_VER)
 
@@ -1126,6 +1124,32 @@ $(IMPORT_BOSS): # Build import-boss
 
 $(RELEASE_NOTES): # Build release-notes.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_TOOLS_BUILD) $(RELEASE_NOTES_PKG) $(RELEASE_NOTES_BIN) $(RELEASE_NOTES_VER)
+
+
+## --------------------------------------
+## govulncheck
+## --------------------------------------
+
+$(GOVULNCHECK): # Build govulncheck.
+	@if [ -z "${GOVULNCHECK_VER}" ]; then echo "GOVULNCHECK_VER is not set"; exit 1; fi
+	@if [ -d "$(GOVULNCHECK_TMP_DIR)" ]; then \
+		echo "$(GOVULNCHECK_TMP_DIR) exists, skipping clone"; \
+	else \
+		git clone "https://github.com/golang/vuln.git" "$(GOVULNCHECK_TMP_DIR)"; \
+		cd "$(GOVULNCHECK_TMP_DIR)"; \
+		git checkout "$(GOVULNCHECK_VER)"; \
+		git apply "$(ROOT_DIR)/$(GOVULNCHECK_DIR)/govulncheck.patch"; \
+	fi
+	@cd "$(ROOT_DIR)/$(GOVULNCHECK_TMP_DIR)"; \
+	if [ "$$(git describe --tag 2> /dev/null)" != "$(GOVULNCHECK_VER)" ]; then \
+		echo "ERROR: checked out version $$(git describe --tag 2> /dev/null) does not match expected version $(GOVULNCHECK_VER)"; \
+		exit 1; \
+	fi
+	go build -C $(GOVULNCHECK_TMP_DIR) -o $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN) ./cmd/govulncheck
+
+.PHONY: clean-govulncheck
+clean-govulncheck:
+	rm -fr "$(GOVULNCHECK_TMP_DIR)"
 
 ## --------------------------------------
 ## Helpers

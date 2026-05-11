@@ -61,7 +61,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 	})
 	Context("When VIP is available", func() {
 		BeforeEach(func() {
-			initObjects = []client.Object{
+			initObjects = []client.Object{ //nolint:prealloc
 				newTestSupervisorLBServiceWithIPStatus(),
 			}
 			initObjects = append(initObjects, newTestHeadlessSvcEndpoints()...)

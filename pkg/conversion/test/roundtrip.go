@@ -165,8 +165,8 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 
 	// If hub type is a pointer, inspect Elem types.
 	// Note: Current logic assumes that when a field in hub is a pointer, also the corresponding spoke field is. This can be improved in the future.
-	if hubT.Kind() == reflect.Ptr {
-		g.Expect(spokeT.Kind()).To(Equal(reflect.Ptr), fmt.Sprintf("field %s is a pointer in hub, not in spoke", path.String()))
+	if hubT.Kind() == reflect.Pointer {
+		g.Expect(spokeT.Kind()).To(Equal(reflect.Pointer), fmt.Sprintf("field %s is a pointer in hub, not in spoke", path.String()))
 		inspectTypes(t, hubT.Elem(), spokeT.Elem(), path, options)
 		return
 	}

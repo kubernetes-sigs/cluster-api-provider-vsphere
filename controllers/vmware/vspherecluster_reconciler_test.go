@@ -267,7 +267,7 @@ func zone(namespace, name string, deleting bool) *topologyv1.Zone {
 }
 
 func failureDomains(names ...string) []clusterv1.FailureDomain {
-	fds := []clusterv1.FailureDomain{}
+	fds := make([]clusterv1.FailureDomain, 0, len(names))
 	for _, name := range names {
 		fds = append(fds, clusterv1.FailureDomain{
 			Name:         name,

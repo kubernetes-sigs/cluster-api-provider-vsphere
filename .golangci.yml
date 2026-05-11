@@ -19,7 +19,6 @@ linters:
     - errchkjson # invalid types passed to json encoder
     - forbidigo # allows to block usage of funcs
     - ginkgolinter # ginkgo and gomega
-    - goconst
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
     - godox # block FIXMEs

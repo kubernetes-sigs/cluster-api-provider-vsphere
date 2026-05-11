@@ -701,7 +701,7 @@ func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {
 	}
 
 	var (
-		objs           []client.Object
+		objs           []client.Object //nolint:prealloc
 		clusterName, _ = machine.Labels[clusterv1.ClusterNameLabel]
 	)
 

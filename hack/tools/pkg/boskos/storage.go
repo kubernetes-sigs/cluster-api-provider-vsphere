@@ -91,7 +91,7 @@ func (im *inMemoryStore) Get(name string) (Resource, error) {
 func (im *inMemoryStore) List() ([]Resource, error) {
 	im.lock.RLock()
 	defer im.lock.RUnlock()
-	resources := []Resource{}
+	resources := make([]Resource, 0, len(im.resources))
 	for _, r := range im.resources {
 		resources = append(resources, r)
 	}

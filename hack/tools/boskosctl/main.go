@@ -218,9 +218,9 @@ func acquire(ctx context.Context, client *boskos.Client, resourceType string) er
 	ipPool, hasIPPool := res.UserData.Load("ipPool")
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("export BOSKOS_RESOURCE_NAME=%s\n", res.Name))
-	sb.WriteString(fmt.Sprintf("export BOSKOS_RESOURCE_FOLDER=%s\n", folder))
-	sb.WriteString(fmt.Sprintf("export BOSKOS_RESOURCE_POOL=%s\n", resourcePool))
+	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_NAME=%s\n", res.Name)
+	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_FOLDER=%s\n", folder)
+	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_POOL=%s\n", resourcePool)
 
 	if hasIPPool {
 		envVars, err := getIPPoolEnvVars(ipPool.(string))
@@ -228,7 +228,7 @@ func acquire(ctx context.Context, client *boskos.Client, resourceType string) er
 			return errors.Wrapf(err, "failed to calculate IP pool env vars")
 		}
 		for k, v := range envVars {
-			sb.WriteString(fmt.Sprintf("export %s=%s\n", k, v))
+			fmt.Fprintf(&sb, "export %s=%s\n", k, v)
 		}
 	}
 
@@ -327,6 +327,12 @@ func allIPs(addressesArray []string) ([]netip.Addr, error) {
 func heartbeat(ctx context.Context, client *boskos.Client, resourceName string) error {
 	log := ctrl.LoggerFrom(ctx)
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
 		log.Info("Sending heartbeat")
 
 		if err := client.Update(resourceName, boskos.Busy, nil); err != nil {

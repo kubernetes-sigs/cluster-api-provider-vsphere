@@ -106,7 +106,7 @@ func isZeroValue(v reflect.Value) bool {
 		return v.Uint() == 0 || v.IsNil()
 	case reflect.Float32, reflect.Float64:
 		return v.Float() == 0
-	case reflect.Interface, reflect.Ptr:
+	case reflect.Interface, reflect.Pointer:
 		return v.IsNil() || v.IsZero()
 	}
 	return false
@@ -186,7 +186,7 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 }
 
 func GenerateManifestYaml(objs []runtime.Object, replacements []Replacement) string {
-	bytes := [][]byte{}
+	bytes := [][]byte{} //nolint:prealloc
 	for _, o := range objs {
 		bytes = append(bytes, []byte(GenerateObjectYAML(o, replacements)))
 	}

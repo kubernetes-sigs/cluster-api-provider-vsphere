@@ -610,7 +610,7 @@ func waitForIPAddresses(
 	// network devices have IP assignments that match the requested
 	// network device specs. However, every time a new IP is discovered,
 	// a reconcile request will be triggered for the VSphereVM.
-	go func() {
+	go func() { //nolint:gosec // Intentionally using context.Background in this goroutine, see explanation below.
 		// Note: We intentionally don't use the context from the Reconcile
 		// so this go routine continues independent of the current Reconcile.
 		ctx := context.Background()

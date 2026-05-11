@@ -217,7 +217,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	By("Getting AddressClaim labels")
 	ipClaimLabels := vsphereip.GetIPAddressClaimLabels()
-	var ipClaimLabelsRaw []string
+	ipClaimLabelsRaw := make([]string, 0, len(ipClaimLabels))
 	for k, v := range ipClaimLabels {
 		ipClaimLabelsRaw = append(ipClaimLabelsRaw, fmt.Sprintf("%s=%s", k, v))
 	}

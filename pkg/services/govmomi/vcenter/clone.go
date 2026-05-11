@@ -327,7 +327,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 			}
 		}
 
-		var constraints []pbmTypes.BasePbmPlacementRequirement
+		var constraints []pbmTypes.BasePbmPlacementRequirement //nolint:prealloc
 		constraints = append(constraints, &pbmTypes.PbmPlacementCapabilityProfileRequirement{ProfileId: pbmTypes.PbmProfileId{UniqueId: storageProfileID}})
 		result, err := pbmClient.CheckRequirements(ctx, hubs, nil, constraints)
 		if err != nil {

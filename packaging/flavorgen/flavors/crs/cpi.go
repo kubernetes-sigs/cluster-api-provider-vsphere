@@ -56,7 +56,7 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 		panic(errors.Wrapf(err, "creating cloudcontrollermanager manifests"))
 	}
 
-	cpiObjects := []runtime.Object{}
+	cpiObjects := []runtime.Object{} //nolint:prealloc
 
 	cloudConfig, err := CPIConfigString()
 	if err != nil {

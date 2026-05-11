@@ -245,7 +245,7 @@ func (r *ServiceAccountReconciler) reconcileNormal(ctx context.Context, guestClu
 func (r *ServiceAccountReconciler) ensureProviderServiceAccounts(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext, pSvcAccounts []vmwarev1.ProviderServiceAccount) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	pSvcAccountNames := []string{}
+	pSvcAccountNames := make([]string, 0, len(pSvcAccounts))
 	for _, pSvcAccount := range pSvcAccounts {
 		pSvcAccountNames = append(pSvcAccountNames, pSvcAccount.Name)
 	}

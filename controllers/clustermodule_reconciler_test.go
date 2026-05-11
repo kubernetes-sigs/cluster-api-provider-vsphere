@@ -83,9 +83,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
-				var (
-					names, moduleUUIDs []string
-				)
+				names := make([]string, 0, len(clusterCtx.VSphereCluster.Spec.ClusterModules))
+				moduleUUIDs := make([]string, 0, len(clusterCtx.VSphereCluster.Spec.ClusterModules))
 				for _, mod := range clusterCtx.VSphereCluster.Spec.ClusterModules {
 					names = append(names, mod.TargetObjectName)
 					moduleUUIDs = append(moduleUUIDs, mod.ModuleUUID)
@@ -109,9 +108,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
-				var (
-					names, moduleUUIDs []string
-				)
+				names := make([]string, 0, len(clusterCtx.VSphereCluster.Spec.ClusterModules))
+				moduleUUIDs := make([]string, 0, len(clusterCtx.VSphereCluster.Spec.ClusterModules))
 				for _, mod := range clusterCtx.VSphereCluster.Spec.ClusterModules {
 					names = append(names, mod.TargetObjectName)
 					moduleUUIDs = append(moduleUUIDs, mod.ModuleUUID)

@@ -711,7 +711,7 @@ func convertKeyValueSlice(pairs []vmoprvhub.KeyValuePair) []vmwarev1.KeyValuePai
 func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprvhub.VirtualMachine) bool {
 	// Propagate VM status.network.interfaces to VSphereMachine.Status.NetworkInterfaces
 	if vm.Status.Network != nil {
-		var interfaces []vmwarev1.VSphereMachineNetworkInterfaceStatus
+		var interfaces []vmwarev1.VSphereMachineNetworkInterfaceStatus //nolint:prealloc // Intentionally not pre-allocating here as this lead to sending empty patches to the kube-apiserver in the past.
 		for _, vmIface := range vm.Status.Network.Interfaces {
 			iface := vmwarev1.VSphereMachineNetworkInterfaceStatus{
 				Name:      vmIface.Name,

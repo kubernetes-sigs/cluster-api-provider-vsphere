@@ -87,6 +87,17 @@ rules:
   - list
   - watch
 - apiGroups:
+  - infra.vmware.com
+  resources:
+  - storagepolicies
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - vsphereclusteridentities

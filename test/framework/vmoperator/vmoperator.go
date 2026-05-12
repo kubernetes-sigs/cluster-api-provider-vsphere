@@ -39,6 +39,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
@@ -90,16 +92,19 @@ const (
 var (
 	//go:embed vmoperator-capabilities-9.1.yaml
 	capabilities9_1 []byte
+
+	//go:embed vmoperator-capabilities-9.2.yaml
+	capabilities9_2 []byte
 )
 
 // ReconcileCapabilities reconciles the ConfigMap with the list of capabilities for the vm-operator.
-// NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.1.yaml that is
+// NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.2.yaml that is
 // used by clusterctl init (init requires all the objects to be in the same namespace).
 func ReconcileCapabilities(ctx context.Context, c client.Client) error {
 	var retryError error
 	log := ctrl.LoggerFrom(ctx)
 
-	objs, err := utilyaml.ToUnstructured(capabilities9_1)
+	objs, err := utilyaml.ToUnstructured(capabilities9_2)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse yaml for vm-operator capabilities ConfigMap")
 	}
@@ -300,6 +305,50 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		})
 		if retryError != nil {
 			return retryError
+		}
+
+		// Create StoragePolicy CR if the CRD exists (required for vm-operator >= 9.2).
+		// The naming convention follows vm-operator's GetStoragePolicyObjectName:
+		// strip dashes from the UUID, then use pol-{first8chars}-{last16chars}.
+		storagePolicyCRD := &apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "storagepolicies.infra.vmware.com",
+			},
+		}
+		if err := c.Get(ctx, client.ObjectKeyFromObject(storagePolicyCRD), storagePolicyCRD); err == nil {
+			spName := storagePolicyObjectName(storagePolicyID)
+			sp := &unstructured.Unstructured{}
+			sp.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   "infra.vmware.com",
+				Version: "v1alpha1",
+				Kind:    "StoragePolicy",
+			})
+			sp.SetName(spName)
+			sp.SetNamespace(config.Spec.OperatorRef.Namespace)
+			if err := unstructured.SetNestedField(sp.Object, storagePolicyID, "spec", "id"); err != nil {
+				return errors.Wrapf(err, "failed to set spec.id for StoragePolicy %s", spName)
+			}
+
+			_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+				retryError = nil
+				if err := c.Get(ctx, client.ObjectKeyFromObject(sp), sp); err != nil {
+					if !apierrors.IsNotFound(err) {
+						retryError = errors.Wrapf(err, "failed to get vm-operator StoragePolicy %s", sp.GetName())
+						return false, nil
+					}
+					if err := c.Create(ctx, sp); err != nil {
+						retryError = errors.Wrapf(err, "failed to create vm-operator StoragePolicy %s", sp.GetName())
+						return false, nil
+					}
+					log.Info("Created vm-operator StoragePolicy", "StoragePolicy", klog.KObj(sp))
+				}
+				return true, nil
+			})
+			if retryError != nil {
+				return retryError
+			}
+		} else {
+			log.Info("Skipping creation of vm-operator StoragePolicy, CRD not found (only required when using vm-operator >= 9.2)")
 		}
 	}
 
@@ -923,4 +972,15 @@ func GetDistributedPortGroup(ctx context.Context, c client.Client) (string, erro
 	}
 
 	return distributedPortGroup, nil
+}
+
+// storagePolicyObjectName returns the expected name of a StoragePolicy object
+// based on the policy's profile ID. This mirrors vm-operator's
+// GetStoragePolicyObjectName: strip dashes, then pol-{first8}-{last16}.
+func storagePolicyObjectName(profileID string) string {
+	s := strings.ReplaceAll(strings.ToLower(profileID), "-", "")
+	if len(s) < 32 {
+		return fmt.Sprintf("pol-%s", s)
+	}
+	return fmt.Sprintf("pol-%s-%s", s[0:8], s[16:32])
 }

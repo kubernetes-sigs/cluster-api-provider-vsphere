@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmware-system-vmop-controller-manager
+  namespace: vmware-system-vmop
+spec:
+  replicas: 1

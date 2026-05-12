@@ -18,6 +18,7 @@ resources:
 - external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
 - external-crds/netoperator.vmware.com_networkinterfaces.yaml
 - external-crds/cns.vmware.com_cnsnodevmattachments.yaml
+- external-crds/cns.vmware.com_cnsnodevmbatchattachments.yaml
 - external-crds/cns.vmware.com_cnsregistervolumes.yaml
 - external-crds/cns.vmware.com_storagepolicyquotas.yaml
 - external-crds/cns.vmware.com_storagepolicyusages.yaml

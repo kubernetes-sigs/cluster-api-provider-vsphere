@@ -278,27 +278,6 @@ func failureDomains(names ...string) []clusterv1.FailureDomain {
 	return fds
 }
 
-// availabilityZoneWithLabels creates a cluster-scoped AvailabilityZone with labels.
-func availabilityZoneWithLabels(name string, lbls map[string]string) *topologyv1.AvailabilityZone {
-	return &topologyv1.AvailabilityZone{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: lbls,
-		},
-	}
-}
-
-// zoneWithLabels creates a namespaced Zone with labels.
-func zoneWithLabels(namespace, name string, lbls map[string]string) *topologyv1.Zone {
-	return &topologyv1.Zone{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-			Labels:    lbls,
-		},
-	}
-}
-
 func TestApplyControlPlaneFilter_Default(t *testing.T) {
 	// ControlPlaneFailureDomains is not set.
 	// All domains must be eligible for control plane placement (backwards compatible).
@@ -398,54 +377,7 @@ func TestClusterReconciler_getFailureDomains_ControlPlaneFilter(t *testing.T) {
 		wantNil     bool
 		wantErr     bool
 	}{
-		// ── Cluster-wide (AvailabilityZone) path ────────────────────────────
-		{
-			name: "Cluster-Wide: explicit list restricts CP eligibility",
-			objects: []client.Object{
-				availabilityZoneWithLabels("az-mgmt-1", map[string]string{"type": "mgmt"}),
-				availabilityZoneWithLabels("az-mgmt-2", map[string]string{"type": "mgmt"}),
-				availabilityZoneWithLabels("az-worker-1", map[string]string{"type": "worker"}),
-			},
-			spec: vmwarev1.VSphereClusterSpec{
-				ControlPlaneFailureDomains: []string{"az-mgmt-1", "az-mgmt-2"},
-			},
-			featureGate: false,
-			wantCP:      map[string]bool{"az-mgmt-1": true, "az-mgmt-2": true, "az-worker-1": false},
-		},
-		{
-			name: "Cluster-Wide: no constraints — all domains are CP eligible",
-			objects: []client.Object{
-				availabilityZone("az-a"),
-				availabilityZone("az-b"),
-			},
-			spec:        vmwarev1.VSphereClusterSpec{},
-			featureGate: false,
-			wantCP:      map[string]bool{"az-a": true, "az-b": true},
-		},
-		{
-			name: "Cluster-Wide: explicit list with unknown name returns error",
-			objects: []client.Object{
-				availabilityZone("az-a"),
-			},
-			spec: vmwarev1.VSphereClusterSpec{
-				ControlPlaneFailureDomains: []string{"az-a", "az-does-not-exist"},
-			},
-			featureGate: false,
-			wantErr:     true,
-		},
 		// ── Namespaced (Zone) path ───────────────────────────────────────────
-		{
-			name: "Namespaced: explicit list restricts CP eligibility",
-			objects: []client.Object{
-				zoneWithLabels(ns, "zone-mgmt", map[string]string{"type": "mgmt"}),
-				zoneWithLabels(ns, "zone-worker", map[string]string{"type": "worker"}),
-			},
-			spec: vmwarev1.VSphereClusterSpec{
-				ControlPlaneFailureDomains: []string{"zone-mgmt"},
-			},
-			featureGate: true,
-			wantCP:      map[string]bool{"zone-mgmt": true, "zone-worker": false},
-		},
 		{
 			name: "Namespaced: no constraints — all domains are CP eligible",
 			objects: []client.Object{

@@ -515,7 +515,7 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 	failureDomains := []clusterv1.FailureDomain{}
 	// Determine the source of failure domain based on feature gates NamespaceScopedZones.
 	// If NamespaceScopedZones is enabled, use Zone which is Namespace scoped, otherwise use
-	// AvailabilityZone which is Cluster scoped.
+	// Availability Zone which is Cluster scoped.
 	if feature.Gates.Enabled(feature.NamespaceScopedZones) {
 		zoneList := &topologyv1.ZoneList{}
 		listOptions := &client.ListOptions{Namespace: namespace}
@@ -563,14 +563,9 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 	}
 	for _, az := range availabilityZoneList.Items {
 		failureDomains = append(failureDomains, clusterv1.FailureDomain{
-			Name: az.Name,
+			Name:         az.Name,
+			ControlPlane: ptr.To(true),
 		})
-	}
-
-	var err error
-	failureDomains, err = applyControlPlaneFilter(failureDomains, spec)
-	if err != nil {
-		return nil, err
 	}
 
 	// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
@@ -590,8 +585,6 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 //     domains whose name appears in that list. Any name in the list that does not match a
 //     known domain is returned as an error.
 //   - If ControlPlaneFailureDomains is not set, ControlPlane is true for all domains (backwards-compatible default).
-//
-// The domainLabels map must contain one entry per failure domain, keyed by domain name.
 func applyControlPlaneFilter(
 	domains []clusterv1.FailureDomain,
 	spec vmwarev1.VSphereClusterSpec,

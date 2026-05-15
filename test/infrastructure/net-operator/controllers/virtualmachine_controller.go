@@ -118,7 +118,7 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(vm).
 		WithOptions(options).
-		Complete(r)
+		Complete(ctx, r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

@@ -530,7 +530,7 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, _ client.Object) []reconcile.Request { return nil }),
 		).
 		WithOptions(options).
-		Complete(r)
+		Complete(ctx, r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

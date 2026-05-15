@@ -66,7 +66,7 @@ func AddVSphereMachineTemplateControllerToManager(ctx context.Context, controlle
 			handler.EnqueueRequestsFromMapFunc(r.enqueueVirtualMachineClassToVSphereMachineTemplateRequests),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerContext.WatchFilterValue)).
-		Complete(r)
+		Complete(ctx, r)
 }
 
 type vSphereMachineTemplateReconciler struct {

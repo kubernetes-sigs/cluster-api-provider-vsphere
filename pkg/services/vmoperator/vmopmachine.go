@@ -1027,17 +1027,35 @@ func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprv
 	if len(refs) == 0 {
 		return nil
 	}
+	// Deduplicate by the (APIVersion, Kind, Name) triple so that an authored
+	// duplicate does not result in vm-operator seeing the same policy twice.
+	seen := make(map[vmoprvhub.PolicySpec]struct{}, len(refs))
 	newRefs := make([]vmoprvhub.PolicySpec, 0, len(refs))
 	for _, ref := range refs {
-		newRefs = append(newRefs, vmoprvhub.PolicySpec{
+		p := vmoprvhub.PolicySpec{
 			Name:       ref.Name,
 			Kind:       ref.Kind,
 			APIVersion: ref.APIVersion,
-		})
+		}
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		newRefs = append(newRefs, p)
 	}
-	// Sort by name so the slice is always in a deterministic order.
+	// Total ordering on (APIVersion, Kind, Name) so that two refs differing
+	// only by Kind or APIVersion still have a stable, deterministic position;
+	// otherwise the controller would flap between equivalent orderings on
+	// successive reconciles.
 	sort.Slice(newRefs, func(i, j int) bool {
-		return newRefs[i].Name < newRefs[j].Name
+		a, b := newRefs[i], newRefs[j]
+		if a.APIVersion != b.APIVersion {
+			return a.APIVersion < b.APIVersion
+		}
+		if a.Kind != b.Kind {
+			return a.Kind < b.Kind
+		}
+		return a.Name < b.Name
 	})
 	return newRefs
 }

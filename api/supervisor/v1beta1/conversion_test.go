@@ -134,18 +134,10 @@ func hubVSphereClusterTemplateResource(in *vmwarev1.VSphereClusterTemplateResour
 
 func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		hubVSphereMachineSpec,
 		hubVSphereMachineStatus,
 		spokeVSphereMachineSpec,
 		spokeVSphereMachineStatus,
 	}
-}
-
-func hubVSphereMachineSpec(in *vmwarev1.VSphereMachineSpec, c randfill.Continue) {
-	c.FillNoCustom(in)
-	// policies exists only on v1beta2 (hub); v1beta1 has no field to
-	// carry it, so hub-spoke-hub would otherwise fail with spurious data loss.
-	in.Policies = nil
 }
 
 func hubVSphereMachineStatus(in *vmwarev1.VSphereMachineStatus, c randfill.Continue) {
@@ -237,8 +229,6 @@ func hubVSphereMachineTemplateResource(in *vmwarev1.VSphereMachineTemplateResour
 	c.FillNoCustom(in)
 
 	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
-	// Same as hubVSphereMachineSpec: policies are v1beta2-only.
-	in.Spec.Policies = nil
 }
 
 func ProviderServiceAccountFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

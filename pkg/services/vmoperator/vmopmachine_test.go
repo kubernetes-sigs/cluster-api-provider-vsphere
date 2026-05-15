@@ -1380,6 +1380,10 @@ func Test_getPolicies(t *testing.T) {
 	policyGVK := func(name, kind, apiVersion string) vmwarev1.PolicyRef {
 		return vmwarev1.PolicyRef{Name: name, Kind: kind, APIVersion: apiVersion}
 	}
+	const (
+		apiV1 = "vsphere.policy.vmware.com/v1alpha1"
+		apiV2 = "vsphere.policy.vmware.com/v1alpha2"
+	)
 	tests := []struct {
 		name string
 		in   []vmwarev1.PolicyRef
@@ -1398,23 +1402,75 @@ func Test_getPolicies(t *testing.T) {
 		{
 			name: "single ComputePolicy maps to hub PolicySpec",
 			in: []vmwarev1.PolicyRef{
-				policyGVK("my-compute-policy", "ComputePolicy", "vsphere.policy.vmware.com/v1alpha1"),
+				policyGVK("my-compute-policy", "ComputePolicy", apiV1),
 			},
 			want: []vmoprvhub.PolicySpec{
-				{Name: "my-compute-policy", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+				{Name: "my-compute-policy", Kind: "ComputePolicy", APIVersion: apiV1},
 			},
 		},
 		{
 			name: "multiple ComputePolicies are sorted by name",
 			in: []vmwarev1.PolicyRef{
-				policyGVK("policy-c", "ComputePolicy", "vsphere.policy.vmware.com/v1alpha1"),
-				policyGVK("policy-a", "ComputePolicy", "vsphere.policy.vmware.com/v1alpha1"),
-				policyGVK("policy-b", "ComputePolicy", "vsphere.policy.vmware.com/v1alpha1"),
+				policyGVK("policy-c", "ComputePolicy", apiV1),
+				policyGVK("policy-a", "ComputePolicy", apiV1),
+				policyGVK("policy-b", "ComputePolicy", apiV1),
 			},
 			want: []vmoprvhub.PolicySpec{
-				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
-				{Name: "policy-b", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
-				{Name: "policy-c", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
+				{Name: "policy-b", Kind: "ComputePolicy", APIVersion: apiV1},
+				{Name: "policy-c", Kind: "ComputePolicy", APIVersion: apiV1},
+			},
+		},
+		{
+			name: "mixed Kinds and APIVersions are totally ordered by (apiVersion, kind, name)",
+			in: []vmwarev1.PolicyRef{
+				policyGVK("alpha", "ZPolicy", apiV2),
+				policyGVK("beta", "APolicy", apiV1),
+				policyGVK("alpha", "APolicy", apiV1),
+				policyGVK("alpha", "BPolicy", apiV1),
+			},
+			want: []vmoprvhub.PolicySpec{
+				{Name: "alpha", Kind: "APolicy", APIVersion: apiV1},
+				{Name: "beta", Kind: "APolicy", APIVersion: apiV1},
+				{Name: "alpha", Kind: "BPolicy", APIVersion: apiV1},
+				{Name: "alpha", Kind: "ZPolicy", APIVersion: apiV2},
+			},
+		},
+		{
+			name: "same Name, different Kinds: stable order regardless of input order",
+			// Two refs with identical Name but different Kind must each have a
+			// deterministic position; the previous Name-only sort left them in
+			// arbitrary order which would flap on successive reconciles.
+			in: []vmwarev1.PolicyRef{
+				policyGVK("policy-x", "ZPolicy", apiV1),
+				policyGVK("policy-x", "APolicy", apiV1),
+			},
+			want: []vmoprvhub.PolicySpec{
+				{Name: "policy-x", Kind: "APolicy", APIVersion: apiV1},
+				{Name: "policy-x", Kind: "ZPolicy", APIVersion: apiV1},
+			},
+		},
+		{
+			name: "duplicate (apiVersion, kind, name) is deduplicated",
+			in: []vmwarev1.PolicyRef{
+				policyGVK("policy-a", "ComputePolicy", apiV1),
+				policyGVK("policy-a", "ComputePolicy", apiV1),
+				policyGVK("policy-b", "ComputePolicy", apiV1),
+			},
+			want: []vmoprvhub.PolicySpec{
+				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
+				{Name: "policy-b", Kind: "ComputePolicy", APIVersion: apiV1},
+			},
+		},
+		{
+			name: "same Name+Kind across different APIVersions is preserved (not a duplicate)",
+			in: []vmwarev1.PolicyRef{
+				policyGVK("policy-a", "ComputePolicy", apiV2),
+				policyGVK("policy-a", "ComputePolicy", apiV1),
+			},
+			want: []vmoprvhub.PolicySpec{
+				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
+				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV2},
 			},
 		},
 	}

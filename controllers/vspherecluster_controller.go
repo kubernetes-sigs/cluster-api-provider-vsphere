@@ -94,7 +94,7 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 			)
 		}
 
-		return builder.Complete(reconciler)
+		return builder.Complete(ctx, reconciler)
 	}
 
 	reconciler := &clusterReconciler{
@@ -160,7 +160,7 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), predicateLog)).
-		Build(reconciler)
+		Build(ctx, reconciler)
 	if err != nil {
 		return err
 	}

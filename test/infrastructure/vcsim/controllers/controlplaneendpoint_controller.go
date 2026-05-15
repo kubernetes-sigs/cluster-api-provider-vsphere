@@ -130,7 +130,7 @@ func (r *ControlPlaneEndpointReconciler) SetupWithManager(ctx context.Context, m
 		For(&vcsimv1.ControlPlaneEndpoint{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Complete(r)
+		Complete(ctx, r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

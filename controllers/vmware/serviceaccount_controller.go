@@ -102,7 +102,7 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		WatchesRawSource(r.clusterCache.GetClusterSource("providerserviceaccount", clusterToSupervisorVSphereClusterFunc(r.Client))).
-		Complete(r)
+		Complete(ctx, r)
 }
 
 // ServiceAccountReconciler reconciles changes to ProviderServiceAccounts.

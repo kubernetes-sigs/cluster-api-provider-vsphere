@@ -83,7 +83,7 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue))
 
-	return builder.Complete(reconciler)
+	return builder.Complete(ctx, reconciler)
 }
 
 // VSphereMachineToCluster maps VSphereMachine events to Cluster reconcile requests.

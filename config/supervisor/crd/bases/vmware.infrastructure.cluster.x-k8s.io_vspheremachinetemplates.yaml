@@ -715,14 +715,14 @@ spec:
                               description: |-
                                 apiVersion is the fully qualified group/version of the infrastructure policy resource
                                 (for example vsphere.policy.vmware.com/v1alpha1).
-                              maxLength: 253
+                                apiVersion must be fully qualified domain name followed by / and a version.
+                              maxLength: 317
                               minLength: 1
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z0-9]+([a-z0-9]*)?$
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                               type: string
                             kind:
-                              description: |-
-                                kind of the infrastructure policy object being referenced.
-                                The API server validates this against the registered resource types in the cluster.
+                              description: kind of the infrastructure policy object
+                                being referenced.
                               maxLength: 63
                               minLength: 1
                               pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
@@ -813,6 +813,10 @@ spec:
                     - className
                     - imageName
                     type: object
+                    x-kubernetes-validations:
+                    - message: policies are immutable after creation
+                      rule: has(self.policies) == has(oldSelf.policies) && (!has(self.policies)
+                        || self.policies == oldSelf.policies)
                 type: object
             required:
             - template

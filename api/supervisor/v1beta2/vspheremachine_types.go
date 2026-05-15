@@ -47,6 +47,7 @@ type VSphereMachineVolume struct {
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
+// +kubebuilder:validation:XValidation:rule="has(self.policies) == has(oldSelf.policies) && (!has(self.policies) || self.policies == oldSelf.policies)",message="policies are immutable after creation"
 type VSphereMachineSpec struct {
 	// providerID is the virtual machine's BIOS UUID formatted as
 	// vsphere://12345678-1234-1234-1234-123456789abc
@@ -133,7 +134,6 @@ type PolicyRef struct {
 	Name string `json:"name,omitempty"`
 
 	// kind of the infrastructure policy object being referenced.
-	// The API server validates this against the registered resource types in the cluster.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
@@ -142,10 +142,11 @@ type PolicyRef struct {
 
 	// apiVersion is the fully qualified group/version of the infrastructure policy resource
 	// (for example vsphere.policy.vmware.com/v1alpha1).
+	// apiVersion must be fully qualified domain name followed by / and a version.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z0-9]+([a-z0-9]*)?$`
+	// +kubebuilder:validation:MaxLength=317
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
 	APIVersion string `json:"apiVersion,omitempty"`
 }
 

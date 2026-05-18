@@ -200,11 +200,6 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return reconcile.Result{}, err
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, machineContext.GetVSphereMachine(), infrav1.MachineFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	// Fetch the CAPI Machine.
 	machine, err := clusterutilv1.GetOwnerMachine(ctx, r.Client, machineContext.GetObjectMeta())
 	if err != nil {
@@ -212,6 +207,8 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	}
 	if machine == nil {
 		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
+		// Note: This should not be necessary anymore as we nowadays only set the finalizer after the ownerRef
+		// is set, but keeping this as a safeguard.
 		if !machineContext.GetVSphereMachine().GetDeletionTimestamp().IsZero() {
 			if ctrlutil.ContainsFinalizer(machineContext.GetVSphereMachine(), infrav1.MachineFinalizer) {
 				patchHelper, err := patch.NewHelper(machineContext.GetVSphereMachine(), r.Client)
@@ -236,6 +233,13 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
 	ctx, log, err = clog.AddOwners(ctx, r.Client, machine)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Only add finalizer after the Machine has an ownerRef to avoid unnecessary retries
+	// because of conflicts in core CAPI ssa.RemoveManagedFieldsForLabelsAndAnnotations.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, machineContext.GetVSphereMachine(), infrav1.MachineFinalizer); err != nil || finalizerAdded {
 		return ctrl.Result{}, err
 	}
 

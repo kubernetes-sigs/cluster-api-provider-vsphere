@@ -41,7 +41,7 @@
     # in some cases deploying vm-operator fails because the provider crd is not yet ready. this dependency acts as additional wait.
     - capi_controller
 
-# IMPORTANT: run "VM_OPERATOR_VERSION=9.1 VM_OPERATOR_COMMIT_DESCRIBE=v1.9.0-795-g77005588 VM_OPERATOR_COMMIT=770055883feb2b4f250f6da15fbc53543af5d638 make generate-manifests-vm-operator" before using this "provider" with tilt
+# IMPORTANT: run "VM_OPERATOR_VERSION=9.1 VM_OPERATOR_COMMIT_DESCRIBE=release-vc-9.1.0-0-g77005588 VM_OPERATOR_COMMIT=v1.10.0 make generate-manifests-vm-operator" before using this "provider" with tilt
 - name: vm-operator-9.1
   config:
     version: "9.1"

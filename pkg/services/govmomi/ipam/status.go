@@ -67,7 +67,7 @@ func BuildState(ctx context.Context, vmCtx capvcontext.VMContext, networkStatus 
 				continue
 			}
 
-			if slices.Contains(addressWithPrefixes, addressWithPrefix) {
+			if slices.Contains(addressWithPrefixes, addressWithPrefix) { //nolint:govet // govet complains both if the type parameters are explicitly specified or not.
 				errs = append(errs,
 					fmt.Errorf("IPAddress %s/%s is a duplicate of another address: %q",
 						ipamAddress.Namespace,

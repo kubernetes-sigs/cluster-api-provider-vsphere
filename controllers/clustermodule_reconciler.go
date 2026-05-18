@@ -342,7 +342,7 @@ func generateClusterModuleErrorMessage(errList []clusterModError) string {
 	sb.WriteString("Failed to create cluster modules for: ")
 
 	for _, e := range errList {
-		sb.WriteString(fmt.Sprintf("%s %s, ", e.name, e.err.Error()))
+		fmt.Fprintf(&sb, "%s %s, ", e.name, e.err.Error())
 	}
 	msg := sb.String()
 	return msg[:len(msg)-2]

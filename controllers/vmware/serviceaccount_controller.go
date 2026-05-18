@@ -102,7 +102,7 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		WatchesRawSource(r.clusterCache.GetClusterSource("providerserviceaccount", clusterToSupervisorVSphereClusterFunc(r.Client))).
-		Complete(r)
+		Complete(ctx, r)
 }
 
 // ServiceAccountReconciler reconciles changes to ProviderServiceAccounts.
@@ -245,7 +245,7 @@ func (r *ServiceAccountReconciler) reconcileNormal(ctx context.Context, guestClu
 func (r *ServiceAccountReconciler) ensureProviderServiceAccounts(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext, pSvcAccounts []vmwarev1.ProviderServiceAccount) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	pSvcAccountNames := []string{}
+	pSvcAccountNames := make([]string, 0, len(pSvcAccounts))
 	for _, pSvcAccount := range pSvcAccounts {
 		pSvcAccountNames = append(pSvcAccountNames, pSvcAccount.Name)
 	}

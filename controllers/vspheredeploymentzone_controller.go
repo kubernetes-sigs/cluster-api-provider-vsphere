@@ -82,7 +82,7 @@ func AddVSphereDeploymentZoneControllerToManager(ctx context.Context, controller
 			),
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
-		Complete(reconciler)
+		Complete(ctx, reconciler)
 }
 
 type vsphereDeploymentZoneReconciler struct {

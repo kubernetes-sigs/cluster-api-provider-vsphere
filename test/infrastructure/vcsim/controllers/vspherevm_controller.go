@@ -345,7 +345,7 @@ func (r *VSphereVMReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		For(&infrav1beta1.VSphereVM{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Complete(r)
+		Complete(ctx, r)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

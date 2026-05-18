@@ -432,12 +432,12 @@ func waitForStatefulSetsAvailable(ctx context.Context, input WaitForStatefulSets
 // DescribeFailedStatefulSet returns detailed output to help debug a statefulSet failure in e2e.
 func DescribeFailedStatefulSet(input WaitForStatefulSetsAvailableInput, statefulSet *appsv1.StatefulSet) string {
 	b := strings.Builder{}
-	b.WriteString(fmt.Sprintf("StatefulSet %s failed to get status.Available = True condition",
-		klog.KObj(input.StatefulSet)))
+	fmt.Fprintf(&b, "StatefulSet %s failed to get status.Available = True condition",
+		klog.KObj(input.StatefulSet))
 	if statefulSet == nil {
 		b.WriteString("\nStatefulSet: nil\n")
 	} else {
-		b.WriteString(fmt.Sprintf("\nStatefulSet:\n%s\n", framework.PrettyPrint(statefulSet)))
+		fmt.Fprintf(&b, "\nStatefulSet:\n%s\n", framework.PrettyPrint(statefulSet))
 	}
 	return b.String()
 }

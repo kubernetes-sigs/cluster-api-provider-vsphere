@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // Package api defines the hub version of supervisor types and conversion to the corresponding spoke types.
-package api //nolint:revive
+package api
 
 import (
 	"github.com/pkg/errors"

@@ -403,7 +403,7 @@ func checkSupervisorVSphereClusterFailureDomains(ctx context.Context, proxy fram
 	avalabilityZones := &topologyv1.AvailabilityZoneList{}
 	Expect(proxy.GetClient().List(ctx, avalabilityZones)).To(Succeed())
 
-	wantFailureDomains := []clusterv1.FailureDomain{}
+	wantFailureDomains := make([]clusterv1.FailureDomain, 0, len(avalabilityZones.Items))
 	for _, zone := range avalabilityZones.Items {
 		wantFailureDomains = append(wantFailureDomains, clusterv1.FailureDomain{
 			Name:         zone.Name,
@@ -443,7 +443,7 @@ func checkClusterIdentitySecretOwnerRefAndFinalizer(ctx context.Context, c ctrlc
 	By("Removing all the ownerReferences and finalizers for the ClusterIdentitySecret")
 	helper, err := patch.NewHelper(s, c)
 	Expect(err).ToNot(HaveOccurred())
-	newOwners := []metav1.OwnerReference{}
+	newOwners := make([]metav1.OwnerReference, 0, len(s.GetOwnerReferences()))
 	for _, owner := range s.GetOwnerReferences() {
 		var gv schema.GroupVersion
 		gv, err := schema.ParseGroupVersion(owner.APIVersion)

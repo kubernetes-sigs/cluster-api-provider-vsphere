@@ -110,7 +110,7 @@ var _ = AfterSuite(func() {
 })
 
 func findModuleDir(ctx context.Context, module string) string {
-	cmd := exec.CommandContext(ctx, "go", "list", "-json", "-m", module)
+	cmd := exec.CommandContext(ctx, "go", "list", "-json", "-m", module) //nolint:gosec // It's okay here to use a variable when starting a process.
 	out, err := cmd.Output()
 	if err != nil {
 		klog.Fatalf("Failed to run go list to find module %q directory", module)

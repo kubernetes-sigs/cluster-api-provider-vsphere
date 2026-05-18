@@ -63,7 +63,7 @@ func (h *vcsim) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressClaim
 	}
 
 	variables := map[string]string{}
-	ipAddressClaims := AddressClaims{}
+	ipAddressClaims := AddressClaims{} //nolint:prealloc
 
 	// Claim an IP per variable.
 	// NOTE: the code calling this method assumes ControlPlaneEndpointIP is the first claim in the list.

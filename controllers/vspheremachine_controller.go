@@ -136,7 +136,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerContext.WatchFilterValue)).
 			// Watch any VirtualMachine resources owned by this VSphereMachine
 			Owns(vm).
-			Complete(r)
+			Complete(ctx, r)
 	}
 
 	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
@@ -176,7 +176,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 			predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
-		).Complete(r)
+		).Complete(ctx, r)
 }
 
 type machineReconciler struct {

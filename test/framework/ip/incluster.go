@@ -149,7 +149,7 @@ func (h *inCluster) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressC
 	}
 
 	variables := map[string]string{}
-	ipAddressClaims := AddressClaims{}
+	ipAddressClaims := AddressClaims{} //nolint:prealloc
 
 	// Claim an IP per variable.
 	for _, variable := range append(options.additionalIPVariableNames, ControlPlaneEndpointIPVariable) {

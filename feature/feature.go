@@ -18,7 +18,6 @@ limitations under the License.
 package feature
 
 import (
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/component-base/featuregate"
 )
 
@@ -63,17 +62,30 @@ const (
 	ReconcilerRateLimiting featuregate.Feature = "ReconcilerRateLimiting"
 )
 
-func init() {
-	runtime.Must(MutableGates.Add(defaultCAPVFeatureGates))
-}
+var (
+	commonGates = map[featuregate.Feature]featuregate.FeatureSpec{
+		PriorityQueue:          {Default: true, PreRelease: featuregate.Beta},
+		ReconcilerRateLimiting: {Default: true, PreRelease: featuregate.Beta},
+	}
 
-// defaultCAPVFeatureGates consists of all known capv-specific feature keys.
-// To add a new feature, define a key for it above and add it here.
-var defaultCAPVFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
-	PriorityQueue:          {Default: true, PreRelease: featuregate.Beta},
-	ReconcilerRateLimiting: {Default: true, PreRelease: featuregate.Beta},
-	NodeAntiAffinity:       {Default: false, PreRelease: featuregate.Alpha},
-	NamespaceScopedZones:   {Default: false, PreRelease: featuregate.Alpha},
-	NodeAutoPlacement:      {Default: false, PreRelease: featuregate.Alpha},
-	MultiNetworks:          {Default: false, PreRelease: featuregate.Alpha},
-}
+	govmomiGates = map[featuregate.Feature]featuregate.FeatureSpec{
+		NodeAntiAffinity: {Default: false, PreRelease: featuregate.Alpha},
+	}
+
+	supervisorGates = map[featuregate.Feature]featuregate.FeatureSpec{
+		NamespaceScopedZones: {Default: false, PreRelease: featuregate.Alpha},
+		NodeAutoPlacement:    {Default: false, PreRelease: featuregate.Alpha},
+		MultiNetworks:        {Default: false, PreRelease: featuregate.Alpha},
+	}
+
+	supervisorVersionedGates = map[featuregate.Feature]featuregate.VersionedSpecs{
+		// NOTE: Supervisor features gates depending on a specific vm-operator version should be added here.
+		// e.g.
+		// FeatureDependingOnV1alpha5: {
+		//  {Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		// },
+		// FeatureDependingOnV1alpha6: {
+		// 	{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		// },
+	}
+)

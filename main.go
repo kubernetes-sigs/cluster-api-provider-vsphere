@@ -40,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -98,7 +99,8 @@ var (
 	syncPeriod                  time.Duration
 	webhookOpts                 webhook.Options
 	watchNamespace              string
-	apiVersionVMOperator        string
+	vmOperatorAPIVersion        string
+	featureGates                string
 
 	clusterCacheConcurrency           int
 	vSphereClusterConcurrency         int
@@ -118,6 +120,8 @@ var (
 	defaultSyncPeriod       = manager.DefaultSyncPeriod
 	defaultLeaderElectionID = manager.DefaultLeaderElectionID
 	defaultPodName          = manager.DefaultPodName
+
+	supportedVMOperatorAPIVersions = []string{vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version}
 )
 
 // InitFlags initializes the flags.
@@ -181,10 +185,10 @@ func InitFlags(fs *pflag.FlagSet) {
 	)
 
 	fs.StringVar(
-		&apiVersionVMOperator,
+		&vmOperatorAPIVersion,
 		"vm-operator-api-version",
 		vmoprv1alpha5.GroupVersion.Version,
-		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s, %s", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version),
+		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s", strings.Join(supportedVMOperatorAPIVersions, ",")),
 	)
 
 	// Flags common between CAPI and CAPV
@@ -250,7 +254,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	)
 
 	capiflags.AddManagerOptions(fs, &managerOptions)
-	feature.MutableGates.AddFlag(fs)
+	feature.AddFlag(fs, &featureGates, supportedVMOperatorAPIVersions)
 }
 
 // Add RBAC for the authorized diagnostics endpoint.
@@ -266,6 +270,8 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates;vsphereclustertemplates,verbs=get;list;watch;patch;update
 
 func main() {
+	time.Sleep(10 * time.Second)
+
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
@@ -352,17 +358,29 @@ func main() {
 		}
 	}
 
+	if isGovmomiCRDLoaded {
+		if err := feature.SetGovmomiGates(featureGates); err != nil {
+			setupLog.Error(err, "invalid argument: --feature-gates")
+			os.Exit(1)
+		}
+	}
+
 	var vm runtime.Object
 	var converter *conversion.Converter
 	if isSupervisorCRDLoaded {
-		if apiVersionVMOperator != vmoprv1alpha2.GroupVersion.Version && apiVersionVMOperator != vmoprv1alpha5.GroupVersion.Version {
-			fmt.Printf("Invalid argument: --vm-operator-api-version must be one of : %s, %s\n", vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version)
+		if !sets.New(supportedVMOperatorAPIVersions...).Has(vmOperatorAPIVersion) {
+			setupLog.Info(fmt.Sprintf("Invalid argument: --vm-operator-api-version must be one of : %s\n", strings.Join(supportedVMOperatorAPIVersions, ", ")))
 			os.Exit(1)
 		}
-		setupLog.Info(fmt.Sprintf("Target API Version for group %s: %s", vmoprvhub.GroupVersion.Group, apiVersionVMOperator))
+		setupLog.Info(fmt.Sprintf("Target API Version for group %s: %s", vmoprvhub.GroupVersion.Group, vmOperatorAPIVersion))
+
+		if err := feature.SetSupervisorGates(vmOperatorAPIVersion, featureGates); err != nil {
+			setupLog.Error(err, "invalid argument: --feature-gates")
+			os.Exit(1)
+		}
 
 		converter = conversionapi.DefaultConverterFor(
-			schema.GroupVersion{Group: vmoprvhub.GroupVersion.Group, Version: apiVersionVMOperator},
+			schema.GroupVersion{Group: vmoprvhub.GroupVersion.Group, Version: vmOperatorAPIVersion},
 		)
 
 		// Get vm-operator native types in the preferred version for cache filters.
@@ -462,8 +480,6 @@ func main() {
 	if enableContentionProfiling {
 		goruntime.SetBlockProfileRate(1)
 	}
-
-	setupLog.Info(fmt.Sprintf("Feature gates: %+v\n", feature.Gates))
 
 	managerOpts.LeaseDuration = &leaderElectionLeaseDuration
 	managerOpts.RenewDeadline = &leaderElectionRenewDeadline

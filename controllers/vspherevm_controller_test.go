@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -603,7 +604,7 @@ func Test_reconcile(t *testing.T) {
 			})
 
 			t.Run("when anti affinity feature gate is turned on", func(t *testing.T) {
-				_ = feature.MutableGates.Set("NodeAntiAffinity=true")
+				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.NodeAntiAffinity, true)
 				r := setupReconciler(new(fake_svc.VMService), initObjs...)
 				_, err := r.reconcile(ctx, &capvcontext.VMContext{
 					ControllerManagerContext: r.ControllerManagerContext,

@@ -12,6 +12,7 @@ require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.10.0
+	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20260317224852-770055883feb
 	github.com/vmware/govmomi v0.54.0
 )
 

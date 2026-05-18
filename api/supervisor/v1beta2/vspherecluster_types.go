@@ -41,7 +41,7 @@ const (
 // VSphereCluster's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// VSphereClusterReadyCondition is true if the VSphereCluster's deletionTimestamp is not set, VSphereCluster's
-	// ResourcePolicyReady, NetworkReady, LoadBalancerReady, ProviderServiceAccountsReady and ServiceDiscoveryReady conditions are true.
+	// ResourcePolicyReady, NetworkReady, LoadBalancerReady, FailureDomainsReady, ProviderServiceAccountsReady and ServiceDiscoveryReady conditions are true.
 	VSphereClusterReadyCondition = clusterv1.ReadyCondition
 
 	// VSphereClusterReadyReason surfaces when the VSphereCluster readiness criteria is met.
@@ -127,6 +127,24 @@ const (
 	VSphereClusterServiceDiscoveryNotReadyReason = clusterv1.NotReadyReason
 )
 
+// VSphereCluster's FailureDomainsReady condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereClusterFailureDomainsReadyCondition documents the status of the FailureDomains discovery and filtering for a VSphereCluster.
+	VSphereClusterFailureDomainsReadyCondition = "FailureDomainsReady"
+
+	// VSphereClusterFailureDomainsReadyReason surfaces when the FailureDomains are successfully discovered and matched.
+	VSphereClusterFailureDomainsReadyReason = clusterv1.ReadyReason
+
+	// VSphereClusterFailureDomainsNotReadyReason surfaces generic failures during FailureDomains discovery (e.g., API server list errors).
+	VSphereClusterFailureDomainsNotReadyReason = clusterv1.NotReadyReason
+
+	// VSphereClusterFailureDomainsNotFoundReason surfaces explicitly when no failure domains match the specified control plane label selector.
+	VSphereClusterFailureDomainsNotFoundReason = "FailureDomainsNotFound"
+
+	// VSphereClusterFailureDomainsReadyDeletingReason surfaces when the cluster is being deleted.
+	VSphereClusterFailureDomainsReadyDeletingReason = clusterv1.DeletingReason
+)
+
 // NSXVPC defines the configuration when the network provider is NSX-VPC.
 // +kubebuilder:validation:XValidation:rule="has(self.createSubnetSet) == has(oldSelf.createSubnetSet) && self.createSubnetSet == oldSelf.createSubnetSet",message="createSubnetSet value cannot be changed after creation"
 // +kubebuilder:validation:MinProperties=1
@@ -167,15 +185,28 @@ type VSphereClusterSpec struct {
 	// +optional
 	Network Network `json:"network,omitempty,omitzero"`
 
-	// controlPlaneFailureDomains is an optional explicit list of failure domain names
-	// where control plane nodes should be placed.
-	// If the field is not set, control plane nodes may be placed in any available failure domain.
+	// failureDomains defines the failure domains.
 	// +optional
-	// +listType=set
-	// +kubebuilder:validation:MaxItems=128
-	// +kubebuilder:validation:items:MinLength=1
-	// +kubebuilder:validation:items:MaxLength=256
-	ControlPlaneFailureDomains []string `json:"controlPlaneFailureDomains,omitempty"`
+	FailureDomains FailureDomainsSpec `json:"failureDomains,omitempty,omitzero"`
+}
+
+// FailureDomainsSpec defines the desired state of FailureDomains.
+// +kubebuilder:validation:MinProperties=1
+type FailureDomainsSpec struct {
+	// controlPlane defines the failure domains for controlPlane.
+	// +optional
+	ControlPlane FailureDomainsControlPlaneSpec `json:"controlPlane,omitempty,omitzero"`
+}
+
+// FailureDomainsControlPlaneSpec defines the control plane failure domains.
+// +kubebuilder:validation:MinProperties=1
+type FailureDomainsControlPlaneSpec struct {
+	// selector is a label selector to dynamically match failure domains.
+	// Note: This feature requires the NamespaceScopedZones feature gate to be enabled.
+	// If a selector is provided while the feature gate is disabled, cluster
+	// reconciliation will fail and requeue.
+	// +optional
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
@@ -209,7 +240,7 @@ func (v APIEndpoint) String() string {
 type VSphereClusterStatus struct {
 	// conditions represents the observations of a VSphereCluster's current state.
 	// Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
-	// ProviderServiceAccountsReady, ServiceDiscoveryReady and Paused.
+	// FailureDomainsReady, ProviderServiceAccountsReady, ServiceDiscoveryReady and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

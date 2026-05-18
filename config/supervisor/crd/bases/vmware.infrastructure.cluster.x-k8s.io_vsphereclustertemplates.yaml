@@ -190,18 +190,68 @@ spec:
                             minimum: 1
                             type: integer
                         type: object
-                      controlPlaneFailureDomains:
-                        description: |-
-                          controlPlaneFailureDomains is an optional explicit list of failure domain names
-                          where control plane nodes should be placed.
-                          If the field is not set, control plane nodes may be placed in any available failure domain.
-                        items:
-                          maxLength: 256
-                          minLength: 1
-                          type: string
-                        maxItems: 128
-                        type: array
-                        x-kubernetes-list-type: set
+                      failureDomains:
+                        description: failureDomains defines the failure domains.
+                        minProperties: 1
+                        properties:
+                          controlPlane:
+                            description: controlPlane defines the failure domains
+                              for controlPlane.
+                            minProperties: 1
+                            properties:
+                              selector:
+                                description: |-
+                                  selector is a label selector to dynamically match failure domains.
+                                  Note: This feature requires the NamespaceScopedZones feature gate to be enabled.
+                                  If a selector is provided while the feature gate is disabled, cluster
+                                  reconciliation will fail and requeue.
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                        type: object
                       network:
                         description: network defines the network configuration for
                           the cluster with different network providers.

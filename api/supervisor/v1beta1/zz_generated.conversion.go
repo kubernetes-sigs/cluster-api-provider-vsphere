@@ -788,7 +788,7 @@ func autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *v1
 	if err := Convert_v1beta2_Network_To_v1beta1_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	// WARNING: in.ControlPlaneFailureDomains requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
 	return nil
 }
 

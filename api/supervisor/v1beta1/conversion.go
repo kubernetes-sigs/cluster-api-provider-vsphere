@@ -51,9 +51,9 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization = initialization
 	}
 
-	if ok {
-		// Restore v1beta2-only field from the annotation
-		dst.Spec.ControlPlaneFailureDomains = restored.Spec.ControlPlaneFailureDomains
+	if ok && restored.Spec.FailureDomains.ControlPlane.Selector != nil {
+		// Restore v1beta2-only field from the annotation with DeepCopy to ensure memory isolation
+		dst.Spec.FailureDomains.ControlPlane.Selector = restored.Spec.FailureDomains.ControlPlane.Selector.DeepCopy()
 	}
 
 	return nil
@@ -80,11 +80,10 @@ func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	if ok {
-		// Restore the v1beta2-only field inside the Template's Spec
-		dst.Spec.Template.Spec.ControlPlaneFailureDomains = restored.Spec.Template.Spec.ControlPlaneFailureDomains
+	if ok && restored.Spec.Template.Spec.FailureDomains.ControlPlane.Selector != nil {
+		// Restore the v1beta2-only Selector field inside the Template's Spec
+		dst.Spec.Template.Spec.FailureDomains.ControlPlane.Selector = restored.Spec.Template.Spec.FailureDomains.ControlPlane.Selector.DeepCopy()
 	}
-
 	return nil
 }
 
@@ -468,13 +467,13 @@ func Convert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTempl
 }
 
 // Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec is an explicit conversion function
-// to hide the conversion-gen warning for the v1beta2-only ControlPlaneFailureDomains field.
+// to hide the conversion-gen warning for the v1beta2-only FailureDomains.ControlPlane.Selector field.
 func Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *vmwarev1.VSphereClusterSpec, out *VSphereClusterSpec, s apimachineryconversion.Scope) error {
 	return autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in, out, s)
 }
 
 // Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec is an explicit conversion function
-// to hide the conversion-gen warning for the v1beta2-only ControlPlaneFailureDomains field.
+// to hide the conversion-gen warning for the v1beta2-only FailureDomains.ControlPlane.Selector field.
 func Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in *VSphereClusterSpec, out *vmwarev1.VSphereClusterSpec, s apimachineryconversion.Scope) error {
 	return autoConvert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in, out, s)
 }

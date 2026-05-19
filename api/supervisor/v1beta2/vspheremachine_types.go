@@ -47,6 +47,7 @@ type VSphereMachineVolume struct {
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
+// +kubebuilder:validation:XValidation:rule="has(self.policies) == has(oldSelf.policies) && (!has(self.policies) || self.policies == oldSelf.policies)",message="policies are immutable after creation"
 type VSphereMachineSpec struct {
 	// providerID is the virtual machine's BIOS UUID formatted as
 	// vsphere://12345678-1234-1234-1234-123456789abc
@@ -114,6 +115,39 @@ type VSphereMachineSpec struct {
 	// naming allows configuring the naming strategy used when calculating the name of the VirtualMachine.
 	// +optional
 	Naming VirtualMachineNamingSpec `json:"naming,omitempty,omitzero"`
+
+	// policies specifies a list of optional infrastructure policies to be applied to the virtual machine.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=1024
+	Policies []PolicyRef `json:"policies,omitempty"`
+}
+
+// PolicyRef identifies an optional infrastructure policy to specify for the virtual machine.
+type PolicyRef struct {
+	// name of the infrastructure policy.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name,omitempty"`
+
+	// kind of the infrastructure policy object being referenced.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind,omitempty"`
+
+	// apiVersion is the fully qualified group/version of the infrastructure policy resource
+	// (for example vsphere.policy.vmware.com/v1alpha1).
+	// apiVersion must be fully qualified domain name followed by / and a version.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=317
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
+	APIVersion string `json:"apiVersion,omitempty"`
 }
 
 // VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.

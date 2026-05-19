@@ -637,6 +637,15 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		return err
 	}
 
+	// Assign policies when the feature gate is enabled; explicitly clear them otherwise
+	// so that create and update are always consistent regardless of whether the gate
+	// was toggled between reconciles.
+	if feature.Gates.Enabled(feature.InfrastructurePolicies) {
+		vmOperatorVM.Spec.Policies = getPolicies(supervisorMachineCtx)
+	} else {
+		vmOperatorVM.Spec.Policies = nil
+	}
+
 	// Apply hooks to modify the VM spec
 	// The hooks are loosely typed to allow for different VirtualMachine backends
 	for _, vmModifier := range supervisorMachineCtx.VMModifiers {
@@ -1011,6 +1020,44 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, fa
 		}
 	}
 	return nil
+}
+
+func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprvhub.PolicySpec {
+	refs := supervisorMachineCtx.VSphereMachine.Spec.Policies
+	if len(refs) == 0 {
+		return nil
+	}
+	// Deduplicate by the (APIVersion, Kind, Name) triple so that an authored
+	// duplicate does not result in vm-operator seeing the same policy twice.
+	seen := make(map[vmoprvhub.PolicySpec]struct{}, len(refs))
+	newRefs := make([]vmoprvhub.PolicySpec, 0, len(refs))
+	for _, ref := range refs {
+		p := vmoprvhub.PolicySpec{
+			Name:       ref.Name,
+			Kind:       ref.Kind,
+			APIVersion: ref.APIVersion,
+		}
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		newRefs = append(newRefs, p)
+	}
+	// Total ordering on (APIVersion, Kind, Name) so that two refs differing
+	// only by Kind or APIVersion still have a stable, deterministic position;
+	// otherwise the controller would flap between equivalent orderings on
+	// successive reconciles.
+	sort.Slice(newRefs, func(i, j int) bool {
+		a, b := newRefs[i], newRefs[j]
+		if a.APIVersion != b.APIVersion {
+			return a.APIVersion < b.APIVersion
+		}
+		if a.Kind != b.Kind {
+			return a.Kind < b.Kind
+		}
+		return a.Name < b.Name
+	})
+	return newRefs
 }
 
 // getMachineDeploymentName returns the MachineDeployment name for a Cluster.

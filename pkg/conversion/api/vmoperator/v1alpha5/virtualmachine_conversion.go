@@ -125,6 +125,16 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 		}
 	}
 	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
+	if src.Spec.Policies != nil {
+		dst.Spec.Policies = make([]vmoprvhub.PolicySpec, 0, len(src.Spec.Policies))
+		for _, p := range src.Spec.Policies {
+			dst.Spec.Policies = append(dst.Spec.Policies, vmoprvhub.PolicySpec{
+				APIVersion: p.APIVersion,
+				Kind:       p.Kind,
+				Name:       p.Name,
+			})
+		}
+	}
 	dst.Spec.PowerOffMode = vmoprvhub.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
 	dst.Spec.PowerState = vmoprvhub.VirtualMachinePowerState(src.Spec.PowerState)
 	if src.Spec.ReadinessProbe != nil {
@@ -258,6 +268,19 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 	dst.Status.NodeName = src.Status.NodeName
 	dst.Status.PowerState = vmoprvhub.VirtualMachinePowerState(src.Status.PowerState)
 	dst.Status.Zone = src.Status.Zone
+	if src.Status.Policies != nil {
+		dst.Status.Policies = make([]vmoprvhub.PolicyStatus, 0, len(src.Status.Policies))
+		for _, p := range src.Status.Policies {
+			dst.Status.Policies = append(dst.Status.Policies, vmoprvhub.PolicyStatus{
+				PolicySpec: vmoprvhub.PolicySpec{
+					APIVersion: p.APIVersion,
+					Kind:       p.Kind,
+					Name:       p.Name,
+				},
+				Generation: p.Generation,
+			})
+		}
+	}
 
 	return nil
 }
@@ -358,6 +381,16 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 		}
 	}
 	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
+	if src.Spec.Policies != nil {
+		dst.Spec.Policies = make([]vmoprv1alpha5.PolicySpec, 0, len(src.Spec.Policies))
+		for _, p := range src.Spec.Policies {
+			dst.Spec.Policies = append(dst.Spec.Policies, vmoprv1alpha5.PolicySpec{
+				APIVersion: p.APIVersion,
+				Kind:       p.Kind,
+				Name:       p.Name,
+			})
+		}
+	}
 	dst.Spec.PowerOffMode = vmoprv1alpha5.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
 	dst.Spec.PowerState = vmoprv1alpha5.VirtualMachinePowerState(src.Spec.PowerState)
 	if src.Spec.ReadinessProbe != nil {
@@ -491,6 +524,19 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 	}
 	dst.Status.PowerState = vmoprv1alpha5.VirtualMachinePowerState(src.Status.PowerState)
 	dst.Status.Zone = src.Status.Zone
+	if src.Status.Policies != nil {
+		dst.Status.Policies = make([]vmoprv1alpha5.PolicyStatus, 0, len(src.Status.Policies))
+		for _, p := range src.Status.Policies {
+			dst.Status.Policies = append(dst.Status.Policies, vmoprv1alpha5.PolicyStatus{
+				PolicySpec: vmoprv1alpha5.PolicySpec{
+					APIVersion: p.APIVersion,
+					Kind:       p.Kind,
+					Name:       p.Name,
+				},
+				Generation: p.Generation,
+			})
+		}
+	}
 
 	return nil
 }

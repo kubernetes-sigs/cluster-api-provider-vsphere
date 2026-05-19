@@ -188,7 +188,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		&vmOperatorAPIVersion,
 		"vm-operator-api-version",
 		vmoprv1alpha5.GroupVersion.Version,
-		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s", strings.Join(supportedVMOperatorAPIVersions, ",")),
+		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s", strings.Join(supportedVMOperatorAPIVersions, ", ")),
 	)
 
 	// Flags common between CAPI and CAPV
@@ -270,8 +270,6 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates;vsphereclustertemplates,verbs=get;list;watch;patch;update
 
 func main() {
-	time.Sleep(10 * time.Second)
-
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)

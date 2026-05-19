@@ -30,6 +30,7 @@ import (
 
 const (
 	CommonFeature                      featuregate.Feature = "CommonFeature"
+	CommonFeatureTrue                  featuregate.Feature = "CommonFeatureTrue"
 	GovmomiFeature                     featuregate.Feature = "GovmomiFeature"
 	SupervisorFeature                  featuregate.Feature = "SupervisorFeature"
 	SupervisorFeatureEnabledOnV1Alpha2 featuregate.Feature = "SupervisorFeatureEnabledOnV1Alpha2"
@@ -38,7 +39,8 @@ const (
 
 var (
 	commonTestGates = map[featuregate.Feature]featuregate.FeatureSpec{
-		CommonFeature: {Default: false, PreRelease: featuregate.Alpha},
+		CommonFeature:     {Default: false, PreRelease: featuregate.Alpha},
+		CommonFeatureTrue: {Default: true, PreRelease: featuregate.Beta},
 	}
 
 	govmomiTestGates = map[featuregate.Feature]featuregate.FeatureSpec{
@@ -72,6 +74,7 @@ func TestGetFlagDescription(t *testing.T) {
 		"  AllAlpha=true|false (ALPHA - default=false)\n" +
 		"  AllBeta=true|false (BETA - default=false)\n" +
 		"  CommonFeature=true|false (ALPHA - default=false)\n" +
+		"  CommonFeatureTrue=true|false (BETA - default=true)\n" +
 		"Options for govmomi mode are:\n" +
 		"  GovmomiFeature=true|false (ALPHA - default=false)\n" +
 		"Options for supervisor mode when --vm-operator-api-version=v1alpha2 are:\n" +
@@ -98,12 +101,14 @@ func TestGetGovmomiGates(t *testing.T) {
 	err := set(allTestGates, allowedGates, nil, "")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(GovmomiFeature)).To(BeFalse())
 
 	// set a known feature gate
 	err = set(allTestGates, allowedGates, nil, "GovmomiFeature=true")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(GovmomiFeature)).To(BeTrue())
 
 	// set unknown feature gates
@@ -132,6 +137,7 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 	err := set(allTestGates, allowedGates, supervisorVersionedTestGates, "")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
@@ -140,6 +146,7 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeature=true")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
@@ -149,6 +156,7 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha2=true")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
@@ -158,6 +166,7 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha5=false")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
@@ -189,6 +198,7 @@ func TestGetSupervisorGatesV1Alpha5(t *testing.T) {
 	err := set(allTestGates, allowedGates, supervisorVersionedTestGates, "")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
@@ -197,6 +207,7 @@ func TestGetSupervisorGatesV1Alpha5(t *testing.T) {
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeature=true")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
@@ -206,6 +217,7 @@ func TestGetSupervisorGatesV1Alpha5(t *testing.T) {
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha2=true,SupervisorFeatureEnabledOnV1Alpha5=true")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeTrue())

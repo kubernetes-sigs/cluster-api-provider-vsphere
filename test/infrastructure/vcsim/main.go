@@ -144,7 +144,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		&vmOperatorAPIVersion,
 		"vm-operator-api-version",
 		vmoprv1alpha5.GroupVersion.Version,
-		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s", strings.Join(supportedVMOperatorAPIVersions, ",")),
+		fmt.Sprintf("the API version to use when reading and writing VM Operator resources in supervisor mode. Valid values are: %s", strings.Join(supportedVMOperatorAPIVersions, ", ")),
 	)
 
 	fs.BoolVar(

@@ -51,7 +51,7 @@ func init() {
 	Gates = allGates
 }
 
-// AddFlag adds a flag for setting global feature gates to the specified FlagSet.
+// AddFlag adds a flag for setting feature gates to the specified FlagSet.
 func AddFlag(fs *pflag.FlagSet, p *string, supportedVersions []string) {
 	fs.StringVar(p, "feature-gates", "", getFlagDescription(commonGates, govmomiGates, supervisorGates, supervisorVersionedGates, supportedVersions))
 }
@@ -68,7 +68,7 @@ func SetSupervisorGates(vmOperatorAPIVersion string, p string) error {
 	return set(allGates, allowedGates, supervisorVersionedGates, p)
 }
 
-// getFlagDescription return description for the feature-gates flags that shows flags available in all the supported permutations of mode and vm-operator API version.
+// getFlagDescription return description for the feature-gates flag that shows which feature gates are available in all the supported permutations of mode and vm-operator API version.
 func getFlagDescription(commonGates, govmomiGates, supervisorGates map[featuregate.Feature]featuregate.FeatureSpec, supervisorVersionedGates map[featuregate.Feature]featuregate.VersionedSpecs, supportedVersions []string) string {
 	commonMutableGates := featuregate.NewFeatureGate()
 	utilruntime.Must(commonMutableGates.Add(commonGates))
@@ -121,9 +121,10 @@ func getSupervisorGates(commonGates, supervisorGates map[featuregate.Feature]fea
 }
 
 func set(allGates, allowedGates featuregate.MutableFeatureGate, versionedGates map[featuregate.Feature]featuregate.VersionedSpecs, value string) error {
-	// Kubernetes featuregate.MutableVersionedFeatureGate does not allow setting flags that are supported only in future version.
-	// In CAPV we want to tolerate setting flags that are supported only in future version only if set to false.
-	// The following code drops unknown flags set to false.
+	// Kubernetes featuregate.MutableVersionedFeatureGate does not allow setting feature gates that are supported only in future version.
+	// In CAPV we want to tolerate setting _versioned_ feature gates that are supported only in future version to false (and only to false),
+	// and in order to make this possible the following code drops unknown feature gates set to false.
+	// Unknown in this context means feature gates not in allowedGates, and allowedGates will only have feature gates for the current mode / vm-operator version.
 	versioned := sets.New[string]()
 	for gate := range versionedGates {
 		versioned.Insert(string(gate))
@@ -134,13 +135,21 @@ func set(allGates, allowedGates featuregate.MutableFeatureGate, versionedGates m
 		known.Insert(gate[0:strings.Index(gate, "=")])
 	}
 
+	// Note: the code in the following loop mimics the code that parses the comma separated list of feature gates
+	// in Kubernetes's SetWithLogger func.
+	//
+	// In this case, we parse the comma separated list of feature gates and drop from this list only
+	// unknown, versioned feature gates set to false, while we keep everything else, including
+	// invalid feature gates so that errors will surface when we call allowedGates.Set later in this func.
 	var values []string
 	for _, s := range strings.Split(value, ",") {
 		if s == "" {
 			continue
 		}
 
-		// Gets the name of the feature flag.
+		// Get the name of the feature gate.
+		// If it is not possible to split the feature gate name from its value (e.g. a feature gate without the value),
+		// keep the invalid item in the list of feature gates and continue.
 		arr := strings.SplitN(s, "=", 2)
 		k := strings.TrimSpace(arr[0])
 		if len(arr) != 2 {
@@ -148,21 +157,23 @@ func set(allGates, allowedGates featuregate.MutableFeatureGate, versionedGates m
 			continue
 		}
 
-		// If it is not versioned, keep it in the list of gates.
+		// If the feature gate is not versioned, keep this item in the list of feature gates and continue.
 		if !versioned.Has(k) {
 			values = append(values, s)
 			continue
 		}
 
-		// If it is versioned, drop it from the list of flags only if
-		// it is not a know gate for the current version (it is supported in future versions only)
-		// and the value is false.
+		// If the feature gate is versioned, we need to get its value.
+		// If it is not possible to parse the value of feature gate (e.g. a feature gate set to a non-boolean value),
+		// keep the invalid item in the list of feature gates and continue.
 		v := strings.TrimSpace(arr[1])
 		boolValue, err := strconv.ParseBool(v)
 		if err != nil {
 			values = append(values, s)
 			continue
 		}
+
+		// Drop the feature gate from the list feature gates only if set to false.
 		if !boolValue && !known.Has(k) {
 			continue
 		}
@@ -170,29 +181,29 @@ func set(allGates, allowedGates featuregate.MutableFeatureGate, versionedGates m
 	}
 	cleanedValue := strings.Join(values, ",")
 
-	// First set and validate feature gate value on the allowedGates.
+	// Apply the resulting comma separated list of feature gates to allowedGates, and check if there are errors indicating that
+	// those feature gates are not compliant with the current mode / vm-operator version or if they have "syntax" errors.
 	allowedGates = allowedGates.DeepCopy()
-	err := allowedGates.Set(cleanedValue)
-	if err != nil {
+	if err := allowedGates.Set(cleanedValue); err != nil {
 		if aggregateErr, ok := errors.AsType[kerrors.Aggregate](err); ok && aggregateErr != nil {
 			cleanedErrors := make([]error, 0, len(aggregateErr.Errors()))
 			for _, err := range aggregateErr.Errors() {
-				// Surface all the errors except for the error that is generated when the user sets a featureFlag that is supported only in future version
+				// Surface all the errors except for the error that is generated when the user sets a featureGate that is supported only in future version
 				if !strings.Contains(err.Error(), "feature is PreAlpha at emulated version") {
 					cleanedErrors = append(cleanedErrors, err)
 					continue
 				}
 
-				// Kubernetes featuregate.MutableVersionedFeatureGate do not allow setting flags that are supported only in future version entirely.
-				// In CAPV we want to tolerate setting flags that are supported only in future version only if set to false;
+				// Kubernetes featuregate.MutableVersionedFeatureGate do not allow setting feature gates that are supported only in future versions.
+				// In CAPV we want to tolerate setting feature gates that are supported only in future version only if set to false;
 				// as a consequence we ignore messages that are generated in this case.
-				// NOTE: this should not happen since we are filtering on Set.
+				// NOTE: this should not happen since we are filtering out such those feature gates before calling allowedGates.Set.
 				if strings.Contains(err.Error(), " to false,") {
 					continue
 				}
 
-				// If instead the user sets a featureFlag that is supported only in future version to true,
-				// change the error message so it is easier to understand for CAPV users.
+				// If instead the error is surfacing that the user set a feature gate that is supported only in future version to true,
+				// change the error message so it is easier to understand in the CAPV context.
 				i := strings.Index(err.Error(), " to true,")
 				cleanedErrors = append(cleanedErrors, fmt.Errorf("%s to true, feature requires a newer vm-operator API version", err.Error()[0:i]))
 			}
@@ -204,7 +215,7 @@ func set(allGates, allowedGates featuregate.MutableFeatureGate, versionedGates m
 		}
 	}
 
-	// If there are no error, set values on allGates
+	// If there are no error, set values on allGates.
 	// Note: at this point there should not be errors.
 	return allGates.Set(cleanedValue)
 }

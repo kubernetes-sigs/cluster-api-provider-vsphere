@@ -16,6 +16,9 @@ resources:
   - ./crd
   - ./webhook
 
+patches:
+  - path: ./manager.yaml
+
 vars:
   - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
     objref:

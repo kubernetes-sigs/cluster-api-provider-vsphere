@@ -26,6 +26,7 @@ import (
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -54,6 +55,9 @@ import (
 const (
 	apiEndpointPort = 6443
 )
+
+// ErrNoFailureDomainsMatched is returned when no failure domains match the selector.
+var ErrNoFailureDomainsMatched = errors.New("no failure domains matched")
 
 // ClusterReconciler reconciles VSphereClusters.
 type ClusterReconciler struct {
@@ -156,6 +160,7 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 			vmwarev1.VSphereClusterResourcePolicyReadyCondition,
 			vmwarev1.VSphereClusterNetworkReadyCondition,
 			vmwarev1.VSphereClusterLoadBalancerReadyCondition,
+			vmwarev1.VSphereClusterFailureDomainsReadyCondition,
 			// ProviderServiceAccountsReady and ServiceDiscoveryReady will be set by other controllers after
 			// the API server in the workload cluster is up and running.
 			vmwarev1.VSphereClusterProviderServiceAccountsReadyCondition,
@@ -193,6 +198,7 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 			vmwarev1.VSphereClusterResourcePolicyReadyCondition,
 			vmwarev1.VSphereClusterNetworkReadyCondition,
 			vmwarev1.VSphereClusterLoadBalancerReadyCondition,
+			vmwarev1.VSphereClusterFailureDomainsReadyCondition,
 			// NOTE: ProviderServiceAccountsReady and ServiceDiscoveryReady are not owned by this controller
 		}},
 	)
@@ -229,6 +235,11 @@ func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
 		Reason: vmwarev1.VSphereClusterLoadBalancerDeletingReason,
 	})
 
+	conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		Type:   vmwarev1.VSphereClusterFailureDomainsReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: vmwarev1.VSphereClusterFailureDomainsReadyDeletingReason,
+	})
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterCtx.VSphereCluster, vmwarev1.ClusterFinalizer)
 }
@@ -237,13 +248,33 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	log := ctrl.LoggerFrom(ctx)
 
 	// Get any failure domains to report back to the CAPI core controller.
-	failureDomains, err := r.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
+	failureDomains, err := r.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Spec.FailureDomains)
 	if err != nil {
+		reason := vmwarev1.VSphereClusterFailureDomainsNotReadyReason
+		// If the error explicitly mentions that no domains matched, use our targeted reason
+		if errors.Is(err, ErrNoFailureDomainsMatched) {
+			reason = vmwarev1.VSphereClusterFailureDomainsNotFoundReason
+		}
+
+		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+			Type:    vmwarev1.VSphereClusterFailureDomainsReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  reason,
+			Message: err.Error(),
+		})
+
 		return errors.Wrapf(
 			err,
 			"unexpected error while discovering failure domains for %s", clusterCtx.VSphereCluster.Name)
 	}
 	clusterCtx.VSphereCluster.Status.FailureDomains = failureDomains
+
+	// Explicitly mark the FailureDomains condition as True on success
+	conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		Type:   vmwarev1.VSphereClusterFailureDomainsReadyCondition,
+		Status: metav1.ConditionTrue,
+		Reason: vmwarev1.VSphereClusterFailureDomainsReadyReason,
+	})
 
 	// Reconcile ResourcePolicy before we create the machines. If the ResourcePolicy is not reconciled before we create the Node VMs,
 	// it will be handled by vm operator by relocating the VMs to the ResourcePool and Folder specified by the ResourcePolicy.
@@ -508,12 +539,13 @@ func (r *ClusterReconciler) ZoneToVSphereClusters(ctx context.Context, o client.
 	return requests
 }
 
-// Returns the failure domain information discovered on the cluster
-// hosting this controller.
-func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string) ([]clusterv1.FailureDomain, error) {
+// getFailureDomains returns the failure domain information discovered on the cluster
+// hosting this controller. The spec's ControlPlane.Selector
+// field is used to set the ControlPlane boolean on each failure domain.
+func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string, spec vmwarev1.FailureDomainsSpec) ([]clusterv1.FailureDomain, error) {
 	failureDomains := []clusterv1.FailureDomain{}
 	// Determine the source of failure domain based on feature gates NamespaceScopedZones.
-	// If NamespaceScopedZones is enabled, use Zone which is Namespace scoped,otherwise use
+	// If NamespaceScopedZones is enabled, use Zone which is Namespace scoped, otherwise use
 	// Availability Zone which is Cluster scoped.
 	if feature.Gates.Enabled(feature.NamespaceScopedZones) {
 		zoneList := &topologyv1.ZoneList{}
@@ -528,13 +560,18 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 				continue
 			}
 			failureDomains = append(failureDomains, clusterv1.FailureDomain{
-				Name:         zone.Name,
-				ControlPlane: ptr.To(true),
+				Name: zone.Name,
 			})
 		}
 
 		if len(failureDomains) == 0 {
 			return nil, nil
+		}
+
+		var err error
+		failureDomains, err = applyControlPlaneFilter(failureDomains, zoneList, spec)
+		if err != nil {
+			return nil, err
 		}
 
 		// Sort the failureDomains to ensure deterministic order to avoid infinite reconciles.
@@ -546,6 +583,12 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 		})
 		return failureDomains, nil
 	}
+
+	// Prevent silent failure if the user tried to use a selector without the feature gate.
+	if spec.ControlPlane.Selector != nil {
+		return nil, fmt.Errorf("control plane zone selector is not supported on this cluster: requires NamespaceScopedZones feature gate to be enabled")
+	}
+
 	availabilityZoneList := &topologyv1.AvailabilityZoneList{}
 	if err := r.Client.List(ctx, availabilityZoneList); err != nil {
 		return nil, err
@@ -569,4 +612,76 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace str
 		return 1
 	})
 	return failureDomains, nil
+}
+
+// applyControlPlaneFilter stamps the ControlPlane boolean on each failure domain according to
+// the VSphereClusterSpec's control-plane placement constraints:
+//
+//   - If FailureDomains.ControlPlane.Selector is set, ControlPlane is true only for domains matching the selector.
+//   - If FailureDomains.ControlPlane.Selector is not set, ControlPlane is true for all domains (backwards-compatible default).
+func applyControlPlaneFilter(
+	domains []clusterv1.FailureDomain,
+	zoneList *topologyv1.ZoneList,
+	spec vmwarev1.FailureDomainsSpec,
+) ([]clusterv1.FailureDomain, error) {
+	if spec.ControlPlane.Selector != nil {
+		if zoneList == nil {
+			return nil, ErrNoFailureDomainsMatched
+		}
+
+		return applyControlPlaneLabelSelector(domains, zoneLabels(zoneList), spec.ControlPlane.Selector)
+	}
+
+	// Default fallback: Selector is not set, so all domains are eligible for control plane placement.
+	for i := range domains {
+		domains[i].ControlPlane = ptr.To(true)
+	}
+
+	return domains, nil
+}
+
+// applyControlPlaneLabelSelector sets ControlPlane=true only for domains whose labels match
+// the given selector. If no domains match the selector, it returns an error without modifying the domains.
+func applyControlPlaneLabelSelector(
+	domains []clusterv1.FailureDomain,
+	domainLabels map[string]map[string]string,
+	selector *metav1.LabelSelector,
+) ([]clusterv1.FailureDomain, error) {
+	labelSel, err := metav1.LabelSelectorAsSelector(selector)
+	if err != nil {
+		// Return the unmodified domains alongside the error
+		return domains, fmt.Errorf("invalid controlPlaneFailureDomainSelector: %w", err)
+	}
+
+	// Verify at least one domain matches the selector.
+	// We do this to prevent mutating the domains array if the configuration is invalid or yields 0 zones.
+	hasMatch := false
+	for _, domain := range domains {
+		if labelSel.Matches(labels.Set((domainLabels[domain.Name]))) {
+			hasMatch = true
+			break
+		}
+	}
+
+	if !hasMatch {
+		return domains, ErrNoFailureDomainsMatched
+	}
+
+	// Apply the changes since we know at least one valid zone exists.
+	for i := range domains {
+		l := domainLabels[domains[i].Name]
+		matches := labelSel.Matches(labels.Set((l)))
+		domains[i].ControlPlane = ptr.To(matches)
+	}
+
+	return domains, nil
+}
+
+// zoneLabels returns a map of zone name → labels for namespaced Zone objects.
+func zoneLabels(zoneList *topologyv1.ZoneList) map[string]map[string]string {
+	m := make(map[string]map[string]string, len(zoneList.Items))
+	for _, z := range zoneList.Items {
+		m[z.Name] = z.Labels
+	}
+	return m
 }

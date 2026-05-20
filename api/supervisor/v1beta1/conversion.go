@@ -50,6 +50,12 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error {
 	if !reflect.DeepEqual(initialization, vmwarev1.VSphereClusterInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+
+	if ok && restored.Spec.FailureDomains.ControlPlane.Selector != nil {
+		// Restore v1beta2-only field from the annotation with DeepCopy to ensure memory isolation
+		dst.Spec.FailureDomains.ControlPlane.Selector = restored.Spec.FailureDomains.ControlPlane.Selector.DeepCopy()
+	}
+
 	return nil
 }
 
@@ -68,6 +74,16 @@ func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &vmwarev1.VSphereClusterTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if ok && restored.Spec.Template.Spec.FailureDomains.ControlPlane.Selector != nil {
+		// Restore the v1beta2-only Selector field inside the Template's Spec
+		dst.Spec.Template.Spec.FailureDomains.ControlPlane.Selector = restored.Spec.Template.Spec.FailureDomains.ControlPlane.Selector.DeepCopy()
+	}
 	return nil
 }
 
@@ -77,7 +93,7 @@ func (dst *VSphereClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
 }
 
 func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
@@ -448,4 +464,16 @@ func Convert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTempl
 	// Call the auto-generated conversion function which handles the Capacity field
 	// Note: The NodeInfo field from v1beta2 is intentionally dropped as it doesn't exist in v1beta1
 	return autoConvert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTemplateStatus(in, out, s)
+}
+
+// Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec is an explicit conversion function
+// to hide the conversion-gen warning for the v1beta2-only FailureDomains.ControlPlane.Selector field.
+func Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *vmwarev1.VSphereClusterSpec, out *VSphereClusterSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in, out, s)
+}
+
+// Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec is an explicit conversion function
+// to hide the conversion-gen warning for the v1beta2-only FailureDomains.ControlPlane.Selector field.
+func Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in *VSphereClusterSpec, out *vmwarev1.VSphereClusterSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in, out, s)
 }

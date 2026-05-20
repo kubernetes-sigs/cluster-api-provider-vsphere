@@ -22,7 +22,6 @@ spec:
         - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
         - --v=4
         - "--feature-gates=PriorityQueue=${EXP_PRIORITY_QUEUE:=true},ReconcilerRateLimiting=${EXP_RECONCILER_RATE_LIMITING:=true},NodeAntiAffinity=${EXP_NODE_ANTI_AFFINITY:=false}"
-        - "--vm-operator-api-version=${VM_OPERATOR_API_VERSION:=v1alpha5}"
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager

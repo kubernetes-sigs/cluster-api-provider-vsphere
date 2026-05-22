@@ -44,6 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,11 +101,26 @@ var (
 // ReconcileCapabilities reconciles the ConfigMap with the list of capabilities for the vm-operator.
 // NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.2.yaml that is
 // used by clusterctl init (init requires all the objects to be in the same namespace).
-func ReconcileCapabilities(ctx context.Context, c client.Client) error {
+func ReconcileCapabilities(ctx context.Context, c client.Client, config *clusterctl.E2EConfig) error {
 	var retryError error
 	log := ctrl.LoggerFrom(ctx)
 
-	objs, err := utilyaml.ToUnstructured(capabilities9_2)
+	var capabilitiesFile []byte
+	if config.HasVariable("VM_OPERATOR_VERSION") {
+		switch config.MustGetVariable("VM_OPERATOR_VERSION") {
+		case "9.1":
+			capabilitiesFile = capabilities9_1
+		case "9.2":
+			capabilitiesFile = capabilities9_2
+		default:
+			log.Info("VM_OPERATOR_VERSION variable is not supported, use default version")
+		}
+	}
+	if capabilitiesFile == nil {
+		log.Info("VM_OPERATOR_VERSION not matching supported values, use default version", "default", capabilities9_2)
+		capabilitiesFile = capabilities9_2
+	}
+	objs, err := utilyaml.ToUnstructured(capabilitiesFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse yaml for vm-operator capabilities ConfigMap")
 	}
@@ -348,7 +364,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 				return retryError
 			}
 		} else {
-			log.Info("Skipping creation of vm-operator StoragePolicy, CRD not found (only required when using vm-operator >= 9.2)")
+			if apierrors.IsNotFound(err) {
+				log.Info("Skipping creation of vm-operator StoragePolicy, CRD not found (only required when using vm-operator >= 9.2)")
+			} else {
+				return errors.Wrapf(err, "failed to get StoragePolicy CRD")
+			}
 		}
 	}
 
@@ -975,8 +995,8 @@ func GetDistributedPortGroup(ctx context.Context, c client.Client) (string, erro
 }
 
 // storagePolicyObjectName returns the expected name of a StoragePolicy object
-// based on the policy's profile ID. This mirrors vm-operator's
-// GetStoragePolicyObjectName: strip dashes, then pol-{first8}-{last16}.
+// based on the policy's profile ID. This mirrors vm-operator's GetStoragePolicyObjectName: strip dashes, then pol-{first8}-{last16}
+// Source code: https://github.com/vmware-tanzu/vm-operator/blob/main/pkg/util/kube/storage.go#L363-L395
 func storagePolicyObjectName(profileID string) string {
 	s := strings.ReplaceAll(strings.ToLower(profileID), "-", "")
 	if len(s) < 32 {

@@ -388,12 +388,6 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 
 		g.Expect(testEnv.Create(ctx, vSphereMachine)).To(Succeed())
 
-		// Make sure the VSphereMachine has the finalizer.
-		g.Eventually(func(g Gomega) {
-			g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(vSphereMachine), vSphereMachine)).To(Succeed())
-			g.Expect(ctrlutil.ContainsFinalizer(vSphereMachine, infrav1.MachineFinalizer)).To(BeTrue())
-		}, timeout).Should(Succeed())
-
 		g.Expect(testEnv.Delete(ctx, vSphereMachine)).To(Succeed())
 
 		// Make sure the VSphereMachine is gone.

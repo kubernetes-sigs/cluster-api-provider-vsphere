@@ -7,5 +7,10 @@
       discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
       settings:
         testMode: supervisor
+- op: add
+  path: /spec/upgrade
+  value:
+    external:
+      generateUpgradePlanExtension: generate-upgrade-plan.${EXTENSION_CONFIG_NAME:-k8s-upgrade-with-runtimesdk}
 - op: remove
   path: /spec/variables

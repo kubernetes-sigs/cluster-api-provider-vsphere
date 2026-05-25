@@ -267,7 +267,7 @@ linters:
         # Allow direct usage of vm-operator APIs in a few places like e.g. tests and main.go
       - linters:
           - depguard
-        path: main.go|feature/gates.go|pkg/manager/manager.go|.*_test.go|internal/test/helpers/.*|pkg/context/fake/fake_controller_manager_context.go|pkg/conversion/.*|pkg/util/testutil.go
+        path: main.go|feature/feature.go|feature/gates.go|pkg/manager/manager.go|.*_test.go|internal/test/helpers/.*|pkg/context/fake/fake_controller_manager_context.go|pkg/conversion/.*|pkg/util/testutil.go
         text: 'Use vmoprvhub in prod code instead'
       - linters:
           - staticcheck

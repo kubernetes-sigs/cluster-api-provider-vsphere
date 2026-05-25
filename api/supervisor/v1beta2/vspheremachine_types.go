@@ -134,10 +134,11 @@ type PolicyRef struct {
 	Name string `json:"name,omitempty"`
 
 	// kind of the infrastructure policy object being referenced.
+	// kind must be a CamelCase Kubernetes Kind starting with an uppercase letter (e.g. ComputePolicy).
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	// +kubebuilder:validation:Pattern=`^[A-Z][a-zA-Z0-9]*$`
 	Kind string `json:"kind,omitempty"`
 
 	// apiVersion is the fully qualified group/version of the infrastructure policy resource

@@ -98,10 +98,6 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization = initialization
 	}
 	dst.Status.FailureDomain = restored.Status.FailureDomain
-	// Spec.Policies is v1beta2-only and has no v1beta1 equivalent; restore
-	// it from the conversion-data annotation so a v1beta2 -> v1beta1 -> v1beta2
-	// round-trip preserves the user's value.
-	dst.Spec.Policies = restored.Spec.Policies
 	return nil
 }
 
@@ -140,10 +136,6 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	if ok {
 		dst.Status.NodeInfo = restored.Status.NodeInfo
-		// Spec.Template.Spec.Policies is v1beta2-only and has no v1beta1
-		// equivalent; restore it from the conversion-data annotation so a
-		// v1beta2 -> v1beta1 -> v1beta2 round-trip preserves the user's value.
-		dst.Spec.Template.Spec.Policies = restored.Spec.Template.Spec.Policies
 	}
 
 	return nil

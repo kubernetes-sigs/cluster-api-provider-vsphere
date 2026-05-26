@@ -267,7 +267,6 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 	}
 	dst.Status.NodeName = src.Status.NodeName
 	dst.Status.PowerState = vmoprvhub.VirtualMachinePowerState(src.Status.PowerState)
-	dst.Status.Zone = src.Status.Zone
 	if src.Status.Policies != nil {
 		dst.Status.Policies = make([]vmoprvhub.PolicyStatus, 0, len(src.Status.Policies))
 		for _, p := range src.Status.Policies {
@@ -281,6 +280,7 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 			})
 		}
 	}
+	dst.Status.Zone = src.Status.Zone
 
 	return nil
 }
@@ -523,7 +523,6 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 		dst.Status.Network.PrimaryIP6 = src.Status.Network.PrimaryIP6
 	}
 	dst.Status.PowerState = vmoprv1alpha5.VirtualMachinePowerState(src.Status.PowerState)
-	dst.Status.Zone = src.Status.Zone
 	if src.Status.Policies != nil {
 		dst.Status.Policies = make([]vmoprv1alpha5.PolicyStatus, 0, len(src.Status.Policies))
 		for _, p := range src.Status.Policies {
@@ -537,6 +536,7 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 			})
 		}
 	}
+	dst.Status.Zone = src.Status.Zone
 
 	return nil
 }

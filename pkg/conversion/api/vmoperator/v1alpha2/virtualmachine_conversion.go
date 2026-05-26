@@ -125,8 +125,7 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 		}
 	}
 	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
-	// v1alpha2 does not have Policies; hub field remains nil.
-
+	// v1alpha2 does not have spec.policies; hub field remains nil.
 	dst.Spec.PowerOffMode = vmoprvhub.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
 	dst.Spec.PowerState = vmoprvhub.VirtualMachinePowerState(src.Spec.PowerState)
 	if src.Spec.ReadinessProbe != nil {
@@ -256,7 +255,7 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 	dst.Status.NodeName = src.Status.Host // Field renamed in hub
 	dst.Status.PowerState = vmoprvhub.VirtualMachinePowerState(src.Status.PowerState)
 	dst.Status.Zone = src.Status.Zone
-	// v1alpha2 does not have status.Policies; hub field remains nil.
+	// v1alpha2 does not have status.policies; hub field remains nil.
 
 	return nil
 }

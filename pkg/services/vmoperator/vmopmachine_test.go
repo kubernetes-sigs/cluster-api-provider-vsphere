@@ -1377,6 +1377,8 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 }
 
 func Test_getPolicies(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, true)
+
 	policyGVK := func(name, kind, apiVersion string) vmwarev1.PolicyRef {
 		return vmwarev1.PolicyRef{Name: name, Kind: kind, APIVersion: apiVersion}
 	}
@@ -1409,20 +1411,20 @@ func Test_getPolicies(t *testing.T) {
 			},
 		},
 		{
-			name: "multiple ComputePolicies are sorted by name",
+			name: "multiple ComputePolicies preserve input order",
 			in: []vmwarev1.PolicyRef{
 				policyGVK("policy-c", "ComputePolicy", apiV1),
 				policyGVK("policy-a", "ComputePolicy", apiV1),
 				policyGVK("policy-b", "ComputePolicy", apiV1),
 			},
 			want: []vmoprvhub.PolicySpec{
+				{Name: "policy-c", Kind: "ComputePolicy", APIVersion: apiV1},
 				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
 				{Name: "policy-b", Kind: "ComputePolicy", APIVersion: apiV1},
-				{Name: "policy-c", Kind: "ComputePolicy", APIVersion: apiV1},
 			},
 		},
 		{
-			name: "mixed Kinds and APIVersions are totally ordered by (apiVersion, kind, name)",
+			name: "mixed Kinds and APIVersions preserve input order",
 			in: []vmwarev1.PolicyRef{
 				policyGVK("alpha", "ZPolicy", apiV2),
 				policyGVK("beta", "APolicy", apiV1),
@@ -1430,28 +1432,14 @@ func Test_getPolicies(t *testing.T) {
 				policyGVK("alpha", "BPolicy", apiV1),
 			},
 			want: []vmoprvhub.PolicySpec{
-				{Name: "alpha", Kind: "APolicy", APIVersion: apiV1},
-				{Name: "beta", Kind: "APolicy", APIVersion: apiV1},
-				{Name: "alpha", Kind: "BPolicy", APIVersion: apiV1},
 				{Name: "alpha", Kind: "ZPolicy", APIVersion: apiV2},
+				{Name: "beta", Kind: "APolicy", APIVersion: apiV1},
+				{Name: "alpha", Kind: "APolicy", APIVersion: apiV1},
+				{Name: "alpha", Kind: "BPolicy", APIVersion: apiV1},
 			},
 		},
 		{
-			name: "same Name, different Kinds: stable order regardless of input order",
-			// Two refs with identical Name but different Kind must each have a
-			// deterministic position; the previous Name-only sort left them in
-			// arbitrary order which would flap on successive reconciles.
-			in: []vmwarev1.PolicyRef{
-				policyGVK("policy-x", "ZPolicy", apiV1),
-				policyGVK("policy-x", "APolicy", apiV1),
-			},
-			want: []vmoprvhub.PolicySpec{
-				{Name: "policy-x", Kind: "APolicy", APIVersion: apiV1},
-				{Name: "policy-x", Kind: "ZPolicy", APIVersion: apiV1},
-			},
-		},
-		{
-			name: "duplicate (apiVersion, kind, name) is deduplicated",
+			name: "duplicate (apiVersion, kind, name) is deduplicated while preserving first occurrence",
 			in: []vmwarev1.PolicyRef{
 				policyGVK("policy-a", "ComputePolicy", apiV1),
 				policyGVK("policy-a", "ComputePolicy", apiV1),
@@ -1469,8 +1457,8 @@ func Test_getPolicies(t *testing.T) {
 				policyGVK("policy-a", "ComputePolicy", apiV1),
 			},
 			want: []vmoprvhub.PolicySpec{
-				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
 				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV2},
+				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
 			},
 		},
 	}
@@ -1488,4 +1476,20 @@ func Test_getPolicies(t *testing.T) {
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
+}
+
+func Test_getPolicies_FeatureGateDisabled(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, false)
+
+	sm := &vmware.SupervisorMachineContext{
+		VSphereMachine: &vmwarev1.VSphereMachine{
+			Spec: vmwarev1.VSphereMachineSpec{
+				Policies: []vmwarev1.PolicyRef{
+					{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+				},
+			},
+		},
+	}
+	got := getPolicies(sm)
+	NewWithT(t).Expect(got).To(BeNil())
 }

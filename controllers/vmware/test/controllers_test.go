@@ -541,6 +541,100 @@ var _ = Describe("Reconciliation tests", func() {
 		Entry("With load balancer", useLoadBalancer),
 	)
 
+	DescribeTable("VSphereMachine API validation rules",
+		func(isLB bool) {
+			k8sClient, managerCancel = prepareClient(isLB)
+			defer managerCancel()
+
+			By("Create target namespace")
+			ns := deployNamespace(k8sClient)
+			defer dropNamespace(ns, k8sClient)
+
+			By("Create the CAPI Machine and wait for it to exist")
+			_, cluster, infraCluster := deployCluster(ns.Name, k8sClient)
+			updateClusterInfraRef(cluster, infraCluster, k8sClient)
+			machineKey, machine := deployCAPIMachine(ns.Name, cluster, k8sClient)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, machineKey, machine)
+			}, time.Second*30).Should(Succeed())
+
+			By("Accept VSphereMachine creation with valid policies")
+			infraMachine := newInfraMachine(ns.Name, machine).(*vmwarev1.VSphereMachine)
+			infraMachine.SetOwnerReferences([]metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Machine",
+					Name:       machine.Name,
+					UID:        machine.UID,
+				},
+			})
+			infraMachine.Spec.Policies = []vmwarev1.PolicyRef{
+				{
+					Name:       "policy-1",
+					Kind:       "ComputePolicy",
+					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				},
+			}
+			Expect(k8sClient.Create(ctx, infraMachine)).To(Succeed())
+
+			By("Reject updating policies on existing VSphereMachine")
+			infraMachineKey := client.ObjectKey{Namespace: infraMachine.GetNamespace(), Name: infraMachine.GetName()}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, infraMachineKey, infraMachine)
+			}, time.Second*30).Should(Succeed())
+
+			infraMachine.Spec.Policies = append(infraMachine.Spec.Policies, vmwarev1.PolicyRef{
+				Name:       "policy-2",
+				Kind:       "ComputePolicy",
+				APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+			})
+			err := k8sClient.Update(ctx, infraMachine)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("policies are immutable after creation"))
+
+			By("Accept VSphereMachineTemplate creation with valid policies")
+			machineTemplate := &vmwarev1.VSphereMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-template-" + util.RandomString(5),
+					Namespace: ns.Name,
+				},
+				Spec: vmwarev1.VSphereMachineTemplateSpec{
+					Template: vmwarev1.VSphereMachineTemplateResource{
+						Spec: vmwarev1.VSphereMachineSpec{
+							ImageName: "test-image",
+							ClassName: "test-class",
+							Policies: []vmwarev1.PolicyRef{
+								{
+									Name:       "policy-1",
+									Kind:       "ComputePolicy",
+									APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+								},
+							},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, machineTemplate)).To(Succeed())
+
+			By("Reject updating policies on existing VSphereMachineTemplate")
+			templateKey := client.ObjectKey{Namespace: machineTemplate.GetNamespace(), Name: machineTemplate.GetName()}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, templateKey, machineTemplate)
+			}, time.Second*30).Should(Succeed())
+
+			machineTemplate.Spec.Template.Spec.Policies = append(machineTemplate.Spec.Template.Spec.Policies, vmwarev1.PolicyRef{
+				Name:       "policy-2",
+				Kind:       "ComputePolicy",
+				APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+			})
+			err = k8sClient.Update(ctx, machineTemplate)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("policies are immutable after creation"))
+		},
+		Entry("With no load balancer", dontUseLoadBalancer),
+		Entry("With load balancer", useLoadBalancer),
+	)
+
 	DescribeTable("A VM gets properly reconciled for a Machine and reflects appropriate VM status",
 		func(isLB bool) {
 			k8sClient, managerCancel = prepareClient(isLB)

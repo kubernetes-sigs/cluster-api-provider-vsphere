@@ -637,13 +637,9 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		return err
 	}
 
-	// Assign policies when the feature gate is enabled; explicitly clear them otherwise
-	// so that create and update are always consistent regardless of whether the gate
-	// was toggled between reconciles.
-	if feature.Gates.Enabled(feature.InfrastructurePolicies) {
+	// Only set spec.policies on create as the field is immutable.
+	if vmOperatorVM.CreationTimestamp.IsZero() {
 		vmOperatorVM.Spec.Policies = getPolicies(supervisorMachineCtx)
-	} else {
-		vmOperatorVM.Spec.Policies = nil
 	}
 
 	// Apply hooks to modify the VM spec
@@ -1023,6 +1019,11 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, fa
 }
 
 func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprvhub.PolicySpec {
+	// Assign policies when the feature gate is enabled.
+	if !feature.Gates.Enabled(feature.InfrastructurePolicies) {
+		return nil
+	}
+
 	refs := supervisorMachineCtx.VSphereMachine.Spec.Policies
 	if len(refs) == 0 {
 		return nil
@@ -1043,20 +1044,6 @@ func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprv
 		seen[p] = struct{}{}
 		newRefs = append(newRefs, p)
 	}
-	// Total ordering on (APIVersion, Kind, Name) so that two refs differing
-	// only by Kind or APIVersion still have a stable, deterministic position;
-	// otherwise the controller would flap between equivalent orderings on
-	// successive reconciles.
-	sort.Slice(newRefs, func(i, j int) bool {
-		a, b := newRefs[i], newRefs[j]
-		if a.APIVersion != b.APIVersion {
-			return a.APIVersion < b.APIVersion
-		}
-		if a.Kind != b.Kind {
-			return a.Kind < b.Kind
-		}
-		return a.Name < b.Name
-	})
 	return newRefs
 }
 

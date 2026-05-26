@@ -300,6 +300,46 @@ spec:
                         x-kubernetes-list-type: atomic
                     type: object
                 type: object
+              policies:
+                description: policies specifies a list of optional infrastructure
+                  policies to be applied to the virtual machine.
+                items:
+                  description: PolicyRef identifies an optional infrastructure policy
+                    to specify for the virtual machine.
+                  properties:
+                    apiVersion:
+                      description: |-
+                        apiVersion is the fully qualified group/version of the infrastructure policy resource
+                        (for example vsphere.policy.vmware.com/v1alpha1).
+                        apiVersion must be fully qualified domain name followed by / and a version.
+                      maxLength: 317
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    kind:
+                      description: |-
+                        kind of the infrastructure policy object being referenced.
+                        kind must be a CamelCase Kubernetes Kind starting with an uppercase letter (e.g. ComputePolicy).
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[A-Z][a-zA-Z0-9]*$
+                      type: string
+                    name:
+                      description: |-
+                        name of the infrastructure policy.
+                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                  required:
+                  - apiVersion
+                  - kind
+                  - name
+                  type: object
+                maxItems: 64
+                type: array
+                x-kubernetes-list-type: atomic
               powerOffMode:
                 default: hard
                 description: |-
@@ -361,6 +401,10 @@ spec:
             - className
             - imageName
             type: object
+            x-kubernetes-validations:
+            - message: policies are immutable after creation
+              rule: has(self.policies) == has(oldSelf.policies) && (!has(self.policies)
+                || self.policies == oldSelf.policies)
           status:
             description: status is the observed state of VSphereMachine.
             properties:
@@ -1191,7 +1235,7 @@ spec:
                   - kind
                   - name
                   type: object
-                maxItems: 1024
+                maxItems: 64
                 type: array
                 x-kubernetes-list-type: atomic
               powerOffMode:

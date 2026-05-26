@@ -119,7 +119,7 @@ type VSphereMachineSpec struct {
 	// policies specifies a list of optional infrastructure policies to be applied to the virtual machine.
 	// +optional
 	// +listType=atomic
-	// +kubebuilder:validation:MaxItems=1024
+	// +kubebuilder:validation:MaxItems=64
 	Policies []PolicyRef `json:"policies,omitempty"`
 }
 

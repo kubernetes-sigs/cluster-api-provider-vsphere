@@ -93,11 +93,6 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := ensureFinalizer(ctx, r.Client, virtualMachine, vcsimv1.VMFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	// Fetch the owner VSphereMachine.
 	// Note: Temporarily using a local copy of util.GetOwnerVSphereMachine until this controller can be migrated to v1beta2.
 	vSphereMachine, err := GetOwnerVMWareMachine(ctx, r.Client, virtualMachine.ObjectMeta)
@@ -155,6 +150,11 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	log = log.WithValues("VSphereCluster", klog.KObj(vsphereCluster))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := ensureFinalizer(ctx, r.Client, virtualMachine, vcsimv1.VMFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
 
 	// Compute the resource group unique name.
 	resourceGroup := klog.KObj(cluster).String()

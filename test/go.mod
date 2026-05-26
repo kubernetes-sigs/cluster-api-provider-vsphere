@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.26.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-rc.0.0.20260513182351-70cf6a2daeda
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-rc.0.0.20260526071518-a4a42bdc39a8
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.13.0-rc.0.0.20260513182351-70cf6a2daeda
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.13.0-rc.0.0.20260526071518-a4a42bdc39a8
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -159,7 +159,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93 // indirect
 	golang.org/x/mod v0.36.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect

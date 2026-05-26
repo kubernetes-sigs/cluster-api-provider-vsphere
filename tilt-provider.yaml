@@ -57,3 +57,20 @@
     # NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.1.yaml that is
     # used by clusterctl init (init requires all the objects to be in the same namespace).
     - /test/framework/vmoperator/vmoperator-capabilities-9.1.yaml
+
+# IMPORTANT: run "VM_OPERATOR_VERSION=9.2 VM_OPERATOR_COMMIT_DESCRIBE=v1.9.0-987-g46e3104c VM_OPERATOR_COMMIT=46e3104c57d1af6b113e841ea9a7aca56eed8fbc make generate-manifests-vm-operator" before using this "provider" with tilt
+- name: vm-operator-9.2
+  config:
+    version: "9.2"
+    label: VMOP
+    kustomize_folder: "/test/infrastructure/vm-operator/config/9.2"
+    kustomize_options:
+      - "--load-restrictor=LoadRestrictionsNone"
+    resource_deps:
+    # in some cases deploying vm-operator fails because the provider crd is not yet ready. this dependency acts as additional wait.
+    - capi_controller
+    additional_uncategorized_resources:
+    # vm-operator 9.2 requires a config map with the list of supervisor capabilities to exist before the controller starts.
+    # NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.2.yaml that is
+    # used by clusterctl init (init requires all the objects to be in the same namespace).
+    - /test/framework/vmoperator/vmoperator-capabilities-9.2.yaml

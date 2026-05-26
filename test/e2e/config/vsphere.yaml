@@ -18,7 +18,7 @@ images:
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-test-extension-{ARCH}:dev
     loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:9.1
+  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:9.2
     loadBehavior: tryLoad
 
 providers:
@@ -259,6 +259,15 @@ providers:
         type: "url"
         files:
           - sourcePath: "../data/shared/vmoperator/9.1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+      - name: "v9.2.0" # This value is required to be similar to CAPI/provider versions, so adding the v prefix and the .0 patch version
+        # Use manifest from source files
+        value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-9.2.yaml"
+        type: "url"
+        files:
+          - sourcePath: "../data/shared/vmoperator/9.2/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"

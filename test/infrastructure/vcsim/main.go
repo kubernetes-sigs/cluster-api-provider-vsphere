@@ -31,6 +31,7 @@ import (
 	"github.com/spf13/pflag"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmopinfrav1 "github.com/vmware-tanzu/vm-operator/external/infra/api/v1alpha1"
 	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -125,6 +126,7 @@ func init() {
 	utilruntime.Must(vmwarev1beta1.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 	utilruntime.Must(spqv1.AddToScheme(scheme))
+	utilruntime.Must(vmopinfrav1.AddToScheme(scheme))
 
 	// scheme used for operating in memory.
 	utilruntime.Must(corev1.AddToScheme(inmemoryScheme))

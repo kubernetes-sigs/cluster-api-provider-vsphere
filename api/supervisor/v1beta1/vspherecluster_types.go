@@ -125,6 +125,24 @@ const (
 	VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 )
 
+// VSphereCluster's FailureDomainsReady condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereClusterFailureDomainsReadyV1Beta2Condition documents the status of the FailureDomains discovery and filtering for a VSphereCluster.
+	VSphereClusterFailureDomainsReadyV1Beta2Condition = "FailureDomainsReady"
+
+	// VSphereClusterFailureDomainsReadyV1Beta2Reason surfaces when the FailureDomains are successfully discovered and matched.
+	VSphereClusterFailureDomainsReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+
+	// VSphereClusterFailureDomainsNotReadyV1Beta2Reason surfaces when no failure domains match the specified control plane label selector.
+	VSphereClusterFailureDomainsNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+
+	// VSphereClusterFailureDomainsReadyInternalErrorV1Beta2Reason surfaces unexpected failures during FailureDomains discovery.
+	VSphereClusterFailureDomainsReadyInternalErrorV1Beta2Reason = clusterv1beta1.InternalErrorV1Beta2Reason
+
+	// VSphereClusterFailureDomainsReadyDeletingV1Beta2Reason surfaces when the cluster is being deleted.
+	VSphereClusterFailureDomainsReadyDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
+)
+
 // NSXVPC defines the configuration when the network provider is NSX-VPC.
 // +kubebuilder:validation:XValidation:rule="has(self.createSubnetSet) == has(oldSelf.createSubnetSet) && self.createSubnetSet == oldSelf.createSubnetSet",message="createSubnetSet value cannot be changed after creation"
 // +kubebuilder:validation:MinProperties=1
@@ -218,7 +236,7 @@ type VSphereClusterStatus struct {
 type VSphereClusterV1Beta2Status struct {
 	// conditions represents the observations of a VSphereCluster's current state.
 	// Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
-	// ProviderServiceAccountsReady, ServiceDiscoveryReady and Paused.
+	// FailureDomainsReady, ProviderServiceAccountsReady, ServiceDiscoveryReady and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

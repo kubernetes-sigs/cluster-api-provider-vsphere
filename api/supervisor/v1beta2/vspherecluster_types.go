@@ -139,7 +139,7 @@ const (
 	VSphereClusterFailureDomainsNotReadyReason = clusterv1.NotReadyReason
 
 	// VSphereClusterFailureDomainsReadyInternalErrorReason surfaces unexpected failures during FailureDomains discovery.
-	VSphereClusterFailureDomainsReadyInternalErrorReason = "InternalError"
+	VSphereClusterFailureDomainsReadyInternalErrorReason = clusterv1.InternalErrorReason
 
 	// VSphereClusterFailureDomainsReadyDeletingReason surfaces when the cluster is being deleted.
 	VSphereClusterFailureDomainsReadyDeletingReason = clusterv1.DeletingReason

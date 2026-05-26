@@ -306,101 +306,69 @@ func zoneWithLabels(namespace, name string, lbls map[string]string) *topologyv1.
 	}
 }
 
-func TestMarkControlPlaneFailureDomains_Default(t *testing.T) {
-	// ControlPlaneFailureDomainSelector is not set.
-	// All domains must be eligible for control plane placement (backwards compatible).
-	domains := []clusterv1.FailureDomain{
-		{Name: "zone-a"},
-		{Name: "zone-b"},
-		{Name: "zone-c"},
-	}
-	spec := vmwarev1.VSphereClusterSpec{}
-	got, err := markControlPlaneFailureDomains(domains, nil, spec.FailureDomains)
-	g := NewWithT(t)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(got).To(ConsistOf(
-		clusterv1.FailureDomain{Name: "zone-a", ControlPlane: ptr.To(true)},
-		clusterv1.FailureDomain{Name: "zone-b", ControlPlane: ptr.To(true)},
-		clusterv1.FailureDomain{Name: "zone-c", ControlPlane: ptr.To(true)},
-	))
-}
-
-func TestMarkControlPlaneFailureDomains_LabelSelector(t *testing.T) {
+func TestMarkControlPlaneFailureDomain(t *testing.T) {
 	tests := []struct {
-		name     string
-		domains  []clusterv1.FailureDomain
-		zoneList *topologyv1.ZoneList
-		selector *metav1.LabelSelector
-		wantCP   map[string]bool
-		wantErr  bool
+		name          string
+		zone          topologyv1.Zone
+		spec          vmwarev1.FailureDomainsControlPlaneSpec
+		wantError     bool
+		wantCtrlPlane bool
 	}{
 		{
-			name: "domains matching selector are control-plane eligible",
-			domains: []clusterv1.FailureDomain{
-				{Name: "mgmt-zone"},
-				{Name: "worker-zone"},
+			name: "no selector provided, should default to true",
+			zone: topologyv1.Zone{
+				ObjectMeta: metav1.ObjectMeta{Name: "zone-1"},
 			},
-			zoneList: &topologyv1.ZoneList{
-				Items: []topologyv1.Zone{
-					*zoneWithLabels("default", "mgmt-zone", map[string]string{"tanzu-topology.vmware.com/type": "MANAGEMENT"}),
-					*zoneWithLabels("default", "worker-zone", map[string]string{"tanzu-topology.vmware.com/type": "WORKLOAD"}),
-				},
-			},
-			selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"tanzu-topology.vmware.com/type": "MANAGEMENT"},
-			},
-			wantCP: map[string]bool{"mgmt-zone": true, "worker-zone": false},
+			spec:          vmwarev1.FailureDomainsControlPlaneSpec{},
+			wantError:     false,
+			wantCtrlPlane: true,
 		},
 		{
-			name: "selector matching no domains returns error to prevent mutation",
-			domains: []clusterv1.FailureDomain{
-				{Name: "zone-a"},
-				{Name: "zone-b"},
-			},
-			zoneList: &topologyv1.ZoneList{
-				Items: []topologyv1.Zone{
-					*zoneWithLabels("default", "zone-a", map[string]string{"type": "workload"}),
-					*zoneWithLabels("default", "zone-b", map[string]string{"type": "workload"}),
+			name: "selector provided and matches zone labels, should be true",
+			zone: topologyv1.Zone{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "zone-1",
+					Labels: map[string]string{"type": "control-plane"},
 				},
 			},
-			selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"type": "management"},
+			spec: vmwarev1.FailureDomainsControlPlaneSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"type": "control-plane"},
+				},
 			},
-			wantErr: true,
+			wantError:     false,
+			wantCtrlPlane: true,
 		},
 		{
-			name: "selector matching all domains",
-			domains: []clusterv1.FailureDomain{
-				{Name: "zone-a"},
-				{Name: "zone-b"},
-			},
-			zoneList: &topologyv1.ZoneList{
-				Items: []topologyv1.Zone{
-					*zoneWithLabels("default", "zone-a", map[string]string{"env": "prod"}),
-					*zoneWithLabels("default", "zone-b", map[string]string{"env": "prod"}),
+			name: "selector provided but does NOT match zone labels, should be false",
+			zone: topologyv1.Zone{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "zone-1",
+					Labels: map[string]string{"type": "worker"},
 				},
 			},
-			selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"env": "prod"},
+			spec: vmwarev1.FailureDomainsControlPlaneSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"type": "control-plane"},
+				},
 			},
-			wantCP: map[string]bool{"zone-a": true, "zone-b": true},
+			wantError:     false,
+			wantCtrlPlane: false,
 		},
 		{
-			name: "invalid selector returns error",
-			domains: []clusterv1.FailureDomain{
-				{Name: "zone-a"},
+			name: "invalid label selector syntax, should return error",
+			zone: topologyv1.Zone{
+				ObjectMeta: metav1.ObjectMeta{Name: "zone-1"},
 			},
-			zoneList: &topologyv1.ZoneList{
-				Items: []topologyv1.Zone{
-					*zoneWithLabels("default", "zone-a", map[string]string{}),
+			spec: vmwarev1.FailureDomainsControlPlaneSpec{
+				Selector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{Key: "k", Operator: "InvalidOperator", Values: []string{"v"}},
+					},
 				},
 			},
-			selector: &metav1.LabelSelector{
-				MatchExpressions: []metav1.LabelSelectorRequirement{
-					{Key: "k", Operator: "BadOp", Values: []string{"v"}},
-				},
-			},
-			wantErr: true,
+			wantError:     true,
+			wantCtrlPlane: false, // will be ignored during validation
 		},
 	}
 
@@ -408,36 +376,27 @@ func TestMarkControlPlaneFailureDomains_LabelSelector(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			spec := vmwarev1.FailureDomainsSpec{
-				ControlPlane: vmwarev1.FailureDomainsControlPlaneSpec{
-					Selector: tt.selector,
-				},
+			fd := &clusterv1.FailureDomain{
+				Name: tt.zone.Name,
 			}
 
-			// Call markControlPlaneFailureDomains, which now handles both the label mapping AND the validation.
-			got, err := markControlPlaneFailureDomains(tt.domains, tt.zoneList, spec)
+			err := markControlPlaneFailureDomain(fd, tt.zone, tt.spec)
 
-			if tt.wantErr {
+			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
-				if tt.name == "selector matching no domains returns error to prevent mutation" {
-					g.Expect(err).To(MatchError(ContainSubstring("no zone is matching the selector")))
-				}
 				return
 			}
 
 			g.Expect(err).NotTo(HaveOccurred())
-			for _, fd := range got {
-				expected, ok := tt.wantCP[fd.Name]
-				g.Expect(ok).To(BeTrue(), "unexpected domain %q in result", fd.Name)
-				g.Expect(ptr.Deref(fd.ControlPlane, false)).To(Equal(expected), "domain %q controlPlane mismatch", fd.Name)
-			}
+			g.Expect(ptr.Deref(fd.ControlPlane, false)).To(Equal(tt.wantCtrlPlane))
 		})
 	}
 }
 
 func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing.T) {
 	// End-to-end tests for reconcileFailureDomains with control plane placement constraints,
-	// exercising both the NamespaceScopedZones (Zone) and legacy (AvailabilityZone) paths.
+	// exercising both the NamespaceScopedZones (Zone) and legacy (AvailabilityZone) paths
+	// and verifying the static Condition reasons and messages.
 	g := NewWithT(t)
 	ctx := context.Background()
 
@@ -449,13 +408,15 @@ func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
 
 	tests := []struct {
-		name        string
-		objects     []client.Object
-		spec        vmwarev1.VSphereClusterSpec
-		featureGate bool
-		wantCP      map[string]bool // nil means skip per-domain assertion; use wantNil
-		wantNil     bool
-		wantErr     bool
+		name                 string
+		objects              []client.Object
+		spec                 vmwarev1.VSphereClusterSpec
+		featureGate          bool
+		wantCP               map[string]bool // nil means skip per-domain assertion; use wantNil
+		wantNil              bool
+		wantErr              bool
+		wantConditionReason  string
+		wantConditionMessage string
 	}{
 		// ── Cluster-wide (AvailabilityZone) path ────────────────────────────
 		{
@@ -472,8 +433,10 @@ func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing
 					},
 				},
 			},
-			featureGate: false,
-			wantErr:     true, // Expect the silent-failure prevention error
+			featureGate:          false,
+			wantErr:              true,
+			wantConditionReason:  vmwarev1.VSphereClusterFailureDomainsReadyInternalErrorReason,
+			wantConditionMessage: "Control plane zone selector is not supported on this cluster: requires NamespaceScopedZones feature gate to be enabled",
 		},
 		{
 			name: "Cluster-Wide: no constraints — all domains are CP eligible",
@@ -481,9 +444,10 @@ func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing
 				availabilityZone("az-a"),
 				availabilityZone("az-b"),
 			},
-			spec:        vmwarev1.VSphereClusterSpec{},
-			featureGate: false,
-			wantCP:      map[string]bool{"az-a": true, "az-b": true}, // Expect normal legacy behavior
+			spec:                vmwarev1.VSphereClusterSpec{},
+			featureGate:         false,
+			wantCP:              map[string]bool{"az-a": true, "az-b": true}, // Expect normal legacy behavior
+			wantConditionReason: vmwarev1.VSphereClusterFailureDomainsReadyReason,
 		},
 
 		// ── Namespaced (Zone) path ───────────────────────────────────────────
@@ -502,11 +466,12 @@ func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing
 					},
 				},
 			},
-			featureGate: true,
-			wantCP:      map[string]bool{"zone-a": true, "zone-b": false},
+			featureGate:         true,
+			wantCP:              map[string]bool{"zone-a": true, "zone-b": false},
+			wantConditionReason: vmwarev1.VSphereClusterFailureDomainsReadyReason,
 		},
 		{
-			name: "Namespaced: label selector matching no domains returns error",
+			name: "Namespaced: label selector matching no domains returns error and sets NotReady condition",
 			objects: []client.Object{
 				zoneWithLabels(ns, "zone-a", map[string]string{"type": "workload"}),
 			},
@@ -519,8 +484,10 @@ func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing
 					},
 				},
 			},
-			featureGate: true,
-			wantErr:     true,
+			featureGate:          true,
+			wantErr:              true,
+			wantConditionReason:  vmwarev1.VSphereClusterFailureDomainsNotReadyReason,
+			wantConditionMessage: "No zone matches the specified selector for control plane failure domains",
 		},
 		{
 			name: "Namespaced: no constraints — all domains are CP eligible",
@@ -528,9 +495,10 @@ func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing
 				zone(ns, "zone-a", false),
 				zone(ns, "zone-b", false),
 			},
-			spec:        vmwarev1.VSphereClusterSpec{},
-			featureGate: true,
-			wantCP:      map[string]bool{"zone-a": true, "zone-b": true},
+			spec:                vmwarev1.VSphereClusterSpec{},
+			featureGate:         true,
+			wantCP:              map[string]bool{"zone-a": true, "zone-b": true},
+			wantConditionReason: vmwarev1.VSphereClusterFailureDomainsReadyReason,
 		},
 		{
 			name:        "Namespaced: no zones returns nil domains",
@@ -559,6 +527,17 @@ func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing
 			}
 
 			err := r.reconcileFailureDomains(ctx, vsphereCluster)
+
+			// Assert the Condition Reasons and static Messages to satisfy the PR requirements
+			if tt.wantConditionReason != "" {
+				cond := conditions.Get(vsphereCluster, vmwarev1.VSphereClusterFailureDomainsReadyCondition)
+				g.Expect(cond).NotTo(BeNil(), "expected FailureDomainsReadyCondition to be set")
+				g.Expect(cond.Reason).To(Equal(tt.wantConditionReason))
+
+				if tt.wantConditionMessage != "" {
+					g.Expect(cond.Message).To(Equal(tt.wantConditionMessage))
+				}
+			}
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

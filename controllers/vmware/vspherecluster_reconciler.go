@@ -22,7 +22,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -525,22 +524,6 @@ func (r *ClusterReconciler) reconcileFailureDomains(ctx context.Context, vsphere
 	namespace := vsphereCluster.Namespace
 	spec := vsphereCluster.Spec.FailureDomains
 
-	markFailure := func(err error) error {
-		reason := vmwarev1.VSphereClusterFailureDomainsReadyInternalErrorReason
-
-		if strings.Contains(err.Error(), "no zone is matching the selector") {
-			reason = vmwarev1.VSphereClusterFailureDomainsNotReadyReason
-		}
-
-		conditions.Set(vsphereCluster, metav1.Condition{
-			Type:    vmwarev1.VSphereClusterFailureDomainsReadyCondition,
-			Status:  metav1.ConditionFalse,
-			Reason:  reason,
-			Message: err.Error(),
-		})
-		return err
-	}
-
 	// Determine the source of failure domain based on feature gates NamespaceScopedZones.
 	// If NamespaceScopedZones is enabled, use Zone which is Namespace scoped, otherwise use
 	// Availability Zone which is Cluster scoped.
@@ -548,7 +531,13 @@ func (r *ClusterReconciler) reconcileFailureDomains(ctx context.Context, vsphere
 		zoneList := &topologyv1.ZoneList{}
 		listOptions := &client.ListOptions{Namespace: namespace}
 		if err := r.Client.List(ctx, zoneList, listOptions); err != nil {
-			return markFailure(errors.Wrapf(err, "failed to list Zones in namespace %s", namespace))
+			conditions.Set(vsphereCluster, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterFailureDomainsReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterFailureDomainsReadyInternalErrorReason,
+				Message: "Please check controller logs for errors",
+			})
+			return errors.Wrapf(err, "failed to list Zones in namespace %s", namespace)
 		}
 
 		for _, zone := range zoneList.Items {
@@ -556,27 +545,44 @@ func (r *ClusterReconciler) reconcileFailureDomains(ctx context.Context, vsphere
 			if !zone.DeletionTimestamp.IsZero() {
 				continue
 			}
-			failureDomains = append(failureDomains, clusterv1.FailureDomain{
-				Name: zone.Name,
-			})
-		}
 
-		if len(failureDomains) > 0 {
-			var err error
-			failureDomains, err = markControlPlaneFailureDomains(failureDomains, zoneList, spec)
-			if err != nil {
-				return markFailure(err)
+			failureDomain := clusterv1.FailureDomain{
+				Name: zone.Name,
 			}
+
+			if err := markControlPlaneFailureDomain(&failureDomain, zone, spec.ControlPlane); err != nil {
+				conditions.Set(vsphereCluster, metav1.Condition{
+					Type:    vmwarev1.VSphereClusterFailureDomainsReadyCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  vmwarev1.VSphereClusterFailureDomainsReadyInternalErrorReason,
+					Message: "Please check controller logs for errors",
+				})
+				return err
+			}
+
+			failureDomains = append(failureDomains, failureDomain)
 		}
 	} else {
 		// Prevent silent failure if the user tried to use a selector without the feature gate.
 		if spec.ControlPlane.Selector != nil {
-			return markFailure(fmt.Errorf("control plane zone selector is not supported on this cluster: requires NamespaceScopedZones feature gate to be enabled"))
+			conditions.Set(vsphereCluster, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterFailureDomainsReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterFailureDomainsReadyInternalErrorReason,
+				Message: "Control plane zone selector is not supported on this cluster: requires NamespaceScopedZones feature gate to be enabled",
+			})
+			return fmt.Errorf("control plane zone selector is not supported on this cluster: requires NamespaceScopedZones feature gate to be enabled")
 		}
 
 		availabilityZoneList := &topologyv1.AvailabilityZoneList{}
 		if err := r.Client.List(ctx, availabilityZoneList); err != nil {
-			return markFailure(err)
+			conditions.Set(vsphereCluster, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterFailureDomainsReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterFailureDomainsReadyInternalErrorReason,
+				Message: "Please check controller logs for errors",
+			})
+			return err
 		}
 
 		if len(availabilityZoneList.Items) > 0 {
@@ -586,6 +592,24 @@ func (r *ClusterReconciler) reconcileFailureDomains(ctx context.Context, vsphere
 					ControlPlane: ptr.To(true),
 				})
 			}
+		}
+	}
+
+	if len(failureDomains) > 0 {
+		hasFailureDomainForControlPlaneMachines := slices.ContainsFunc(failureDomains, func(failureDomain clusterv1.FailureDomain) bool {
+			return ptr.Deref(failureDomain.ControlPlane, false)
+		})
+
+		if !hasFailureDomainForControlPlaneMachines {
+			conditions.Set(vsphereCluster, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterFailureDomainsReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterFailureDomainsNotReadyReason,
+				Message: "No zone matches the specified selector for control plane failure domains",
+			})
+
+			selectorStr := metav1.FormatLabelSelector(spec.ControlPlane.Selector)
+			return fmt.Errorf("no zone is matching the selector %q for control plane failure domains", selectorStr)
 		}
 	}
 
@@ -605,56 +629,28 @@ func (r *ClusterReconciler) reconcileFailureDomains(ctx context.Context, vsphere
 	return nil
 }
 
-// markControlPlaneFailureDomains stamps the ControlPlane boolean on each failure domain according to
-// the VSphereClusterSpec's control-plane placement constraints:
-//
-//   - If FailureDomains.ControlPlane.Selector is set, ControlPlane is true only for failure domains matching the selector.
-//   - If FailureDomains.ControlPlane.Selector is not set, ControlPlane is true for all failure domains (backwards-compatible default).
-func markControlPlaneFailureDomains(
-	failureDomains []clusterv1.FailureDomain,
-	zoneList *topologyv1.ZoneList,
-	spec vmwarev1.FailureDomainsSpec,
-) ([]clusterv1.FailureDomain, error) {
-	if len(failureDomains) == 0 {
-		return failureDomains, nil
-	}
-
-	if spec.ControlPlane.Selector != nil {
-		selector, err := metav1.LabelSelectorAsSelector(spec.ControlPlane.Selector)
+// markControlPlaneFailureDomain stamps the ControlPlane boolean on a single failure domain based on
+// the provided control plane placement selector constraints.
+func markControlPlaneFailureDomain(
+	failureDomain *clusterv1.FailureDomain,
+	zone topologyv1.Zone,
+	spec vmwarev1.FailureDomainsControlPlaneSpec,
+) error {
+	if spec.Selector != nil {
+		selector, err := metav1.LabelSelectorAsSelector(spec.Selector)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		for i, domain := range failureDomains {
-			// Default to false unless we find a matching zone
-			failureDomains[i].ControlPlane = ptr.To(false)
-
-			if zoneList != nil {
-				for _, zone := range zoneList.Items {
-					if zone.Name == domain.Name {
-						if selector.Matches(labels.Set(zone.Labels)) {
-							failureDomains[i].ControlPlane = ptr.To(true)
-						}
-						break
-					}
-				}
-			}
+		// Default to false unless the individual zone labels match the selector criteria
+		failureDomain.ControlPlane = ptr.To(false)
+		if selector.Matches(labels.Set(zone.Labels)) {
+			failureDomain.ControlPlane = ptr.To(true)
 		}
 	} else {
-		for i := range failureDomains {
-			failureDomains[i].ControlPlane = ptr.To(true)
-		}
+		// Backwards-compatible default
+		failureDomain.ControlPlane = ptr.To(true)
 	}
 
-	hasFailureDomainForControlPlaneMachines := slices.ContainsFunc(failureDomains, func(failureDomain clusterv1.FailureDomain) bool {
-		return ptr.Deref(failureDomain.ControlPlane, false)
-	})
-
-	if !hasFailureDomainForControlPlaneMachines {
-		// We only reach this point if a Selector was provided but it filtered out all zones.
-		selectorStr := metav1.FormatLabelSelector(spec.ControlPlane.Selector)
-		return nil, fmt.Errorf("no zone is matching the selector %q for control plane failure domains", selectorStr)
-	}
-
-	return failureDomains, nil
+	return nil
 }

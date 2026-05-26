@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	vmopinfrav1 "github.com/vmware-tanzu/vm-operator/external/infra/api/v1alpha1"
 	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	"github.com/vmware/govmomi/pbm"
@@ -40,11 +41,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -101,23 +99,19 @@ var (
 // ReconcileCapabilities reconciles the ConfigMap with the list of capabilities for the vm-operator.
 // NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.2.yaml that is
 // used by clusterctl init (init requires all the objects to be in the same namespace).
-func ReconcileCapabilities(ctx context.Context, c client.Client, config *clusterctl.E2EConfig) error {
+func ReconcileCapabilities(ctx context.Context, c client.Client, vmOperatorVersion string) error {
 	var retryError error
 	log := ctrl.LoggerFrom(ctx)
 
 	var capabilitiesFile []byte
-	if config.HasVariable("VM_OPERATOR_VERSION") {
-		switch config.MustGetVariable("VM_OPERATOR_VERSION") {
-		case "9.1":
-			capabilitiesFile = capabilities9_1
-		case "9.2":
-			capabilitiesFile = capabilities9_2
-		default:
-			log.Info("VM_OPERATOR_VERSION variable is not supported, use default version")
-		}
+	switch vmOperatorVersion {
+	case "9.1":
+		capabilitiesFile = capabilities9_1
+	case "9.2":
+		capabilitiesFile = capabilities9_2
 	}
 	if capabilitiesFile == nil {
-		log.Info("VM_OPERATOR_VERSION not matching supported values, use default version", "default", capabilities9_2)
+		log.Info("VM_OPERATOR_VERSION not set, using capabilities for 9.2 version")
 		capabilitiesFile = capabilities9_2
 	}
 	objs, err := utilyaml.ToUnstructured(capabilitiesFile)
@@ -333,16 +327,15 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		}
 		if err := c.Get(ctx, client.ObjectKeyFromObject(storagePolicyCRD), storagePolicyCRD); err == nil {
 			spName := storagePolicyObjectName(storagePolicyID)
-			sp := &unstructured.Unstructured{}
-			sp.SetGroupVersionKind(schema.GroupVersionKind{
-				Group:   "infra.vmware.com",
-				Version: "v1alpha1",
-				Kind:    "StoragePolicy",
-			})
-			sp.SetName(spName)
-			sp.SetNamespace(config.Spec.OperatorRef.Namespace)
-			if err := unstructured.SetNestedField(sp.Object, storagePolicyID, "spec", "id"); err != nil {
-				return errors.Wrapf(err, "failed to set spec.id for StoragePolicy %s", spName)
+			sp := &vmopinfrav1.StoragePolicy{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      spName,
+					Namespace: config.Spec.OperatorRef.Namespace,
+				},
+				Spec: vmopinfrav1.StoragePolicySpec{
+					ID: storagePolicyID,
+				},
 			}
 
 			_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {

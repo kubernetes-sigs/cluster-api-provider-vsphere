@@ -23,6 +23,7 @@ require (
 	github.com/onsi/gomega v1.41.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.10
+	github.com/vmware-tanzu/vm-operator/external/infra v0.0.0-20260506225634-46e3104c57d1
 	github.com/vmware-tanzu/vm-operator/external/storage-policy-quota v0.0.0-20260506225634-46e3104c57d1
 	golang.org/x/crypto v0.52.0
 	gopkg.in/yaml.v2 v2.4.0

@@ -296,6 +296,8 @@ github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20250813103855-288a237381b5
 github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20250813103855-288a237381b5/go.mod h1:Q4JzNkNMvjo7pXtlB5/R3oME4Nhah7fAObWgghVmtxk=
 github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20260506225634-46e3104c57d1 h1:OjKQgOcOkaCfLQZdCm40BAFP5HYsFtase8ueIWlECjQ=
 github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20260506225634-46e3104c57d1/go.mod h1:nWTPpxfe4gHuuYuFcrs86+NMxfkqPk3a3IlvI8TCWak=
+github.com/vmware-tanzu/vm-operator/external/infra v0.0.0-20260506225634-46e3104c57d1 h1:OKkdDikgp77K9vXTUK9GsS8xiIdvViJboUEVSH8iYDU=
+github.com/vmware-tanzu/vm-operator/external/infra v0.0.0-20260506225634-46e3104c57d1/go.mod h1:XNEXTUcWJEQWUQ5crkfJibGtzzLkcY7+NIzGfWeDirI=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260506225634-46e3104c57d1 h1:TDvaVRYT7UmZL4Wx19GyCV4NAvEK09XkccnDJOoJRME=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260506225634-46e3104c57d1/go.mod h1:vyehM6sDYoSoIuNg2rjzH+yxQmcjipS6YtKNHevymXk=
 github.com/vmware-tanzu/vm-operator/external/storage-policy-quota v0.0.0-20260506225634-46e3104c57d1 h1:QM8ZSHnIC+ItdSWEHT7PNXaY5GCXkX/WDI06D5dCgG0=

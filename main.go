@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
+	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	capiflags "sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -411,6 +412,7 @@ func main() {
 	req, _ = labels.NewRequirement(vmoperator.ClusterSelectorKey, selection.Exists, nil)
 	virtualMachineCacheSelector := labels.NewSelector().Add(*req)
 
+	managerOpts.Scheme = runtime.NewScheme()
 	managerOpts.Cache = cache.Options{
 		DefaultNamespaces: watchNamespaces,
 		SyncPeriod:        &syncPeriod,
@@ -457,6 +459,7 @@ func main() {
 			}
 			return byObject
 		}(),
+		NewInformer: capicontrollerutil.NewInformerFunc(managerOpts.Scheme, controllerName),
 	}
 	managerOpts.Client = func() client.Options {
 		// Optimize the cache for supervisor mode. govmomi mode might have different caching requirements

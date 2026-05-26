@@ -32,6 +32,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -211,6 +212,30 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.Kub
 		)
 	}
 
+	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
+	//    If this is unset continue as this variable is not required.
+	kcpControlPlaneMaxSurge, err := topologymutation.GetStringVariable(templateVariables, "kubeadmControlPlaneMaxSurge")
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate MaxSurge")
+	}
+	if kcpControlPlaneMaxSurge != "" {
+		// This has to be converted to IntOrString type.
+		kubeadmControlPlaneMaxSurgeIntOrString := intstrutil.Parse(kcpControlPlaneMaxSurge)
+
+		tpl.Spec.Template.Spec.Rollout.Strategy.Type = controlplanev1.RollingUpdateStrategyType
+		tpl.Spec.Template.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
+	}
+
+	files := []fileVariable{}
+	err = topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate files")
+	}
+	if len(files) > 0 {
+		tpl.Spec.Template.Spec.KubeadmConfigSpec.Files = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.Files,
+			convertToKubeadmConfigFiles(files)...)
+	}
+
 	return nil
 }
 
@@ -254,7 +279,37 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfi
 		)
 	}
 
+	files := []fileVariable{}
+	err = topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set KubeadmConfigTemplate files")
+	}
+	if len(files) > 0 {
+		tpl.Spec.Template.Spec.Files = append(tpl.Spec.Template.Spec.Files,
+			convertToKubeadmConfigFiles(files)...)
+	}
+
 	return nil
+}
+
+type fileVariable struct {
+	Path    string `json:"path,omitempty"`
+	Content string `json:"content,omitempty"`
+}
+
+func convertToKubeadmConfigFiles(files []fileVariable) []bootstrapv1.File {
+	kubeadmConfigFiles := make([]bootstrapv1.File, 0, len(files))
+	for _, f := range files {
+		kubeadmConfigFiles = append(kubeadmConfigFiles,
+			bootstrapv1.File{
+				Path:        f.Path,
+				Content:     f.Content,
+				Owner:       "root:root",
+				Permissions: "0600",
+			},
+		)
+	}
+	return kubeadmConfigFiles
 }
 
 func patchUsers(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, templateVariables map[string]apiextensionsv1.JSON) error {
@@ -496,6 +551,45 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 			resp.Variables[i].Required = ptr.To(false)
 		}
 	}
+
+	resp.Variables = append(resp.Variables,
+		clusterv1.ClusterClassVariable{
+			Name:     "kubeadmControlPlaneMaxSurge",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:        "string",
+					Default:     &apiextensionsv1.JSON{Raw: []byte(`""`)},
+					Example:     &apiextensionsv1.JSON{Raw: []byte(`"0"`)},
+					Description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines.",
+					XValidations: []clusterv1.ValidationRule{
+						{
+							Rule:              "self == \"\" || self != \"\"",
+							MessageExpression: "'just a test expression, got %s'.format([self])",
+						},
+					},
+				},
+			},
+		}, clusterv1.ClusterClassVariable{
+			Name:     "files",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type: "array",
+					Items: &clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"path": {
+								Type: "string",
+							},
+							"content": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+		})
 
 	// Append
 	if req.Settings["testMode"] == "govmomi" {

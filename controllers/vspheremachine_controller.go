@@ -236,13 +236,6 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return ctrl.Result{}, err
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Only add finalizer after the Machine has an ownerRef to avoid unnecessary retries
-	// because of conflicts in core CAPI ssa.RemoveManagedFieldsForLabelsAndAnnotations.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, machineContext.GetVSphereMachine(), infrav1.MachineFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
 	if err != nil {
 		log.Error(err, "Failed to get Cluster from VSphereCluster: Machine is missing cluster label or cluster does not exist")
@@ -254,6 +247,13 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 			log = log.WithValues("VSphereCluster", klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
 		}
 		ctx = ctrl.LoggerInto(ctx, log)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Only add finalizer after the Machine has an ownerRef to avoid unnecessary retries
+	// because of conflicts in core CAPI ssa.RemoveManagedFieldsForLabelsAndAnnotations.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, machineContext.GetVSphereMachine(), infrav1.MachineFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
 	}
 
 	// Create the patch helper.

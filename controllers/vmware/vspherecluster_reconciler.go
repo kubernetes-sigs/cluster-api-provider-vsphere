@@ -87,11 +87,6 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return reconcile.Result{}, err
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vsphereCluster, vmwarev1.ClusterFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	// Fetch the Cluster.
 	cluster, err := clusterutilv1.GetOwnerCluster(ctx, r.Client, vsphereCluster.ObjectMeta)
 	if err != nil {
@@ -100,6 +95,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	if cluster != nil {
 		log = log.WithValues("Cluster", klog.KObj(cluster))
 		ctx = ctrl.LoggerInto(ctx, log)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vsphereCluster, vmwarev1.ClusterFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
 	}
 
 	// Build the patch helper.

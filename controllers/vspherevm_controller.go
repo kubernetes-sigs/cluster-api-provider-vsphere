@@ -144,11 +144,6 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		return reconcile.Result{}, err
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vsphereVM, infrav1.VMFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
 	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereVM.ObjectMeta)
 	if err != nil {
 		log.Error(err, "Failed to get Cluster from VSphereVM: Machine is missing cluster label or cluster does not exist")
@@ -157,6 +152,11 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	if cluster != nil {
 		log = log.WithValues("Cluster", klog.KObj(cluster))
 		ctx = ctrl.LoggerInto(ctx, log)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vsphereVM, infrav1.VMFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
 	}
 
 	// Create the patch helper.

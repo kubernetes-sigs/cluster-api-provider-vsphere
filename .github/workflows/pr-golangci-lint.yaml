@@ -21,6 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # tag=v6.0.2
         with:
+          persist-credentials: false
           fetch-depth: 0 # needed for --new-from-rev
       - name: Calculate go version
         id: vars

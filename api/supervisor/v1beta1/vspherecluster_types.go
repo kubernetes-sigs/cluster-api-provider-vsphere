@@ -163,6 +163,29 @@ type VSphereClusterSpec struct {
 	// network defines the network configuration for the cluster with different network providers.
 	// +optional
 	Network Network `json:"network,omitempty,omitzero"`
+
+	// failureDomains defines the failure domains.
+	// +optional
+	FailureDomains FailureDomainsSpec `json:"failureDomains,omitempty,omitzero"`
+}
+
+// FailureDomainsSpec defines the desired state of FailureDomains.
+// +kubebuilder:validation:MinProperties=1
+type FailureDomainsSpec struct {
+	// controlPlane defines the failure domains for controlPlane.
+	// +optional
+	ControlPlane FailureDomainsControlPlaneSpec `json:"controlPlane,omitempty,omitzero"`
+}
+
+// FailureDomainsControlPlaneSpec defines the control plane failure domains.
+// +kubebuilder:validation:MinProperties=1
+type FailureDomainsControlPlaneSpec struct {
+	// selector is a label selector to dynamically match supervisor's Zone CR.
+	// Note: This feature requires the NamespaceScopedZones feature gate to be enabled.
+	// If a selector is provided while the feature gate is disabled, cluster
+	// reconciliation will fail and requeue.
+	// +optional
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.

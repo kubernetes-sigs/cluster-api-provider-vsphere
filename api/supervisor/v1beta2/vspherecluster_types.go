@@ -135,11 +135,11 @@ const (
 	// VSphereClusterFailureDomainsReadyReason surfaces when the FailureDomains are successfully discovered and matched.
 	VSphereClusterFailureDomainsReadyReason = clusterv1.ReadyReason
 
-	// VSphereClusterFailureDomainsNotReadyReason surfaces generic failures during FailureDomains discovery (e.g., API server list errors).
+	// VSphereClusterFailureDomainsNotReadyReason surfaces when no failure domains match the specified control plane label selector.
 	VSphereClusterFailureDomainsNotReadyReason = clusterv1.NotReadyReason
 
-	// VSphereClusterFailureDomainsNotFoundReason surfaces explicitly when no failure domains match the specified control plane label selector.
-	VSphereClusterFailureDomainsNotFoundReason = "FailureDomainsNotFound"
+	// VSphereClusterFailureDomainsReadyInternalErrorReason surfaces unexpected failures during FailureDomains discovery.
+	VSphereClusterFailureDomainsReadyInternalErrorReason = "InternalError"
 
 	// VSphereClusterFailureDomainsReadyDeletingReason surfaces when the cluster is being deleted.
 	VSphereClusterFailureDomainsReadyDeletingReason = clusterv1.DeletingReason
@@ -201,7 +201,7 @@ type FailureDomainsSpec struct {
 // FailureDomainsControlPlaneSpec defines the control plane failure domains.
 // +kubebuilder:validation:MinProperties=1
 type FailureDomainsControlPlaneSpec struct {
-	// selector is a label selector to dynamically match failure domains.
+	// selector is a label selector to dynamically match supervisor's Zone CR.
 	// Note: This feature requires the NamespaceScopedZones feature gate to be enabled.
 	// If a selector is provided while the feature gate is disabled, cluster
 	// reconciliation will fail and requeue.

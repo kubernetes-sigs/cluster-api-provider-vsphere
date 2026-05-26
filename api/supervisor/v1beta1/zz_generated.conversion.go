@@ -24,9 +24,9 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	govmomiv1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1"
@@ -42,6 +42,26 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
+	if err := s.AddGeneratedConversionFunc((*FailureDomainsControlPlaneSpec)(nil), (*v1beta2.FailureDomainsControlPlaneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_FailureDomainsControlPlaneSpec_To_v1beta2_FailureDomainsControlPlaneSpec(a.(*FailureDomainsControlPlaneSpec), b.(*v1beta2.FailureDomainsControlPlaneSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.FailureDomainsControlPlaneSpec)(nil), (*FailureDomainsControlPlaneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_FailureDomainsControlPlaneSpec_To_v1beta1_FailureDomainsControlPlaneSpec(a.(*v1beta2.FailureDomainsControlPlaneSpec), b.(*FailureDomainsControlPlaneSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*FailureDomainsSpec)(nil), (*v1beta2.FailureDomainsSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_FailureDomainsSpec_To_v1beta2_FailureDomainsSpec(a.(*FailureDomainsSpec), b.(*v1beta2.FailureDomainsSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.FailureDomainsSpec)(nil), (*FailureDomainsSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_FailureDomainsSpec_To_v1beta1_FailureDomainsSpec(a.(*v1beta2.FailureDomainsSpec), b.(*FailureDomainsSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*InterfaceNetworkReference)(nil), (*v1beta2.InterfaceNetworkReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_InterfaceNetworkReference_To_v1beta2_InterfaceNetworkReference(a.(*InterfaceNetworkReference), b.(*v1beta2.InterfaceNetworkReference), scope)
 	}); err != nil {
@@ -159,6 +179,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.VSphereClusterList)(nil), (*VSphereClusterList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_VSphereClusterList_To_v1beta1_VSphereClusterList(a.(*v1beta2.VSphereClusterList), b.(*VSphereClusterList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*VSphereClusterSpec)(nil), (*v1beta2.VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(a.(*VSphereClusterSpec), b.(*v1beta2.VSphereClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.VSphereClusterSpec)(nil), (*VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(a.(*v1beta2.VSphereClusterSpec), b.(*VSphereClusterSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -357,11 +387,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*VSphereClusterSpec)(nil), (*v1beta2.VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(a.(*VSphereClusterSpec), b.(*v1beta2.VSphereClusterSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*VSphereClusterStatus)(nil), (*v1beta2.VSphereClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(a.(*VSphereClusterStatus), b.(*v1beta2.VSphereClusterStatus), scope)
 	}); err != nil {
@@ -384,11 +409,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.InterfaceSpec)(nil), (*InterfaceSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_InterfaceSpec_To_v1beta1_InterfaceSpec(a.(*v1beta2.InterfaceSpec), b.(*InterfaceSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1beta2.VSphereClusterSpec)(nil), (*VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(a.(*v1beta2.VSphereClusterSpec), b.(*VSphereClusterSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -423,6 +443,50 @@ func RegisterConversions(s *runtime.Scheme) error {
 		return err
 	}
 	return nil
+}
+
+func autoConvert_v1beta1_FailureDomainsControlPlaneSpec_To_v1beta2_FailureDomainsControlPlaneSpec(in *FailureDomainsControlPlaneSpec, out *v1beta2.FailureDomainsControlPlaneSpec, s conversion.Scope) error {
+	out.Selector = (*v1.LabelSelector)(unsafe.Pointer(in.Selector))
+	return nil
+}
+
+// Convert_v1beta1_FailureDomainsControlPlaneSpec_To_v1beta2_FailureDomainsControlPlaneSpec is an autogenerated conversion function.
+func Convert_v1beta1_FailureDomainsControlPlaneSpec_To_v1beta2_FailureDomainsControlPlaneSpec(in *FailureDomainsControlPlaneSpec, out *v1beta2.FailureDomainsControlPlaneSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_FailureDomainsControlPlaneSpec_To_v1beta2_FailureDomainsControlPlaneSpec(in, out, s)
+}
+
+func autoConvert_v1beta2_FailureDomainsControlPlaneSpec_To_v1beta1_FailureDomainsControlPlaneSpec(in *v1beta2.FailureDomainsControlPlaneSpec, out *FailureDomainsControlPlaneSpec, s conversion.Scope) error {
+	out.Selector = (*v1.LabelSelector)(unsafe.Pointer(in.Selector))
+	return nil
+}
+
+// Convert_v1beta2_FailureDomainsControlPlaneSpec_To_v1beta1_FailureDomainsControlPlaneSpec is an autogenerated conversion function.
+func Convert_v1beta2_FailureDomainsControlPlaneSpec_To_v1beta1_FailureDomainsControlPlaneSpec(in *v1beta2.FailureDomainsControlPlaneSpec, out *FailureDomainsControlPlaneSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_FailureDomainsControlPlaneSpec_To_v1beta1_FailureDomainsControlPlaneSpec(in, out, s)
+}
+
+func autoConvert_v1beta1_FailureDomainsSpec_To_v1beta2_FailureDomainsSpec(in *FailureDomainsSpec, out *v1beta2.FailureDomainsSpec, s conversion.Scope) error {
+	if err := Convert_v1beta1_FailureDomainsControlPlaneSpec_To_v1beta2_FailureDomainsControlPlaneSpec(&in.ControlPlane, &out.ControlPlane, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta1_FailureDomainsSpec_To_v1beta2_FailureDomainsSpec is an autogenerated conversion function.
+func Convert_v1beta1_FailureDomainsSpec_To_v1beta2_FailureDomainsSpec(in *FailureDomainsSpec, out *v1beta2.FailureDomainsSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_FailureDomainsSpec_To_v1beta2_FailureDomainsSpec(in, out, s)
+}
+
+func autoConvert_v1beta2_FailureDomainsSpec_To_v1beta1_FailureDomainsSpec(in *v1beta2.FailureDomainsSpec, out *FailureDomainsSpec, s conversion.Scope) error {
+	if err := Convert_v1beta2_FailureDomainsControlPlaneSpec_To_v1beta1_FailureDomainsControlPlaneSpec(&in.ControlPlane, &out.ControlPlane, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta2_FailureDomainsSpec_To_v1beta1_FailureDomainsSpec is an autogenerated conversion function.
+func Convert_v1beta2_FailureDomainsSpec_To_v1beta1_FailureDomainsSpec(in *v1beta2.FailureDomainsSpec, out *FailureDomainsSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_FailureDomainsSpec_To_v1beta1_FailureDomainsSpec(in, out, s)
 }
 
 func autoConvert_v1beta1_InterfaceNetworkReference_To_v1beta2_InterfaceNetworkReference(in *InterfaceNetworkReference, out *v1beta2.InterfaceNetworkReference, s conversion.Scope) error {
@@ -624,7 +688,7 @@ func Convert_v1beta2_ProviderServiceAccountList_To_v1beta1_ProviderServiceAccoun
 }
 
 func autoConvert_v1beta1_ProviderServiceAccountSpec_To_v1beta2_ProviderServiceAccountSpec(in *ProviderServiceAccountSpec, out *v1beta2.ProviderServiceAccountSpec, s conversion.Scope) error {
-	out.Ref = (*v1.ObjectReference)(unsafe.Pointer(in.Ref))
+	out.Ref = (*corev1.ObjectReference)(unsafe.Pointer(in.Ref))
 	out.Rules = *(*[]rbacv1.PolicyRule)(unsafe.Pointer(&in.Rules))
 	out.TargetNamespace = in.TargetNamespace
 	out.TargetSecretName = in.TargetSecretName
@@ -637,7 +701,7 @@ func Convert_v1beta1_ProviderServiceAccountSpec_To_v1beta2_ProviderServiceAccoun
 }
 
 func autoConvert_v1beta2_ProviderServiceAccountSpec_To_v1beta1_ProviderServiceAccountSpec(in *v1beta2.ProviderServiceAccountSpec, out *ProviderServiceAccountSpec, s conversion.Scope) error {
-	out.Ref = (*v1.ObjectReference)(unsafe.Pointer(in.Ref))
+	out.Ref = (*corev1.ObjectReference)(unsafe.Pointer(in.Ref))
 	out.Rules = *(*[]rbacv1.PolicyRule)(unsafe.Pointer(&in.Rules))
 	out.TargetNamespace = in.TargetNamespace
 	out.TargetSecretName = in.TargetSecretName
@@ -778,7 +842,15 @@ func autoConvert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in *VS
 	if err := Convert_v1beta1_Network_To_v1beta2_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
+	if err := Convert_v1beta1_FailureDomainsSpec_To_v1beta2_FailureDomainsSpec(&in.FailureDomains, &out.FailureDomains, s); err != nil {
+		return err
+	}
 	return nil
+}
+
+// Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec is an autogenerated conversion function.
+func Convert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in *VSphereClusterSpec, out *v1beta2.VSphereClusterSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_VSphereClusterSpec_To_v1beta2_VSphereClusterSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *v1beta2.VSphereClusterSpec, out *VSphereClusterSpec, s conversion.Scope) error {
@@ -788,8 +860,15 @@ func autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *v1
 	if err := Convert_v1beta2_Network_To_v1beta1_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
+	if err := Convert_v1beta2_FailureDomainsSpec_To_v1beta1_FailureDomainsSpec(&in.FailureDomains, &out.FailureDomains, s); err != nil {
+		return err
+	}
 	return nil
+}
+
+// Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec is an autogenerated conversion function.
+func Convert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *v1beta2.VSphereClusterSpec, out *VSphereClusterSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in, out, s)
 }
 
 func autoConvert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VSphereClusterStatus, out *v1beta2.VSphereClusterStatus, s conversion.Scope) error {
@@ -797,7 +876,7 @@ func autoConvert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in
 	// WARNING: in.ResourcePolicyName requires manual conversion: does not exist in peer-type
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			if err := govmomiv1beta1.Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
@@ -1230,7 +1309,7 @@ func Convert_v1beta2_VSphereMachineNetworkStatus_To_v1beta1_VSphereMachineNetwor
 }
 
 func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSphereMachineSpec, out *v1beta2.VSphereMachineSpec, s conversion.Scope) error {
-	if err := metav1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+	if err := v1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
 		return err
 	}
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
@@ -1248,7 +1327,7 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 }
 
 func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1beta2.VSphereMachineSpec, out *VSphereMachineSpec, s conversion.Scope) error {
-	if err := metav1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+	if err := v1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
 		return err
 	}
 	out.ImageName = in.ImageName
@@ -1274,7 +1353,7 @@ func autoConvert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in
 	// WARNING: in.VMStatus requires manual conversion: does not exist in peer-type
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			if err := govmomiv1beta1.Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
@@ -1303,7 +1382,7 @@ func autoConvert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in
 		out.Conditions = nil
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
-	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	// WARNING: in.BiosUUID requires manual conversion: does not exist in peer-type
 	// WARNING: in.Phase requires manual conversion: does not exist in peer-type
@@ -1433,7 +1512,7 @@ func Convert_v1beta2_VSphereMachineTemplateSpec_To_v1beta1_VSphereMachineTemplat
 }
 
 func autoConvert_v1beta1_VSphereMachineTemplateStatus_To_v1beta2_VSphereMachineTemplateStatus(in *VSphereMachineTemplateStatus, out *v1beta2.VSphereMachineTemplateStatus, s conversion.Scope) error {
-	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	return nil
 }
 
@@ -1443,14 +1522,14 @@ func Convert_v1beta1_VSphereMachineTemplateStatus_To_v1beta2_VSphereMachineTempl
 }
 
 func autoConvert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTemplateStatus(in *v1beta2.VSphereMachineTemplateStatus, out *VSphereMachineTemplateStatus, s conversion.Scope) error {
-	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	// WARNING: in.NodeInfo requires manual conversion: does not exist in peer-type
 	return nil
 }
 
 func autoConvert_v1beta1_VSphereMachineVolume_To_v1beta2_VSphereMachineVolume(in *VSphereMachineVolume, out *v1beta2.VSphereMachineVolume, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	out.StorageClass = in.StorageClass
 	return nil
 }
@@ -1462,7 +1541,7 @@ func Convert_v1beta1_VSphereMachineVolume_To_v1beta2_VSphereMachineVolume(in *VS
 
 func autoConvert_v1beta2_VSphereMachineVolume_To_v1beta1_VSphereMachineVolume(in *v1beta2.VSphereMachineVolume, out *VSphereMachineVolume, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	out.StorageClass = in.StorageClass
 	return nil
 }

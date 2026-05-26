@@ -137,7 +137,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 	})
 })
 
-func TestClusterReconciler_getFailureDomains(t *testing.T) {
+func TestClusterReconciler_reconcileFailureDomains(t *testing.T) {
 	g := NewWithT(t)
 	ctx := context.Background()
 
@@ -244,12 +244,19 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 					Build(),
 			}
 			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZones, tt.featureGate)
-			got, err := r.getFailureDomains(ctx, namespace.Name, tt.spec.FailureDomains)
+
+			vsphereCluster := &vmwarev1.VSphereCluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "test-cluster"},
+				Spec:       tt.spec,
+			}
+
+			err := r.reconcileFailureDomains(ctx, vsphereCluster)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ClusterReconciler.getFailureDomains() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ClusterReconciler.reconcileFailureDomains() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			g.Expect(got).To(BeComparableTo(tt.want))
+
+			g.Expect(vsphereCluster.Status.FailureDomains).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -299,7 +306,7 @@ func zoneWithLabels(namespace, name string, lbls map[string]string) *topologyv1.
 	}
 }
 
-func TestApplyControlPlaneFilter_Default(t *testing.T) {
+func TestMarkControlPlaneFailureDomains_Default(t *testing.T) {
 	// ControlPlaneFailureDomainSelector is not set.
 	// All domains must be eligible for control plane placement (backwards compatible).
 	domains := []clusterv1.FailureDomain{
@@ -308,7 +315,7 @@ func TestApplyControlPlaneFilter_Default(t *testing.T) {
 		{Name: "zone-c"},
 	}
 	spec := vmwarev1.VSphereClusterSpec{}
-	got, err := applyControlPlaneFilter(domains, nil, spec.FailureDomains)
+	got, err := markControlPlaneFailureDomains(domains, nil, spec.FailureDomains)
 	g := NewWithT(t)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(got).To(ConsistOf(
@@ -318,14 +325,14 @@ func TestApplyControlPlaneFilter_Default(t *testing.T) {
 	))
 }
 
-func TestApplyControlPlaneLabelSelector(t *testing.T) {
+func TestMarkControlPlaneFailureDomains_LabelSelector(t *testing.T) {
 	tests := []struct {
-		name         string
-		domains      []clusterv1.FailureDomain
-		domainLabels map[string]map[string]string
-		selector     *metav1.LabelSelector
-		wantCP       map[string]bool
-		wantErr      bool
+		name     string
+		domains  []clusterv1.FailureDomain
+		zoneList *topologyv1.ZoneList
+		selector *metav1.LabelSelector
+		wantCP   map[string]bool
+		wantErr  bool
 	}{
 		{
 			name: "domains matching selector are control-plane eligible",
@@ -333,9 +340,11 @@ func TestApplyControlPlaneLabelSelector(t *testing.T) {
 				{Name: "mgmt-zone"},
 				{Name: "worker-zone"},
 			},
-			domainLabels: map[string]map[string]string{
-				"mgmt-zone":   {"tanzu-topology.vmware.com/type": "MANAGEMENT"},
-				"worker-zone": {"tanzu-topology.vmware.com/type": "WORKLOAD"},
+			zoneList: &topologyv1.ZoneList{
+				Items: []topologyv1.Zone{
+					*zoneWithLabels("default", "mgmt-zone", map[string]string{"tanzu-topology.vmware.com/type": "MANAGEMENT"}),
+					*zoneWithLabels("default", "worker-zone", map[string]string{"tanzu-topology.vmware.com/type": "WORKLOAD"}),
+				},
 			},
 			selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"tanzu-topology.vmware.com/type": "MANAGEMENT"},
@@ -348,9 +357,11 @@ func TestApplyControlPlaneLabelSelector(t *testing.T) {
 				{Name: "zone-a"},
 				{Name: "zone-b"},
 			},
-			domainLabels: map[string]map[string]string{
-				"zone-a": {"type": "workload"},
-				"zone-b": {"type": "workload"},
+			zoneList: &topologyv1.ZoneList{
+				Items: []topologyv1.Zone{
+					*zoneWithLabels("default", "zone-a", map[string]string{"type": "workload"}),
+					*zoneWithLabels("default", "zone-b", map[string]string{"type": "workload"}),
+				},
 			},
 			selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"type": "management"},
@@ -363,9 +374,11 @@ func TestApplyControlPlaneLabelSelector(t *testing.T) {
 				{Name: "zone-a"},
 				{Name: "zone-b"},
 			},
-			domainLabels: map[string]map[string]string{
-				"zone-a": {"env": "prod"},
-				"zone-b": {"env": "prod"},
+			zoneList: &topologyv1.ZoneList{
+				Items: []topologyv1.Zone{
+					*zoneWithLabels("default", "zone-a", map[string]string{"env": "prod"}),
+					*zoneWithLabels("default", "zone-b", map[string]string{"env": "prod"}),
+				},
 			},
 			selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"env": "prod"},
@@ -377,8 +390,10 @@ func TestApplyControlPlaneLabelSelector(t *testing.T) {
 			domains: []clusterv1.FailureDomain{
 				{Name: "zone-a"},
 			},
-			domainLabels: map[string]map[string]string{
-				"zone-a": {},
+			zoneList: &topologyv1.ZoneList{
+				Items: []topologyv1.Zone{
+					*zoneWithLabels("default", "zone-a", map[string]string{}),
+				},
 			},
 			selector: &metav1.LabelSelector{
 				MatchExpressions: []metav1.LabelSelectorRequirement{
@@ -393,17 +408,23 @@ func TestApplyControlPlaneLabelSelector(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			// Call the inner function directly since we are passing a map, not a ZoneList
-			got, err := applyControlPlaneLabelSelector(tt.domains, tt.domainLabels, tt.selector)
+			spec := vmwarev1.FailureDomainsSpec{
+				ControlPlane: vmwarev1.FailureDomainsControlPlaneSpec{
+					Selector: tt.selector,
+				},
+			}
+
+			// Call markControlPlaneFailureDomains, which now handles both the label mapping AND the validation.
+			got, err := markControlPlaneFailureDomains(tt.domains, tt.zoneList, spec)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
-				// If we expect the custom error, verify we got exactly that error
 				if tt.name == "selector matching no domains returns error to prevent mutation" {
-					g.Expect(err).To(MatchError(ErrNoFailureDomainsMatched))
+					g.Expect(err).To(MatchError(ContainSubstring("no zone is matching the selector")))
 				}
 				return
 			}
+
 			g.Expect(err).NotTo(HaveOccurred())
 			for _, fd := range got {
 				expected, ok := tt.wantCP[fd.Name]
@@ -414,8 +435,8 @@ func TestApplyControlPlaneLabelSelector(t *testing.T) {
 	}
 }
 
-func TestClusterReconciler_getFailureDomains_ControlPlaneFilter(t *testing.T) {
-	// End-to-end tests for getFailureDomains with control plane placement constraints,
+func TestClusterReconciler_reconcileFailureDomains_ControlPlaneFilter(t *testing.T) {
+	// End-to-end tests for reconcileFailureDomains with control plane placement constraints,
 	// exercising both the NamespaceScopedZones (Zone) and legacy (AvailabilityZone) paths.
 	g := NewWithT(t)
 	ctx := context.Background()
@@ -452,7 +473,7 @@ func TestClusterReconciler_getFailureDomains_ControlPlaneFilter(t *testing.T) {
 				},
 			},
 			featureGate: false,
-			wantErr:     true, // Expect the new silent-failure prevention error
+			wantErr:     true, // Expect the silent-failure prevention error
 		},
 		{
 			name: "Cluster-Wide: no constraints — all domains are CP eligible",
@@ -512,7 +533,7 @@ func TestClusterReconciler_getFailureDomains_ControlPlaneFilter(t *testing.T) {
 			wantCP:      map[string]bool{"zone-a": true, "zone-b": true},
 		},
 		{
-			name:        "Namespaced: no zones returns nil",
+			name:        "Namespaced: no zones returns nil domains",
 			objects:     []client.Object{},
 			spec:        vmwarev1.VSphereClusterSpec{},
 			featureGate: true,
@@ -532,12 +553,20 @@ func TestClusterReconciler_getFailureDomains_ControlPlaneFilter(t *testing.T) {
 			}
 			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZones, tt.featureGate)
 
-			got, err := r.getFailureDomains(ctx, ns, tt.spec.FailureDomains)
+			vsphereCluster := &vmwarev1.VSphereCluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "test-cluster"},
+				Spec:       tt.spec,
+			}
+
+			err := r.reconcileFailureDomains(ctx, vsphereCluster)
+
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).NotTo(HaveOccurred())
+
+			got := vsphereCluster.Status.FailureDomains
 
 			if tt.wantNil {
 				g.Expect(got).To(BeNil())

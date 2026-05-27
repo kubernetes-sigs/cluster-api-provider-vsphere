@@ -1028,23 +1028,15 @@ func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprv
 	if len(refs) == 0 {
 		return nil
 	}
-	// Deduplicate by the (APIVersion, Kind, Name) triple so that an authored
-	// duplicate does not result in vm-operator seeing the same policy twice.
-	seen := make(map[vmoprvhub.PolicySpec]struct{}, len(refs))
-	newRefs := make([]vmoprvhub.PolicySpec, 0, len(refs))
+	result := make([]vmoprvhub.PolicySpec, 0, len(refs))
 	for _, ref := range refs {
-		p := vmoprvhub.PolicySpec{
+		result = append(result, vmoprvhub.PolicySpec{
 			Name:       ref.Name,
 			Kind:       ref.Kind,
 			APIVersion: ref.APIVersion,
-		}
-		if _, ok := seen[p]; ok {
-			continue
-		}
-		seen[p] = struct{}{}
-		newRefs = append(newRefs, p)
+		})
 	}
-	return newRefs
+	return result
 }
 
 // getMachineDeploymentName returns the MachineDeployment name for a Cluster.

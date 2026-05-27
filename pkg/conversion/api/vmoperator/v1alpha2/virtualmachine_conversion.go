@@ -253,9 +253,9 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 		dst.Status.Network.PrimaryIP6 = src.Status.Network.PrimaryIP6
 	}
 	dst.Status.NodeName = src.Status.Host // Field renamed in hub
+	// v1alpha2 does not have status.policies; hub field remains nil.
 	dst.Status.PowerState = vmoprvhub.VirtualMachinePowerState(src.Status.PowerState)
 	dst.Status.Zone = src.Status.Zone
-	// v1alpha2 does not have status.policies; hub field remains nil.
 
 	return nil
 }

@@ -1438,29 +1438,6 @@ func Test_getPolicies(t *testing.T) {
 				{Name: "alpha", Kind: "BPolicy", APIVersion: apiV1},
 			},
 		},
-		{
-			name: "duplicate (apiVersion, kind, name) is deduplicated while preserving first occurrence",
-			in: []vmwarev1.PolicyRef{
-				policyGVK("policy-a", "ComputePolicy", apiV1),
-				policyGVK("policy-a", "ComputePolicy", apiV1),
-				policyGVK("policy-b", "ComputePolicy", apiV1),
-			},
-			want: []vmoprvhub.PolicySpec{
-				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
-				{Name: "policy-b", Kind: "ComputePolicy", APIVersion: apiV1},
-			},
-		},
-		{
-			name: "same Name+Kind across different APIVersions is preserved (not a duplicate)",
-			in: []vmwarev1.PolicyRef{
-				policyGVK("policy-a", "ComputePolicy", apiV2),
-				policyGVK("policy-a", "ComputePolicy", apiV1),
-			},
-			want: []vmoprvhub.PolicySpec{
-				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV2},
-				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -563,17 +563,6 @@ func (r *ClusterReconciler) reconcileFailureDomains(ctx context.Context, vsphere
 			failureDomains = append(failureDomains, failureDomain)
 		}
 	} else {
-		// Prevent silent failure if the user tried to use a selector without the feature gate.
-		if spec.ControlPlane.Selector != nil {
-			conditions.Set(vsphereCluster, metav1.Condition{
-				Type:    vmwarev1.VSphereClusterFailureDomainsReadyCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  vmwarev1.VSphereClusterFailureDomainsReadyInternalErrorReason,
-				Message: "Control plane zone selector is not supported on this cluster: requires NamespaceScopedZones feature gate to be enabled",
-			})
-			return fmt.Errorf("control plane zone selector is not supported on this cluster: requires NamespaceScopedZones feature gate to be enabled")
-		}
-
 		availabilityZoneList := &topologyv1.AvailabilityZoneList{}
 		if err := r.Client.List(ctx, availabilityZoneList); err != nil {
 			conditions.Set(vsphereCluster, metav1.Condition{
@@ -647,10 +636,10 @@ func markControlPlaneFailureDomain(
 		if selector.Matches(labels.Set(zone.Labels)) {
 			failureDomain.ControlPlane = ptr.To(true)
 		}
-	} else {
-		// Backwards-compatible default
-		failureDomain.ControlPlane = ptr.To(true)
+		return nil
 	}
 
+	// Backwards-compatible default
+	failureDomain.ControlPlane = ptr.To(true)
 	return nil
 }

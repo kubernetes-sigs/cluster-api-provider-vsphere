@@ -771,8 +771,15 @@ ifneq (,$(findstring -,$(RELEASE_TAG)))
 	_RELEASE_TAG_MINOR ?= $(word 2,$(subst ., ,$(RELEASE_TAG:v%=%)))
 	# Find the previous release of the same major + minor version (including pre-releases) or the previous .0 minor release.
 	_PREVIOUS_RELEASE_TAG ?= $(shell git tag -l | grep -E -e '^v[0-9]+\.[0-9]+\.0+$$|^v$(_RELEASE_TAG_MAJOR)\.$(_RELEASE_TAG_MINOR)\.' | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
-	# Set the argument for release-notes generator to provide the for pre-releases mandatory `--previous-release-version` flag.
-	RELEASE_NOTES_PRE_RELEASE_ARG ?= "--previous-release-version=tags/$(_PREVIOUS_RELEASE_TAG)"
+	# Set the argument for release-notes generator to provide the for pre-releases mandatory
+	# `--previous-release-version` flag, but only if the previous release is also a pre-release.
+	# For the first pre-release (e.g. v1.15.0-beta.0 after v1.14.0), the generator must NOT
+	# receive `--previous-release-version`.
+	ifneq (,$(findstring alpha.,$(_PREVIOUS_RELEASE_TAG))$(findstring beta.,$(_PREVIOUS_RELEASE_TAG))$(findstring rc.,$(_PREVIOUS_RELEASE_TAG)))
+		RELEASE_NOTES_PRE_RELEASE_ARG ?= "--previous-release-version=tags/$(_PREVIOUS_RELEASE_TAG)"
+	else
+		RELEASE_NOTES_PRE_RELEASE_ARG ?=
+	endif
 endif
 ## set by Prow, ref name of the base branch, e.g., main
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)

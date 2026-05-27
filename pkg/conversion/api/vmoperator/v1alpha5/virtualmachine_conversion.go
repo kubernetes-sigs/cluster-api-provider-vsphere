@@ -120,6 +120,12 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 					}
 				}
 				d.SearchDomains = iface.SearchDomains
+				// Fields existing in hub but not in v1alpha5.VirtualMachineNetworkInterfaceSpec
+				// - Type
+				// - VMXNet3
+				// - VNUMANodeID
+				// - AdvancedProperties
+				// - IPAMModes
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
 		}
@@ -376,6 +382,12 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 					}
 				}
 				d.SearchDomains = iface.SearchDomains
+				// Fields existing in hub but not in v1alpha5.VirtualMachineNetworkInterfaceSpec
+				// - Type
+				// - VMXNet3
+				// - VNUMANodeID
+				// - AdvancedProperties
+				// - IPAMModes
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
 		}

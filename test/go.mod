@@ -26,6 +26,7 @@ require (
 	github.com/vmware-tanzu/vm-operator/external/infra v0.0.0-20260506225634-46e3104c57d1
 	github.com/vmware-tanzu/vm-operator/external/storage-policy-quota v0.0.0-20260506225634-46e3104c57d1
 	golang.org/x/crypto v0.52.0
+	gomodules.xyz/jsonpatch/v2 v2.5.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.36.1
 	k8s.io/apiextensions-apiserver v0.36.1
@@ -167,7 +168,6 @@ require (
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
-	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/grpc v1.80.0 // indirect

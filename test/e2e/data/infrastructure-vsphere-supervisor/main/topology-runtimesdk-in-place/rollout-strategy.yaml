@@ -1,0 +1,13 @@
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: kubeadmControlPlaneMaxSurge
+    value: "0"
+- op: add
+  path: /spec/topology/workers/machineDeployments/0/rollout
+  value:
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1

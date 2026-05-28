@@ -110,9 +110,10 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				newTestSupervisorLBServiceWithHostnameStatus()}
 		})
 		It("Should reconcile headless svc", func() {
-			By("creating a service and endpoints using the VIP in the guest cluster")
-			assertHeadlessSvcWithVIPHostnameEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyReason)
+			By("creating a service and no endpoint in the guest cluster")
+			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionFalse, "must be an IP address",
+				vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason)
 		})
 	})
 	Context("When FIP is an hostname", func() {
@@ -122,9 +123,10 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			}
 		})
 		It("Should reconcile headless svc", func() {
-			By("creating a service and endpoints using the FIP in the guest cluster")
-			assertHeadlessSvcWithFIPHostNameEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyReason)
+			By("creating a service and no endpoint in the guest cluster")
+			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, metav1.ConditionFalse, "must be an IP address",
+				vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason)
 		})
 	})
 	Context("When FIP is an empty hostname", func() {

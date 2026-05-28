@@ -29,7 +29,9 @@ import (
 )
 
 const (
-	KubernetesVersion = "KUBERNETES_VERSION"
+	KubernetesVersion                   = "KUBERNETES_VERSION"
+	KubernetesVersionChainedUpgradeFrom = "KUBERNETES_VERSION_CHAINED_UPGRADE_FROM"
+	KubernetesVersionUpgradeTo          = "KUBERNETES_VERSION_UPGRADE_TO"
 )
 
 type InfraClients struct {

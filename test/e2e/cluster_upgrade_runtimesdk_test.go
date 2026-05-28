@@ -17,12 +17,15 @@ limitations under the License.
 package e2e
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
@@ -70,3 +73,61 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 		})
 	})
 })
+
+var _ = Describe("When performing chained upgrades for workload cluster using ClusterClass in a different NS with RuntimeSDK [vcsim] [supervisor] [ClusterClass]", Label("ClusterClass"), func() {
+	const specName = "k8s-upgrade-with-runtimesdk-chained" // prefix (k8s-upgrade-with-runtimesdk) copied from CAPI
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
+		capi_e2e.ClusterUpgradeWithRuntimeSDKSpec(ctx, func() capi_e2e.ClusterUpgradeWithRuntimeSDKSpecInput {
+			return capi_e2e.ClusterUpgradeWithRuntimeSDKSpecInput{
+				E2EConfig:             e2eConfig,
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				ArtifactFolder:        artifactFolder,
+				SkipCleanup:           skipCleanup,
+				PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+					// continuous reconciles when everything should be stable.
+					resourceVersionInput := framework.ValidateResourceVersionStableInput{
+						ClusterProxy:             proxy,
+						Namespace:                namespace,
+						OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+						WaitToBecomeStable:       e2eConfig.GetIntervals(specName, "wait-resource-versions-become-stable"),
+						WaitToRemainStable:       e2eConfig.GetIntervals(specName, "wait-resource-versions-remain-stable"),
+					}
+					framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
+				},
+				// "topology-runtimesdk" is the same as the "topology" flavor but with an additional RuntimeExtension.
+				Flavor:                                ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
+				DeployClusterClassInSeparateNamespace: true,
+				// Setting Kubernetes version from
+				KubernetesVersionFrom: e2eConfig.MustGetVariable(KubernetesVersionChainedUpgradeFrom),
+				// Build a list of Kubernetes version with at least one version in between KubernetesVersionChainedUpgradeFrom and KubernetesVersionUpgradeTo.
+				// NOTE: this relies on the fact that CAPV maintainers are publishing a .0 image for each Kubernetes version.
+				KubernetesVersions: getKubernetesVersions(e2eConfig.MustGetVariable(KubernetesVersionChainedUpgradeFrom), e2eConfig.MustGetVariable(KubernetesVersionUpgradeTo)),
+				// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+				// by the test-extension-webhook-service.
+				// The below values are used when creating the cluster-wide ExtensionConfig to refer
+				// the actual service.
+				ExtensionServiceNamespace: "capv-test-extension",
+				ExtensionServiceName:      "capv-test-extension-webhook-service",
+				ExtensionConfigName:       "k8s-chained-upgrade-with-runtimesdk-cross-ns",
+				PostNamespaceCreated:      testSpecificSettingsGetter().PostNamespaceCreatedFunc,
+			}
+		})
+	})
+})
+
+func getKubernetesVersions(from, to string) []string {
+	fromMinor := semver.MustParse(strings.TrimPrefix(from, "v")).Minor
+	toMinor := semver.MustParse(strings.TrimPrefix(to, "v")).Minor
+
+	versions := []string{from}
+	for i := fromMinor + 1; i <= toMinor; i++ {
+		if i == toMinor {
+			versions = append(versions, to)
+			break
+		}
+		versions = append(versions, fmt.Sprintf("v1.%d.0", i))
+	}
+	return versions
+}

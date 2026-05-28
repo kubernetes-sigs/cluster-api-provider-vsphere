@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/pflag"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -228,6 +229,7 @@ func toFeatureVersion(v string) *version.Version {
 	versions := map[string]*version.Version{
 		vmoprv1alpha2.GroupVersion.Version: version.MustParse("0.2"),
 		vmoprv1alpha5.GroupVersion.Version: version.MustParse("0.5"),
+		vmoprv1alpha6.GroupVersion.Version: version.MustParse("0.6"),
 	}
 	featureVersion, ok := versions[v]
 	if !ok {

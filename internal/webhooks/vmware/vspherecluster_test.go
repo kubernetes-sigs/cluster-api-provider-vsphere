@@ -43,7 +43,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:            "successful VSphereCluster creation without network",
-			vsphereCluster:  createVSphereCluster("test-cluster", vmwarev1.Network{}),
+			vsphereCluster:  createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         false,
@@ -54,7 +54,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 				NSXVPC: vmwarev1.NSXVPC{
 					CreateSubnetSet: ptr.To(true),
 				},
-			}),
+			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         false,
@@ -65,7 +65,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 				NSXVPC: vmwarev1.NSXVPC{
 					CreateSubnetSet: ptr.To(true),
 				},
-			}),
+			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
 			featureGates:    map[string]bool{"MultiNetworks": false},
 			wantErr:         true,
@@ -78,7 +78,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 				NSXVPC: vmwarev1.NSXVPC{
 					CreateSubnetSet: ptr.To(false),
 				},
-			}),
+			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
 			featureGates:    map[string]bool{"MultiNetworks": false},
 			wantErr:         true,
@@ -89,7 +89,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			name: "successful VSphereCluster creation with nsxVPC and createSubnetSet is nil and MultiNetworks disabled",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{},
-			}),
+			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
 			featureGates:    map[string]bool{"MultiNetworks": false},
 			wantErr:         false,
@@ -100,7 +100,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 				NSXVPC: vmwarev1.NSXVPC{
 					CreateSubnetSet: ptr.To(true),
 				},
-			}),
+			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.VDSNetworkProvider,
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
@@ -113,12 +113,65 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 				NSXVPC: vmwarev1.NSXVPC{
 					CreateSubnetSet: ptr.To(false),
 				},
-			}),
+			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXNetworkProvider,
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
 			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+		},
+		{
+			name: "successful VSphereCluster creation with valid control plane selector and feature gate enabled",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{
+				ControlPlane: vmwarev1.FailureDomainsControlPlaneSpec{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"type": "management"},
+					},
+				},
+			}),
+			featureGates: map[string]bool{"NamespaceScopedZones": true},
+			wantErr:      false,
+		},
+		{
+			name: "failed VSphereCluster creation with control plane selector but feature gate disabled",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{
+				ControlPlane: vmwarev1.FailureDomainsControlPlaneSpec{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"type": "management"},
+					},
+				},
+			}),
+			featureGates: map[string]bool{"NamespaceScopedZones": false},
+			wantErr:      true,
+			errType:      &apierrors.StatusError{},
+			errMsg:       "control plane zone selector is not supported on this cluster",
+		},
+		{
+			name: "failed VSphereCluster creation with invalid control plane selector syntax",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{
+				ControlPlane: vmwarev1.FailureDomainsControlPlaneSpec{
+					Selector: &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{Key: "k", Operator: "InvalidOp", Values: []string{"v"}},
+						},
+					},
+				},
+			}),
+			featureGates: map[string]bool{"NamespaceScopedZones": true},
+			wantErr:      true,
+			errType:      &apierrors.StatusError{},
+		},
+		{
+			name: "failed VSphereCluster creation with empty control plane selector",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{
+				ControlPlane: vmwarev1.FailureDomainsControlPlaneSpec{
+					Selector: &metav1.LabelSelector{}, // Empty selector
+				},
+			}),
+			featureGates: map[string]bool{"NamespaceScopedZones": true},
+			wantErr:      true,
+			errType:      &apierrors.StatusError{},
+			errMsg:       "selector must not be empty",
 		},
 	}
 
@@ -162,11 +215,27 @@ func TestVSphereCluster_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:              "successful VSphereCluster update without network",
-			oldVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}),
-			newVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}),
+			oldVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
+			newVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider:   manager.NSXVPCNetworkProvider,
 			featureGates:      map[string]bool{"MultiNetworks": true},
 			wantErr:           false,
+		},
+		{
+			name:              "failed update with control plane selector when feature gate disabled",
+			oldVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
+			newVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{
+				ControlPlane: vmwarev1.FailureDomainsControlPlaneSpec{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"type": "management"},
+					},
+				},
+			}),
+			networkProvider: manager.NSXVPCNetworkProvider,
+			featureGates:    map[string]bool{"NamespaceScopedZones": false},
+			wantErr:         true,
+			errType:         &apierrors.StatusError{},
+			errMsg:          "control plane zone selector is not supported on this cluster",
 		},
 	}
 
@@ -201,7 +270,7 @@ func TestVSphereCluster_ValidateDelete(t *testing.T) {
 	g := NewWithT(t)
 
 	webhook := &VSphereCluster{}
-	cluster := createVSphereCluster("test-cluster", vmwarev1.Network{})
+	cluster := createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{})
 
 	warnings, err := webhook.ValidateDelete(context.Background(), cluster)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -209,13 +278,14 @@ func TestVSphereCluster_ValidateDelete(t *testing.T) {
 }
 
 // Helper functions.
-func createVSphereCluster(name string, network vmwarev1.Network) *vmwarev1.VSphereCluster {
+func createVSphereCluster(name string, network vmwarev1.Network, failureDomains vmwarev1.FailureDomainsSpec) *vmwarev1.VSphereCluster {
 	return &vmwarev1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: vmwarev1.VSphereClusterSpec{
-			Network: network,
+			Network:        network,
+			FailureDomains: failureDomains,
 		},
 	}
 }
@@ -226,6 +296,9 @@ func setupFeatureGates(t *testing.T, featureGates map[string]bool) {
 	for featureName, enabled := range featureGates {
 		if featureName == "MultiNetworks" {
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, enabled)
+		}
+		if featureName == "NamespaceScopedZones" {
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZones, enabled)
 		}
 	}
 }

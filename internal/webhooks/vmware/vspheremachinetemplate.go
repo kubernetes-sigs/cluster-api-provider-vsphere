@@ -98,6 +98,7 @@ func (webhook *VSphereMachineTemplate) ValidateUpdate(ctx context.Context, oldOb
 
 func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphereMachineTemplate *vmwarev1.VSphereMachineTemplate) (admission.Warnings, error) {
 	allErrs := validateNetwork(webhook.NetworkProvider, newVSphereMachineTemplate.Spec.Template.Spec.Network, field.NewPath("spec", "template", "spec", "network"))
+	allErrs = append(allErrs, validatePolicies(newVSphereMachineTemplate.Spec.Template.Spec.Policies, field.NewPath("spec", "template", "spec", "policies"))...)
 
 	// Validate namingStrategy
 	namingStrategy := newVSphereMachineTemplate.Spec.Template.Spec.Naming

@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -545,6 +546,7 @@ var _ = Describe("Reconciliation tests", func() {
 		func(isLB bool) {
 			k8sClient, managerCancel = prepareClient(isLB)
 			defer managerCancel()
+			featuregatetesting.SetFeatureGateDuringTest(GinkgoTB(), feature.Gates, feature.InfrastructurePolicies, true)
 
 			By("Create target namespace")
 			ns := deployNamespace(k8sClient)

@@ -52,6 +52,7 @@ func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *VSphereMachine) ValidateCreate(_ context.Context, objTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
 	allErrs := validateNetwork(webhook.NetworkProvider, objTyped.Spec.Network, field.NewPath("spec", "network"))
+	allErrs = append(allErrs, validatePolicies(objTyped.Spec.Policies, field.NewPath("spec", "policies"))...)
 
 	return nil, webhooks.AggregateObjErrors(objTyped.GroupVersionKind().GroupKind(), objTyped.Name, allErrs)
 }
@@ -88,6 +89,7 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTy
 	}
 
 	allErrs = append(allErrs, validateNetwork(webhook.NetworkProvider, newSpec.Network, field.NewPath("spec", "network"))...)
+	allErrs = append(allErrs, validatePolicies(newSpec.Policies, field.NewPath("spec", "policies"))...)
 
 	return nil, webhooks.AggregateObjErrors(newTyped.GroupVersionKind().GroupKind(), newTyped.Name, allErrs)
 }
@@ -162,4 +164,17 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 		}
 	}
 	return allErrs
+}
+
+// validatePolicies validates the policies field is only set when the feature gate InfrastructurePolicies is enabled.
+func validatePolicies(policies []vmwarev1.PolicyRef, fldPath *field.Path) field.ErrorList {
+	if len(policies) == 0 {
+		return nil
+	}
+	if feature.Gates.Enabled(feature.InfrastructurePolicies) {
+		return nil
+	}
+	return field.ErrorList{
+		field.Forbidden(fldPath, "policies can only be set when feature gate InfrastructurePolicies is enabled"),
+	}
 }

@@ -322,7 +322,7 @@ spec:
                         kind must be a CamelCase Kubernetes Kind starting with an uppercase letter (e.g. ComputePolicy).
                       maxLength: 63
                       minLength: 1
-                      pattern: ^[A-Z][a-zA-Z0-9]*$
+                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                       type: string
                     name:
                       description: |-
@@ -338,6 +338,7 @@ spec:
                   - name
                   type: object
                 maxItems: 64
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               powerOffMode:
@@ -1220,7 +1221,7 @@ spec:
                         kind must be a CamelCase Kubernetes Kind starting with an uppercase letter (e.g. ComputePolicy).
                       maxLength: 63
                       minLength: 1
-                      pattern: ^[A-Z][a-zA-Z0-9]*$
+                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                       type: string
                     name:
                       description: |-
@@ -1236,6 +1237,7 @@ spec:
                   - name
                   type: object
                 maxItems: 64
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               powerOffMode:

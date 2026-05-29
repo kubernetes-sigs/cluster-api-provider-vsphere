@@ -109,7 +109,7 @@ func validateFailureDomainsControlPlaneSelector(selector *metav1.LabelSelector, 
 	if !feature.Gates.Enabled(feature.NamespaceScopedZones) {
 		allErrs = append(allErrs, field.Forbidden(
 			fldPath,
-			"control plane zone selector is not supported on this cluster: requires NamespaceScopedZones feature gate to be enabled",
+			"control plane zone selector can only be set when feature gate NamespaceScopedZones is enabled",
 		))
 		return allErrs
 	}

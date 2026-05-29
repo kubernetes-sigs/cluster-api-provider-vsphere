@@ -42,10 +42,10 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 		errMsg          string // expected error message or substring
 	}{
 		{
-			name:            "successful VSphereCluster creation without network",
+			name:            "successful VSphereCluster creation without network and failure domain selector",
 			vsphereCluster:  createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
-			featureGates:    map[string]bool{"MultiNetworks": true},
+			featureGates:    map[string]bool{"NamespaceScopedZones": true, "MultiNetworks": true},
 			wantErr:         false,
 		},
 		{
@@ -144,7 +144,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			featureGates: map[string]bool{"NamespaceScopedZones": false},
 			wantErr:      true,
 			errType:      &apierrors.StatusError{},
-			errMsg:       "control plane zone selector is not supported on this cluster",
+			errMsg:       "control plane zone selector can only be set when feature gate NamespaceScopedZones is enabled",
 		},
 		{
 			name: "failed VSphereCluster creation with invalid control plane selector syntax",
@@ -235,7 +235,7 @@ func TestVSphereCluster_ValidateUpdate(t *testing.T) {
 			featureGates:    map[string]bool{"NamespaceScopedZones": false},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "control plane zone selector is not supported on this cluster",
+			errMsg:          "control plane zone selector can only be set when feature gate NamespaceScopedZones is enabled",
 		},
 	}
 

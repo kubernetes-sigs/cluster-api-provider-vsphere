@@ -26,12 +26,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vsphereclustertemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=vmware.infrastructure.cluster.x-k8s.io,resources=vsphereclustertemplates,versions=v1beta2,name=validation.vsphereclustertemplate.vmware.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 // VSphereClusterTemplate implements a validation webhook for VSphereClusterTemplate.
-type VSphereClusterTemplate struct{}
+type VSphereClusterTemplate struct {
+	NetworkProvider string
+}
 
 var _ admission.Validator[*vmwarev1.VSphereClusterTemplate] = &VSphereClusterTemplate{}
 
@@ -57,12 +61,33 @@ func (webhook *VSphereClusterTemplate) ValidateDelete(_ context.Context, _ *vmwa
 	return nil, nil
 }
 
+// validateClusterTemplateNetwork validates the network configuration of the VSphereClusterTemplate.
+func (webhook *VSphereClusterTemplate) validateClusterTemplateNetwork(template *vmwarev1.VSphereClusterTemplate) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if !feature.Gates.Enabled(feature.MultiNetworks) && template.Spec.Template.Spec.Network.NSXVPC.CreateSubnetSet != nil {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "template", "spec", "network", "nsxVPC", "createSubnetSet"),
+			"createSubnetSet can only be set when MultiNetworks feature gate is enabled",
+		))
+	}
+	if template.Spec.Template.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "template", "spec", "network", "nsxVPC"),
+			"nsxVPC can only be set when network provider is NSX-VPC",
+		))
+	}
+
+	return allErrs
+}
+
 // validate aggregates all validations for the VSphereClusterTemplate.
 func (webhook *VSphereClusterTemplate) validate(template *vmwarev1.VSphereClusterTemplate) (admission.Warnings, error) {
-	allErrs := validateFailureDomainsControlPlaneSelector(
+	allErrs := webhook.validateClusterTemplateNetwork(template)
+	allErrs = append(allErrs, validateFailureDomainsControlPlaneSelector(
 		template.Spec.Template.Spec.FailureDomains.ControlPlane.Selector,
 		field.NewPath("spec", "template", "spec", "failureDomains", "controlPlane", "selector"),
-	)
+	)...)
 
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(template.GroupVersionKind().GroupKind(), template.Name, allErrs)

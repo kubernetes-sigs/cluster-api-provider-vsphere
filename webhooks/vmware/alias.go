@@ -45,3 +45,11 @@ type VSphereCluster struct{}
 func (webhook *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
 	return (&vmware.VSphereCluster{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
 }
+
+// VSphereClusterTemplate implements a validation and defaulting webhook for VSphereClusterTemplate.
+type VSphereClusterTemplate struct{}
+
+// SetupWebhookWithManager sets up VSphereClusterTemplate webhooks.
+func (webhook *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
+	return (&vmware.VSphereClusterTemplate{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
+}

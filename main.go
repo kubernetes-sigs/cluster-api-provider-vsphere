@@ -650,6 +650,9 @@ func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.
 	if err := (&vmwarewebhooks.VSphereMachine{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
 		return err
 	}
+	if err := (&vmwarewebhooks.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
+		return err
+	}
 	if err := (&vmwarewebhooks.VSphereCluster{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
 		return err
 	}

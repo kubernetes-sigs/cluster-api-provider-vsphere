@@ -21,6 +21,7 @@ import (
 	"context"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -48,12 +49,12 @@ func (webhook *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *VSphereCluster) ValidateCreate(_ context.Context, obj *vmwarev1.VSphereCluster) (admission.Warnings, error) {
-	return webhook.validateClusterNetwork(obj)
+	return webhook.validate(obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *VSphereCluster) ValidateUpdate(_ context.Context, _, newTyped *vmwarev1.VSphereCluster) (admission.Warnings, error) {
-	return webhook.validateClusterNetwork(newTyped)
+	return webhook.validate(newTyped)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -61,16 +62,75 @@ func (webhook *VSphereCluster) ValidateDelete(_ context.Context, _ *vmwarev1.VSp
 	return nil, nil
 }
 
-func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereCluster) (admission.Warnings, error) {
+// validateClusterNetwork validates the network configuration of the VSphereCluster.
+func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereCluster) field.ErrorList {
+	var allErrs field.ErrorList
+
 	if !feature.Gates.Enabled(feature.MultiNetworks) && cluster.Spec.Network.NSXVPC.CreateSubnetSet != nil {
-		return nil, apierrors.NewInvalid(cluster.GroupVersionKind().GroupKind(), cluster.Name, field.ErrorList{
-			field.Forbidden(field.NewPath("spec", "network", "nsxVPC", "createSubnetSet"), "createSubnetSet can only be set when MultiNetworks feature gate is enabled"),
-		})
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "network", "nsxVPC", "createSubnetSet"),
+			"createSubnetSet can only be set when MultiNetworks feature gate is enabled",
+		))
 	}
 	if cluster.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
-		return nil, apierrors.NewInvalid(cluster.GroupVersionKind().GroupKind(), cluster.Name, field.ErrorList{
-			field.Forbidden(field.NewPath("spec", "network", "nsxVPC"), "nsxVPC can only be set when network provider is NSX-VPC"),
-		})
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "network", "nsxVPC"),
+			"nsxVPC can only be set when network provider is NSX-VPC",
+		))
 	}
+
+	return allErrs
+}
+
+// validate aggregates all shared validations for the VSphereCluster.
+func (webhook *VSphereCluster) validate(cluster *vmwarev1.VSphereCluster) (admission.Warnings, error) {
+	allErrs := webhook.validateClusterNetwork(cluster)
+	allErrs = append(allErrs, validateFailureDomainsControlPlaneSelector(
+		cluster.Spec.FailureDomains.ControlPlane.Selector,
+		field.NewPath("spec", "failureDomains", "controlPlane", "selector"),
+	)...)
+
+	if len(allErrs) > 0 {
+		return nil, apierrors.NewInvalid(cluster.GroupVersionKind().GroupKind(), cluster.Name, allErrs)
+	}
+
 	return nil, nil
+}
+
+// validateFailureDomainsControlPlaneSelector validates the control plane failure domain selector.
+func validateFailureDomainsControlPlaneSelector(selector *metav1.LabelSelector, fldPath *field.Path) field.ErrorList {
+	if selector == nil {
+		return nil
+	}
+
+	var allErrs field.ErrorList
+
+	// Validate Feature Gate is enabled.
+	if !feature.Gates.Enabled(feature.NamespaceScopedZones) {
+		allErrs = append(allErrs, field.Forbidden(
+			fldPath,
+			"control plane zone selector can only be set when feature gate NamespaceScopedZones is enabled",
+		))
+		return allErrs
+	}
+
+	// Validate the selector syntax is valid.
+	parsedSelector, err := metav1.LabelSelectorAsSelector(selector)
+	if err != nil {
+		allErrs = append(
+			allErrs,
+			field.Invalid(fldPath, selector, err.Error()),
+		)
+		return allErrs
+	}
+
+	// Validate the selector is not empty.
+	if parsedSelector.Empty() {
+		allErrs = append(
+			allErrs,
+			field.Invalid(fldPath, selector, "selector must not be empty"),
+		)
+	}
+
+	return allErrs
 }

@@ -286,10 +286,23 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 
 	log.V(5).Info("Discovered supervisor API server endpoint", "host", supervisorHost, "port", supervisorPort)
 	// CreateOrPatch the newEndpoints with the discovered supervisor api server address
-	newEndpoints := newSupervisorHeadlessServiceEndpoints(
+	newEndpoints, err := newSupervisorHeadlessServiceEndpoints(
 		supervisorHost,
 		supervisorPort,
 	)
+	if err != nil {
+		// Note: We have watches on the LB Svc (VIP) & the cluster-info configmap (FIP).
+		// There is no need to return an error to keep re-trying.
+		deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition, vmwarev1.SupervisorHeadlessServiceSetupFailedV1Beta1Reason,
+			clusterv1.ConditionSeverityWarning, "%v", err)
+		conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
+			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason,
+			Message: err.Error(),
+		})
+		return nil
+	}
 	endpointsKey := types.NamespacedName{
 		Namespace: newEndpoints.Namespace,
 		Name:      newEndpoints.Name,
@@ -376,12 +389,10 @@ func newSupervisorHeadlessService(port, targetPort int) *corev1.Service {
 }
 
 // newSupervisorHeadlessServiceEndpoints returns Kubernetes Endpoints for the supervisor apiserver address.
-func newSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *corev1.Endpoints {
-	var endpointAddr corev1.EndpointAddress
-	if ip := net.ParseIP(targetHost); ip != nil {
-		endpointAddr.IP = ip.String()
-	} else {
-		endpointAddr.Hostname = targetHost
+func newSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) (*corev1.Endpoints, error) {
+	ip := net.ParseIP(targetHost)
+	if ip == nil {
+		return nil, errors.Errorf("invalid supervisor API server endpoint %q: must be an IP address", targetHost)
 	}
 	return &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
@@ -391,7 +402,7 @@ func newSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *c
 		Subsets: []corev1.EndpointSubset{
 			{
 				Addresses: []corev1.EndpointAddress{
-					endpointAddr,
+					{IP: ip.String()},
 				},
 				Ports: []corev1.EndpointPort{
 					{
@@ -400,7 +411,7 @@ func newSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *c
 				},
 			},
 		},
-	}
+	}, nil
 }
 
 // getSupervisorAPIServerVIP finds the load balancer IP of the Supervisor APIServer.

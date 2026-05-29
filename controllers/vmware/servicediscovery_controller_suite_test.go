@@ -95,27 +95,11 @@ func assertHeadlessSvcWithVIPEndpoints(ctx context.Context, guestClient client.C
 	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(supervisorAPIServerPort)))
 }
 
-func assertHeadlessSvcWithVIPHostnameEndpoints(ctx context.Context, guestClient client.Client, namespace, name string) {
-	assertHeadlessSvc(ctx, guestClient, namespace, name)
-	headlessEndpoints := &corev1.Endpoints{}
-	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)
-	Expect(headlessEndpoints.Subsets[0].Addresses[0].Hostname).To(Equal(testSupervisorAPIServerVIPHostName))
-	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(supervisorAPIServerPort)))
-}
-
 func assertHeadlessSvcWithFIPEndpoints(ctx context.Context, guestClient client.Client, namespace, name string) {
 	assertHeadlessSvc(ctx, guestClient, namespace, name)
 	headlessEndpoints := &corev1.Endpoints{}
 	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)
 	Expect(headlessEndpoints.Subsets[0].Addresses[0].IP).To(Equal(testSupervisorAPIServerFIP))
-	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(testSupervisorAPIServerPort)))
-}
-
-func assertHeadlessSvcWithFIPHostNameEndpoints(ctx context.Context, guestClient client.Client, namespace, name string) {
-	assertHeadlessSvc(ctx, guestClient, namespace, name)
-	headlessEndpoints := &corev1.Endpoints{}
-	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)
-	Expect(headlessEndpoints.Subsets[0].Addresses[0].Hostname).To(Equal(testSupervisorAPIServerFIPHostName))
 	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(testSupervisorAPIServerPort)))
 }
 

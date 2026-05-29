@@ -89,6 +89,8 @@ func TestFuzzyConversion(t *testing.T) {
 func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVirtualMachineVolume,
+		hubVirtualMachineSpec,
+		hubVirtualMachineStatus,
 	}
 }
 
@@ -114,4 +116,18 @@ func hubVirtualMachineGroupPlacementDatastoreStatus(in *vmoprvhub.VirtualMachine
 	c.FillNoCustom(in)
 	// Fields existing in hub but not in v1alpha2.VirtualMachineGroupPlacementDatastoreStatus
 	in.TopLevelDirectoryCreateSupported = false
+}
+
+func hubVirtualMachineSpec(in *vmoprvhub.VirtualMachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Policies exists in hub and v1alpha5 but not in v1alpha2; zero it so the
+	// hub-spoke-hub round-trip test does not report spurious data loss.
+	in.Policies = nil
+}
+
+func hubVirtualMachineStatus(in *vmoprvhub.VirtualMachineStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Policies exists in hub and v1alpha5 but not in v1alpha2; zero it so the
+	// hub-spoke-hub round-trip test does not report spurious data loss.
+	in.Policies = nil
 }

@@ -382,3 +382,45 @@ func TestVSphereMachine_ValidateUpdate_MultiNetwork(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("cannot be modified"))
 }
+
+func TestVSphereMachine_ValidateCreate_InfrastructurePolicies(t *testing.T) {
+	tests := []struct {
+		name        string
+		featureGate bool
+		wantErr     bool
+	}{
+		{
+			name:        "policies set when feature gate disabled",
+			featureGate: false,
+			wantErr:     true,
+		},
+		{
+			name:        "policies set when feature gate enabled",
+			featureGate: true,
+			wantErr:     false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, tc.featureGate)
+			webhook := &VSphereMachine{}
+			obj := &vmwarev1.VSphereMachine{
+				Spec: vmwarev1.VSphereMachineSpec{
+					Policies: []vmwarev1.PolicyRef{
+						{Name: "policy-1", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+					},
+				},
+			}
+
+			_, err := webhook.ValidateCreate(context.Background(), obj)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring("policies can only be set when feature gate InfrastructurePolicies is enabled"))
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}

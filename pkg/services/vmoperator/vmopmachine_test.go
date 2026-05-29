@@ -739,6 +739,79 @@ var _ = Describe("VirtualMachine tests", func() {
 			}
 		})
 
+		Context("With InfrastructurePolicies feature gate enabled", func() {
+			BeforeEach(func() {
+				t := GinkgoT()
+				featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, true)
+			})
+
+			Specify("Create with infrastructure policies propagates to VM spec and survives update reconcile", func() {
+				expectReconcileError = false
+				expectVMOpVM = true
+				expectedImageName = imageName
+				expectedRequeue = true
+
+				vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
+					{
+						Name:       "policy-a",
+						Kind:       "ComputePolicy",
+						APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+					},
+					{
+						Name:       "policy-b",
+						Kind:       "ComputePolicy",
+						APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+					},
+				}
+
+				By("VirtualMachine is created")
+				requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+				verifyOutput(supervisorMachineContext)
+
+				By("Checking that Spec.Policies is set after create reconcile")
+				vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+				Expect(vmopVM.Spec.Policies).To(HaveLen(2))
+				Expect(vmopVM.Spec.Policies[0]).To(Equal(vmoprv1alpha5.PolicySpec{
+					Name:       "policy-a",
+					Kind:       "ComputePolicy",
+					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				}))
+				Expect(vmopVM.Spec.Policies[1]).To(Equal(vmoprv1alpha5.PolicySpec{
+					Name:       "policy-b",
+					Kind:       "ComputePolicy",
+					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				}))
+
+				By("Running a second reconcile (update path) and verifying policies are preserved")
+				requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+				Expect(err).NotTo(HaveOccurred())
+				vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+				Expect(vmopVM.Spec.Policies).To(HaveLen(2),
+					"Spec.Policies must not be cleared on an update reconcile")
+				Expect(vmopVM.Spec.Policies[0].Name).To(Equal("policy-a"))
+				Expect(vmopVM.Spec.Policies[1].Name).To(Equal("policy-b"))
+			})
+		})
+
+		Specify("Create with infrastructure policies is ignored when feature gate disabled", func() {
+			expectReconcileError = false
+			expectVMOpVM = true
+			expectedImageName = imageName
+			expectedRequeue = true
+
+			vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
+				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+			}
+
+			By("VirtualMachine is created (gate off)")
+			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+			verifyOutput(supervisorMachineContext)
+
+			By("Spec.Policies must be empty when gate is disabled")
+			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+			Expect(vmopVM.Spec.Policies).To(BeEmpty())
+		})
+
 		Context("With node auto placement feature gate enabled", func() {
 			BeforeEach(func() {
 				t := GinkgoT()
@@ -1301,4 +1374,99 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_getPolicies(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, true)
+
+	policyGVK := func(name, kind, apiVersion string) vmwarev1.PolicyRef {
+		return vmwarev1.PolicyRef{Name: name, Kind: kind, APIVersion: apiVersion}
+	}
+	const (
+		apiV1 = "vsphere.policy.vmware.com/v1alpha1"
+		apiV2 = "vsphere.policy.vmware.com/v1alpha2"
+	)
+	tests := []struct {
+		name string
+		in   []vmwarev1.PolicyRef
+		want []vmoprvhub.PolicySpec
+	}{
+		{
+			name: "nil slice returns nil",
+			in:   nil,
+			want: nil,
+		},
+		{
+			name: "empty slice returns nil",
+			in:   []vmwarev1.PolicyRef{},
+			want: nil,
+		},
+		{
+			name: "single ComputePolicy maps to hub PolicySpec",
+			in: []vmwarev1.PolicyRef{
+				policyGVK("my-compute-policy", "ComputePolicy", apiV1),
+			},
+			want: []vmoprvhub.PolicySpec{
+				{Name: "my-compute-policy", Kind: "ComputePolicy", APIVersion: apiV1},
+			},
+		},
+		{
+			name: "multiple ComputePolicies preserve input order",
+			in: []vmwarev1.PolicyRef{
+				policyGVK("policy-c", "ComputePolicy", apiV1),
+				policyGVK("policy-a", "ComputePolicy", apiV1),
+				policyGVK("policy-b", "ComputePolicy", apiV1),
+			},
+			want: []vmoprvhub.PolicySpec{
+				{Name: "policy-c", Kind: "ComputePolicy", APIVersion: apiV1},
+				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
+				{Name: "policy-b", Kind: "ComputePolicy", APIVersion: apiV1},
+			},
+		},
+		{
+			name: "mixed Kinds and APIVersions preserve input order",
+			in: []vmwarev1.PolicyRef{
+				policyGVK("alpha", "ZPolicy", apiV2),
+				policyGVK("beta", "APolicy", apiV1),
+				policyGVK("alpha", "APolicy", apiV1),
+				policyGVK("alpha", "BPolicy", apiV1),
+			},
+			want: []vmoprvhub.PolicySpec{
+				{Name: "alpha", Kind: "ZPolicy", APIVersion: apiV2},
+				{Name: "beta", Kind: "APolicy", APIVersion: apiV1},
+				{Name: "alpha", Kind: "APolicy", APIVersion: apiV1},
+				{Name: "alpha", Kind: "BPolicy", APIVersion: apiV1},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			sm := &vmware.SupervisorMachineContext{
+				VSphereMachine: &vmwarev1.VSphereMachine{
+					Spec: vmwarev1.VSphereMachineSpec{
+						Policies: tt.in,
+					},
+				},
+			}
+			got := getPolicies(sm)
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_getPolicies_FeatureGateDisabled(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, false)
+
+	sm := &vmware.SupervisorMachineContext{
+		VSphereMachine: &vmwarev1.VSphereMachine{
+			Spec: vmwarev1.VSphereMachineSpec{
+				Policies: []vmwarev1.PolicyRef{
+					{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+				},
+			},
+		},
+	}
+	got := getPolicies(sm)
+	NewWithT(t).Expect(got).To(BeNil())
 }

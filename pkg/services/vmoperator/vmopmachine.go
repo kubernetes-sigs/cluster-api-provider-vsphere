@@ -637,6 +637,11 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		return err
 	}
 
+	// Only set spec.policies on create as the field is immutable.
+	if vmOperatorVM.CreationTimestamp.IsZero() {
+		vmOperatorVM.Spec.Policies = getPolicies(supervisorMachineCtx)
+	}
+
 	// Apply hooks to modify the VM spec
 	// The hooks are loosely typed to allow for different VirtualMachine backends
 	for _, vmModifier := range supervisorMachineCtx.VMModifiers {
@@ -1011,6 +1016,27 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, fa
 		}
 	}
 	return nil
+}
+
+func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprvhub.PolicySpec {
+	// Assign policies when the feature gate is enabled.
+	if !feature.Gates.Enabled(feature.InfrastructurePolicies) {
+		return nil
+	}
+
+	refs := supervisorMachineCtx.VSphereMachine.Spec.Policies
+	if len(refs) == 0 {
+		return nil
+	}
+	result := make([]vmoprvhub.PolicySpec, 0, len(refs))
+	for _, ref := range refs {
+		result = append(result, vmoprvhub.PolicySpec{
+			Name:       ref.Name,
+			Kind:       ref.Kind,
+			APIVersion: ref.APIVersion,
+		})
+	}
+	return result
 }
 
 // getMachineDeploymentName returns the MachineDeployment name for a Cluster.

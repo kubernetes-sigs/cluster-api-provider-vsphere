@@ -11,9 +11,9 @@ replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20260506225634-46e3104c57d1
+	github.com/vmware-tanzu/vm-operator/api v1.10.0
 	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20260506225634-46e3104c57d1
-	github.com/vmware/govmomi v0.54.0
+	github.com/vmware/govmomi v0.54.1
 )
 
 require (

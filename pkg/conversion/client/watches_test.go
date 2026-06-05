@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -48,6 +49,12 @@ func Test_WatchObject(t *testing.T) {
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj:           &vmoprvhub.VirtualMachine{},
 			wantObj:       &vmoprv1alpha5.VirtualMachine{},
+		},
+		{
+			name:          "Create watch object for VirtualMachine when target version is v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
+			obj:           &vmoprvhub.VirtualMachine{},
+			wantObj:       &vmoprv1alpha6.VirtualMachine{},
 		},
 		{
 			name:          "Fails for non hub objects",

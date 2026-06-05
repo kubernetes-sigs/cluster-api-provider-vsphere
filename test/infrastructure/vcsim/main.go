@@ -123,6 +123,7 @@ func init() {
 	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
 	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
 	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha6.AddToScheme(scheme))
 	utilruntime.Must(storagev1.AddToScheme(scheme))
 	utilruntime.Must(vmwarev1beta1.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))

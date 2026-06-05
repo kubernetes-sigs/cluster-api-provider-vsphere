@@ -44,7 +44,7 @@ var (
 func init() {
 	// Add all gates to avoid issue in test code that assumes gates are properly set up.
 	// Note: When the controller starts, only a subset of those gates will be allowed depending on mode / vm-operator version.
-	allGates = featuregate.NewVersionedFeatureGate(toFeatureVersion(vmoprv1alpha5.GroupVersion.Version))
+	allGates = featuregate.NewVersionedFeatureGate(toFeatureVersion(vmoprv1alpha6.GroupVersion.Version))
 	utilruntime.Must(allGates.Add(commonGates))
 	utilruntime.Must(allGates.Add(govmomiGates))
 	utilruntime.Must(allGates.Add(supervisorGates))

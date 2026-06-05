@@ -29,6 +29,7 @@ import (
 	. "github.com/onsi/gomega"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	vmopinfrav1 "github.com/vmware-tanzu/vm-operator/external/infra/api/v1alpha1"
 	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
@@ -361,6 +362,7 @@ func initScheme() *runtime.Scheme {
 		utilruntime.Must(vmoprvhub.AddToScheme(sc))
 		utilruntime.Must(vmoprv1alpha2.AddToScheme(sc))
 		utilruntime.Must(vmoprv1alpha5.AddToScheme(sc))
+		utilruntime.Must(vmoprv1alpha6.AddToScheme(sc))
 		utilruntime.Must(vmwarev1.AddToScheme(sc))
 		utilruntime.Must(spqv1.AddToScheme(sc))
 		utilruntime.Must(vmopinfrav1.AddToScheme(sc))

@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/component-base/featuregate"
@@ -35,6 +36,7 @@ const (
 	SupervisorFeature                  featuregate.Feature = "SupervisorFeature"
 	SupervisorFeatureEnabledOnV1Alpha2 featuregate.Feature = "SupervisorFeatureEnabledOnV1Alpha2"
 	SupervisorFeatureEnabledOnV1Alpha5 featuregate.Feature = "SupervisorFeatureEnabledOnV1Alpha5"
+	SupervisorFeatureEnabledOnV1Alpha6 featuregate.Feature = "SupervisorFeatureEnabledOnV1Alpha6"
 )
 
 var (
@@ -58,9 +60,12 @@ var (
 		SupervisorFeatureEnabledOnV1Alpha5: {
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
+		SupervisorFeatureEnabledOnV1Alpha6: {
+			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
 	}
 
-	supportedVMOperatorAPIVersions = []string{vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version}
+	supportedVMOperatorAPIVersions = []string{vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version, vmoprv1alpha6.GroupVersion.Version}
 )
 
 func TestGetFlagDescription(t *testing.T) {
@@ -83,13 +88,18 @@ func TestGetFlagDescription(t *testing.T) {
 		"Options for supervisor mode when --vm-operator-api-version=v1alpha5 are:\n" +
 		"  SupervisorFeature=true|false (ALPHA - default=false)\n" +
 		"  SupervisorFeatureEnabledOnV1Alpha2=true|false (ALPHA - default=false)\n" +
-		"  SupervisorFeatureEnabledOnV1Alpha5=true|false (ALPHA - default=false)\n"))
+		"  SupervisorFeatureEnabledOnV1Alpha5=true|false (ALPHA - default=false)\n" +
+		"Options for supervisor mode when --vm-operator-api-version=v1alpha6 are:\n" +
+		"  SupervisorFeature=true|false (ALPHA - default=false)\n" +
+		"  SupervisorFeatureEnabledOnV1Alpha2=true|false (ALPHA - default=false)\n" +
+		"  SupervisorFeatureEnabledOnV1Alpha5=true|false (ALPHA - default=false)\n" +
+		"  SupervisorFeatureEnabledOnV1Alpha6=true|false (ALPHA - default=false)\n"))
 }
 
 func TestGetGovmomiGates(t *testing.T) {
 	g := NewWithT(t)
 
-	allTestGates := featuregate.NewVersionedFeatureGate(toFeatureVersion(vmoprv1alpha5.GroupVersion.Version))
+	allTestGates := featuregate.NewVersionedFeatureGate(toFeatureVersion(vmoprv1alpha6.GroupVersion.Version))
 	utilruntime.Must(allTestGates.Add(commonTestGates))
 	utilruntime.Must(allTestGates.Add(govmomiTestGates))
 	utilruntime.Must(allTestGates.Add(supervisorTestGates))
@@ -221,6 +231,56 @@ func TestGetSupervisorGatesV1Alpha5(t *testing.T) {
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeTrue())
+
+	// set unknown feature gates
+	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "GovmomiFeature=false")
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: GovmomiFeature")})))
+
+	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "Foo=false")
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: Foo")})))
+}
+
+func TestGetSupervisorGatesV1Alpha6(t *testing.T) {
+	g := NewWithT(t)
+
+	allTestGates := featuregate.NewVersionedFeatureGate(toFeatureVersion(vmoprv1alpha6.GroupVersion.Version))
+	utilruntime.Must(allTestGates.Add(commonTestGates))
+	utilruntime.Must(allTestGates.Add(govmomiTestGates))
+	utilruntime.Must(allTestGates.Add(supervisorTestGates))
+	utilruntime.Must(allTestGates.AddVersioned(supervisorVersionedTestGates))
+
+	allowedGates := getSupervisorGates(commonTestGates, supervisorTestGates, supervisorVersionedTestGates, vmoprv1alpha6.GroupVersion.Version)
+
+	// default (no feature gates set)
+	err := set(allTestGates, allowedGates, supervisorVersionedTestGates, "")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
+	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha6)).To(BeFalse())
+
+	// set a known feature gate (not versioned)
+	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeature=true")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
+	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeTrue())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha6)).To(BeFalse())
+	g.Expect(allTestGates.ResetFeatureValueToDefault(SupervisorFeature)).To(Succeed())
+
+	// set a known versioned feature gate, supported in this version
+	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha2=true,SupervisorFeatureEnabledOnV1Alpha5=true,SupervisorFeatureEnabledOnV1Alpha6=true")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
+	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeTrue())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeTrue())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha6)).To(BeTrue())
 
 	// set unknown feature gates
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "GovmomiFeature=false")

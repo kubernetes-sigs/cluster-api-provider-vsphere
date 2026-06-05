@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -45,6 +46,7 @@ var (
 	scheme            = runtime.NewScheme()
 	v1alpha2Converter *conversion.Converter
 	v1alpha5Converter *conversion.Converter
+	v1alpha6Converter *conversion.Converter
 )
 
 func init() {
@@ -52,9 +54,11 @@ func init() {
 	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
 	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
 	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha6.AddToScheme(scheme))
 
 	v1alpha2Converter = conversionapi.DefaultConverterFor(vmoprv1alpha2.GroupVersion)
 	v1alpha5Converter = conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion)
+	v1alpha6Converter = conversionapi.DefaultConverterFor(vmoprv1alpha6.GroupVersion)
 }
 
 func converterForVersion(v string) *conversion.Converter {
@@ -63,6 +67,8 @@ func converterForVersion(v string) *conversion.Converter {
 		return v1alpha2Converter
 	case vmoprv1alpha5.GroupVersion.Version:
 		return v1alpha5Converter
+	case vmoprv1alpha6.GroupVersion.Version:
+		return v1alpha6Converter
 	}
 	panic("unknown version")
 }
@@ -109,6 +115,25 @@ func Test_conversionClient_Get(t *testing.T) {
 				},
 				Source: conversionmeta.SourceTypeMeta{
 					APIVersion: vmoprv1alpha5.GroupVersion.String(),
+				},
+			},
+		},
+		{
+			name:          "Get VirtualMachine when target version is v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
+			obj: &vmoprv1alpha6.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+			},
+			wantObj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Source: conversionmeta.SourceTypeMeta{
+					APIVersion: vmoprv1alpha6.GroupVersion.String(),
 				},
 			},
 		},
@@ -241,6 +266,44 @@ func Test_conversionClient_List(t *testing.T) {
 			},
 		},
 		{
+			name:          "List VirtualMachines when target version is v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
+			objs: []client.Object{
+				&vmoprv1alpha6.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm1",
+						Namespace: "test-ns",
+					},
+				},
+				&vmoprv1alpha6.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm2",
+						Namespace: "test-ns",
+					},
+				},
+			},
+			wantObjs: []client.Object{
+				&vmoprvhub.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm1",
+						Namespace: "test-ns",
+					},
+					Source: conversionmeta.SourceTypeMeta{
+						APIVersion: vmoprv1alpha6.GroupVersion.String(),
+					},
+				},
+				&vmoprvhub.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm2",
+						Namespace: "test-ns",
+					},
+					Source: conversionmeta.SourceTypeMeta{
+						APIVersion: vmoprv1alpha6.GroupVersion.String(),
+					},
+				},
+			},
+		},
+		{
 			name:          "List non hub objects",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			objs: []client.Object{
@@ -330,6 +393,19 @@ func Test_conversionClient_Create(t *testing.T) {
 		{
 			name:          "Create VirtualMachine when target version is v1alpha5",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+		},
+		{
+			name:          "Create VirtualMachine when target version is v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
 			obj: &vmoprvhub.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-vm",
@@ -443,6 +519,16 @@ func Test_conversionClient_Delete(t *testing.T) {
 		{
 			name:          "Delete VirtualMachine when target version is v1alpha5",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+			},
+		},
+		{
+			name:          "Delete VirtualMachine when target version is v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
 			obj: &vmoprvhub.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-vm",
@@ -616,6 +702,24 @@ func Test_conversionClient_Patch(t *testing.T) {
 		{
 			name:          "Patch VirtualMachine when target version is v1alpha5",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Spec.ClassName = "another-class"
+				return vm
+			},
+		},
+		{
+			name:          "Patch VirtualMachine when target version is v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
 			obj: &vmoprvhub.VirtualMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-vm",
@@ -898,6 +1002,25 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:          "Patch VirtualMachine status when target version is v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+				},
+				Spec: vmoprvhub.VirtualMachineSpec{
+					ClassName: "test-class",
+				},
+			},
+			modifyFunc: func(o client.Object) client.Object {
+				vm := o.(*vmoprvhub.VirtualMachine)
+				vm.Status.NodeName = "foo"
+				return vm
+			},
+			wantErr: false,
+		},
+		{
 			name:          "Patch status for non hub objects",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj: &corev1.Node{
@@ -962,7 +1085,7 @@ func Test_conversionClient_PatchStatus(t *testing.T) {
 			ctx := t.Context()
 
 			cc, err := NewWithConverter(
-				fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&vmoprvhub.VirtualMachine{}, &vmoprv1alpha2.VirtualMachine{}, &vmoprv1alpha5.VirtualMachine{}).Build(),
+				fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&vmoprvhub.VirtualMachine{}, &vmoprv1alpha2.VirtualMachine{}, &vmoprv1alpha5.VirtualMachine{}, &vmoprv1alpha6.VirtualMachine{}).Build(),
 				converterForVersion(tt.targetVersion),
 			)
 			g.Expect(err).NotTo(HaveOccurred())
@@ -1068,6 +1191,12 @@ func Test_newTargetVersionObjectFor(t *testing.T) {
 			wantObj:       &vmoprv1alpha5.VirtualMachine{},
 		},
 		{
+			name:          "Create object for v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
+			obj:           &vmoprvhub.VirtualMachine{},
+			wantObj:       &vmoprv1alpha6.VirtualMachine{},
+		},
+		{
 			name:          "Fails for non hub types",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj:           &corev1.Node{},
@@ -1116,6 +1245,12 @@ func Test_newTargetVersionObjectListFor(t *testing.T) {
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,
 			obj:           &vmoprvhub.VirtualMachineList{},
 			wantObj:       &vmoprv1alpha5.VirtualMachineList{},
+		},
+		{
+			name:          "Create object list for v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
+			obj:           &vmoprvhub.VirtualMachineList{},
+			wantObj:       &vmoprv1alpha6.VirtualMachineList{},
 		},
 		{
 			name:          "Fails for non hub types",
@@ -1167,6 +1302,11 @@ func Test_newObjectListItemFor(t *testing.T) {
 			name:    "Create object list item for v1alpha5 VirtualMachineList",
 			obj:     &vmoprv1alpha5.VirtualMachineList{},
 			wantObj: &vmoprv1alpha5.VirtualMachine{},
+		},
+		{
+			name:    "Create object list item for v1alpha6 VirtualMachineList",
+			obj:     &vmoprv1alpha6.VirtualMachineList{},
+			wantObj: &vmoprv1alpha6.VirtualMachine{},
 		},
 		{
 			name:    "Create object list item for non hub types",

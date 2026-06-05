@@ -38,6 +38,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
@@ -53,6 +54,10 @@ func NSXTVpcNetworkProvider(client client.Client) services.NetworkProvider {
 	return &nsxtVPCNetworkProvider{
 		client: client,
 	}
+}
+
+func (vp *nsxtVPCNetworkProvider) SupportsIPv6DualStack() bool {
+	return feature.Gates.Enabled(feature.IPv6DualStack)
 }
 
 func (vp *nsxtVPCNetworkProvider) HasLoadBalancer() bool {

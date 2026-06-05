@@ -102,6 +102,9 @@ type ResourcePolicyService interface {
 
 // NetworkProvider provision network resources and configures VM based on network type.
 type NetworkProvider interface {
+	// SupportsIPv6DualStack indicates whether this provider supports IPv6 and dual-stack.
+	SupportsIPv6DualStack() bool
+
 	// HasLoadBalancer indicates whether this provider has a load balancer for Services.
 	HasLoadBalancer() bool
 

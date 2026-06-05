@@ -29,6 +29,7 @@ import (
 	apirecord "k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -83,7 +84,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 	})
 
 	// Ensure that the mechanism for reconciling clusters when a control plane machine gets an IP works
-	Context("Test controlPlaneMachineToCluster", func() {
+	Context("Test VSphereMachineToCluster", func() {
 		It("Returns nil if there is no IP address", func() {
 			request := reconciler.VSphereMachineToCluster(ctx, vsphereMachine)
 			Expect(request).Should(BeNil())
@@ -100,6 +101,77 @@ var _ = Describe("Cluster Controller Tests", func() {
 			Expect(request).ShouldNot(BeNil())
 			Expect(request[0].Namespace).Should(Equal(cluster.Namespace))
 			Expect(request[0].Name).Should(Equal(cluster.Name))
+		})
+	})
+
+	Context("Test KubeadmControlPlaneToCluster", func() {
+		var kcp *controlplanev1.KubeadmControlPlane
+		BeforeEach(func() {
+			kcp = &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: cluster.Namespace,
+					Name:      "test-kcp",
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Cluster",
+							Name:       cluster.Name,
+							UID:        cluster.UID,
+						},
+					},
+				},
+			}
+		})
+
+		It("Returns nil if object is not KCP", func() {
+			request := reconciler.KubeadmControlPlaneToCluster(ctx, vsphereCluster)
+			Expect(request).Should(BeNil())
+		})
+
+		It("Returns nil if there is no Cluster name label", func() {
+			kcp.Labels = nil
+			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
+			Expect(request).Should(BeNil())
+		})
+
+		It("Returns nil if Cluster is not found", func() {
+			kcp.Labels[clusterv1.ClusterNameLabel] = "non-existent-cluster"
+			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
+			Expect(request).Should(BeNil())
+		})
+
+		It("Returns nil if Cluster has no InfrastructureRef", func() {
+			clusterWithoutInfra := cluster.DeepCopy()
+			clusterWithoutInfra.Name = "cluster-no-infra"
+			clusterWithoutInfra.ResourceVersion = ""
+			clusterWithoutInfra.Spec.InfrastructureRef.Name = ""
+			Expect(controllerManagerContext.Client.Create(ctx, clusterWithoutInfra)).To(Succeed())
+
+			kcp.Labels[clusterv1.ClusterNameLabel] = "cluster-no-infra"
+			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
+			Expect(request).Should(BeNil())
+		})
+
+		It("Returns nil if Cluster InfrastructureRef is not VSphereCluster", func() {
+			clusterWrongInfra := cluster.DeepCopy()
+			clusterWrongInfra.Name = "cluster-wrong-infra"
+			clusterWrongInfra.ResourceVersion = ""
+			clusterWrongInfra.Spec.InfrastructureRef.Kind = "OtherCluster"
+			Expect(controllerManagerContext.Client.Create(ctx, clusterWrongInfra)).To(Succeed())
+
+			kcp.Labels[clusterv1.ClusterNameLabel] = "cluster-wrong-infra"
+			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
+			Expect(request).Should(BeNil())
+		})
+
+		It("Returns valid request", func() {
+			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
+			Expect(request).ShouldNot(BeNil())
+			Expect(request[0].Namespace).Should(Equal(vsphereCluster.Namespace))
+			Expect(request[0].Name).Should(Equal(vsphereCluster.Name))
 		})
 	})
 

@@ -50,6 +50,8 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
@@ -460,6 +462,35 @@ func main() {
 						}
 						return in, nil
 					},
+				}
+				if feature.Gates.Enabled(feature.IPv6DualStack) {
+					byObject[&controlplanev1.KubeadmControlPlane{}] = cache.ByObject{
+						Transform: func(in any) (any, error) {
+							kcp, ok := in.(*controlplanev1.KubeadmControlPlane)
+							if !ok {
+								return in, nil
+							}
+
+							kcp.SetManagedFields(nil)
+
+							kcp.Spec = controlplanev1.KubeadmControlPlaneSpec{
+								KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+									ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+										APIServer: bootstrapv1.APIServer{
+											CertSANs: kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.CertSANs,
+										},
+									},
+								},
+							}
+
+							kcp.Status = controlplanev1.KubeadmControlPlaneStatus{
+								ObservedGeneration: kcp.Status.ObservedGeneration,
+								Conditions:         kcp.Status.Conditions,
+							}
+
+							return kcp, nil
+						},
+					}
 				}
 			}
 			return byObject

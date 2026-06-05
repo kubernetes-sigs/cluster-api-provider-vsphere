@@ -19,12 +19,17 @@ package vmoperator
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
+	"slices"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -37,6 +42,7 @@ import (
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 const (
@@ -76,6 +82,37 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 		return nil, nil
 	}
 
+	// 1. Determine the cluster's intended IP ipFamily
+	ipFamily, err := util.DetermineClusterIPFamily(clusterCtx.Cluster)
+	if err != nil {
+		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.LoadBalancerCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
+		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+			Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyReason,
+			Message: err.Error(),
+		})
+		return nil, err
+	}
+
+	// 2. Capability Check
+	ipv6DualStackSupported := netProvider.SupportsIPv6DualStack()
+
+	// 3. Validate topology against capabilities
+	if !ipv6DualStackSupported {
+		if ipFamily == util.IPv6SingleStack || ipFamily == util.DualStackIPv4Primary || ipFamily == util.DualStackIPv6Primary {
+			err := fmt.Errorf("IPv6 and DualStack require the IPv6DualStack feature gate, VM Operator v1alpha6+, and a network provider that supports it")
+			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.LoadBalancerCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
+			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterLoadBalancerNotReadyReason,
+				Message: err.Error(),
+			})
+			return nil, err
+		}
+	}
+
 	vmService, err := s.getVMControlPlaneService(ctx, clusterCtx)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -104,7 +141,7 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 			return nil, err
 		}
 
-		vmService, err = s.createVMControlPlaneService(ctx, clusterCtx, annotations)
+		vmService, err = s.createVMControlPlaneService(ctx, clusterCtx, annotations, ipv6DualStackSupported, ipFamily)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to create VirtualMachineService")
 			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.LoadBalancerCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
@@ -118,10 +155,9 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 		}
 	}
 
-	// See if the LB has a VIP assigned, and delay reconciliation until it does
-	vip, err := getVMServiceVIP(vmService)
+	// See if the LB has VIP(s) assigned, and delay reconciliation until it does
+	primaryVIP, requiredVIPs, err := getAndValidateVIPs(vmService, ipFamily)
 	if err != nil {
-		err = errors.Wrapf(err, "VirtualMachineService LB does not yet have VIP assigned")
 		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.WaitingForLoadBalancerIPV1Beta1Reason, clusterv1.ConditionSeverityInfo, "%v", err)
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
@@ -132,9 +168,23 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 		return nil, err
 	}
 
-	cpEndpoint, err := getAPIEndpointFromVIP(vmService, vip)
+	// Dual-stack specific KCP race-condition check
+	if ipFamily == util.DualStackIPv4Primary || ipFamily == util.DualStackIPv6Primary {
+		if err := ensureKCPReadyForControlPlaneEndpoint(ctx, s.Client, clusterCtx, requiredVIPs); err != nil {
+			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.WaitingForKubeadmControlPlaneSpecReadyV1Beta1Reason, clusterv1.ConditionSeverityInfo, "%v", err)
+			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterLoadBalancerWaitingForKubeadmControlPlaneSpecReadyReason,
+				Message: err.Error(),
+			})
+			return nil, nil
+		}
+	}
+
+	cpEndpoint, err := getAPIEndpointFromVIP(vmService, primaryVIP)
 	if err != nil {
-		err = errors.Wrapf(err, "VirtualMachineService LB does not have an apiserver endpoint")
+		err = errors.Wrapf(err, "VirtualMachineService %s does not have an apiserver endpoint", klog.KObj(vmService))
 		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.WaitingForLoadBalancerIPV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
@@ -191,7 +241,7 @@ func newVirtualMachineService(ctx *vmware.ClusterContext) *vmoprvhub.VirtualMach
 	}
 }
 
-func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx *vmware.ClusterContext, annotations map[string]string) (*vmoprvhub.VirtualMachineService, error) {
+func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx *vmware.ClusterContext, annotations map[string]string, ipv6DualStackSupported bool, ipFamily util.ClusterIPFamily) (*vmoprvhub.VirtualMachineService, error) {
 	// Note that the current implementation will only create a VirtualMachineService for a load balanced endpoint
 	serviceType := vmoprvhub.VirtualMachineServiceTypeLoadBalancer
 
@@ -214,7 +264,7 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 		}
 	}
 	vmService.Annotations = annotations
-	vmService.Spec = vmoprvhub.VirtualMachineServiceSpec{
+	spec := vmoprvhub.VirtualMachineServiceSpec{
 		Type: serviceType,
 		Ports: []vmoprvhub.VirtualMachineServicePort{
 			{
@@ -226,6 +276,12 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 		},
 		Selector: clusterRoleVMLabels(clusterCtx, true),
 	}
+
+	if ipv6DualStackSupported {
+		spec.IPFamilyPolicy, spec.IPFamilies = getIPFamilyConfig(ipFamily)
+	}
+
+	vmService.Spec = spec
 
 	if err := ctrlutil.SetOwnerReference(
 		clusterCtx.VSphereCluster,
@@ -243,8 +299,10 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 	}
 
 	if !vmServiceExists {
+		log := ctrl.LoggerFrom(ctx)
+		log.Info("Creating VirtualMachineService", "VirtualMachineService", klog.KObj(vmService))
 		if err := s.Client.Create(ctx, vmService); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to create VirtualMachineService %s", klog.KObj(vmService))
 		}
 	} else if !reflect.DeepEqual(originalVMService, vmService) {
 		patch, err := conversionclient.MergeFrom(ctx, s.Client, originalVMService)
@@ -305,22 +363,146 @@ func (s *CPService) getVMControlPlaneService(ctx context.Context, clusterCtx *vm
 	return vmService, nil
 }
 
-func getVMServiceVIP(vmService *vmoprvhub.VirtualMachineService) (string, error) {
-	if vmService.Spec.Type != vmoprvhub.VirtualMachineServiceTypeLoadBalancer {
-		return "", fmt.Errorf("VirtualMachineService for control plane does not have load balancer")
+// getIPFamilyConfig constructs the IPFamily settings based on IP topology.
+func getIPFamilyConfig(ipFamily util.ClusterIPFamily) (*corev1.IPFamilyPolicy, []corev1.IPFamily) {
+	switch ipFamily {
+	case util.IPv4SingleStack:
+		return ptr.To(corev1.IPFamilyPolicySingleStack), []corev1.IPFamily{corev1.IPv4Protocol}
+	case util.IPv6SingleStack:
+		return ptr.To(corev1.IPFamilyPolicySingleStack), []corev1.IPFamily{corev1.IPv6Protocol}
+	case util.DualStackIPv4Primary:
+		return ptr.To(corev1.IPFamilyPolicyRequireDualStack), []corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}
+	case util.DualStackIPv6Primary:
+		return ptr.To(corev1.IPFamilyPolicyRequireDualStack), []corev1.IPFamily{corev1.IPv6Protocol, corev1.IPv4Protocol}
+	default:
+		return nil, nil
+	}
+}
+
+// getAndValidateVIPs validates status VIPs against topology and returns the primary VIP and required VIP list.
+func getAndValidateVIPs(vmService *vmoprvhub.VirtualMachineService, topology util.ClusterIPFamily) (primaryVIP string, requiredVIPs []string, err error) {
+	ipv4VIP, ipv6VIP, err := getVMServiceVIPs(vmService)
+	if err != nil {
+		return "", nil, err
 	}
 
+	switch topology {
+	case util.IPv4SingleStack:
+		if ipv4VIP == "" {
+			return "", nil, fmt.Errorf("VirtualMachineService %s does not yet have IPv4 VIP assigned", klog.KObj(vmService))
+		}
+		return ipv4VIP, []string{ipv4VIP}, nil
+
+	case util.IPv6SingleStack:
+		if ipv6VIP == "" {
+			return "", nil, fmt.Errorf("VirtualMachineService %s does not yet have IPv6 VIP assigned", klog.KObj(vmService))
+		}
+		return ipv6VIP, []string{ipv6VIP}, nil
+
+	case util.DualStackIPv4Primary:
+		if ipv4VIP == "" || ipv6VIP == "" {
+			return "", nil, fmt.Errorf("VirtualMachineService %s must have both IPv4 and IPv6 ingress for dual stack cluster (have IPv4: %v, IPv6: %v)", klog.KObj(vmService), ipv4VIP != "", ipv6VIP != "")
+		}
+		return ipv4VIP, []string{ipv4VIP, ipv6VIP}, nil
+
+	case util.DualStackIPv6Primary:
+		if ipv4VIP == "" || ipv6VIP == "" {
+			return "", nil, fmt.Errorf("VirtualMachineService %s must have both IPv4 and IPv6 ingress for dual stack cluster (have IPv4: %v, IPv6: %v)", klog.KObj(vmService), ipv4VIP != "", ipv6VIP != "")
+		}
+		return ipv6VIP, []string{ipv6VIP, ipv4VIP}, nil
+
+	default:
+		return "", nil, fmt.Errorf("unknown cluster IPFamily")
+	}
+}
+
+// getVMServiceVIPs returns IPv4 and IPv6 from the VirtualMachineService LoadBalancer ingress.
+// For dual stack we require both families to be present before setting the control plane endpoint.
+func getVMServiceVIPs(vmService *vmoprvhub.VirtualMachineService) (ipv4, ipv6 string, err error) {
+	if vmService.Spec.Type != vmoprvhub.VirtualMachineServiceTypeLoadBalancer {
+		return "", "", fmt.Errorf("VirtualMachineService %s does not have load balancer", klog.KObj(vmService))
+	}
+
+	var ipv4Addr, ipv6Addr string
 	for _, ingress := range vmService.Status.LoadBalancer.Ingress {
 		if ingress.IP != "" {
-			return ingress.IP, nil
+			ip := net.ParseIP(ingress.IP)
+			if ip == nil {
+				return "", "", fmt.Errorf("invalid load balancer ingress IP address %q for VirtualMachineService %s", ingress.IP, klog.KObj(vmService))
+			}
+			if ip.To4() != nil {
+				if ipv4Addr == "" {
+					ipv4Addr = ingress.IP
+				}
+			} else {
+				if ipv6Addr == "" {
+					ipv6Addr = ingress.IP
+				}
+			}
 		}
-		// BMV: Supported?
-		// if ingress.Hostname != "" {
-		// 	return ingress.Hostname, nil
-		// }
 	}
 
-	return "", fmt.Errorf("VirtualMachineService LoadBalancer does not have any Ingresses")
+	if ipv4Addr == "" && ipv6Addr == "" {
+		return "", "", fmt.Errorf("VirtualMachineService %s LoadBalancer does not have any Ingresses", klog.KObj(vmService))
+	}
+	return ipv4Addr, ipv6Addr, nil
+}
+
+// ensureKCPReadyForControlPlaneEndpoint ensures KubeadmControlPlane has (a) requiredIPs in certSANs and
+// (b) status.observedGeneration == metadata.generation to avoid a race between CAPV and KCP controllers.
+// This prevents the first control plane machine from being created with stale certSANs (e.g. single stack)
+// and avoids an extra rollout for dual stack clusters.
+func ensureKCPReadyForControlPlaneEndpoint(ctx context.Context, c client.Client, clusterCtx *vmware.ClusterContext, requiredIPs []string) error {
+	// Early return for single stack or if cluster is not set.
+	if clusterCtx.Cluster == nil || len(requiredIPs) <= 1 {
+		return nil
+	}
+
+	if !clusterCtx.Cluster.Spec.ControlPlaneRef.IsDefined() {
+		return fmt.Errorf("ControlPlaneRef is not defined for Cluster %s", klog.KObj(clusterCtx.Cluster))
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{}
+	kcpKey := client.ObjectKey{
+		Namespace: clusterCtx.Cluster.Namespace,
+		Name:      clusterCtx.Cluster.Spec.ControlPlaneRef.Name,
+	}
+	if err := c.Get(ctx, kcpKey, kcp); err != nil {
+		return errors.Wrapf(err, "failed to get KubeadmControlPlane %s", klog.KRef(kcpKey.Namespace, kcpKey.Name))
+	}
+
+	if !kcp.GetDeletionTimestamp().IsZero() {
+		return nil
+	}
+
+	// (b) Avoid race: KCP controller must have observed and successfully reconciled the current spec generation.
+	// We check both the top level ObservedGeneration and the ObservedGeneration on individual conditions
+	// to avoid a deadlock: KCP might be waiting for CAPV to set the ControlPlaneEndpoint before it can
+	// fully reconcile, while CAPV is waiting for KCP to observe the latest spec (e.g. certSANs for dual-stack).
+	observed := kcp.Status.ObservedGeneration == kcp.GetGeneration()
+	if !observed {
+		for _, cond := range kcp.Status.Conditions {
+			if cond.ObservedGeneration == kcp.GetGeneration() {
+				observed = true
+				break
+			}
+		}
+	}
+	if !observed {
+		return fmt.Errorf("KubeadmControlPlane %s has not yet observed the current generation %d (observed: %d, no condition has observed the current generation)",
+			klog.KObj(kcp), kcp.GetGeneration(), kcp.Status.ObservedGeneration)
+	}
+
+	// (a) For dual stack, certSANs must contain all required IPs (both primary and secondary LB VIPs) so the first machine gets both in certs.
+	// The runtime extension must add both IPs to apiServer.certSANs; adding only the secondary-family IP is insufficient.
+	certSANs := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.CertSANs
+	for _, ip := range requiredIPs {
+		if !slices.Contains(certSANs, ip) {
+			return fmt.Errorf("KubeadmControlPlane %s certSANs does not contain %q yet; the runtime extension might not have set the IPs yet",
+				klog.KObj(kcp), ip)
+		}
+	}
+	return nil
 }
 
 func getAPIEndpointFromVIP(vmService *vmoprvhub.VirtualMachineService, vip string) (*vmwarev1.APIEndpoint, error) {

@@ -24,19 +24,26 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/component-base/featuregate"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -80,27 +87,40 @@ func createDefaultNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext
 	Expect(c.Create(ctx, defaultNetwork)).To(Succeed())
 }
 
-func updateVMServiceWithVIP(ctx context.Context, clusterCtx *vmware.ClusterContext, c ctrlclient.Client, cpService CPService, vip string) {
+func updateVMServiceWithVIPs(ctx context.Context, clusterCtx *vmware.ClusterContext, c ctrlclient.Client, cpService CPService, vips ...string) {
 	vmService := getVirtualMachineService(ctx, clusterCtx, c, cpService)
 
-	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
-	s := &vmoprv1alpha5.VirtualMachineService{}
-	err := c.Get(ctx, ctrlclient.ObjectKeyFromObject(vmService), s)
-	Expect(err).ShouldNot(HaveOccurred())
+	sOriginal := vmService.DeepCopy()
+	ingresses := make([]vmoprvhub.LoadBalancerIngress, 0, len(vips))
+	for _, vip := range vips {
+		ingresses = append(ingresses, vmoprvhub.LoadBalancerIngress{IP: vip})
+	}
+	vmService.Status.LoadBalancer.Ingress = ingresses
 
-	sOriginal := s.DeepCopy()
-	s.Status.LoadBalancer.Ingress = []vmoprv1alpha5.LoadBalancerIngress{{IP: vip}}
-
-	err = c.Status().Patch(ctx, s, ctrlclient.MergeFrom(sOriginal))
+	err := c.Status().Patch(ctx, vmService, ctrlclient.MergeFrom(sOriginal))
 	Expect(err).ShouldNot(HaveOccurred())
 }
+
+type dummyDualStackNetworkProvider struct {
+	services.NetworkProvider
+}
+
+func (d *dummyDualStackNetworkProvider) SupportsIPv6DualStack() bool {
+	return true
+}
+
+func (d *dummyDualStackNetworkProvider) HasLoadBalancer() bool {
+	return true
+}
+
+var _ services.NetworkProvider = &dummyDualStackNetworkProvider{}
 
 var _ = Describe("ControlPlaneEndpoint Tests", func() {
 	const (
 		clusterName          = "test-cluster"
 		vip                  = "127.0.0.1"
 		noNetworkFailure     = "failed to get provider VirtualMachineService annotations"
-		waitingForVIPFailure = "VirtualMachineService LoadBalancer does not have any Ingresses"
+		waitingForVIPFailure = "LoadBalancer does not have any Ingresses"
 	)
 	var (
 		err                         error
@@ -136,6 +156,14 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 
 		// Create all necessary dependencies
 		cluster = util.CreateCluster(clusterName)
+		cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+			Pods: clusterv1.NetworkRanges{
+				CIDRBlocks: []string{"192.168.0.0/16"},
+			},
+			Services: clusterv1.NetworkRanges{
+				CIDRBlocks: []string{"10.96.0.0/12"},
+			},
+		}
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
 		clusterCtx, controllerManagerContext = util.CreateClusterContext(cluster, vsphereCluster)
 		c = controllerManagerContext.Client
@@ -285,7 +313,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			// Set a VIP and reconcile again.
 			expectReconcileError = false
 			expectAPIEndpoint = true
-			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
+			updateVMServiceWithVIPs(ctx, clusterCtx, c, cpService, vip)
 			expectedPort = defaultAPIBindPort
 			expectedHost = vip
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
@@ -298,7 +326,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			vmService.Name = legacyControlPlaneVMServiceName(clusterCtx.Cluster.Name)
 			vmService.ResourceVersion = ""
 			Expect(c.Create(ctx, vmService)).To(Succeed())
-			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
+			updateVMServiceWithVIPs(ctx, clusterCtx, c, cpService, vip)
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
 			verifyOutput()
 			vmService = getVirtualMachineService(ctx, clusterCtx, c, cpService)
@@ -344,7 +372,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectAPIEndpoint = true
 			expectedPort = defaultAPIBindPort
 			expectedHost = vip
-			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
+			updateVMServiceWithVIPs(ctx, clusterCtx, c, cpService, vip)
 			expectedConditions[0].Status = metav1.ConditionTrue
 			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerReadyReason
 			expectedConditions[0].Message = ""
@@ -394,9 +422,373 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectedConditions[0].Status = metav1.ConditionTrue
 			expectedConditions[0].Reason = vmwarev1.VSphereClusterLoadBalancerReadyReason
 			expectedConditions[0].Message = ""
-			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
+			updateVMServiceWithVIPs(ctx, clusterCtx, c, cpService, vip)
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, nsxtProvider)
 			verifyOutput()
 		})
+	})
+
+	Context("Reconcile ControlPlaneEndpointService with IPFamily settings (v1alpha6)", func() {
+
+		BeforeEach(func() {
+			// Override clusterCtx with v1alpha6 context
+			clusterCtx, controllerManagerContext = util.CreateClusterContextV1Alpha6(cluster, vsphereCluster)
+			c = controllerManagerContext.Client
+			cpService = CPService{Client: c}
+
+			// Enable feature gate for these tests
+			err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=true", feature.IPv6DualStack))
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			// Disable feature gate
+			err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=false", feature.IPv6DualStack))
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should set IPFamilyPolicy and IPFamilies for IPv4 single stack", func() {
+			clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16"}},
+			}
+
+			_, err := cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, &dummyDualStackNetworkProvider{NetworkProvider: network.DummyLBNetworkProvider()})
+			Expect(err).To(HaveOccurred()) // Waiting for VIP
+
+			vms := getVirtualMachineService(ctx, clusterCtx, c, cpService)
+			Expect(vms).NotTo(BeNil())
+			Expect(vms.Spec.IPFamilyPolicy).NotTo(BeNil())
+			Expect(*vms.Spec.IPFamilyPolicy).To(Equal(corev1.IPFamilyPolicySingleStack))
+			Expect(vms.Spec.IPFamilies).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
+		})
+
+		It("should set IPFamilyPolicy and IPFamilies for IPv6 single stack", func() {
+			clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"fd00:1::/64"}},
+			}
+
+			_, err := cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, &dummyDualStackNetworkProvider{NetworkProvider: network.DummyLBNetworkProvider()})
+			Expect(err).To(HaveOccurred()) // Waiting for VIP
+
+			vms := getVirtualMachineService(ctx, clusterCtx, c, cpService)
+			Expect(vms).NotTo(BeNil())
+			Expect(vms.Spec.IPFamilyPolicy).NotTo(BeNil())
+			Expect(*vms.Spec.IPFamilyPolicy).To(Equal(corev1.IPFamilyPolicySingleStack))
+			Expect(vms.Spec.IPFamilies).To(Equal([]corev1.IPFamily{corev1.IPv6Protocol}))
+		})
+
+		It("should set IPFamilyPolicy and IPFamilies for DualStack IPv4 primary", func() {
+			clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16", "fd00:1::/64"}},
+			}
+
+			_, err := cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, &dummyDualStackNetworkProvider{NetworkProvider: network.DummyLBNetworkProvider()})
+			Expect(err).To(HaveOccurred()) // Waiting for VIP
+
+			vms := getVirtualMachineService(ctx, clusterCtx, c, cpService)
+			Expect(vms).NotTo(BeNil())
+			Expect(vms.Spec.IPFamilyPolicy).NotTo(BeNil())
+			Expect(*vms.Spec.IPFamilyPolicy).To(Equal(corev1.IPFamilyPolicyRequireDualStack))
+			Expect(vms.Spec.IPFamilies).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}))
+		})
+
+		It("should set IPFamilyPolicy and IPFamilies for DualStack IPv6 primary", func() {
+			clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"fd00:1::/64", "192.168.0.0/16"}},
+			}
+
+			_, err := cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, &dummyDualStackNetworkProvider{NetworkProvider: network.DummyLBNetworkProvider()})
+			Expect(err).To(HaveOccurred()) // Waiting for VIP
+
+			vms := getVirtualMachineService(ctx, clusterCtx, c, cpService)
+			Expect(vms).NotTo(BeNil())
+			Expect(vms.Spec.IPFamilyPolicy).NotTo(BeNil())
+			Expect(*vms.Spec.IPFamilyPolicy).To(Equal(corev1.IPFamilyPolicyRequireDualStack))
+			Expect(vms.Spec.IPFamilies).To(Equal([]corev1.IPFamily{corev1.IPv6Protocol, corev1.IPv4Protocol}))
+		})
+
+		It("should return error if topology is DualStack but network provider does not support it", func() {
+			clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16", "fd00:1::/64"}},
+			}
+
+			_, err := cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("IPv6 and DualStack require the IPv6DualStack feature gate, VM Operator v1alpha6+, and a network provider that supports it"))
+		})
+
+		It("should fall back to IPv4SingleStack logic when ipv6DualStackSupported is false", func() {
+			// Setup: IPv4 cluster
+			clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16"}},
+			}
+
+			// Setup: Network provider does NOT support dual stack
+			netProvider := network.DummyLBNetworkProvider() // DummyLBNetworkProvider returns false for SupportsIPv6DualStack by default
+
+			// 1. Reconcile - should create VMS and wait for VIP
+			_, err := cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, netProvider)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring(waitingForVIPFailure))
+
+			vms := getVirtualMachineService(ctx, clusterCtx, c, cpService)
+			Expect(vms).NotTo(BeNil())
+			// IPFamilyPolicy and IPFamilies should NOT be set because dual stack is not supported
+			Expect(vms.Spec.IPFamilyPolicy).To(BeNil())
+			Expect(vms.Spec.IPFamilies).To(BeNil())
+
+			// 2. Assign VIP and reconcile again
+			updateVMServiceWithVIPs(ctx, clusterCtx, c, cpService, "10.0.0.1")
+			endpoint, err := cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, netProvider)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(endpoint).NotTo(BeNil())
+			Expect(endpoint.Host).To(Equal("10.0.0.1"))
+		})
+	})
+})
+
+var _ = Describe("VIP helper functions", func() {
+	var (
+		vmService *vmoprvhub.VirtualMachineService
+	)
+
+	BeforeEach(func() {
+		vmService = &vmoprvhub.VirtualMachineService{
+			Spec: vmoprvhub.VirtualMachineServiceSpec{
+				Type: vmoprvhub.VirtualMachineServiceTypeLoadBalancer,
+			},
+		}
+	})
+
+	Context("getAndValidateVIPs", func() {
+		It("should return IPv4 VIP for IPv4SingleStack", func() {
+			vmService.Status.LoadBalancer.Ingress = []vmoprvhub.LoadBalancerIngress{
+				{IP: "10.0.0.1"},
+				{IP: "fd00::1"},
+			}
+			primary, required, err := getAndValidateVIPs(vmService, util.IPv4SingleStack)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(primary).To(Equal("10.0.0.1"))
+			Expect(required).To(Equal([]string{"10.0.0.1"}))
+		})
+
+		It("should return IPv6 VIP for IPv6SingleStack", func() {
+			vmService.Status.LoadBalancer.Ingress = []vmoprvhub.LoadBalancerIngress{
+				{IP: "10.0.0.1"},
+				{IP: "fd00::1"},
+			}
+			primary, required, err := getAndValidateVIPs(vmService, util.IPv6SingleStack)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(primary).To(Equal("fd00::1"))
+			Expect(required).To(Equal([]string{"fd00::1"}))
+		})
+
+		It("should return both VIPs for DualStackIPv4Primary", func() {
+			vmService.Status.LoadBalancer.Ingress = []vmoprvhub.LoadBalancerIngress{
+				{IP: "10.0.0.1"},
+				{IP: "fd00::1"},
+			}
+			primary, required, err := getAndValidateVIPs(vmService, util.DualStackIPv4Primary)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(primary).To(Equal("10.0.0.1"))
+			Expect(required).To(Equal([]string{"10.0.0.1", "fd00::1"}))
+		})
+
+		It("should return both VIPs for DualStackIPv6Primary", func() {
+			vmService.Status.LoadBalancer.Ingress = []vmoprvhub.LoadBalancerIngress{
+				{IP: "10.0.0.1"},
+				{IP: "fd00::1"},
+			}
+			primary, required, err := getAndValidateVIPs(vmService, util.DualStackIPv6Primary)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(primary).To(Equal("fd00::1"))
+			Expect(required).To(Equal([]string{"fd00::1", "10.0.0.1"}))
+		})
+
+		It("should return the first of each family", func() {
+			vmService.Status.LoadBalancer.Ingress = []vmoprvhub.LoadBalancerIngress{
+				{IP: "10.0.0.1"},
+				{IP: "10.0.0.2"},
+				{IP: "fd00::1"},
+				{IP: "fd00::2"},
+			}
+			primary, required, err := getAndValidateVIPs(vmService, util.DualStackIPv4Primary)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(primary).To(Equal("10.0.0.1"))
+			Expect(required).To(Equal([]string{"10.0.0.1", "fd00::1"}))
+		})
+
+		It("should error if required family is missing", func() {
+			vmService.Status.LoadBalancer.Ingress = []vmoprvhub.LoadBalancerIngress{
+				{IP: "10.0.0.1"},
+			}
+			_, _, err := getAndValidateVIPs(vmService, util.IPv6SingleStack)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("does not yet have IPv6 VIP assigned"))
+
+			_, _, err = getAndValidateVIPs(vmService, util.DualStackIPv4Primary)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must have both IPv4 and IPv6 ingress for dual stack cluster"))
+		})
+
+		It("should return error for invalid IP addresses", func() {
+			vmService.Status.LoadBalancer.Ingress = []vmoprvhub.LoadBalancerIngress{
+				{IP: "invalid-ip"},
+				{IP: "10.0.0.1"},
+			}
+			_, _, err := getAndValidateVIPs(vmService, util.IPv4SingleStack)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid load balancer ingress IP address \"invalid-ip\""))
+		})
+	})
+})
+
+// buildKCPScheme returns a scheme containing KubeadmControlPlane types, used for ensureKCPReady tests.
+func buildKCPScheme() *runtime.Scheme {
+	s := runtime.NewScheme()
+	_ = controlplanev1.AddToScheme(s)
+	_ = clusterv1.AddToScheme(s)
+	return s
+}
+
+// makeKCP constructs a KubeadmControlPlane with the given certSANs and observedGeneration.
+func makeKCP(namespace, name, clusterName string, generation, observedGen int64, certSANs []string) *controlplanev1.KubeadmControlPlane {
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       name,
+			Namespace:  namespace,
+			Generation: generation,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: clusterName,
+			},
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+					APIServer: bootstrapv1.APIServer{
+						CertSANs: certSANs,
+					},
+				},
+			},
+		},
+		Status: controlplanev1.KubeadmControlPlaneStatus{
+			ObservedGeneration: observedGen,
+		},
+	}
+	return kcp
+}
+
+var _ = Describe("ensureKCPReadyForControlPlaneEndpoint", func() {
+	const (
+		ns          = "default"
+		clusterName = "test-cluster"
+		kcpName     = "test-cluster-kcp"
+		ipv4VIP     = "10.0.0.1"
+		ipv6VIP     = "fd00::1"
+	)
+
+	makeClusterCtx := func(clusterName, kcpName string) *vmware.ClusterContext {
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: ns},
+		}
+		if kcpName != "" {
+			cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
+				APIGroup: controlplanev1.GroupVersion.Group,
+				Kind:     "KubeadmControlPlane",
+				Name:     kcpName,
+			}
+		}
+		return &vmware.ClusterContext{Cluster: cluster}
+	}
+
+	It("should return nil when requiredIPs is empty", func() {
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		Expect(ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, nil)).To(Succeed())
+	})
+
+	It("should return nil when cluster is nil", func() {
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).Build()
+		Expect(ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, &vmware.ClusterContext{Cluster: nil}, []string{ipv4VIP, ipv6VIP})).To(Succeed())
+	})
+
+	It("should return error when ControlPlaneRef is not defined", func() {
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).Build()
+		clusterCtx := makeClusterCtx(clusterName, "")
+		err := ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP, ipv6VIP})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("ControlPlaneRef is not defined"))
+	})
+
+	It("should return error when KCP not found for dual stack cluster (>1 requiredIPs)", func() {
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		err := ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP, ipv6VIP})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to get KubeadmControlPlane"))
+	})
+
+	It("should return nil when KCP not found for single stack (1 requiredIP)", func() {
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		Expect(ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP})).To(Succeed())
+	})
+
+	It("should return error when KCP observedGeneration does not match generation", func() {
+		kcp := makeKCP(ns, kcpName, clusterName, 2, 1 /* stale */, []string{ipv4VIP, ipv6VIP})
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).WithObjects(kcp).WithStatusSubresource(kcp).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		err := ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP, ipv6VIP})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("has not yet observed the current generation 2 (observed: 1"))
+	})
+
+	It("should return nil when KCP observedGeneration is stale but a condition has the current generation", func() {
+		kcp := makeKCP(ns, kcpName, clusterName, 2, 1 /* stale top-level */, []string{ipv4VIP, ipv6VIP})
+		kcp.Status.Conditions = []metav1.Condition{
+			{
+				Type:               "Available",
+				Status:             metav1.ConditionTrue,
+				ObservedGeneration: 2, // matches generation
+			},
+		}
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).WithObjects(kcp).WithStatusSubresource(kcp).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		Expect(ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP, ipv6VIP})).To(Succeed())
+	})
+
+	It("should return error when certSANs missing IPv4 VIP", func() {
+		kcp := makeKCP(ns, kcpName, clusterName, 1, 1, []string{ipv6VIP}) // missing ipv4VIP
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).WithObjects(kcp).WithStatusSubresource(kcp).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		err := ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP, ipv6VIP})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("certSANs does not contain \"10.0.0.1\" yet"))
+	})
+
+	It("should return error when certSANs missing IPv6 VIP", func() {
+		kcp := makeKCP(ns, kcpName, clusterName, 1, 1, []string{ipv4VIP}) // missing ipv6VIP
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).WithObjects(kcp).WithStatusSubresource(kcp).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		err := ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP, ipv6VIP})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("certSANs does not contain \"fd00::1\" yet"))
+	})
+
+	It("should return nil when KCP has both VIPs in certSANs and observedGeneration matches", func() {
+		kcp := makeKCP(ns, kcpName, clusterName, 1, 1, []string{ipv4VIP, ipv6VIP})
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).WithObjects(kcp).WithStatusSubresource(kcp).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		Expect(ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP, ipv6VIP})).To(Succeed())
+	})
+
+	It("should skip gate check when KCP is being deleted", func() {
+		kcp := makeKCP(ns, kcpName, clusterName, 1, 0 /* stale */, nil /* no certSANs */)
+		now := metav1.Now()
+		kcp.DeletionTimestamp = &now
+		kcp.Finalizers = []string{"test-finalizer"}
+		c := fake.NewClientBuilder().WithScheme(buildKCPScheme()).WithObjects(kcp).WithStatusSubresource(kcp).Build()
+		clusterCtx := makeClusterCtx(clusterName, kcpName)
+		Expect(ensureKCPReadyForControlPlaneEndpoint(context.Background(), c, clusterCtx, []string{ipv4VIP, ipv6VIP})).To(Succeed())
 	})
 })

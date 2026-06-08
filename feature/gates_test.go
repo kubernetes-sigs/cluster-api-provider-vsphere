@@ -172,7 +172,7 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
 	g.Expect(allTestGates.ResetFeatureValueToDefault(SupervisorFeatureEnabledOnV1Alpha2)).To(Succeed())
 
-	// set a known versioned feature, NOT supported in this version, set to false
+	// set a known versioned feature(v1alpha5), NOT supported in this version, set to false
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha5=false")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
@@ -181,9 +181,23 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
 
-	// set a known versioned feature, NOT supported in this version, set to true
+	// set a known versioned feature(v1alpha5), NOT supported in this version, set to true
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha5=true")
 	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha5 to true, feature requires a newer vm-operator API version")})))
+
+	// set a known versioned feature(v1alpha6), NOT supported in this version, set to false
+	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha6=false")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
+	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
+	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha6)).To(BeFalse())
+
+	// set a known versioned feature(v1alpha6), NOT supported in this version, set to true
+	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha6=true")
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha6 to true, feature requires a newer vm-operator API version")})))
 
 	// set unknown feature gates
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "GovmomiFeature=false")

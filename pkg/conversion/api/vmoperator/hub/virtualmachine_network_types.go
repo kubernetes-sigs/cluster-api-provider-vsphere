@@ -21,42 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VirtualMachineNetworkInterfaceType specifies the NIC device type.
-type VirtualMachineNetworkInterfaceType string
-
-// TxContextThreadingMode specifies the transmit context threading mode for a VMXNet3 interface.
-type TxContextThreadingMode string
-
-// CoalescingScheme specifies the interrupt coalescing scheme for a VMXNet3 interface.
-type CoalescingScheme string
-
-// PNICQueueFeature names one physical NIC queue offload feature for VMXNet3 pnicFeatures.
-type PNICQueueFeature string
-
-// VirtualMachineNetworkInterfaceVMXNet3Spec contains tuning options specific to VMXNet3 interfaces.
-type VirtualMachineNetworkInterfaceVMXNet3Spec struct {
-	// +optional
-	UPTv2Enabled *bool `json:"uptv2Enabled,omitempty"`
-
-	// +optional
-	CtxPerDev *TxContextThreadingMode `json:"ctxPerDev,omitempty"`
-
-	// +optional
-	RSSOffloadEnabled *bool `json:"rssOffloadEnabled,omitempty"`
-
-	// +optional
-	UDPRSSEnabled *bool `json:"udpRSSEnabled,omitempty"`
-
-	// +optional
-	PNICFeatures []PNICQueueFeature `json:"pnicFeatures,omitempty"`
-
-	// +optional
-	CoalescingScheme *CoalescingScheme `json:"coalescingScheme,omitempty"`
-
-	// +optional
-	CoalescingParams *string `json:"coalescingParams,omitempty"`
-}
-
 // VirtualMachineNetworkRouteSpec defines a static route for a guest.
 type VirtualMachineNetworkRouteSpec struct {
 	// To is either "default", or an IP4 or IP6 address.
@@ -228,31 +192,57 @@ type VirtualMachineNetworkInterfaceSpec struct {
 	SearchDomains []string `json:"searchDomains,omitempty"`
 
 	// +optional
+	// +kubebuilder:validation:Enum=VMXNet3;SRIOV;E1000;E1000e;VMXNet2;PCNet32
 
-	// Type is the NIC device model (VMXNet3, SRIOV, E1000, E1000e, VMXNet2, PCNet32).
-	// If omitted, VMXNet3 will be used for new network interfaces.
+	// Type is the NIC device model when set (VMXNet3, SRIOV, or legacy vSphere
+	// types: E1000, E1000e, VMXNet2, PCNet32). If omitted, VMXNet3 will be used
+	// for new network interfaces. When vmxnet3 tuning is present, Type must be
+	// VMXNet3.
 	Type VirtualMachineNetworkInterfaceType `json:"type,omitempty"`
 
 	// +optional
-
-	// VMXNet3 contains tuning options specific to VMXNet3 interfaces.
-	VMXNet3 *VirtualMachineNetworkInterfaceVMXNet3Spec `json:"vmxnet3,omitempty"`
-
-	// +optional
+	// +kubebuilder:validation:Minimum=0
 
 	// VNUMANodeID assigns this interface to a specific virtual NUMA node.
+	// The value must match a virtual NUMA node ID configured in the VM's
+	// CPU topology (spec.cpu.coresPerNumaNode). Co-locating a NIC with the
+	// vCPUs that process its traffic reduces cross-NUMA memory latency for
+	// latency-sensitive workloads.
+	// Requires spec.minHardwareVersion >= 20.
+	// Cannot be changed while the VM is powered on.
 	VNUMANodeID *int32 `json:"vNUMANodeID,omitempty"`
 
 	// +optional
 
+	// VMXNet3 contains configuration options specific to VMXNet3 interfaces.
+	// API validation requires Type to be VMXNet3 when this field is set.
+	VMXNet3 *VirtualMachineNetworkInterfaceVMXNet3Spec `json:"vmxnet3,omitempty"`
+
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+
 	// AdvancedProperties is a fallback for device-specific VMX properties not
-	// yet exposed as first-class fields.
+	// yet exposed as first-class fields. Each key is the bare property name
+	// without the ethernetX. prefix; the device index is injected at runtime
+	// based on the vSphere device key.
+	//
+	// The admission webhook rejects keys that duplicate a first-class field
+	// above (e.g. "ctxPerDev" is rejected because VMXNet3.CtxPerDev exists).
 	AdvancedProperties []KeyValuePair `json:"advancedProperties,omitempty"`
 
 	// +optional
+	// +listType=set
+	// +kubebuilder:validation:MaxItems=2
 
-	// IPAMModes requests which IP address families the network provider allocates
-	// for this interface.
+	// IPAMModes requests which IP address families (IPv4 and/or IPv6) the network
+	// provider allocates for this interface. Allowed values are IPv4 and IPv6.
+	// Each family appears at most once; duplicate values are rejected by the API
+	// server; order does not change meaning—[IPv4, IPv6] and [IPv6, IPv4] are the
+	// same dual-stack request.
+	//
+	// When unset, the provider's default applies for which families are allocated.
+	// When set, the controller forwards the requested families to the provider for this interface.
 	IPAMModes []corev1.IPFamily `json:"ipamModes,omitempty"`
 }
 

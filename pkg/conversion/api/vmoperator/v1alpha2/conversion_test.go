@@ -110,11 +110,11 @@ func hubVirtualMachineVolume(in *vmoprvhub.VirtualMachineVolume, c randfill.Cont
 func hubVirtualMachineNetworkInterfaceSpec(in *vmoprvhub.VirtualMachineNetworkInterfaceSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Fields existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
+	in.AdvancedProperties = nil
+	in.IPAMModes = nil
 	in.Type = ""
 	in.VMXNet3 = nil
 	in.VNUMANodeID = nil
-	in.AdvancedProperties = nil
-	in.IPAMModes = nil
 }
 
 func virtualMachineGroupFuncs(_ runtimeserializer.CodecFactory) []interface{} {

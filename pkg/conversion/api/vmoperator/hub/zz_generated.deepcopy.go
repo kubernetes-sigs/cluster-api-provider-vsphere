@@ -1175,15 +1175,15 @@ func (in *VirtualMachineNetworkInterfaceSpec) DeepCopyInto(out *VirtualMachineNe
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.VMXNet3 != nil {
-		in, out := &in.VMXNet3, &out.VMXNet3
-		*out = new(VirtualMachineNetworkInterfaceVMXNet3Spec)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.VNUMANodeID != nil {
 		in, out := &in.VNUMANodeID, &out.VNUMANodeID
 		*out = new(int32)
 		**out = **in
+	}
+	if in.VMXNet3 != nil {
+		in, out := &in.VMXNet3, &out.VMXNet3
+		*out = new(VirtualMachineNetworkInterfaceVMXNet3Spec)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.AdvancedProperties != nil {
 		in, out := &in.AdvancedProperties, &out.AdvancedProperties

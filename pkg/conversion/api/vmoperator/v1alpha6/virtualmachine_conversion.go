@@ -133,7 +133,6 @@ func convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 					d.VMXNet3 = &vmoprvhub.VirtualMachineNetworkInterfaceVMXNet3Spec{
 						UPTv2Enabled:      iface.VMXNet3.UPTv2Enabled,
 						RSSOffloadEnabled: iface.VMXNet3.RSSOffloadEnabled,
-						UDPRSSEnabled:     iface.VMXNet3.UDPRSSEnabled,
 						CoalescingParams:  iface.VMXNet3.CoalescingParams,
 					}
 					if iface.VMXNet3.CtxPerDev != nil {
@@ -146,6 +145,9 @@ func convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 					}
 					for _, f := range iface.VMXNet3.PNICFeatures {
 						d.VMXNet3.PNICFeatures = append(d.VMXNet3.PNICFeatures, vmoprvhub.PNICQueueFeature(f))
+					}
+					if iface.VMXNet3.UDPRSSEnabled != nil {
+						d.VMXNet3.UDPRSSEnabled = ptr.To(vmoprvhub.UDPRSSMode(*iface.VMXNet3.UDPRSSEnabled))
 					}
 				}
 				d.VNUMANodeID = iface.VNUMANodeID
@@ -417,7 +419,6 @@ func convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(_ context.Context, sr
 					d.VMXNet3 = &vmoprv1alpha6.VirtualMachineNetworkInterfaceVMXNet3Spec{
 						UPTv2Enabled:      iface.VMXNet3.UPTv2Enabled,
 						RSSOffloadEnabled: iface.VMXNet3.RSSOffloadEnabled,
-						UDPRSSEnabled:     iface.VMXNet3.UDPRSSEnabled,
 						CoalescingParams:  iface.VMXNet3.CoalescingParams,
 					}
 					if iface.VMXNet3.CtxPerDev != nil {
@@ -430,6 +431,9 @@ func convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(_ context.Context, sr
 					}
 					for _, f := range iface.VMXNet3.PNICFeatures {
 						d.VMXNet3.PNICFeatures = append(d.VMXNet3.PNICFeatures, vmoprv1alpha6.PNICQueueFeature(f))
+					}
+					if iface.VMXNet3.UDPRSSEnabled != nil {
+						d.VMXNet3.UDPRSSEnabled = ptr.To(vmoprv1alpha6.UDPRSSMode(*iface.VMXNet3.UDPRSSEnabled))
 					}
 				}
 				d.VNUMANodeID = iface.VNUMANodeID

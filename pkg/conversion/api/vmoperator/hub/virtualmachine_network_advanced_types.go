@@ -112,6 +112,18 @@ const (
 	PNICQueueFeatureReceiveSideScaling PNICQueueFeature = "ReceiveSideScaling"
 )
 
+// UDPRSSMode controls whether UDP Receive Side Scaling is enabled on a VMXNet3
+// interface.
+type UDPRSSMode bool
+
+const (
+	// UDPRSSModeEnabled enables UDP RSS on the interface.
+	UDPRSSModeEnabled UDPRSSMode = true
+
+	// UDPRSSModeDisabled disables UDP RSS on the interface.
+	UDPRSSModeDisabled UDPRSSMode = false
+)
+
 // VirtualMachineNetworkInterfaceVMXNet3Spec contains tuning options specific to
 // VMXNet3 network interfaces. Fields with 'vmx' annotation map to ethernetX.* VMX keys, where X
 // is the device index derived from the vSphere device key at runtime.
@@ -159,7 +171,7 @@ type VirtualMachineNetworkInterfaceVMXNet3Spec struct {
 	// UDPRSSEnabled extends RSS to UDP traffic. By default RSS only distributes
 	// TCP flows. Enabling this also distributes UDP flows, improving throughput
 	// for UDP-heavy workloads such as GTP-U tunnels, QUIC, or media streaming.
-	UDPRSSEnabled *bool `json:"udpRSSEnabled,omitempty" vmx:"ethernet%d.udpRSS"`
+	UDPRSSEnabled *UDPRSSMode `json:"udpRSSEnabled,omitempty" vmx:"ethernet%d.udpRSS"`
 
 	// +optional
 	// +kubebuilder:validation:MaxItems=16

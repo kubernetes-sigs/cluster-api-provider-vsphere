@@ -65,6 +65,9 @@ func TestFuzzyConversion(t *testing.T) {
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineService{},
 		Spoke:     &vmoprv1alpha5.VirtualMachineService{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{
+			virtualMachineServiceFuncs,
+		},
 	}))
 	t.Run("for VirtualMachineSetResourcePolicy", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
@@ -82,6 +85,18 @@ func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVirtualMachineNetworkInterfaceSpec,
 	}
+}
+
+func virtualMachineServiceFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVirtualMachineServiceSpec,
+	}
+}
+
+func hubVirtualMachineServiceSpec(in *vmoprvhub.VirtualMachineServiceSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	in.IPFamilies = nil
+	in.IPFamilyPolicy = nil
 }
 
 func hubVirtualMachineNetworkInterfaceSpec(in *vmoprvhub.VirtualMachineNetworkInterfaceSpec, c randfill.Continue) {

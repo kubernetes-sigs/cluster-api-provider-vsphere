@@ -1252,7 +1252,7 @@ func (in *VirtualMachineNetworkInterfaceVMXNet3Spec) DeepCopyInto(out *VirtualMa
 	}
 	if in.UDPRSSEnabled != nil {
 		in, out := &in.UDPRSSEnabled, &out.UDPRSSEnabled
-		*out = new(bool)
+		*out = new(UDPRSSMode)
 		**out = **in
 	}
 	if in.PNICFeatures != nil {
@@ -1487,6 +1487,16 @@ func (in *VirtualMachineServiceSpec) DeepCopyInto(out *VirtualMachineServiceSpec
 		for key, val := range *in {
 			(*out)[key] = val
 		}
+	}
+	if in.IPFamilies != nil {
+		in, out := &in.IPFamilies, &out.IPFamilies
+		*out = make([]corev1.IPFamily, len(*in))
+		copy(*out, *in)
+	}
+	if in.IPFamilyPolicy != nil {
+		in, out := &in.IPFamilyPolicy, &out.IPFamilyPolicy
+		*out = new(corev1.IPFamilyPolicy)
+		**out = **in
 	}
 }
 

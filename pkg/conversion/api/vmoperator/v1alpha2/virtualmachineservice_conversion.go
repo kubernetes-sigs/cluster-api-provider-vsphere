@@ -58,6 +58,9 @@ func convert_v1alpha2_VirtualMachineService_To_hub_VirtualMachineService(_ conte
 func convert_hub_VirtualMachineService_To_v1alpha2_VirtualMachineService(_ context.Context, src *vmoprvhub.VirtualMachineService, dst *vmoprv1alpha2.VirtualMachineService) error {
 	dst.ObjectMeta = src.ObjectMeta
 
+	// IPFamilies existing in hub but not in v1alpha2.VirtualMachineServiceSpec
+	// IPFamilyPolicy existing in hub but not in v1alpha2.VirtualMachineServiceSpec
+
 	if src.Spec.Ports != nil {
 		dst.Spec.Ports = []vmoprv1alpha2.VirtualMachineServicePort{}
 		for _, port := range src.Spec.Ports {

@@ -1,0 +1,12 @@
+# GO-2026-5026: This should not be an issue where idna.ToASCII is used
+GO-2026-5026
+# GO-2026-5020: Only test code is affected
+GO-2026-5020
+# GO-2026-5019: Only test code is affected
+GO-2026-5019
+# GO-2026-5018: Only test code is affected
+GO-2026-5018
+# GO-2026-5017: Only test code is affected
+GO-2026-5017
+# GO-2026-5013: Only test code is affected
+GO-2026-5013

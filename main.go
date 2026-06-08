@@ -114,6 +114,7 @@ var (
 	vSphereDeploymentZoneConcurrency  int
 	virtualMachineGroupConcurrency    int
 	skipCRDMigrationPhases            []string
+	reconciliationTimeout             time.Duration
 
 	managerOptions = capiflags.ManagerOptions{}
 
@@ -164,6 +165,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&virtualMachineGroupConcurrency, "virtualmachinegroup-concurrency", 50,
 		"Number of virtual machine group to process simultaneously")
+
+	fs.DurationVar(&reconciliationTimeout, "reconciliation-timeout", time.Minute,
+		"Timeout for each reconcile call. Increase when vCenter SSO login is slow.")
 
 	fs.StringVar(
 		&managerOpts.PodName,
@@ -702,7 +706,10 @@ func isCRDDeployed(restMapper meta.RESTMapper, gvr schema.GroupVersionResource) 
 }
 
 func concurrency(c int) controller.Options {
-	return controller.Options{MaxConcurrentReconciles: c}
+	return controller.Options{
+		MaxConcurrentReconciles: c,
+		ReconciliationTimeout:   reconciliationTimeout,
+	}
 }
 
 func setupClusterCache(ctx context.Context, mgr ctrlmgr.Manager, secretCachingClient client.Client, isSupervisorCRDLoaded bool) (clustercache.ClusterCache, error) {

@@ -309,7 +309,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 }
 
 func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
-	oldTemplate := vmwarev1.VSphereMachineTemplate{
+	oldTemplate := &vmwarev1.VSphereMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-template",
 			Namespace: "default",
@@ -328,6 +328,11 @@ func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
 	newTemplate := oldTemplate.DeepCopy()
 	newTemplate.Spec.Template.Spec.ImageName = "ubuntu-22.04"
 
+	oldTemplateWithDefaultedPowerOffMode := oldTemplate.DeepCopy()
+	oldTemplateWithDefaultedPowerOffMode.Spec.Template.Spec.PowerOffMode = vmwarev1.VirtualMachinePowerOpModeHard
+	newTemplateWithoutPowerOffMode := oldTemplate.DeepCopy()
+	newTemplateWithoutPowerOffMode.Spec.Template.Spec.PowerOffMode = ""
+
 	newTemplateSkipImmutabilityAnnotationSet := newTemplate.DeepCopy()
 	newTemplateSkipImmutabilityAnnotationSet.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
 
@@ -341,23 +346,30 @@ func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
 	}{
 		{
 			name:        "return no error if no modification",
-			newTemplate: &oldTemplate,
-			oldTemplate: &oldTemplate,
+			newTemplate: oldTemplate,
+			oldTemplate: oldTemplate,
 			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantError:   false,
 		},
 		{
 			name:        "don't allow modification of spec.template.spec",
 			newTemplate: newTemplate,
-			oldTemplate: &oldTemplate,
+			oldTemplate: oldTemplate,
 			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantError:   true,
 			wantErrMsg:  "VSphereMachineTemplate spec.template.spec field is immutable",
 		},
 		{
+			name:        "allow differences between defaulted value and empty of spec.template.spec.powerOffMode",
+			newTemplate: newTemplateWithoutPowerOffMode,
+			oldTemplate: oldTemplateWithDefaultedPowerOffMode,
+			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
+			wantError:   false,
+		},
+		{
 			name:        "don't allow modification even with skip immutability annotation when not dry run",
 			newTemplate: newTemplateSkipImmutabilityAnnotationSet,
-			oldTemplate: &oldTemplate,
+			oldTemplate: oldTemplate,
 			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantError:   true,
 			wantErrMsg:  "VSphereMachineTemplate spec.template.spec field is immutable",
@@ -365,7 +377,7 @@ func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
 		{
 			name:        "don't allow modification when dry run but no skip immutability annotation",
 			newTemplate: newTemplate,
-			oldTemplate: &oldTemplate,
+			oldTemplate: oldTemplate,
 			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
 			wantError:   true,
 			wantErrMsg:  "VSphereMachineTemplate spec.template.spec field is immutable",
@@ -373,7 +385,7 @@ func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
 		{
 			name:        "skip immutability check when dry run and skip immutability annotation set",
 			newTemplate: newTemplateSkipImmutabilityAnnotationSet,
-			oldTemplate: &oldTemplate,
+			oldTemplate: oldTemplate,
 			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
 			wantError:   false,
 		},

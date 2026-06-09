@@ -82,6 +82,7 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 	dst.Spec.ClassName = src.Spec.ClassName
 	dst.Spec.GroupName = src.Spec.GroupName
 	dst.Spec.ImageName = src.Spec.ImageName
+	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
 	if src.Spec.Network != nil {
 		dst.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
 		if src.Spec.Network.Interfaces != nil {
@@ -94,10 +95,14 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 				d.DHCP6 = iface.DHCP6
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
+				d.GuestDeviceName = iface.GuestDeviceName
 				// IPAMModes existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
+				d.MACAddr = iface.MACAddr
 				if iface.MTU != nil {
 					d.MTU = ptr.To(*iface.MTU)
 				}
+				d.Name = iface.Name
+				d.Nameservers = iface.Nameservers
 				if iface.Network != nil {
 					d.Network = &vmoprvhub.PartialObjectRef{
 						TypeMeta: metav1.TypeMeta{
@@ -107,10 +112,6 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 						Name: iface.Network.Name,
 					}
 				}
-				d.GuestDeviceName = iface.GuestDeviceName
-				d.Name = iface.Name
-				d.Nameservers = iface.Nameservers
-				d.MACAddr = iface.MACAddr
 				if iface.Routes != nil {
 					d.Routes = []vmoprvhub.VirtualMachineNetworkRouteSpec{}
 					for _, route := range iface.Routes {
@@ -129,8 +130,7 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 			}
 		}
 	}
-	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
-	// v1alpha2 does not have spec.policies; hub field remains nil.
+	// Policies existing in hub but not in v1alpha2.VirtualMachineSpec
 	dst.Spec.PowerOffMode = vmoprvhub.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
 	dst.Spec.PowerState = vmoprvhub.VirtualMachinePowerState(src.Spec.PowerState)
 	if src.Spec.ReadinessProbe != nil {
@@ -152,6 +152,10 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 		dst.Spec.Volumes = []vmoprvhub.VirtualMachineVolume{}
 		for _, volume := range src.Spec.Volumes {
 			v := vmoprvhub.VirtualMachineVolume{}
+			// ApplicationType existing in hub but not in v1alpha2.VirtualMachineVolume
+			// ControllerBusNumber existing in hub but not in v1alpha2.VirtualMachineVolume
+			// ControllerType existing in hub but not in v1alpha2.VirtualMachineVolume
+			// DiskMode existing in hub but not in v1alpha2.VirtualMachineVolume
 			v.Name = volume.Name
 			if volume.PersistentVolumeClaim != nil {
 				v.PersistentVolumeClaim = &vmoprvhub.PersistentVolumeClaimVolumeSource{
@@ -166,15 +170,11 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
 					}
 				}
-				// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
-				// - ApplicationType
-				// - ControllerBusNumber
-				// - ControllerType
-				// - DiskMode
-				// - SharingMode
-				// - UnitNumber
-				// - UnmanagedVolumeClaim
+
 			}
+			// Removable existing in hub but not in v1alpha2.VirtualMachineVolume
+			// SharingMode existing in hub but not in v1alpha2.VirtualMachineVolume
+			// UnitNumber existing in hub but not in v1alpha2.VirtualMachineVolume
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
 	}
@@ -258,7 +258,7 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 		dst.Status.Network.PrimaryIP6 = src.Status.Network.PrimaryIP6
 	}
 	dst.Status.NodeName = src.Status.Host // Field renamed in hub
-	// v1alpha2 does not have status.policies; hub field remains nil.
+	// Policies existing in hub but not in v1alpha2.VirtualMachineStatus
 	dst.Status.PowerState = vmoprvhub.VirtualMachinePowerState(src.Status.PowerState)
 	dst.Status.Zone = src.Status.Zone
 
@@ -318,6 +318,7 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 	dst.Spec.ClassName = src.Spec.ClassName
 	dst.Spec.GroupName = src.Spec.GroupName
 	dst.Spec.ImageName = src.Spec.ImageName
+	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
 	if src.Spec.Network != nil {
 		dst.Spec.Network = &vmoprv1alpha2.VirtualMachineNetworkSpec{}
 		if src.Spec.Network.Interfaces != nil {
@@ -330,10 +331,14 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 				d.DHCP6 = iface.DHCP6
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
+				d.GuestDeviceName = iface.GuestDeviceName
 				// IPAMModes existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
+				d.MACAddr = iface.MACAddr
 				if iface.MTU != nil {
 					d.MTU = ptr.To(*iface.MTU)
 				}
+				d.Name = iface.Name
+				d.Nameservers = iface.Nameservers
 				if iface.Network != nil {
 					d.Network = &vmoprv1alpha2common.PartialObjectRef{
 						TypeMeta: metav1.TypeMeta{
@@ -343,10 +348,6 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 						Name: iface.Network.Name,
 					}
 				}
-				d.GuestDeviceName = iface.GuestDeviceName
-				d.Name = iface.Name
-				d.Nameservers = iface.Nameservers
-				d.MACAddr = iface.MACAddr
 				if iface.Routes != nil {
 					d.Routes = []vmoprv1alpha2.VirtualMachineNetworkRouteSpec{}
 					for _, route := range iface.Routes {
@@ -365,7 +366,7 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 			}
 		}
 	}
-	dst.Spec.MinHardwareVersion = src.Spec.MinHardwareVersion
+	// Policies existing in hub but not in v1alpha2.VirtualMachineSpec
 	dst.Spec.PowerOffMode = vmoprv1alpha2.VirtualMachinePowerOpMode(src.Spec.PowerOffMode)
 	dst.Spec.PowerState = vmoprv1alpha2.VirtualMachinePowerState(src.Spec.PowerState)
 	if src.Spec.ReadinessProbe != nil {
@@ -387,6 +388,10 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 		dst.Spec.Volumes = []vmoprv1alpha2.VirtualMachineVolume{}
 		for _, volume := range src.Spec.Volumes {
 			v := vmoprv1alpha2.VirtualMachineVolume{}
+			// ApplicationType existing in hub but not in v1alpha2.VirtualMachineVolume
+			// ControllerBusNumber existing in hub but not in v1alpha2.VirtualMachineVolume
+			// ControllerType existing in hub but not in v1alpha2.VirtualMachineVolume
+			// DiskMode existing in hub but not in v1alpha2.VirtualMachineVolume
 			v.Name = volume.Name
 			if volume.PersistentVolumeClaim != nil {
 				v.PersistentVolumeClaim = &vmoprv1alpha2.PersistentVolumeClaimVolumeSource{
@@ -401,15 +406,11 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 						Size:         volume.PersistentVolumeClaim.InstanceVolumeClaim.Size,
 					}
 				}
-				// Fields existing in hub but not in v1alpha2.PersistentVolumeClaim
-				// - ApplicationType
-				// - ControllerBusNumber
-				// - ControllerType
-				// - DiskMode
-				// - SharingMode
-				// - UnitNumber
-				// - UnmanagedVolumeClaim
+
 			}
+			// Removable existing in hub but not in v1alpha2.VirtualMachineVolume
+			// SharingMode existing in hub but not in v1alpha2.VirtualMachineVolume
+			// UnitNumber existing in hub but not in v1alpha2.VirtualMachineVolume
 			dst.Spec.Volumes = append(dst.Spec.Volumes, v)
 		}
 	}
@@ -493,6 +494,7 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 		dst.Status.Network.PrimaryIP4 = src.Status.Network.PrimaryIP4
 		dst.Status.Network.PrimaryIP6 = src.Status.Network.PrimaryIP6
 	}
+	// Policies existing in hub but not in v1alpha2.VirtualMachineStatus
 	dst.Status.PowerState = vmoprv1alpha2.VirtualMachinePowerState(src.Status.PowerState)
 	dst.Status.Zone = src.Status.Zone
 

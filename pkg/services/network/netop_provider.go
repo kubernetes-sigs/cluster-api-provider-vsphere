@@ -149,7 +149,7 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clu
 	})
 
 	// Set the VM secondary interfaces
-	setVMSecondaryInterfaces(machine, vm)
+	setVMSecondaryInterfaces(machine, vm, nil)
 
 	return nil
 }

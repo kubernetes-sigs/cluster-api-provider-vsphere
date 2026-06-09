@@ -26,7 +26,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93
-	golang.org/x/mod v0.36.0
+	golang.org/x/mod v0.37.0
 	golang.org/x/tools v0.45.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.36.1

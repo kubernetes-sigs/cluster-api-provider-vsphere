@@ -89,10 +89,12 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 			for _, iface := range src.Spec.Network.Interfaces {
 				d := vmoprvhub.VirtualMachineNetworkInterfaceSpec{}
 				d.Addresses = iface.Addresses
+				// AdvancedProperties existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
 				d.DHCP4 = iface.DHCP4
 				d.DHCP6 = iface.DHCP6
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
+				// IPAMModes existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
 				if iface.MTU != nil {
 					d.MTU = ptr.To(*iface.MTU)
 				}
@@ -120,6 +122,9 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 					}
 				}
 				d.SearchDomains = iface.SearchDomains
+				// Type existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
+				// VMXNet3 existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
+				// VNUMANodeID existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
 		}
@@ -320,10 +325,12 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 			for _, iface := range src.Spec.Network.Interfaces {
 				d := vmoprv1alpha2.VirtualMachineNetworkInterfaceSpec{}
 				d.Addresses = iface.Addresses
+				// AdvancedProperties existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
 				d.DHCP4 = iface.DHCP4
 				d.DHCP6 = iface.DHCP6
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
+				// IPAMModes existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
 				if iface.MTU != nil {
 					d.MTU = ptr.To(*iface.MTU)
 				}
@@ -351,6 +358,9 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 					}
 				}
 				d.SearchDomains = iface.SearchDomains
+				// Type existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
+				// VMXNet3 existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
+				// VNUMANodeID existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
 		}

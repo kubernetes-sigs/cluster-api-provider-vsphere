@@ -31,6 +31,7 @@ import (
 	"github.com/spf13/pflag"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	"gopkg.in/fsnotify.v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -122,7 +123,7 @@ var (
 	defaultLeaderElectionID = manager.DefaultLeaderElectionID
 	defaultPodName          = manager.DefaultPodName
 
-	supportedVMOperatorAPIVersions = []string{vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version}
+	supportedVMOperatorAPIVersions = []string{vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version, vmoprv1alpha6.GroupVersion.Version}
 )
 
 // InitFlags initializes the flags.
@@ -396,6 +397,10 @@ func main() {
 		}
 		if err := vmoprv1alpha5.AddToScheme(scheme); err != nil {
 			setupLog.Error(err, "Unable to start manager; failed register v1alpha5 version for vm-operator API types")
+			os.Exit(1)
+		}
+		if err := vmoprv1alpha6.AddToScheme(scheme); err != nil {
+			setupLog.Error(err, "Unable to start manager; failed register v1alpha6 version for vm-operator API types")
 			os.Exit(1)
 		}
 

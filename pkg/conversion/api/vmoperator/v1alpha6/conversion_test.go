@@ -14,17 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha5
+package v1alpha6
 
 import (
 	"testing"
 
-	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
-	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"sigs.k8s.io/randfill"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
@@ -33,7 +30,7 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	converter := conversion.NewConverter(func(_ schema.GroupKind) (string, error) {
-		return vmoprv1alpha5.GroupVersion.Version, nil
+		return vmoprv1alpha6.GroupVersion.Version, nil
 	})
 	utilruntime.Must(vmoprvhub.AddToConverter(converter))
 	utilruntime.Must(AddToConverter(converter))
@@ -41,55 +38,36 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for VirtualMachine", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachine{},
-		Spoke:     &vmoprv1alpha5.VirtualMachine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{
-			virtualMachineFuncs,
-		},
+		Spoke:     &vmoprv1alpha6.VirtualMachine{},
 	}))
 	t.Run("for VirtualMachineClass", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineClass{},
-		Spoke:     &vmoprv1alpha5.VirtualMachineClass{},
+		Spoke:     &vmoprv1alpha6.VirtualMachineClass{},
 	}))
 	t.Run("for VirtualMachineGroup", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineGroup{},
-		Spoke:     &vmoprv1alpha5.VirtualMachineGroup{},
+		Spoke:     &vmoprv1alpha6.VirtualMachineGroup{},
 	}))
 	t.Run("for VirtualMachineImage", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineImage{},
-		Spoke:     &vmoprv1alpha5.VirtualMachineImage{},
+		Spoke:     &vmoprv1alpha6.VirtualMachineImage{},
 	}))
 	t.Run("for VirtualMachineService", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineService{},
-		Spoke:     &vmoprv1alpha5.VirtualMachineService{},
+		Spoke:     &vmoprv1alpha6.VirtualMachineService{},
 	}))
 	t.Run("for VirtualMachineSetResourcePolicy", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineSetResourcePolicy{},
-		Spoke:     &vmoprv1alpha5.VirtualMachineSetResourcePolicy{},
+		Spoke:     &vmoprv1alpha6.VirtualMachineSetResourcePolicy{},
 	}))
 	t.Run("for ClusterVirtualMachineImage", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
 		Hub:       &vmoprvhub.ClusterVirtualMachineImage{},
-		Spoke:     &vmoprv1alpha5.ClusterVirtualMachineImage{},
+		Spoke:     &vmoprv1alpha6.ClusterVirtualMachineImage{},
 	}))
-}
-
-func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		hubVirtualMachineNetworkInterfaceSpec,
-	}
-}
-
-func hubVirtualMachineNetworkInterfaceSpec(in *vmoprvhub.VirtualMachineNetworkInterfaceSpec, c randfill.Continue) {
-	c.FillNoCustom(in)
-	// Fields existing in hub but not in v1alpha5.VirtualMachineNetworkInterfaceSpec
-	in.AdvancedProperties = nil
-	in.IPAMModes = nil
-	in.Type = ""
-	in.VMXNet3 = nil
-	in.VNUMANodeID = nil
 }

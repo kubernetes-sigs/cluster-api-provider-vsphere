@@ -31,6 +31,7 @@ import (
 	"github.com/spf13/pflag"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	vmopinfrav1 "github.com/vmware-tanzu/vm-operator/external/infra/api/v1alpha1"
 	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
@@ -109,7 +110,7 @@ var (
 	vmOperatorSimMode                 bool
 	featureGates                      string
 
-	supportedVMOperatorAPIVersions = []string{vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version}
+	supportedVMOperatorAPIVersions = []string{vmoprv1alpha2.GroupVersion.Version, vmoprv1alpha5.GroupVersion.Version, vmoprv1alpha6.GroupVersion.Version}
 )
 
 func init() {
@@ -122,6 +123,7 @@ func init() {
 	utilruntime.Must(vmoprvhub.AddToScheme(scheme))
 	utilruntime.Must(vmoprv1alpha2.AddToScheme(scheme))
 	utilruntime.Must(vmoprv1alpha5.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1alpha6.AddToScheme(scheme))
 	utilruntime.Must(storagev1.AddToScheme(scheme))
 	utilruntime.Must(vmwarev1beta1.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))

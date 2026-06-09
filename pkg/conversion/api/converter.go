@@ -26,6 +26,7 @@ import (
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	vmoprv1alpha2conversion "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha2"
 	vmoprv1alpha5conversion "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha5"
+	vmoprv1alpha6conversion "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/v1alpha6"
 )
 
 // DefaultConverterFor is a converter aware of the API types and the conversions defined in sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api.
@@ -43,5 +44,6 @@ func DefaultConverterFor(targetVersions ...schema.GroupVersion) *conversion.Conv
 	utilruntime.Must(vmoprvhub.AddToConverter(converter))
 	utilruntime.Must(vmoprv1alpha2conversion.AddToConverter(converter))
 	utilruntime.Must(vmoprv1alpha5conversion.AddToConverter(converter))
+	utilruntime.Must(vmoprv1alpha6conversion.AddToConverter(converter))
 	return converter
 }

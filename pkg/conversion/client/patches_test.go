@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -131,6 +132,8 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	v1alpha5ConversionClient, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha5Converter)
 	g.Expect(err).NotTo(HaveOccurred())
+	v1alpha6ConversionClient, err := NewWithConverter(fake.NewClientBuilder().WithScheme(scheme).Build(), v1alpha6Converter)
+	g.Expect(err).NotTo(HaveOccurred())
 
 	tests := []struct {
 		name          string
@@ -140,6 +143,52 @@ func Test_conversionMergePatch_Data(t *testing.T) {
 		wantData      []byte
 		wantErr       bool
 	}{
+		{
+			name:          "Generates patch data when obj needs conversion to v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
+			patch: &conversionMergePatch{
+				from: &vmoprvhub.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm",
+						Namespace: "test-ns",
+					},
+				},
+				client: v1alpha6ConversionClient.(*conversionClient),
+			},
+			obj: &vmoprvhub.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+			},
+			wantData: []byte(`{"metadata":{"labels":{"foo":"bar"}}}`),
+		},
+		{
+			name:          "Generates patch data when obj is already converted to v1alpha6",
+			targetVersion: vmoprv1alpha6.GroupVersion.Version,
+			patch: &conversionMergePatch{
+				from: &vmoprvhub.VirtualMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-vm",
+						Namespace: "test-ns",
+					},
+				},
+				client: v1alpha6ConversionClient.(*conversionClient),
+			},
+			obj: &vmoprv1alpha6.VirtualMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vm",
+					Namespace: "test-ns",
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+			},
+			wantData: []byte(`{"metadata":{"labels":{"foo":"bar"}}}`),
+		},
 		{
 			name:          "Generates patch data when obj needs conversion to v1alpha5",
 			targetVersion: vmoprv1alpha5.GroupVersion.Version,

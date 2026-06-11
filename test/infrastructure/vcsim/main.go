@@ -53,7 +53,6 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
@@ -116,7 +115,7 @@ var (
 func init() {
 	// scheme used for operating on the management cluster.
 	utilruntime.Must(corev1.AddToScheme(scheme))
-	utilruntime.Must(clusterv1beta1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(infrav1beta1.AddToScheme(scheme))
 	utilruntime.Must(vcsimv1.AddToScheme(scheme))
 	utilruntime.Must(topologyv1.AddToScheme(scheme))

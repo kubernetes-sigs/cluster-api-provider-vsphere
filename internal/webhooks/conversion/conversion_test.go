@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package conversion
 
 import (
 	"fmt"
@@ -31,65 +31,66 @@ import (
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/randfill"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api-provider-vsphere/internal/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
-	g.Expect(AddToScheme(scheme)).To(Succeed())
+	g.Expect(infrav1beta1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for VSphereCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav1.VSphereCluster{},
-		Spoke:       &VSphereCluster{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterFuzzFuncs},
+	t.Run("for VSphereCluster", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*infrav1.VSphereCluster, *infrav1beta1.VSphereCluster]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereClusterV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereClusterHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereClusterFuzzFuncs},
 	}))
-	t.Run("for VSphereClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav1.VSphereClusterTemplate{},
-		Spoke:       &VSphereClusterTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterTemplateFuzzFuncs},
+	t.Run("for VSphereClusterTemplate", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*infrav1.VSphereClusterTemplate, *infrav1beta1.VSphereClusterTemplate]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereClusterTemplateV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereClusterTemplateHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereClusterTemplateFuzzFuncs},
 	}))
-	t.Run("for VSphereClusterIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav1.VSphereClusterIdentity{},
-		Spoke:       &VSphereClusterIdentity{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterIdentityFuzzFuncs},
+	t.Run("for VSphereClusterIdentity", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*infrav1.VSphereClusterIdentity, *infrav1beta1.VSphereClusterIdentity]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereClusterIdentityV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereClusterIdentityHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereClusterIdentityFuzzFuncs},
 	}))
-	t.Run("for VSphereDeploymentZone", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav1.VSphereDeploymentZone{},
-		Spoke:       &VSphereDeploymentZone{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereDeploymentZoneFuzzFuncs},
+	t.Run("for VSphereDeploymentZone", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*infrav1.VSphereDeploymentZone, *infrav1beta1.VSphereDeploymentZone]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereDeploymentZoneV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereDeploymentZoneHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereDeploymentZoneFuzzFuncs},
 	}))
-	t.Run("for VSphereFailureDomain", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav1.VSphereFailureDomain{},
-		Spoke:       &VSphereFailureDomain{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereFailureDomainFuzzFuncs},
+	t.Run("for VSphereFailureDomain", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*infrav1.VSphereFailureDomain, *infrav1beta1.VSphereFailureDomain]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereFailureDomainV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereFailureDomainHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereFailureDomainFuzzFuncs},
 	}))
-	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav1.VSphereMachine{},
-		Spoke:       &VSphereMachine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereMachineFuzzFuncs},
+	t.Run("for VSphereMachine", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*infrav1.VSphereMachine, *infrav1beta1.VSphereMachine]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereMachineV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereMachineHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereMachineFuzzFuncs},
 	}))
-	t.Run("for VSphereMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav1.VSphereMachineTemplate{},
-		Spoke:       &VSphereMachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereMachineTemplateFuzzFuncs},
+	t.Run("for VSphereMachineTemplate", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*infrav1.VSphereMachineTemplate, *infrav1beta1.VSphereMachineTemplate]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereMachineTemplateV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereMachineTemplateHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereMachineTemplateFuzzFuncs},
 	}))
-	t.Run("for VSphereVM", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav1.VSphereVM{},
-		Spoke:       &VSphereVM{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereVMFuzzFuncs},
+	t.Run("for VSphereVM", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*infrav1.VSphereVM, *infrav1beta1.VSphereVM]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereVMV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereVMHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereVMFuzzFuncs},
 	}))
 }
 
@@ -137,19 +138,19 @@ func hubVSphereFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 	in.ControlPlane = ptr.To(c.Bool())
 }
 
-func spokeVSphereClusterSpec(in *VSphereClusterSpec, c randfill.Continue) {
+func spokeVSphereClusterSpec(in *infrav1beta1.VSphereClusterSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
-	if in.IdentityRef != nil && reflect.DeepEqual(in.IdentityRef, &VSphereIdentityReference{}) {
+	if in.IdentityRef != nil && reflect.DeepEqual(in.IdentityRef, &infrav1beta1.VSphereIdentityReference{}) {
 		in.IdentityRef = nil
 	}
 }
 
-func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
+func spokeVSphereClusterStatus(in *infrav1beta1.VSphereClusterStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &infrav1beta1.VSphereClusterV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -185,11 +186,11 @@ func hubVSphereClusterIdentityStatus(in *infrav1.VSphereClusterIdentityStatus, c
 	}
 }
 
-func spokeVSphereClusterIdentityStatus(in *VSphereClusterIdentityStatus, c randfill.Continue) {
+func spokeVSphereClusterIdentityStatus(in *infrav1beta1.VSphereClusterIdentityStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterIdentityV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &infrav1beta1.VSphereClusterIdentityV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -212,11 +213,11 @@ func hubVSphereDeploymentZoneStatus(in *infrav1.VSphereDeploymentZoneStatus, c r
 	}
 }
 
-func spokeVSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, c randfill.Continue) {
+func spokeVSphereDeploymentZoneStatus(in *infrav1beta1.VSphereDeploymentZoneStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &VSphereDeploymentZoneV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &infrav1beta1.VSphereDeploymentZoneV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -229,10 +230,10 @@ func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []interface
 	}
 }
 
-func spokeVSphereFailureDomainSpec(in *VSphereFailureDomainSpec, c randfill.Continue) {
+func spokeVSphereFailureDomainSpec(in *infrav1beta1.VSphereFailureDomainSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 	if in.Topology.Hosts != nil {
-		if reflect.DeepEqual(in.Topology.Hosts, &FailureDomainHosts{}) {
+		if reflect.DeepEqual(in.Topology.Hosts, &infrav1beta1.FailureDomainHosts{}) {
 			in.Topology.Hosts = nil
 		}
 	}
@@ -264,7 +265,7 @@ func hubVSphereMachineStatus(in *infrav1.VSphereMachineStatus, c randfill.Contin
 	}
 }
 
-func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
+func spokeVSphereMachineSpec(in *infrav1beta1.VSphereMachineSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.ProviderID != nil && *in.ProviderID == "" {
@@ -279,7 +280,7 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 		in.NamingStrategy.Template = nil
 	}
 
-	if in.NamingStrategy != nil && reflect.DeepEqual(in.NamingStrategy, &VSphereVMNamingStrategy{}) {
+	if in.NamingStrategy != nil && reflect.DeepEqual(in.NamingStrategy, &infrav1beta1.VSphereVMNamingStrategy{}) {
 		in.NamingStrategy = nil
 	}
 
@@ -291,11 +292,11 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 	in.FailureDomain = nil                 // field has been dropped in v1beta2
 }
 
-func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
+func spokeVSphereMachineStatus(in *infrav1beta1.VSphereMachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &VSphereMachineV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &infrav1beta1.VSphereMachineV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -328,7 +329,7 @@ func hubVSphereVMStatus(in *infrav1.VSphereVMStatus, c randfill.Continue) {
 	}
 }
 
-func spokeVSphereVM(in *VSphereVM, c randfill.Continue) {
+func spokeVSphereVM(in *infrav1beta1.VSphereVM, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.Spec.BootstrapRef != nil && in.Spec.BootstrapRef.Name != "" { // Only set the fields that we expect to round trip.
@@ -343,7 +344,7 @@ func spokeVSphereVM(in *VSphereVM, c randfill.Continue) {
 	}
 }
 
-func spokeVSphereVMSpec(in *VSphereVMSpec, c randfill.Continue) {
+func spokeVSphereVMSpec(in *infrav1beta1.VSphereVMSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.GuestSoftPowerOffTimeout != nil {
@@ -353,11 +354,11 @@ func spokeVSphereVMSpec(in *VSphereVMSpec, c randfill.Continue) {
 	in.Network.PreferredAPIServerCIDR = "" // field has been dropped in v1beta2
 }
 
-func spokeVSphereVMStatus(in *VSphereVMStatus, c randfill.Continue) {
+func spokeVSphereVMStatus(in *infrav1beta1.VSphereVMStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &VSphereVMV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &infrav1beta1.VSphereVMV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}

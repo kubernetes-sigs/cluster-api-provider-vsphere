@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/conversion"
 )
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-vspherevm,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherevms,versions=v1beta2,name=validation.vspherevm.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
@@ -45,6 +46,7 @@ func (webhook *VSphereVM) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereVM{}).
 		WithValidator(webhook).
 		WithDefaulter(webhook).
+		WithConverter(conversion.VSphereVM).
 		Complete()
 }
 

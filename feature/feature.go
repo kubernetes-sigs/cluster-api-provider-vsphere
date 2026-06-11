@@ -19,6 +19,7 @@ package feature
 
 import (
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	"k8s.io/component-base/featuregate"
 )
 
@@ -55,6 +56,11 @@ const (
 	//
 	// alpha: v1.17
 	InfrastructurePolicies featuregate.Feature = "InfrastructurePolicies"
+
+	// VLANSubinterface is a feature gate for the VLAN sub-interface functionality for supervisor.
+	//
+	// alpha: v1.17
+	VLANSubinterface featuregate.Feature = "VLANSubinterface"
 
 	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
 	// instead of the default queue implementation.
@@ -97,6 +103,9 @@ var (
 		// },
 		InfrastructurePolicies: {
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
+		VLANSubinterface: {
+			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 	}
 )

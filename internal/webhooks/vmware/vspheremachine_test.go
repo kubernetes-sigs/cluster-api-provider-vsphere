@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/ptr"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
@@ -423,4 +424,261 @@ func TestVSphereMachine_ValidateCreate_InfrastructurePolicies(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
+	tests := []struct {
+		name        string
+		featureGate bool
+		networkSpec vmwarev1.VSphereMachineNetworkSpec
+		wantErr     bool
+		wantErrMsg  string
+	}{
+		{
+			name:        "vlans set but feature gate disabled",
+			featureGate: false,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan101",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "vlans can only be set when feature gate VLANSubinterface is enabled",
+		},
+		{
+			name:        "no secondary interface",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan101",
+						ID:   ptr.To(int32(101)),
+						Link: "eth0",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "secondary interfaces is required when vlans is specified",
+		},
+		{
+			name:        "duplicate vlan names",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan-nic",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+					{
+						Name: "vlan-nic",
+						ID:   ptr.To(int32(102)),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "VLAN name must be unique",
+		},
+		{
+			name:        "link to non-existent interface",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan-nic",
+						ID:   ptr.To(int32(101)),
+						Link: "eth2",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "link must reference an existing secondary interface name",
+		},
+		{
+			name:        "duplicate vlan id on same link",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan1",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+					{
+						Name: "vlan2",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "VLAN ID 101 is already used by VLAN \"vlan1\" on the same link \"eth1\"",
+		},
+		{
+			name:        "valid vlans",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+							Name:       "primary-subnetset",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan101",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, true)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VLANSubinterface, tc.featureGate)
+			webhook := &VSphereMachine{NetworkProvider: manager.NSXVPCNetworkProvider}
+			vm := &vmwarev1.VSphereMachine{
+				Spec: vmwarev1.VSphereMachineSpec{Network: tc.networkSpec},
+			}
+			_, err := webhook.ValidateCreate(context.Background(), vm)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				if tc.wantErrMsg != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tc.wantErrMsg))
+				}
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestVSphereMachine_ValidateUpdate_VLANs(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, true)
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VLANSubinterface, true)
+	g := NewWithT(t)
+
+	// Old VSphereMachine without vlans
+	oldVSphereMachine := &vmwarev1.VSphereMachine{
+		Spec: vmwarev1.VSphereMachineSpec{
+			Network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+							Name:       "primary-subnetset",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// New VSphereMachine with a vlan sub-interface
+	newVSphereMachine := oldVSphereMachine.DeepCopy()
+	newVSphereMachine.Spec.Network.VLANs = []vmwarev1.VLANSpec{
+		{
+			Name: "vlan1",
+			ID:   ptr.To(int32(101)),
+			Link: "eth1",
+		},
+	}
+
+	webhook := &VSphereMachine{NetworkProvider: manager.NSXVPCNetworkProvider}
+	_, err := webhook.ValidateUpdate(context.Background(), oldVSphereMachine, newVSphereMachine)
+	g.Expect(err).NotTo(HaveOccurred())
 }

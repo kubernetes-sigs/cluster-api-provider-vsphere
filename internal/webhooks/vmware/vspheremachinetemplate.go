@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware/conversion"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -49,6 +50,7 @@ func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager)
 	return ctrl.NewWebhookManagedBy(mgr, &vmwarev1.VSphereMachineTemplate{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.VSphereMachineTemplate).
 		Complete()
 }
 

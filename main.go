@@ -666,6 +666,9 @@ func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.
 	if err := (&vmwarewebhooks.VSphereCluster{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
 		return err
 	}
+	if err := (&vmwarewebhooks.ProviderServiceAccount{}).SetupWebhookWithManager(mgr); err != nil {
+		return err
+	}
 	if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereClusterConcurrency)); err != nil {
 		return err
 	}

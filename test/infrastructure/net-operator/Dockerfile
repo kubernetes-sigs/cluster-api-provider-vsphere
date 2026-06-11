@@ -36,6 +36,9 @@ ENV GOPROXY=$goproxy
 COPY go.mod go.mod
 COPY go.sum go.sum
 
+COPY api/go.mod api/go.mod
+COPY api/go.sum api/go.sum
+
 # Change directories into the test go module
 WORKDIR /workspace/test
 

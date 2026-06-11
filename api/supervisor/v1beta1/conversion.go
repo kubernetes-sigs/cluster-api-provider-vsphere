@@ -24,7 +24,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
@@ -48,14 +47,14 @@ func Convert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in *vm
 	}
 
 	// Move initialization to old field
-	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+	out.Ready = deref(in.Initialization.Provisioned, false)
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: ptr.Deref(fd.ControlPlane, false),
+				ControlPlane: deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -93,7 +92,7 @@ func Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VS
 			fd := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: ptr.To(fd.ControlPlane),
+				ControlPlane: new(fd.ControlPlane),
 				Attributes:   fd.Attributes,
 			})
 		}
@@ -182,7 +181,7 @@ func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *vm
 		return err
 	}
 
-	out.ID = ptr.To(in.BiosUUID)
+	out.ID = new(in.BiosUUID)
 	switch in.Phase {
 	case vmwarev1.VSphereMachinePhaseNotFound:
 		out.VMStatus = VirtualMachineStateNotFound
@@ -214,7 +213,7 @@ func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *vm
 	}
 
 	// Move initialization to old field
-	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+	out.Ready = deref(in.Initialization.Provisioned, false)
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
@@ -230,7 +229,7 @@ func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VS
 		return err
 	}
 
-	out.BiosUUID = ptr.Deref(in.ID, "")
+	out.BiosUUID = deref(in.ID, "")
 	switch in.VMStatus {
 	case VirtualMachineStateNotFound:
 		out.Phase = vmwarev1.VSphereMachinePhaseNotFound
@@ -303,4 +302,11 @@ func Convert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTempl
 	// Call the auto-generated conversion function which handles the Capacity field
 	// Note: The NodeInfo field from v1beta2 is intentionally dropped as it doesn't exist in v1beta1
 	return autoConvert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTemplateStatus(in, out, s)
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

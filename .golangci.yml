@@ -67,7 +67,6 @@ linters:
             - sigs.k8s.io/cluster-api-provider-vsphere/api
             - sigs.k8s.io/cluster-api/api
 #            # TODO: Remove these imports (or at least consider it)
-            - k8s.io/utils/ptr$
             - sigs.k8s.io/cluster-api/errors$ # drop after bump to CAPI main
         vm-operator:
           deny:

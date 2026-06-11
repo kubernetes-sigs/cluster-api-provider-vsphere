@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
@@ -74,14 +73,14 @@ func Convert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in *in
 	}
 
 	// Move initialization to old field
-	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+	out.Ready = deref(in.Initialization.Provisioned, false)
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: ptr.Deref(fd.ControlPlane, false),
+				ControlPlane: deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -119,7 +118,7 @@ func Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VS
 			fd := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: ptr.To(fd.ControlPlane),
+				ControlPlane: new(fd.ControlPlane),
 				Attributes:   fd.Attributes,
 			})
 		}
@@ -316,7 +315,7 @@ func Convert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VSpher
 		}
 	}
 
-	out.GuestSoftPowerOffTimeoutSeconds = ptr.Deref(clusterv1.ConvertToSeconds(in.GuestSoftPowerOffTimeout), 0)
+	out.GuestSoftPowerOffTimeoutSeconds = deref(clusterv1.ConvertToSeconds(in.GuestSoftPowerOffTimeout), 0)
 	return nil
 }
 
@@ -339,7 +338,7 @@ func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *in
 	}
 
 	// Move initialization to old field
-	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+	out.Ready = deref(in.Initialization.Provisioned, false)
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
@@ -399,7 +398,7 @@ func Convert_v1beta1_VSphereVMSpec_To_v1beta2_VSphereVMSpec(in *VSphereVMSpec, o
 		return err
 	}
 
-	out.GuestSoftPowerOffTimeoutSeconds = ptr.Deref(clusterv1.ConvertToSeconds(in.GuestSoftPowerOffTimeout), 0)
+	out.GuestSoftPowerOffTimeoutSeconds = deref(clusterv1.ConvertToSeconds(in.GuestSoftPowerOffTimeout), 0)
 	return nil
 }
 
@@ -508,7 +507,7 @@ func Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(in *clusterv1.Mach
 func Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(in *corev1.TypedLocalObjectReference, out *infrav1.IPPoolReference, _ apimachineryconversion.Scope) error {
 	out.Kind = in.Kind
 	out.Name = in.Name
-	out.APIGroup = ptr.Deref(in.APIGroup, "")
+	out.APIGroup = deref(in.APIGroup, "")
 	return nil
 }
 
@@ -516,7 +515,14 @@ func Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in *infrav1
 	out.Kind = in.Kind
 	out.Name = in.Name
 	if in.APIGroup != "" {
-		out.APIGroup = ptr.To(in.APIGroup)
+		out.APIGroup = new(in.APIGroup)
 	}
 	return nil
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

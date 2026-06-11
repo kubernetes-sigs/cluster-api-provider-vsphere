@@ -302,7 +302,11 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 	}
 
 	// Set the VM secondary interfaces
-	setVMSecondaryInterfaces(machine, vm, ipamModes)
+	setVMSecondaryInterfaces(machine, vm)
+
+	// Set the VM VLAN sub-interfaces
+	setVMVLANs(machine, vm)
+
 	return nil
 }
 
@@ -338,7 +342,7 @@ func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes
 	}
 }
 
-func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine, ipamModes []corev1.IPFamily) {
+func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {
 	if len(machine.Spec.Network.Interfaces.Secondary) == 0 {
 		return
 	}
@@ -363,5 +367,24 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.Vi
 		}
 		setRoutes(&vmInterface, secondaryInterface.Routes)
 		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterface)
+	}
+}
+
+func setVMVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {
+	if !feature.Gates.Enabled(feature.VLANSubinterface) {
+		return
+	}
+	if len(machine.Spec.Network.VLANs) == 0 {
+		return
+	}
+	if vm.Spec.Network == nil {
+		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	}
+	for _, vlan := range machine.Spec.Network.VLANs {
+		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
+			Name: vlan.Name,
+			ID:   int64(ptr.Deref(vlan.ID, 0)),
+			Link: vlan.Link,
+		})
 	}
 }

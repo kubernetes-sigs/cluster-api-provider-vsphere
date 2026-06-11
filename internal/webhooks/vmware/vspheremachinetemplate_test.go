@@ -458,3 +458,217 @@ func TestVSphereMachineTemplate_ValidatePoliciesFeatureGate(t *testing.T) {
 		})
 	}
 }
+
+func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
+	tests := []struct {
+		name        string
+		featureGate bool
+		networkSpec vmwarev1.VSphereMachineNetworkSpec
+		wantErr     bool
+		wantErrMsg  string
+	}{
+		{
+			name:        "vlans set but feature gate disabled",
+			featureGate: false,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan101",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "vlans can only be set when feature gate VLANSubinterface is enabled",
+		},
+		{
+			name:        "no secondary interface",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan101",
+						ID:   ptr.To(int32(101)),
+						Link: "eth0",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "secondary interfaces is required when vlans is specified",
+		},
+		{
+			name:        "duplicate vlan names",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan-nic",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+					{
+						Name: "vlan-nic",
+						ID:   ptr.To(int32(102)),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "VLAN name must be unique",
+		},
+		{
+			name:        "link to non-existent interface",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan-nic",
+						ID:   ptr.To(int32(101)),
+						Link: "eth2",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "link must reference an existing secondary interface name",
+		},
+		{
+			name:        "duplicate vlan id on same link",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan1",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+					{
+						Name: "vlan2",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "VLAN ID 101 is already used by VLAN \"vlan1\" on the same link \"eth1\"",
+		},
+		{
+			name:        "valid vlans",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+							Name:       "primary-subnetset",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan101",
+						ID:   ptr.To(int32(101)),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, true)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VLANSubinterface, tc.featureGate)
+			webhook := &VSphereMachineTemplate{NetworkProvider: manager.NSXVPCNetworkProvider}
+			obj := &vmwarev1.VSphereMachineTemplate{
+				Spec: vmwarev1.VSphereMachineTemplateSpec{
+					Template: vmwarev1.VSphereMachineTemplateResource{
+						Spec: vmwarev1.VSphereMachineSpec{
+							Network: tc.networkSpec,
+						},
+					},
+				},
+			}
+			_, err := webhook.validate(context.Background(), nil, obj)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				if tc.wantErrMsg != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tc.wantErrMsg))
+				}
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}

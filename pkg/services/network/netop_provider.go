@@ -151,6 +151,9 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clu
 	// Set the VM secondary interfaces
 	setVMSecondaryInterfaces(machine, vm, nil)
 
+	// Set the VM VLAN sub-interfaces
+	setVMVLANs(machine, vm)
+
 	return nil
 }
 

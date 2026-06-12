@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -283,9 +282,6 @@ func getStableReleaseOfMinor(ctx context.Context, releaseMarkerPrefix, minorRele
 
 func kindManagementClusterNewClusterProxyFunc(name string, kubeconfigPath string) framework.ClusterProxy {
 	scheme := initScheme()
-	// The scheme for v1beta1 is still required as long as we upgrade from v1beta1 Cluster's.
-	_ = clusterv1beta1.AddToScheme(scheme)
-
 	if testTarget == VCSimTestTarget {
 		return vcsim.NewClusterProxy(name, kubeconfigPath, scheme)
 	}

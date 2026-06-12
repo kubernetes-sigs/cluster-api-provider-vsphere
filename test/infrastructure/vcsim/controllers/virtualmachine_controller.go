@@ -35,9 +35,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
+	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -108,7 +109,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the Machine.
-	machine, err := getOwnerMachineV1Beta1(ctx, r.Client, vSphereMachine.ObjectMeta)
+	machine, err := capiutil.GetOwnerMachine(ctx, r.Client, vSphereMachine.ObjectMeta)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -120,20 +121,20 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the Cluster.
-	cluster, err := getClusterV1Beta1FromMetadata(ctx, r.Client, machine.ObjectMeta)
+	cluster, err := capiutil.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
 	if err != nil {
 		log.Info("VSphereMachine owner Machine is missing cluster label or cluster does not exist")
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1beta1.ClusterNameLabel))
+		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.ClusterNameLabel))
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
-	if cluster.Spec.Paused || annotations.HasPaused(virtualMachine) {
+	if ptr.Deref(cluster.Spec.Paused, false) || annotations.HasPaused(virtualMachine) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
@@ -201,7 +202,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				// This can happen e.g. if the vcsim controller is restarted
 				orig := cluster.DeepCopy()
 				cluster.Spec.ControlPlaneEndpoint.Host = c.Status.Host
-				if cluster.Spec.Topology != nil {
+				if cluster.Spec.Topology.IsDefined() {
 					for i, variable := range cluster.Spec.Topology.Variables {
 						if variable.Name == "controlPlaneIpAddr" {
 							cluster.Spec.Topology.Variables[i].Value = apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("%q", c.Status.Host))}
@@ -300,7 +301,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return r.reconcileNormal(ctx, cluster, machine, virtualMachine, conditionsTracker)
 }
 
-func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprvhub.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
+func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, virtualMachine *vmoprvhub.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
 	// When simulating vm-operator, run the simulate code.
 	if r.VMOperatorSimMode {
 		if ret, err := r.simulateVMOperatorReconcileNormal(ctx, cluster, machine, virtualMachine); !ret.IsZero() || err != nil {
@@ -324,7 +325,7 @@ func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster 
 	return ctrl.Result{}, nil
 }
 
-func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprvhub.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
+func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, virtualMachine *vmoprvhub.VirtualMachine, conditionsTracker *infrav1beta1.VSphereVM) (ctrl.Result, error) {
 	bootstrapReconciler := r.getVMBootstrapReconciler(virtualMachine)
 	if ret, err := bootstrapReconciler.reconcileDelete(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
 		return ret, err
@@ -348,7 +349,7 @@ func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster 
 	return ctrl.Result{}, nil
 }
 
-func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1beta1.Cluster, virtualMachine *vmoprvhub.VirtualMachine) *vmIPReconciler {
+func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1.Cluster, virtualMachine *vmoprvhub.VirtualMachine) *vmIPReconciler {
 	return &vmIPReconciler{
 		Client: r.Client,
 
@@ -398,7 +399,7 @@ var ( // TODO: make this configurable
 	vmPowerOnJitter   = 0.3
 )
 
-func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context.Context, _ *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprvhub.VirtualMachine) (ret ctrl.Result, retErr error) {
+func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context.Context, _ *clusterv1.Cluster, machine *clusterv1.Machine, virtualMachine *vmoprvhub.VirtualMachine) (ret ctrl.Result, retErr error) {
 	// no-op if the VirtualMachine is already powered on
 	if virtualMachine.Status.PowerState == vmoprvhub.VirtualMachinePowerStateOn {
 		return ctrl.Result{}, nil
@@ -462,7 +463,7 @@ func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context
 		Status: metav1.ConditionTrue,
 		Reason: "VMOperatorSim",
 	})
-	virtualMachine.Status.Zone = ptr.Deref(machine.Spec.FailureDomain, "")
+	virtualMachine.Status.Zone = machine.Spec.FailureDomain
 
 	// Simulate VM creation
 	conditions.Set(virtualMachine, metav1.Condition{
@@ -514,11 +515,11 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		For(vm).
 		// Ensure the controller waits for these informer to sync to avoid informer sync errors during reconcile
 		Watches(
-			&clusterv1beta1.Machine{},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, _ client.Object) []reconcile.Request { return nil }),
 		).
 		Watches(
-			&clusterv1beta1.Cluster{},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, _ client.Object) []reconcile.Request { return nil }),
 		).
 		Watches(

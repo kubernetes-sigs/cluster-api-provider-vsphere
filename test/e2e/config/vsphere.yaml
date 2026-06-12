@@ -240,7 +240,6 @@ providers:
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/vcsim/config/default
         files:
-          # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
           - sourcePath: "../data/shared/rx/main/metadata.yaml"
 
   - name: vm-operator
@@ -281,7 +280,6 @@ providers:
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/net-operator/config/default
         files:
-          # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
           - sourcePath: "../data/shared/rx/main/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -294,7 +292,6 @@ providers:
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/extension/config/default
         files:
-          # Note: We have to make this look like a v1beta1 provider for clusterctl upgrade tests, because clusterctl v1.10 can only install v1beta1 providers.
           - sourcePath: "../data/shared/rx/main/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"

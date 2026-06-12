@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
+	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // nsxtVPCNetworkProvider provisions nsx-vpc type cluster network.
@@ -171,6 +172,24 @@ func (vp *nsxtVPCNetworkProvider) ProvisionClusterNetwork(ctx context.Context, c
 			Name:      networkName,
 		},
 		Spec: nsxvpcv1.SubnetSetSpec{},
+	}
+
+	if vp.SupportsIPv6DualStack() {
+		ipFamily, err := infrautilv1.DetermineClusterIPFamily(clusterCtx.Cluster)
+		if err != nil {
+			return errors.Wrap(err, "failed to determine cluster IP family")
+		}
+
+		switch ipFamily {
+		case infrautilv1.IPv4SingleStack:
+			subnetset.Spec.IPAddressType = nsxvpcv1.IPAddressTypeIPv4
+		case infrautilv1.IPv6SingleStack:
+			subnetset.Spec.IPAddressType = nsxvpcv1.IPAddressTypeIPv6
+		case infrautilv1.DualStackIPv4Primary, infrautilv1.DualStackIPv6Primary:
+			subnetset.Spec.IPAddressType = nsxvpcv1.IPAddressTypeIPv4IPv6
+		default:
+			subnetset.Spec.IPAddressType = nsxvpcv1.IPAddressTypeIPv4
+		}
 	}
 
 	subnetSetExists := true

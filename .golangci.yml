@@ -66,8 +66,6 @@ linters:
             - k8s.io/apimachinery/pkg/runtime/schema$
             - sigs.k8s.io/cluster-api-provider-vsphere/api
             - sigs.k8s.io/cluster-api/api
-#            # TODO: Remove these imports (or at least consider it)
-            - sigs.k8s.io/cluster-api/errors$ # drop after bump to CAPI main
         vm-operator:
           deny:
             - pkg: "github.com/vmware-tanzu/vm-operator/api"
@@ -270,10 +268,6 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: mgr.GetEventRecorderFor is deprecated'
-        # Deprecations for FailureReason
-      - linters:
-          - staticcheck
-        text: 'SA1019: "sigs.k8s.io/cluster-api/errors" is deprecated:'
         # Deprecations for old api groups
       - linters:
           - staticcheck

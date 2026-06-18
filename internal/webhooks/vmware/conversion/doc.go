@@ -14,10 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
-
-func (*VSphereCluster) Hub()         {}
-func (*VSphereClusterTemplate) Hub() {}
-func (*VSphereMachine) Hub()         {}
-func (*VSphereMachineTemplate) Hub() {}
-func (*ProviderServiceAccount) Hub() {}
+// Package conversion provides conversion code for all APIs of supervisor mode.
+package conversion

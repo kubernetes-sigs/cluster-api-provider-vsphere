@@ -2,7 +2,10 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.26.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-rc.0.0.20260526071518-a4a42bdc39a8
+replace (
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-rc.0.0.20260526071518-a4a42bdc39a8
+	sigs.k8s.io/cluster-api-provider-vsphere/api => ./api
+)
 
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b
@@ -38,6 +41,7 @@ require (
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api-provider-vsphere/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/yaml v1.6.0

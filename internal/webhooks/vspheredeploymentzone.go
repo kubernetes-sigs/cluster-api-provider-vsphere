@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/conversion"
 )
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-vspheredeploymentzone,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspheredeploymentzones,versions=v1beta2,name=default.vspheredeploymentzone.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
@@ -36,6 +37,7 @@ var _ admission.Defaulter[*infrav1.VSphereDeploymentZone] = &VSphereDeploymentZo
 func (webhook *VSphereDeploymentZone) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.VSphereDeploymentZone{}).
 		WithDefaulter(webhook).
+		WithConverter(conversion.VSphereDeploymentZone).
 		Complete()
 }
 

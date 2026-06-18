@@ -53,3 +53,11 @@ type VSphereClusterTemplate struct{}
 func (webhook *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
 	return (&vmware.VSphereClusterTemplate{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
 }
+
+// ProviderServiceAccount implements a converter for ProviderServiceAccount.
+type ProviderServiceAccount struct{}
+
+// SetupWebhookWithManager sets up ProviderServiceAccount webhooks.
+func (webhook *ProviderServiceAccount) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&vmware.ProviderServiceAccount{}).SetupWebhookWithManager(mgr)
+}

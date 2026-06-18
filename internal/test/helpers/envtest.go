@@ -232,10 +232,15 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 		Converter:  conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion),
 	}
 	managerOpts.AddToManager = func(_ context.Context, _ *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+		if err := (&webhooks.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 		if err := (&webhooks.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
-
+		if err := (&webhooks.VSphereClusterIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 		if err := (&webhooks.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}

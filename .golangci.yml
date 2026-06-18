@@ -51,6 +51,23 @@ linters:
   settings:
     depguard:
       rules:
+        api:
+          list-mode: strict
+          files:
+            - "**/cluster-api-provider-vsphere/api/**/*.go"
+          allow:
+            - $gostd
+            - k8s.io/api/core/v1$
+            - k8s.io/api/rbac/v1$ # drop after ProviderServiceAccountSpec has been removed
+            - k8s.io/apimachinery/pkg/api/resource$
+            - k8s.io/apimachinery/pkg/apis/meta/v1$
+            - k8s.io/apimachinery/pkg/conversion$
+            - k8s.io/apimachinery/pkg/runtime$
+            - k8s.io/apimachinery/pkg/runtime/schema$
+            - sigs.k8s.io/cluster-api-provider-vsphere/api
+            - sigs.k8s.io/cluster-api/api
+#            # TODO: Remove these imports (or at least consider it)
+            - sigs.k8s.io/cluster-api/errors$ # drop after bump to CAPI main
         vm-operator:
           deny:
             - pkg: "github.com/vmware-tanzu/vm-operator/api"
@@ -184,7 +201,7 @@ linters:
         # CAPI addons
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
           alias: addonsv1
-        # CAPI IPAM 
+        # CAPI IPAM
         - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta2
           alias: ipamv1
         - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta1
@@ -261,6 +278,11 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/api/core/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+        # Deprecations for old fields for conversion tests
+      - linters:
+          - staticcheck
+        path: '.*/conversion_test.go'
+        text: 'SA1019: .*'
         # Exclude for hub types
       - linters:
           - revive
@@ -374,7 +396,7 @@ linters:
       - linters:
           - goconst
         path: (.+)_test\.go
-        # It's clearer to see that a field gets accessed or func gets called on the embedded objects 
+        # It's clearer to see that a field gets accessed or func gets called on the embedded objects
       - linters:
           - staticcheck
         path: (.+)\.go$

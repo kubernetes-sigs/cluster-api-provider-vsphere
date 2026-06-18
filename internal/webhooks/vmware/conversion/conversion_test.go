@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package conversion
 
 import (
 	"fmt"
@@ -28,47 +28,48 @@ import (
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/randfill"
 
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api-provider-vsphere/internal/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
-	g.Expect(AddToScheme(scheme)).To(Succeed())
+	g.Expect(vmwarev1beta1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for VSphereCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &vmwarev1.VSphereCluster{},
-		Spoke:       &VSphereCluster{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterFuzzFuncs},
+	t.Run("for VSphereCluster", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*vmwarev1.VSphereCluster, *vmwarev1beta1.VSphereCluster]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereClusterV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereClusterHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereClusterFuzzFuncs},
 	}))
-	t.Run("for VSphereClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &vmwarev1.VSphereClusterTemplate{},
-		Spoke:       &VSphereClusterTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereClusterTemplateFuzzFuncs},
+	t.Run("for VSphereClusterTemplate", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*vmwarev1.VSphereClusterTemplate, *vmwarev1beta1.VSphereClusterTemplate]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereClusterTemplateV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereClusterTemplateHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereClusterTemplateFuzzFuncs},
 	}))
-	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &vmwarev1.VSphereMachine{},
-		Spoke:       &VSphereMachine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereMachineFuzzFuncs},
+	t.Run("for VSphereMachine", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*vmwarev1.VSphereMachine, *vmwarev1beta1.VSphereMachine]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereMachineV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereMachineHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereMachineFuzzFuncs},
 	}))
-	t.Run("for VSphereMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &vmwarev1.VSphereMachineTemplate{},
-		Spoke:       &VSphereMachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{VSphereMachineTemplateFuzzFuncs},
+	t.Run("for VSphereMachineTemplate", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*vmwarev1.VSphereMachineTemplate, *vmwarev1beta1.VSphereMachineTemplate]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertVSphereMachineTemplateV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertVSphereMachineTemplateHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{VSphereMachineTemplateFuzzFuncs},
 	}))
-	t.Run("for ProviderServiceAccount", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &vmwarev1.ProviderServiceAccount{},
-		Spoke:       &ProviderServiceAccount{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{ProviderServiceAccountFuzzFuncs},
+	t.Run("for ProviderServiceAccount", utilconversion.SpokeConverterFuzzTestFunc(utilconversion.SpokeConverterFuzzTestFuncInput[*vmwarev1.ProviderServiceAccount, *vmwarev1beta1.ProviderServiceAccount]{
+		Scheme:                scheme,
+		ConvertSpokeToHubFunc: ConvertProviderServiceAccountV1Beta1ToHub,
+		ConvertHubToSpokeFunc: ConvertProviderServiceAccountHubToV1Beta1,
+		FuzzerFuncs:           []fuzzer.FuzzerFuncs{ProviderServiceAccountFuzzFuncs},
 	}))
 }
 
@@ -108,11 +109,11 @@ func hubVSphereClusterStatus(in *vmwarev1.VSphereClusterStatus, c randfill.Conti
 	}
 }
 
-func spokeVSphereClusterStatus(in *VSphereClusterStatus, c randfill.Continue) {
+func spokeVSphereClusterStatus(in *vmwarev1beta1.VSphereClusterStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &VSphereClusterV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &vmwarev1beta1.VSphereClusterV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -165,7 +166,7 @@ func hubVSphereMachineStatus(in *vmwarev1.VSphereMachineStatus, c randfill.Conti
 	}
 }
 
-func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
+func spokeVSphereMachineSpec(in *vmwarev1beta1.VSphereMachineSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.ProviderID != nil && *in.ProviderID == "" {
@@ -180,18 +181,18 @@ func spokeVSphereMachineSpec(in *VSphereMachineSpec, c randfill.Continue) {
 		in.NamingStrategy.Template = nil
 	}
 
-	if in.NamingStrategy != nil && reflect.DeepEqual(in.NamingStrategy, &VirtualMachineNamingStrategy{}) {
+	if in.NamingStrategy != nil && reflect.DeepEqual(in.NamingStrategy, &vmwarev1beta1.VirtualMachineNamingStrategy{}) {
 		in.NamingStrategy = nil
 	}
 
 	in.FailureDomain = nil // field has been dropped in v1beta2
 }
 
-func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
+func spokeVSphereMachineStatus(in *vmwarev1beta1.VSphereMachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &VSphereMachineV1Beta2Status{}) {
+		if reflect.DeepEqual(in.V1Beta2, &vmwarev1beta1.VSphereMachineV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -203,14 +204,14 @@ func spokeVSphereMachineStatus(in *VSphereMachineStatus, c randfill.Continue) {
 	in.IPAddr = "" // IPAddr has been removed in v1beta2.
 
 	if c.Bool() {
-		vmStatusValues := []VirtualMachineState{
-			VirtualMachineStateNotFound,
-			VirtualMachineStateCreated,
-			VirtualMachineStatePoweredOn,
-			VirtualMachineStatePending,
-			VirtualMachineStateReady,
-			VirtualMachineStateDeleting,
-			VirtualMachineStateError,
+		vmStatusValues := []vmwarev1beta1.VirtualMachineState{
+			vmwarev1beta1.VirtualMachineStateNotFound,
+			vmwarev1beta1.VirtualMachineStateCreated,
+			vmwarev1beta1.VirtualMachineStatePoweredOn,
+			vmwarev1beta1.VirtualMachineStatePending,
+			vmwarev1beta1.VirtualMachineStateReady,
+			vmwarev1beta1.VirtualMachineStateDeleting,
+			vmwarev1beta1.VirtualMachineStateError,
 		}
 		in.VMStatus = vmStatusValues[c.Int31n(int32(len(vmStatusValues)))]
 	} else {

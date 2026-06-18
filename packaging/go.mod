@@ -2,9 +2,11 @@ module sigs.k8s.io/cluster-api-provider-vsphere/packaging
 
 go 1.26.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-rc.0.0.20260526071518-a4a42bdc39a8
-
-replace sigs.k8s.io/cluster-api-provider-vsphere => ../
+replace (
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.13.0-rc.0.0.20260526071518-a4a42bdc39a8
+	sigs.k8s.io/cluster-api-provider-vsphere => ../
+	sigs.k8s.io/cluster-api-provider-vsphere/api => ../api
+)
 
 require (
 	github.com/onsi/gomega v1.42.0
@@ -16,6 +18,7 @@ require (
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api-provider-vsphere v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api-provider-vsphere/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/kustomize/api v0.18.0
 	sigs.k8s.io/kustomize/kyaml v0.18.1

@@ -24,157 +24,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 )
-
-func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*vmwarev1.VSphereCluster)
-	if err := Convert_v1beta1_VSphereCluster_To_v1beta2_VSphereCluster(src, dst, nil); err != nil {
-		return err
-	}
-
-	restored := &vmwarev1.VSphereCluster{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
-	if err != nil {
-		return err
-	}
-
-	initialization := vmwarev1.VSphereClusterInitializationStatus{}
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
-	if !reflect.DeepEqual(initialization, vmwarev1.VSphereClusterInitializationStatus{}) {
-		dst.Status.Initialization = initialization
-	}
-	return nil
-}
-
-func (dst *VSphereCluster) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*vmwarev1.VSphereCluster)
-	if err := Convert_v1beta2_VSphereCluster_To_v1beta1_VSphereCluster(src, dst, nil); err != nil {
-		return err
-	}
-
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
-}
-
-func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*vmwarev1.VSphereClusterTemplate)
-	if err := Convert_v1beta1_VSphereClusterTemplate_To_v1beta2_VSphereClusterTemplate(src, dst, nil); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (dst *VSphereClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*vmwarev1.VSphereClusterTemplate)
-	if err := Convert_v1beta2_VSphereClusterTemplate_To_v1beta1_VSphereClusterTemplate(src, dst, nil); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*vmwarev1.VSphereMachine)
-	if err := Convert_v1beta1_VSphereMachine_To_v1beta2_VSphereMachine(src, dst, nil); err != nil {
-		return err
-	}
-
-	restored := &vmwarev1.VSphereMachine{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
-	if err != nil {
-		return err
-	}
-
-	initialization := vmwarev1.VSphereMachineInitializationStatus{}
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
-	if !reflect.DeepEqual(initialization, vmwarev1.VSphereMachineInitializationStatus{}) {
-		dst.Status.Initialization = initialization
-	}
-	dst.Status.FailureDomain = restored.Status.FailureDomain
-	return nil
-}
-
-func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*vmwarev1.VSphereMachine)
-	if err := Convert_v1beta2_VSphereMachine_To_v1beta1_VSphereMachine(src, dst, nil); err != nil {
-		return err
-	}
-
-	if dst.Spec.ProviderID != nil && *dst.Spec.ProviderID == "" {
-		dst.Spec.ProviderID = nil
-	}
-
-	if dst.Spec.FailureDomain != nil && *dst.Spec.FailureDomain == "" {
-		dst.Spec.FailureDomain = nil
-	}
-
-	if dst.Status.ID != nil && *dst.Status.ID == "" {
-		dst.Status.ID = nil
-	}
-
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
-}
-
-func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*vmwarev1.VSphereMachineTemplate)
-	if err := Convert_v1beta1_VSphereMachineTemplate_To_v1beta2_VSphereMachineTemplate(src, dst, nil); err != nil {
-		return err
-	}
-
-	restored := &vmwarev1.VSphereMachineTemplate{}
-	ok, err := utilconversion.UnmarshalData(src, restored)
-	if err != nil {
-		return err
-	}
-
-	if ok {
-		dst.Status.NodeInfo = restored.Status.NodeInfo
-	}
-
-	return nil
-}
-
-func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*vmwarev1.VSphereMachineTemplate)
-	if err := Convert_v1beta2_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(src, dst, nil); err != nil {
-		return err
-	}
-
-	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
-		dst.Spec.Template.Spec.ProviderID = nil
-	}
-
-	if dst.Spec.Template.Spec.FailureDomain != nil && *dst.Spec.Template.Spec.FailureDomain == "" {
-		dst.Spec.Template.Spec.FailureDomain = nil
-	}
-
-	return utilconversion.MarshalDataUnsafeNoCopy(src, dst)
-}
-
-func (src *ProviderServiceAccount) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*vmwarev1.ProviderServiceAccount)
-	if err := Convert_v1beta1_ProviderServiceAccount_To_v1beta2_ProviderServiceAccount(src, dst, nil); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (dst *ProviderServiceAccount) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*vmwarev1.ProviderServiceAccount)
-	if err := Convert_v1beta2_ProviderServiceAccount_To_v1beta1_ProviderServiceAccount(src, dst, nil); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func Convert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in *vmwarev1.VSphereClusterStatus, out *VSphereClusterStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in, out, s); err != nil {
@@ -193,14 +47,14 @@ func Convert_v1beta2_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in *vm
 	}
 
 	// Move initialization to old field
-	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+	out.Ready = deref(in.Initialization.Provisioned, false)
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: ptr.Deref(fd.ControlPlane, false),
+				ControlPlane: deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -238,7 +92,7 @@ func Convert_v1beta1_VSphereClusterStatus_To_v1beta2_VSphereClusterStatus(in *VS
 			fd := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: ptr.To(fd.ControlPlane),
+				ControlPlane: new(fd.ControlPlane),
 				Attributes:   fd.Attributes,
 			})
 		}
@@ -327,7 +181,7 @@ func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *vm
 		return err
 	}
 
-	out.ID = ptr.To(in.BiosUUID)
+	out.ID = new(in.BiosUUID)
 	switch in.Phase {
 	case vmwarev1.VSphereMachinePhaseNotFound:
 		out.VMStatus = VirtualMachineStateNotFound
@@ -359,7 +213,7 @@ func Convert_v1beta2_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *vm
 	}
 
 	// Move initialization to old field
-	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
+	out.Ready = deref(in.Initialization.Provisioned, false)
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
@@ -375,7 +229,7 @@ func Convert_v1beta1_VSphereMachineStatus_To_v1beta2_VSphereMachineStatus(in *VS
 		return err
 	}
 
-	out.BiosUUID = ptr.Deref(in.ID, "")
+	out.BiosUUID = deref(in.ID, "")
 	switch in.VMStatus {
 	case VirtualMachineStateNotFound:
 		out.Phase = vmwarev1.VSphereMachinePhaseNotFound
@@ -448,4 +302,11 @@ func Convert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTempl
 	// Call the auto-generated conversion function which handles the Capacity field
 	// Note: The NodeInfo field from v1beta2 is intentionally dropped as it doesn't exist in v1beta1
 	return autoConvert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineTemplateStatus(in, out, s)
+}
+
+func deref[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }

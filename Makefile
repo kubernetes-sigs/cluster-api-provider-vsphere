@@ -263,6 +263,10 @@ TEST_EXTENSION_IMG ?= $(STAGING_REGISTRY)/$(TEST_EXTENSION_IMAGE_NAME)
 BOSKOSCTL_IMG ?= gcr.io/k8s-staging-capi-vsphere/extra/boskosctl
 BOSKOSCTL_IMG_TAG ?= $(shell git describe --always --dirty)
 
+# ctr
+CTR_IMG ?= gcr.io/k8s-staging-capi-vsphere/extra/ctr
+CTR_IMG_TAG ?= $(shell git describe --always --dirty)
+
 # openvpn
 OPENVPN_IMG ?= gcr.io/k8s-staging-capi-vsphere/extra/openvpn
 OPENVPN_IMG_TAG ?= $(shell git describe --always --dirty)
@@ -442,6 +446,7 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-autoscaler" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-autoscaler-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-runtimesdk" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-runtimesdk-in-place" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk-in-place-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-runtimesdk-self-hosted" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk-self-hosted-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-runtimesdk-v1beta1" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk-v1beta1-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-scale" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-scale-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-taints" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-taints-supervisor.yaml"
@@ -668,6 +673,17 @@ docker-build-boskosctl:
 docker-push-boskosctl:
 	docker push $(BOSKOSCTL_IMG):$(BOSKOSCTL_IMG_TAG)
 	docker push $(BOSKOSCTL_IMG):latest
+
+.PHONY: docker-build-ctr
+docker-build-ctr:
+	cat hack/tools/ctr/Dockerfile | DOCKER_BUILDKIT=1 docker build --platform linux/amd64 $(ROOT_DIR)/hack/tools/ctr/. -t $(CTR_IMG):$(CTR_IMG_TAG) --file -
+	docker tag $(CTR_IMG):$(CTR_IMG_TAG) $(CTR_IMG):latest
+.PHONY: build
+
+.PHONY: docker-push-ctr
+docker-push-ctr:
+	docker push $(CTR_IMG):$(CTR_IMG_TAG)
+	docker push $(CTR_IMG):latest
 
 .PHONY: docker-build-openvpn
 docker-build-openvpn:

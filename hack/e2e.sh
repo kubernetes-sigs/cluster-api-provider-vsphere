@@ -238,22 +238,18 @@ fi
 
 ARCH="$(go env GOARCH)"
 
-# Only build and upload the image if we run tests which require it to save some $.
-# NOTE: the image is required for clusterctl upgrade tests, and those test are run only as part of the main e2e test job (without any focus)
-if [[ -z "${GINKGO_FOCUS+x}" ]]; then
+# NOTE: the image is required for supervisor adoption tests.
+if [[ ${GINKGO_FOCUS:-} =~ \\\[supervisor\\\] ]]; then
   # Save the docker images locally
   make e2e-images
   mkdir -p /tmp/images
-  if [[ ${GINKGO_FOCUS:-} =~ \\\[supervisor\\\] ]]; then
-    docker save \
-      "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev" \
-      "gcr.io/k8s-staging-capi-vsphere/cluster-api-net-operator-${ARCH}:dev" \
-      > ${DOCKER_IMAGE_TAR}
-  else
-    docker save \
-      "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev" \
-      > ${DOCKER_IMAGE_TAR}
-  fi
+  echo "Saving images in ${DOCKER_IMAGE_TAR}"
+  docker save \
+    "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev" \
+    "gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller-${ARCH}:dev" \
+    "gcr.io/k8s-staging-capi-vsphere/cluster-api-net-operator-${ARCH}:dev" \
+    "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-test-extension-${ARCH}:dev" \
+    > ${DOCKER_IMAGE_TAR}
 fi
 
 # Run e2e tests

@@ -90,5 +90,8 @@ func initVSphereSession() {
 }
 
 func terminateVSphereSession() {
+	if vsphereClient == nil {
+		return
+	}
 	Expect(vsphereClient.Logout(ctx)).To(Succeed())
 }

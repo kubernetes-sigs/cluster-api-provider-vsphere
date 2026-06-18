@@ -190,6 +190,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-autoscaler-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-runtimesdk-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-runtimesdk-in-place-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-runtimesdk-self-hosted-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-runtimesdk-v1beta1-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-scale-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-taints-supervisor.yaml"
@@ -325,11 +326,14 @@ variables:
   # Changing the value results in VM's getting created but not setting the correct CPU or memory size.
   VSPHERE_MACHINE_CLASS_CPU: "2"
   VSPHERE_MACHINE_CLASS_MEMORY: "2Gi"
-  VSPHERE_MACHINE_CLASS_NAME_CONFORMANCE: "test-machine-class-conformance"
   # CI runs vm-operator v1.8.6 on vCenter 8, setting CPU and Memory does not work and defaults to 2 CPUs / 2Gi memory.
   # Changing the value results in VM's getting created but not setting the correct CPU or memory size.
+  VSPHERE_MACHINE_CLASS_NAME_CONFORMANCE: "test-machine-class-conformance"
   VSPHERE_MACHINE_CLASS_CPU_CONFORMANCE: "2"
   VSPHERE_MACHINE_CLASS_MEMORY_CONFORMANCE: "2Gi"
+  VSPHERE_MACHINE_CLASS_NAME_SELF_HOSTED: "test-machine-self-hosted"
+  VSPHERE_MACHINE_CLASS_CPU_SELF_HOSTED: "4"
+  VSPHERE_MACHINE_CLASS_MEMORY_SELF_HOSTED: "8Gi"
   VSPHERE_CONTENT_LIBRARY: "capv"
   VSPHERE_CONTENT_LIBRARY_ITEMS: "ubuntu-2204-kube-v1.28.0,ubuntu-2204-kube-v1.29.0,ubuntu-2204-kube-v1.30.0,ubuntu-2404-kube-v1.31.0,ubuntu-2404-kube-v1.32.0,ubuntu-2404-kube-v1.33.0,ubuntu-2404-kube-v1.34.0,ubuntu-2404-kube-v1.35.0,ubuntu-2404-kube-v1.36.0"
   VSPHERE_IMAGE_NAME: "ubuntu-2404-kube-v1.36.0"
@@ -351,6 +355,7 @@ variables:
   EXP_RECONCILER_RATE_LIMITING: "true"
   EXP_IN_PLACE_UPDATES: "true"
   EXP_MACHINE_TAINT_PROPAGATION: "true"
+  DOCKER_IMAGE_TAR: /tmp/images/image.tar
   # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
   DEVICE_ID: 7864
   VENDOR_ID: 4318
@@ -382,6 +387,8 @@ intervals:
   node-drain/wait-machine-deleted: ["10m", "10s"]
   node-drain/wait-statefulset-available: ["3m", "10s"]
   anti-affinity/wait-vm-redistribution: ["5m", "10s"]
+  #  Giving a bit more time during kcp-infra-adoption test.
+  kcp-infra-adoption/wait-control-plane: ["20m", "10s"]
   #  Giving a bit more time during scale tests, we analyze independently if everything works quickly enough.
   scale/wait-cluster: ["5m", "10s"]
   scale/wait-control-plane: ["10m", "10s"]

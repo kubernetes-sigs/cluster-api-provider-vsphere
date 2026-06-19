@@ -1,0 +1,27 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vmware-system-vmop-manager-role-ex
+rules:
+  - apiGroups:
+      - vmoperator.vmware.com
+    resources:
+      - virtualmachines/finalizers
+    verbs:
+      - get
+      - patch
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vmware-system-vmop-manager-rolebinding-ex
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vmware-system-vmop-manager-role-ex
+subjects:
+  - kind: ServiceAccount
+    name: vmware-system-vmop-vmoperator-service-account
+    namespace: vmware-system-vmop

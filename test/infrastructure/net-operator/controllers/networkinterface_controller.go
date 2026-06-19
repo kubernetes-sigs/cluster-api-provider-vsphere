@@ -41,6 +41,7 @@ type NetworkInterfaceReconciler struct {
 }
 
 // +kubebuilder:rbac:groups=netoperator.vmware.com,resources=networkinterfaces,verbs=get;list;watch;patch
+// +kubebuilder:rbac:groups=netoperator.vmware.com,resources=networkinterfaces/finalizers,verbs=get;update;patch
 // +kubebuilder:rbac:groups=netoperator.vmware.com,resources=networkinterfaces/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create

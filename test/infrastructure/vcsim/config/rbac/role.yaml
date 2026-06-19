@@ -176,6 +176,7 @@ rules:
   - vmoperator.vmware.com
   resources:
   - virtualmachineimages/status
+  - virtualmachines/finalizers
   - virtualmachines/status
   verbs:
   - get
@@ -201,3 +202,11 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - vspheremachines/finalizers
+  verbs:
+  - get
+  - patch
+  - update

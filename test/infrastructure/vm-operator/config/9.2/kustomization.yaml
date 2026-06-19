@@ -22,6 +22,8 @@ resources:
 - external-crds/cns.vmware.com_cnsregistervolumes.yaml
 - external-crds/cns.vmware.com_storagepolicyquotas.yaml
 - external-crds/cns.vmware.com_storagepolicyusages.yaml
+  # Additional RBAC rules for running with the OwnerReferencesPermissionEnforcement admission controller enabled.
+- vm-operator-rbac.yaml
 
 patchesStrategicMerge:
 # Set image names / version to use.

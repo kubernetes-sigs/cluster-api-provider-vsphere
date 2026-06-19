@@ -295,6 +295,7 @@ rules:
   resources:
   - providerserviceaccounts/status
   - vsphereclusters/status
+  - vspheremachines/finalizers
   - vspheremachines/status
   - vspheremachinetemplates/status
   verbs:

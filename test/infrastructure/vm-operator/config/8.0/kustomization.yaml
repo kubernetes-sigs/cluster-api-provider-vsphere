@@ -16,6 +16,8 @@ resources:
 - external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
 - external-crds/netoperator.vmware.com_networkinterfaces.yaml
 - external-crds/cnsnodevmattachment-crd.yaml
+  # Additional RBAC rules for running with the OwnerReferencesPermissionEnforcement admission controller enabled.
+- vm-operator-rbac.yaml
 
 patchesStrategicMerge:
 # Set image names / version to use.

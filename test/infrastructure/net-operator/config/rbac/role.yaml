@@ -38,6 +38,7 @@ rules:
 - apiGroups:
   - netoperator.vmware.com
   resources:
+  - networkinterfaces/finalizers
   - networkinterfaces/status
   verbs:
   - get

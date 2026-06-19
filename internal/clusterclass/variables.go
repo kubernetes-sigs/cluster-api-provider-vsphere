@@ -72,7 +72,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 	}
 
 	if govmomiMode {
-		varForNoneSupervisorMode := []clusterv1.ClusterClassVariable{
+		varForGovmomiMode := []clusterv1.ClusterClassVariable{
 			{
 				Name:     "infraServer",
 				Required: ptr.To(true),
@@ -98,7 +98,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 			},
 		}
 
-		variables = append(variables, varForNoneSupervisorMode...)
+		variables = append(variables, varForGovmomiMode...)
 	}
 
 	return variables

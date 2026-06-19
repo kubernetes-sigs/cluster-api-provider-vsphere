@@ -42,8 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func LoadImagesFunc(ctx context.Context) func(clusterProxy framework.ClusterProxy) {
-	sourceFile := os.Getenv("DOCKER_IMAGE_TAR")
+func LoadImagesFunc(ctx context.Context, sourceFile string) func(clusterProxy framework.ClusterProxy) {
 	Expect(sourceFile).ToNot(BeEmpty(), "DOCKER_IMAGE_TAR must be set")
 
 	return func(clusterProxy framework.ClusterProxy) {

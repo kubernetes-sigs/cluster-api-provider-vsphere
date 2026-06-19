@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"slices"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -188,13 +189,13 @@ func (d *VMOperatorDependencies) SetVCenterFromVCenterSimulator(vCenterSimulator
 			},
 		}
 	}
-	if len(d.Spec.VirtualMachineClasses) == 0 {
-		d.Spec.VirtualMachineClasses = []VirtualMachineClass{
-			{
-				Name:   "vcsim-default-vm-class",
-				Cpus:   2,
-				Memory: resource.MustParse("4G"),
-			},
-		}
+	if !slices.ContainsFunc(d.Spec.VirtualMachineClasses, func(class VirtualMachineClass) bool {
+		return class.Name == "vcsim-default-vm-class"
+	}) {
+		d.Spec.VirtualMachineClasses = append(d.Spec.VirtualMachineClasses, VirtualMachineClass{
+			Name:   "vcsim-default-vm-class",
+			Cpus:   2,
+			Memory: resource.MustParse("4G"),
+		})
 	}
 }

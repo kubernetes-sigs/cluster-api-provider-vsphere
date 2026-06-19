@@ -1,0 +1,6 @@
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: virtualMachineClass
+    value: "test-machine-self-hosted"
+

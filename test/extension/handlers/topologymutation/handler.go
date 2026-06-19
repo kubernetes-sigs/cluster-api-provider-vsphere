@@ -498,7 +498,22 @@ func patchSupervisorMachineTemplate(_ context.Context, vsphereMachineTemplate ru
 		vsphereMachineTemplate.Spec.Template.Spec.ImageName = imageName
 	}
 
-	return err
+	className, err := topologymutation.GetStringVariable(templateVariables, "virtualMachineClass")
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set virtualMachineClass")
+	}
+	if className == "" {
+		return nil
+	}
+
+	switch vsphereMachineTemplate := vsphereMachineTemplate.(type) {
+	case *vmwarev1beta1.VSphereMachineTemplate:
+		vsphereMachineTemplate.Spec.Template.Spec.ClassName = className
+	case *vmwarev1.VSphereMachineTemplate:
+		vsphereMachineTemplate.Spec.Template.Spec.ClassName = className
+	}
+
+	return nil
 }
 
 func calculateImageName(templateVariables map[string]apiextensionsv1.JSON, isControlPlane bool) (string, error) {
@@ -591,7 +606,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 			},
 		})
 
-	// Append
+	// Append for govmomi.
 	if req.Settings["testMode"] == "govmomi" {
 		resp.Variables = append(resp.Variables, clusterv1.ClusterClassVariable{
 			Name:     "numCPUs",
@@ -633,6 +648,20 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 					AdditionalProperties: &clusterv1.JSONSchemaProps{
 						Type: "string",
 					},
+				},
+			},
+		})
+	}
+
+	// Append for supervisor.
+	if req.Settings["testMode"] == "supervisor" {
+		resp.Variables = append(resp.Variables, clusterv1.ClusterClassVariable{
+			Name:     "virtualMachineClass",
+			Required: ptr.To(false),
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:        "string",
+					Description: "The VirtualMachineClass that will be used.",
 				},
 			},
 		})

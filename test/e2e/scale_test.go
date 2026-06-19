@@ -41,26 +41,23 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 	const specName = "scale" // prefix must be uniq because this test re-writes the clusterctl config.
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ScaleSpec(ctx, func() capi_e2e.ScaleSpecInput {
-			// For supporting real environments we would need to properly cleanup the namespaces and namespace specific ip allocations.
-			if testTarget != VCSimTestTarget {
-				Skip("Test should only be run using vcsim provider")
-			}
-			flavor := testSpecificSettingsGetter().FlavorForMode("topology-scale")
-			if testMode == GovmomiTestMode {
-				flavor = testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")
-			}
-
 			return capi_e2e.ScaleSpecInput{
 				E2EConfig:              e2eConfig,
 				ClusterctlConfigPath:   testSpecificSettingsGetter().ClusterctlConfigPath,
 				InfrastructureProvider: ptr.To(clusterctl.DefaultInfrastructureProvider),
 				BootstrapClusterProxy:  bootstrapClusterProxy,
 				ArtifactFolder:         artifactFolder,
-				Flavor:                 ptr.To(flavor),
-				SkipUpgrade:            false,
-				SkipCleanup:            skipCleanup,
-				DumpResources:          true,
-				ClusterClassName:       getVariableOrFallback(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"], e2eConfig.MustGetVariable("CLUSTER_CLASS_NAME")),
+				Flavor: func() *string {
+					flavor := "topology-scale"
+					if testMode == GovmomiTestMode {
+						flavor = "topology-runtimesdk"
+					}
+					return ptr.To(testSpecificSettingsGetter().FlavorForMode(flavor))
+				}(),
+				SkipUpgrade:      false,
+				SkipCleanup:      skipCleanup,
+				DumpResources:    true,
+				ClusterClassName: getVariableOrFallback(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"], e2eConfig.MustGetVariable("CLUSTER_CLASS_NAME")),
 
 				// ClusterCount can be overwritten via `CAPI_SCALE_CLUSTER_COUNT`.
 				ClusterCount: ptr.To[int64](5),
@@ -143,7 +140,7 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 				},
 			}
 		})
-	})
+	}, SkipIf(testTarget != VCSimTestTarget))
 })
 
 func getVariableOrFallback(value string, fallback string) string {

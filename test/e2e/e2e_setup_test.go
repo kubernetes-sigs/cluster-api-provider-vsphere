@@ -53,6 +53,7 @@ type setupOptions struct {
 	prefixVariableName        string
 	additionalVCSimServer     bool
 	useMOID                   bool
+	skip                      bool
 }
 
 // SetupOption is a configuration option supplied to Setup.
@@ -95,6 +96,13 @@ func WithMOID(t bool) SetupOption {
 	}
 }
 
+// SkipIf defines when to skip the test.
+func SkipIf(t bool) SetupOption {
+	return func(o *setupOptions) {
+		o.skip = t
+	}
+}
+
 type testSettings struct {
 	ClusterctlConfigPath      string
 	Variables                 map[string]string
@@ -119,6 +127,9 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		runtimeExtensionProviders        []string
 	)
 	BeforeEach(func() {
+		if options.skip {
+			return
+		}
 		Byf("Setting up test env for %s", specName)
 		if testSpecificVariables == nil {
 			testSpecificVariables = map[string]string{}
@@ -212,6 +223,9 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		}
 	})
 	defer AfterEach(func() {
+		if options.skip {
+			return
+		}
 		if !skipCleanup {
 			Byf("Cleaning up test env for %s", specName)
 			// Cleanup IPs/controlPlaneEndpoint created by the IPAddressManager.
@@ -227,24 +241,32 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 	// so when the test is executed the func could get the value set into the BeforeEach block above.
 	// If instead we pass the value directly, the test func will get the value at the moment of the initial parsing of
 	// the Ginkgo node tree, which is an empty string (the BeforeEach block above are not run during initial parsing).
-	f(func() testSettings {
-		return testSettings{
-			ClusterctlConfigPath:     testSpecificClusterctlConfigPath,
-			Variables:                testSpecificVariables,
-			PostNamespaceCreatedFunc: postNamespaceCreatedFunc,
-			FlavorForMode: func(flavor string) string {
-				if testMode == SupervisorTestMode {
-					// This assumes all the supervisor flavors have the name of the corresponding govmomi flavor + "-supervisor" suffix
-					if flavor == "" {
-						return "supervisor"
-					}
-					return fmt.Sprintf("%s-supervisor", flavor)
-				}
-				return flavor
-			},
-			RuntimeExtensionProviders: runtimeExtensionProviders,
+	func() {
+		if options.skip {
+			// Note: it is not possible to use Skip, because Gingko traversal happens when testMode and testTarget are not yet set.
+			// and this will lead to skipping wrong tests. With the current approach, all test are traversed, but test to be skipped will be no-op.
+			It("This test should be skipped", func() {})
+			return
 		}
-	})
+		f(func() testSettings {
+			return testSettings{
+				ClusterctlConfigPath:     testSpecificClusterctlConfigPath,
+				Variables:                testSpecificVariables,
+				PostNamespaceCreatedFunc: postNamespaceCreatedFunc,
+				FlavorForMode: func(flavor string) string {
+					if testMode == SupervisorTestMode {
+						// This assumes all the supervisor flavors have the name of the corresponding govmomi flavor + "-supervisor" suffix
+						if flavor == "" {
+							return "supervisor"
+						}
+						return fmt.Sprintf("%s-supervisor", flavor)
+					}
+					return flavor
+				},
+				RuntimeExtensionProviders: runtimeExtensionProviders,
+			}
+		})
+	}()
 }
 
 func createVCSimServer(managementClusterProxy framework.ClusterProxy) {
@@ -361,6 +383,14 @@ func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framew
 	Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
 
 	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcsim"))
+	mustParseInt64 := func(s string) int64 {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			panic(fmt.Sprintf("%q must be a valid int64", s))
+		}
+		return int64(i)
+	}
+
 	dependenciesConfig := &vcsimv1.VMOperatorDependencies{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vcsim",
@@ -371,6 +401,13 @@ func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framew
 				Namespace: vCenterSimulator.Namespace,
 				Name:      vCenterSimulator.Name,
 			},
+			VirtualMachineClasses: []vcsimv1.VirtualMachineClass{
+				{
+					Name:   e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_NAME_SELF_HOSTED"),
+					Cpus:   mustParseInt64(e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_CPU_SELF_HOSTED")),
+					Memory: resource.MustParse(e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_MEMORY_SELF_HOSTED")),
+				},
+			},
 		},
 	}
 	err = c.Create(ctx, dependenciesConfig)
@@ -378,16 +415,14 @@ func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framew
 		Expect(err).ToNot(HaveOccurred(), "Failed to create VMOperatorDependencies")
 	}
 
-	Eventually(func() bool {
-		if err := c.Get(ctx, crclient.ObjectKeyFromObject(dependenciesConfig), dependenciesConfig); err != nil {
-			return false
-		}
-		return dependenciesConfig.Status.Ready
-	}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get VMOperatorDependencies on namespace %s", workloadClusterNamespace)
+	Eventually(func(g Gomega) {
+		g.Expect(c.Get(ctx, crclient.ObjectKeyFromObject(dependenciesConfig), dependenciesConfig)).To(Succeed())
+		g.Expect(dependenciesConfig.Status.Ready).To(BeTrue(), "VMOperatorDependencies.status.ready is false in namespace %s", workloadClusterNamespace)
+	}, 30*time.Second, 5*time.Second).Should(Succeed())
 }
 
 func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
-	// Use latest vm-operator API version or the API version defined in the VM_OPERATOR_API_VERSION env var.
+	// Use stable vm-operator API version or the API version defined in the VM_OPERATOR_API_VERSION env var.
 	apiVersionVMOperator := vmoprv1alpha5.GroupVersion.Version
 	if v := e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"); v != "" {
 		apiVersionVMOperator = v
@@ -450,6 +485,11 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 					Name:   e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_NAME_CONFORMANCE"),
 					Cpus:   mustParseInt64(e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_CPU_CONFORMANCE")),
 					Memory: resource.MustParse(e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_MEMORY_CONFORMANCE")),
+				},
+				{
+					Name:   e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_NAME_SELF_HOSTED"),
+					Cpus:   mustParseInt64(e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_CPU_SELF_HOSTED")),
+					Memory: resource.MustParse(e2eConfig.MustGetVariable("VSPHERE_MACHINE_CLASS_MEMORY_SELF_HOSTED")),
 				},
 			},
 		},

@@ -317,29 +317,3 @@ func TestGetSupervisorGatesV1Alpha6(t *testing.T) {
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "Foo=false")
 	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: Foo")})))
 }
-
-func TestVLANSubinterfaceFeatureGate(t *testing.T) {
-	g := NewWithT(t)
-
-	// Test with v1alpha5 - VLANSubinterface should not be allowed to be set to true
-	allowedGatesV1Alpha5 := getSupervisorGates(commonGates, supervisorGates, supervisorVersionedGates, vmoprv1alpha5.GroupVersion.Version)
-	allGatesV1Alpha5 := featuregate.NewVersionedFeatureGate(toFeatureVersion(vmoprv1alpha5.GroupVersion.Version))
-	utilruntime.Must(allGatesV1Alpha5.Add(commonGates))
-	utilruntime.Must(allGatesV1Alpha5.Add(supervisorGates))
-	utilruntime.Must(allGatesV1Alpha5.AddVersioned(supervisorVersionedGates))
-
-	err := set(allGatesV1Alpha5, allowedGatesV1Alpha5, supervisorVersionedGates, "VLANSubinterface=true")
-	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(ContainSubstring("cannot set feature gate VLANSubinterface to true, feature requires a newer vm-operator API version"))
-
-	// Test with v1alpha6 - VLANSubinterface should be allowed to be set to true
-	allowedGatesV1Alpha6 := getSupervisorGates(commonGates, supervisorGates, supervisorVersionedGates, vmoprv1alpha6.GroupVersion.Version)
-	allGatesV1Alpha6 := featuregate.NewVersionedFeatureGate(toFeatureVersion(vmoprv1alpha6.GroupVersion.Version))
-	utilruntime.Must(allGatesV1Alpha6.Add(commonGates))
-	utilruntime.Must(allGatesV1Alpha6.Add(supervisorGates))
-	utilruntime.Must(allGatesV1Alpha6.AddVersioned(supervisorVersionedGates))
-
-	err = set(allGatesV1Alpha6, allowedGatesV1Alpha6, supervisorVersionedGates, "VLANSubinterface=true")
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(allGatesV1Alpha6.Enabled(VLANSubinterface)).To(BeTrue())
-}

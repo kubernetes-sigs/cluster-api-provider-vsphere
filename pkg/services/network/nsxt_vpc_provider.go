@@ -275,7 +275,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 	setVMSecondaryInterfaces(machine, vm)
 
 	// Set the VM VLAN sub-interfaces
-	setVMVLANs(machine, vm)
+	setVLANs(machine, vm)
 
 	return nil
 }
@@ -289,7 +289,7 @@ func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes
 	}
 }
 
-func setVMVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {
+func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {
 	if !feature.Gates.Enabled(feature.VLANSubinterface) {
 		return
 	}

@@ -146,7 +146,7 @@ func hubVirtualMachineStatus(in *vmoprvhub.VirtualMachineStatus, c randfill.Cont
 
 func hubVirtualMachineNetworkSpec(in *vmoprvhub.VirtualMachineNetworkSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
-	// VLANs exists in hub and v1alpha6 but not in v1alpha2 and v1alpha5; zero it so the
+	// VLANs exists in hub and v1alpha6 but not in v1alpha2; zero it so the
 	// hub-spoke-hub round-trip test does not report spurious data loss.
 	in.VLANs = nil
 }

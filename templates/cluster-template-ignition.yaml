@@ -961,7 +961,7 @@ data:
             name: vsphere-syncer
             ports:
             - containerPort: 2113
-              name: prometheus
+              name: prometheus-sync
               protocol: TCP
             securityContext:
               runAsGroup: 65532

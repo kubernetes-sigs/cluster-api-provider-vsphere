@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere/api
 
 go 1.26.0
 
-replace sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v0.0.0-20260618122843-d0ed2bc26ba0
+replace sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-alpha.0
 
 require (
 	k8s.io/api v0.36.2

@@ -1,8 +1,12 @@
 - op: add
   path: /spec/controlPlane/naming
   value:
-    template: '{{ .cluster.name }}-cp-{{ .random }}'
+    template: '{{ .cluster.name }}'
+- op: add
+  path: /spec/infrastructure/naming
+  value:
+    template: '{{ .cluster.name }}'
 - op: add
   path: /spec/workers/machineDeployments/0/naming
   value:
-    template: '{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{ .random }}'
+    template: '{{ .cluster.name }}-{{ .machineDeployment.topologyName }}'

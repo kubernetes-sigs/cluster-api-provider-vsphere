@@ -348,7 +348,7 @@ spec:
           imagePullPolicy: "Always"
           ports:
             - containerPort: 2113
-              name: prometheus
+              name: prometheus-sync
               protocol: TCP
           env:
             - name: FULL_SYNC_INTERVAL_MINUTES

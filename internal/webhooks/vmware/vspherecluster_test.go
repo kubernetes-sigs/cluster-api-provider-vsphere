@@ -105,7 +105,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+			errMsg:          "nsxVPC can only be set when network provider is vpc",
 		},
 		{
 			name: "failed VSphereCluster creation with nsxVPC when network provider is NSX",
@@ -118,7 +118,41 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+			errMsg:          "nsxVPC can only be set when network provider is vpc",
+		},
+		{
+			name: "gate on: successful creation with nsxVPC when spec.network.provider is vpc",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
+				NSXVPC: vmwarev1.NSXVPC{
+					CreateSubnetSet: ptr.To(true),
+				},
+				Provider: manager.NSXVPCNetworkProvider,
+			}, vmwarev1.FailureDomainsSpec{}),
+			featureGates: map[string]bool{"MultiNetworks": true, "ClusterNetworkProvider": true},
+			wantErr:      false,
+		},
+		{
+			name: "gate on: failed creation with nsxVPC when spec.network.provider is vsphere-distributed",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
+				NSXVPC: vmwarev1.NSXVPC{
+					CreateSubnetSet: ptr.To(true),
+				},
+				Provider: manager.VDSNetworkProvider,
+			}, vmwarev1.FailureDomainsSpec{}),
+			featureGates: map[string]bool{"MultiNetworks": true, "ClusterNetworkProvider": true},
+			wantErr:      true,
+			errType:      &apierrors.StatusError{},
+			errMsg:       "nsxVPC can only be set when network provider is vpc",
+		},
+		{
+			name: "gate on: failed creation with unknown spec.network.provider",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
+				Provider: "does-not-exist",
+			}, vmwarev1.FailureDomainsSpec{}),
+			featureGates: map[string]bool{"ClusterNetworkProvider": true},
+			wantErr:      true,
+			errType:      &apierrors.StatusError{},
+			errMsg:       "unknown network provider",
 		},
 		{
 			name: "successful VSphereCluster creation with valid control plane selector and feature gate enabled",
@@ -237,6 +271,15 @@ func TestVSphereCluster_ValidateUpdate(t *testing.T) {
 			errType:         &apierrors.StatusError{},
 			errMsg:          "control plane zone selector can only be set when feature gate NamespaceScopedZones is enabled",
 		},
+		{
+			// Immutability of spec.network.provider is enforced by the CRD CEL rule, not the
+			// webhook, so the webhook accepts a non-empty provider on update here.
+			name:              "gate on: webhook allows setting spec.network.provider (immutability handled by CEL)",
+			oldVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
+			newVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{Provider: manager.NSXVPCNetworkProvider}, vmwarev1.FailureDomainsSpec{}),
+			featureGates:      map[string]bool{"ClusterNetworkProvider": true},
+			wantErr:           false,
+		},
 	}
 
 	for _, tc := range tests {
@@ -299,6 +342,9 @@ func setupFeatureGates(t *testing.T, featureGates map[string]bool) {
 		}
 		if featureName == "NamespaceScopedZones" {
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZones, enabled)
+		}
+		if featureName == "ClusterNetworkProvider" {
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterNetworkProvider, enabled)
 		}
 	}
 }

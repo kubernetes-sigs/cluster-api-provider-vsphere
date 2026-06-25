@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
@@ -38,6 +39,8 @@ import (
 
 // VSphereMachine implements a validation and defaulting webhook for VSphereMachine.
 type VSphereMachine struct {
+	// Client is used to resolve the per-cluster network provider when the ClusterNetworkProvider gate is enabled.
+	Client client.Client
 	// NetworkProvider is the network provider used by Supervisor based clusters
 	NetworkProvider string
 }
@@ -52,15 +55,20 @@ func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereMachine) ValidateCreate(_ context.Context, objTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
-	allErrs := validateNetwork(webhook.NetworkProvider, objTyped.Spec.Network, field.NewPath("spec", "network"))
+func (webhook *VSphereMachine) ValidateCreate(ctx context.Context, objTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
+	networkProvider, err := resolveNetworkProvider(ctx, webhook.Client, webhook.NetworkProvider, objTyped)
+	if err != nil {
+		return nil, err
+	}
+
+	allErrs := validateNetwork(networkProvider, objTyped.Spec.Network, field.NewPath("spec", "network"))
 	allErrs = append(allErrs, validatePolicies(objTyped.Spec.Policies, field.NewPath("spec", "policies"))...)
 
 	return nil, webhooks.AggregateObjErrors(objTyped.GroupVersionKind().GroupKind(), objTyped.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
+func (webhook *VSphereMachine) ValidateUpdate(ctx context.Context, oldTyped, newTyped *vmwarev1.VSphereMachine) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
 	newSpec, oldSpec := newTyped.Spec, oldTyped.Spec
@@ -90,7 +98,12 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTy
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "network", "interfaces"), "cannot be modified"))
 	}
 
-	allErrs = append(allErrs, validateNetwork(webhook.NetworkProvider, newSpec.Network, field.NewPath("spec", "network"))...)
+	networkProvider, err := resolveNetworkProvider(ctx, webhook.Client, webhook.NetworkProvider, newTyped)
+	if err != nil {
+		return nil, err
+	}
+
+	allErrs = append(allErrs, validateNetwork(networkProvider, newSpec.Network, field.NewPath("spec", "network"))...)
 	allErrs = append(allErrs, validatePolicies(newSpec.Policies, field.NewPath("spec", "policies"))...)
 
 	return nil, webhooks.AggregateObjErrors(newTyped.GroupVersionKind().GroupKind(), newTyped.Name, allErrs)
@@ -136,7 +149,7 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 				if network.Interfaces.Primary.IsDefined() {
 					allErrs = append(allErrs, field.Forbidden(
 						fldPath.Child("interfaces", "primary"),
-						"primary interface can not be set when network provider is vsphere-network"))
+						"primary interface can not be set when network provider is vsphere-distributed"))
 				}
 				for i, secondaryInterface := range network.Interfaces.Secondary {
 					secondaryNetGVK := secondaryInterface.NetworkRef.GroupVersionKind()

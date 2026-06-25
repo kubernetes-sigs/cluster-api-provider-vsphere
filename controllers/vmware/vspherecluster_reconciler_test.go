@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
+	inframanager "sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -69,10 +69,12 @@ var _ = Describe("Cluster Controller Tests", func() {
 		clusterCtx, controllerManagerContext = util.CreateClusterContext(cluster, vsphereCluster)
 		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
 
+		networkProviderFactory, err := inframanager.NewStaticNetworkProviderFactory(ctx, controllerManagerContext.Client, "")
+		Expect(err).ToNot(HaveOccurred())
 		reconciler = &ClusterReconciler{
-			Client:          controllerManagerContext.Client,
-			Recorder:        apirecord.NewFakeRecorder(100),
-			NetworkProvider: network.DummyNetworkProvider(),
+			Client:                 controllerManagerContext.Client,
+			Recorder:               apirecord.NewFakeRecorder(100),
+			NetworkProviderFactory: networkProviderFactory,
 			ControlPlaneService: &vmoperator.CPService{
 				Client: controllerManagerContext.Client,
 			},

@@ -159,11 +159,18 @@ func (r *NSXVPC) IsDefined() bool {
 
 // Network defines the network configuration for the cluster with different network providers.
 // +kubebuilder:validation:XValidation:rule="has(self.nsxVPC) == has(oldSelf.nsxVPC)",message="field 'nsxVPC' cannot be added or removed after creation"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.provider) || self.provider == oldSelf.provider",message="provider is immutable once set"
 // +kubebuilder:validation:MinProperties=1
 type Network struct {
 	// nsxVPC defines the configuration when the network provider is NSX-VPC.
 	// +optional
 	NSXVPC NSXVPC `json:"nsxVPC,omitempty,omitzero"`
+
+	// provider is the network provider used by the cluster.
+	// The value is immutable once set.
+	// +optional
+	// +kubebuilder:validation:Enum=vsphere-distributed;nsx-tier1;vpc
+	Provider string `json:"provider,omitempty"`
 }
 
 // IsDefined returns true if the Network is defined.

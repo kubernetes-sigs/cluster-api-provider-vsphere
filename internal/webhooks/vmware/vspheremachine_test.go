@@ -479,6 +479,34 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 			wantErrMsg: "secondary interfaces is required when vlans is specified",
 		},
 		{
+			name:        "vlan ID is nil",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan-nic",
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "VLAN ID cannot be nil",
+		},
+		{
 			name:        "duplicate vlan names",
 			featureGate: true,
 			networkSpec: vmwarev1.VSphereMachineNetworkSpec{

@@ -305,9 +305,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 	setVMSecondaryInterfaces(machine, vm)
 
 	// Set the VM VLAN sub-interfaces
-	setVLANs(machine, vm)
-
-	return nil
+	return setVLANs(machine, vm)
 }
 
 // getIPAMModes maps the ClusterIPFamily to the VM Operator's expected IPAMModes format.
@@ -342,6 +340,29 @@ func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes
 	}
 }
 
+func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
+	if !feature.Gates.Enabled(feature.VLANSubinterface) {
+		return errors.New("feature gate VLANSubinterface is not enabled")
+	}
+	if len(machine.Spec.Network.VLANs) == 0 {
+		return nil
+	}
+	if vm.Spec.Network == nil {
+		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	}
+	for _, vlan := range machine.Spec.Network.VLANs {
+		if vlan.ID == nil {
+			return errors.Errorf("VLAN ID cannot be nil for VLAN %s", vlan.Name)
+		}
+		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
+			Name: vlan.Name,
+			ID:   int64(*vlan.ID),
+			Link: vlan.Link,
+		})
+	}
+	return nil
+}
+
 func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {
 	if len(machine.Spec.Network.Interfaces.Secondary) == 0 {
 		return
@@ -367,24 +388,5 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.Vi
 		}
 		setRoutes(&vmInterface, secondaryInterface.Routes)
 		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterface)
-	}
-}
-
-func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {
-	if !feature.Gates.Enabled(feature.VLANSubinterface) {
-		return
-	}
-	if len(machine.Spec.Network.VLANs) == 0 {
-		return
-	}
-	if vm.Spec.Network == nil {
-		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
-	}
-	for _, vlan := range machine.Spec.Network.VLANs {
-		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
-			Name: vlan.Name,
-			ID:   int64(ptr.Deref(vlan.ID, 0)),
-			Link: vlan.Link,
-		})
 	}
 }

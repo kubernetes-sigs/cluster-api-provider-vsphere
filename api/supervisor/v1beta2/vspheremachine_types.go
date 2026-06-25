@@ -464,8 +464,8 @@ type VLANSpec struct {
 	// hyphens, underscores, or dots.
 	//
 	// +required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:MinLength=2
+	// +kubebuilder:validation:MaxLength=16
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9][a-zA-Z0-9._-]{1,15}$"
 	Name string `json:"name,omitempty"`
 

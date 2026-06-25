@@ -200,6 +200,13 @@ func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Pa
 		secondaryNames[s.Name] = struct{}{}
 	}
 	for i, vlan := range network.VLANs {
+		if vlan.ID == nil {
+			allErrs = append(allErrs, field.Invalid(
+				fldPath.Child("vlans").Index(i).Child("name"),
+				vlan.Name,
+				"VLAN ID cannot be nil"))
+			break
+		}
 		if _, ok := vlanNames[vlan.Name]; ok {
 			allErrs = append(allErrs, field.Invalid(
 				fldPath.Child("vlans").Index(i).Child("name"),

@@ -435,7 +435,7 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 	c, err := conversionclient.NewWithConverter(managementClusterProxy.GetClient(), converter)
 	Expect(err).NotTo(HaveOccurred())
 
-	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcsim"))
+	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcenter"))
 	mustParseInt64 := func(s string) int64 {
 		i, err := strconv.Atoi(s)
 		if err != nil {

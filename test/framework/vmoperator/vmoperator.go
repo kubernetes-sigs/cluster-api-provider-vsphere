@@ -41,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
@@ -889,19 +890,21 @@ func createVirtualMachineClass(ctx context.Context, c client.Client, config *vcs
 				},
 			},
 		}
-		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-			retryError = nil
+		retryError = nil
+		// Note: Using 1m as timeout as we might just have deployed the vm-operator ConfigMap, so it might take some time for vm-operator to be available.
+		_ = wait.PollUntilContextTimeout(ctx, 5*time.Second, time.Minute, true, func(ctx context.Context) (bool, error) {
 			if err := c.Get(ctx, client.ObjectKeyFromObject(vmClass), vmClass); err != nil {
 				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get vm-operator VirtualMachineClass %s", vmClass.Name)
+					retryError = kerrors.NewAggregate([]error{retryError, errors.Wrapf(err, "failed to get vm-operator VirtualMachineClass %s", vmClass.Name)})
 					return false, nil
 				}
 				if err := c.Create(ctx, vmClass); err != nil {
-					retryError = errors.Wrapf(err, "failed to create vm-operator VirtualMachineClass %s", vmClass.Name)
+					retryError = kerrors.NewAggregate([]error{retryError, errors.Wrapf(err, "failed to create vm-operator VirtualMachineClass %s", vmClass.Name)})
 					return false, nil
 				}
 				log.Info("Created vm-operator VirtualMachineClass", "VirtualMachineClass", klog.KObj(vmClass))
 			}
+			retryError = nil
 			return true, nil
 		})
 		if retryError != nil {

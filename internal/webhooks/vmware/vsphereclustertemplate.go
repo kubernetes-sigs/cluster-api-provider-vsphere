@@ -19,6 +19,7 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -35,7 +36,9 @@ import (
 
 // VSphereClusterTemplate implements a validation webhook for VSphereClusterTemplate.
 type VSphereClusterTemplate struct {
-	NetworkProvider string
+	// NetworkProviderFactory resolves the static network provider when the
+	// ClusterNetworkProvider feature gate is disabled.
+	NetworkProviderFactory manager.NetworkProviderFactory
 }
 
 var _ admission.Validator[*vmwarev1.VSphereClusterTemplate] = &VSphereClusterTemplate{}
@@ -49,13 +52,13 @@ func (webhook *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager)
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereClusterTemplate) ValidateCreate(_ context.Context, obj *vmwarev1.VSphereClusterTemplate) (admission.Warnings, error) {
-	return webhook.validate(obj)
+func (webhook *VSphereClusterTemplate) ValidateCreate(ctx context.Context, obj *vmwarev1.VSphereClusterTemplate) (admission.Warnings, error) {
+	return webhook.validate(ctx, obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereClusterTemplate) ValidateUpdate(_ context.Context, _, newObj *vmwarev1.VSphereClusterTemplate) (admission.Warnings, error) {
-	return webhook.validate(newObj)
+func (webhook *VSphereClusterTemplate) ValidateUpdate(ctx context.Context, _, newObj *vmwarev1.VSphereClusterTemplate) (admission.Warnings, error) {
+	return webhook.validate(ctx, newObj)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -64,7 +67,7 @@ func (webhook *VSphereClusterTemplate) ValidateDelete(_ context.Context, _ *vmwa
 }
 
 // validateClusterTemplateNetwork validates the network configuration of the VSphereClusterTemplate.
-func (webhook *VSphereClusterTemplate) validateClusterTemplateNetwork(template *vmwarev1.VSphereClusterTemplate) field.ErrorList {
+func (webhook *VSphereClusterTemplate) validateClusterTemplateNetwork(ctx context.Context, template *vmwarev1.VSphereClusterTemplate) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if !feature.Gates.Enabled(feature.MultiNetworks) && template.Spec.Template.Spec.Network.NSXVPC.CreateSubnetSet != nil {
@@ -73,19 +76,34 @@ func (webhook *VSphereClusterTemplate) validateClusterTemplateNetwork(template *
 			"createSubnetSet can only be set when MultiNetworks feature gate is enabled",
 		))
 	}
-	if template.Spec.Template.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
-		allErrs = append(allErrs, field.Forbidden(
-			field.NewPath("spec", "template", "spec", "network", "nsxVPC"),
-			"nsxVPC can only be set when network provider is NSX-VPC",
-		))
+
+	// A VSphereClusterTemplate does not belong to any Cluster, so there is no spec.network.provider
+	// to resolve. When the ClusterNetworkProvider gate is enabled, skip the provider-based check and
+	// rely on per-cluster validation at VSphereCluster admission time instead.
+	if !feature.Gates.Enabled(feature.ClusterNetworkProvider) &&
+		template.Spec.Template.Spec.Network.NSXVPC.IsDefined() {
+		np, err := webhook.NetworkProviderFactory.ForCluster(ctx, &vmwarev1.VSphereCluster{})
+		if err != nil {
+			allErrs = append(allErrs, field.InternalError(
+				field.NewPath("spec", "template", "spec", "network", "nsxVPC"),
+				err,
+			))
+			return allErrs
+		}
+		if np.Name() != manager.NSXVPCNetworkProvider {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath("spec", "template", "spec", "network", "nsxVPC"),
+				fmt.Sprintf("nsxVPC can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
+			))
+		}
 	}
 
 	return allErrs
 }
 
 // validate aggregates all validations for the VSphereClusterTemplate.
-func (webhook *VSphereClusterTemplate) validate(template *vmwarev1.VSphereClusterTemplate) (admission.Warnings, error) {
-	allErrs := webhook.validateClusterTemplateNetwork(template)
+func (webhook *VSphereClusterTemplate) validate(ctx context.Context, template *vmwarev1.VSphereClusterTemplate) (admission.Warnings, error) {
+	allErrs := webhook.validateClusterTemplateNetwork(ctx, template)
 	allErrs = append(allErrs, validateFailureDomainsControlPlaneSelector(
 		template.Spec.Template.Spec.FailureDomains.ControlPlane.Selector,
 		field.NewPath("spec", "template", "spec", "failureDomains", "controlPlane", "selector"),

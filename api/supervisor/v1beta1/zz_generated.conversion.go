@@ -639,6 +639,7 @@ func autoConvert_v1beta1_Network_To_v1beta2_Network(in *Network, out *v1beta2.Ne
 	if err := Convert_v1beta1_NSXVPC_To_v1beta2_NSXVPC(&in.NSXVPC, &out.NSXVPC, s); err != nil {
 		return err
 	}
+	out.Provider = in.Provider
 	return nil
 }
 
@@ -651,6 +652,7 @@ func autoConvert_v1beta2_Network_To_v1beta1_Network(in *v1beta2.Network, out *Ne
 	if err := Convert_v1beta2_NSXVPC_To_v1beta1_NSXVPC(&in.NSXVPC, &out.NSXVPC, s); err != nil {
 		return err
 	}
+	out.Provider = in.Provider
 	return nil
 }
 

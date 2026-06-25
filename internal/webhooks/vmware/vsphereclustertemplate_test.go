@@ -18,6 +18,7 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -103,7 +104,18 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+			errMsg:          fmt.Sprintf("nsxVPC can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
+		},
+		{
+			name: "gate on: nsxVPC check is skipped for cluster templates",
+			template: createVSphereClusterTemplate("test-template", vmwarev1.Network{
+				NSXVPC: vmwarev1.NSXVPC{
+					CreateSubnetSet: ptr.To(true),
+				},
+			}, vmwarev1.FailureDomainsSpec{}),
+			networkProvider: manager.VDSNetworkProvider,
+			featureGates:    map[string]bool{"MultiNetworks": true, "ClusterNetworkProvider": true},
+			wantErr:         false,
 		},
 		{
 			name: "failed creation with nsxVPC when network provider is NSX",
@@ -116,7 +128,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+			errMsg:          fmt.Sprintf("nsxVPC can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
 		},
 		{
 			name: "successful creation with valid control plane selector and feature gate enabled",
@@ -181,7 +193,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			setupFeatureGates(t, tc.featureGates)
 
 			webhook := &VSphereClusterTemplate{
-				NetworkProvider: tc.networkProvider,
+				NetworkProviderFactory: newTestNetworkProviderFactory(t, tc.networkProvider),
 			}
 
 			_, err := webhook.ValidateCreate(context.Background(), tc.template)
@@ -245,7 +257,7 @@ func TestVSphereClusterTemplate_ValidateUpdate(t *testing.T) {
 			setupFeatureGates(t, tc.featureGates)
 
 			webhook := &VSphereClusterTemplate{
-				NetworkProvider: tc.networkProvider,
+				NetworkProviderFactory: newTestNetworkProviderFactory(t, tc.networkProvider),
 			}
 
 			_, err := webhook.ValidateUpdate(context.Background(), tc.oldTemplate, tc.newTemplate)
@@ -267,7 +279,7 @@ func TestVSphereClusterTemplate_ValidateUpdate(t *testing.T) {
 func TestVSphereClusterTemplate_ValidateDelete(t *testing.T) {
 	g := NewWithT(t)
 
-	webhook := &VSphereClusterTemplate{}
+	webhook := &VSphereClusterTemplate{NetworkProviderFactory: newTestNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 	template := createVSphereClusterTemplate("test-template", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{})
 
 	warnings, err := webhook.ValidateDelete(context.Background(), template)

@@ -45,6 +45,10 @@ func NetOpNetworkProvider(client client.Client) services.NetworkProvider {
 	}
 }
 
+func (np *netopNetworkProvider) Name() string {
+	return VSphereDistributedNetworkProviderName
+}
+
 func (np *netopNetworkProvider) SupportsIPv6DualStack() bool {
 	return false
 }

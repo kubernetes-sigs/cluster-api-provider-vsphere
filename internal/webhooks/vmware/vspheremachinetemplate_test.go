@@ -18,6 +18,7 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -95,10 +96,98 @@ func TestVSphereMachineTemplate_Validate(t *testing.T) {
 				},
 			}
 
-			webhook := &VSphereMachineTemplate{}
+			webhook := &VSphereMachineTemplate{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 			_, err := webhook.validate(context.Background(), nil, vSphereMachineTemplate)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestVSphereMachineTemplate_Validate_NoOwningCluster(t *testing.T) {
+	// Network config that would fail validateNetwork for VDS (primary interfaces are forbidden).
+	networkWithPrimary := vmwarev1.VSphereMachineNetworkSpec{
+		Interfaces: vmwarev1.InterfacesSpec{
+			Primary: vmwarev1.InterfaceSpec{
+				NetworkRef: vmwarev1.InterfaceNetworkReference{
+					Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+					APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+					Name:       "primary-subnetset",
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name    string
+		obj     *vmwarev1.VSphereMachineTemplate
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "skips validateNetwork when cluster-name label is missing",
+			obj: &vmwarev1.VSphereMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{Name: "cc-template"},
+				Spec: vmwarev1.VSphereMachineTemplateSpec{
+					Template: vmwarev1.VSphereMachineTemplateResource{
+						Spec: vmwarev1.VSphereMachineSpec{Network: networkWithPrimary},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "still validates namingStrategy when cluster-name label is missing",
+			obj: &vmwarev1.VSphereMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{Name: "cc-template"},
+				Spec: vmwarev1.VSphereMachineTemplateSpec{
+					Template: vmwarev1.VSphereMachineTemplateResource{
+						Spec: vmwarev1.VSphereMachineSpec{
+							Network: networkWithPrimary,
+							Naming:  vmwarev1.VirtualMachineNamingSpec{Template: "{{ invalid"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "invalid VirtualMachine name template",
+		},
+		{
+			name: "still validates policies when cluster-name label is missing",
+			obj: &vmwarev1.VSphereMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{Name: "cc-template"},
+				Spec: vmwarev1.VSphereMachineTemplateSpec{
+					Template: vmwarev1.VSphereMachineTemplateResource{
+						Spec: vmwarev1.VSphereMachineSpec{
+							Network: networkWithPrimary,
+							Policies: []vmwarev1.PolicyRef{
+								{Name: "policy-1", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "policies can only be set when feature gate InfrastructurePolicies is enabled",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterNetworkProvider, true)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, true)
+
+			webhook := &VSphereMachineTemplate{NetworkProviderFactory: newTestNetworkProviderFactory(t, manager.VDSNetworkProvider)}
+			_, err := webhook.validate(context.Background(), nil, tc.obj)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				if tc.errMsg != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tc.errMsg))
+				}
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
@@ -188,7 +277,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "primary interface can not be set when network provider is vsphere-network",
+			wantErrMsg: fmt.Sprintf("primary interface can not be set when network provider is %s", manager.VDSNetworkProvider),
 		},
 		{
 			name:            "secondary interface with wrong type for VDS provider",
@@ -285,7 +374,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, tc.featureGate)
-			webhook := &VSphereMachineTemplate{NetworkProvider: tc.networkProvider}
+			webhook := &VSphereMachineTemplate{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, tc.networkProvider)}
 			obj := &vmwarev1.VSphereMachineTemplate{
 				Spec: vmwarev1.VSphereMachineTemplateSpec{
 					Template: vmwarev1.VSphereMachineTemplateResource{
@@ -394,7 +483,7 @@ func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			webhook := &VSphereMachineTemplate{}
+			webhook := &VSphereMachineTemplate{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 			ctx := context.Background()
 			if tc.req != nil {
 				ctx = admission.NewContextWithRequest(ctx, *tc.req)
@@ -435,7 +524,7 @@ func TestVSphereMachineTemplate_ValidatePoliciesFeatureGate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, tc.featureGate)
-			webhook := &VSphereMachineTemplate{}
+			webhook := &VSphereMachineTemplate{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 			obj := &vmwarev1.VSphereMachineTemplate{
 				Spec: vmwarev1.VSphereMachineTemplateSpec{
 					Template: vmwarev1.VSphereMachineTemplateResource{
@@ -707,7 +796,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "vlans can only be set when network provider is NSX-VPC",
+			wantErrMsg: fmt.Sprintf("vlans can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
 		},
 		{
 			name:            "vlans name duplicate with primary interface name",
@@ -783,7 +872,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 			g := NewWithT(t)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, true)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VLANSubinterface, tc.featureGate)
-			webhook := &VSphereMachineTemplate{NetworkProvider: tc.networkProvider}
+			webhook := &VSphereMachineTemplate{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, tc.networkProvider)}
 			obj := &vmwarev1.VSphereMachineTemplate{
 				Spec: vmwarev1.VSphereMachineTemplateSpec{
 					Template: vmwarev1.VSphereMachineTemplateResource{

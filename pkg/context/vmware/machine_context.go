@@ -41,6 +41,11 @@ type SupervisorMachineContext struct {
 	VSphereCluster *vmwarev1.VSphereCluster
 	VSphereMachine *vmwarev1.VSphereMachine
 	VMModifiers    []VMModifier
+
+	// ConfigureControlPlaneVMReadinessProbe indicates whether a TCP readiness probe should be
+	// configured on control plane VMs. It is resolved per-cluster from the network provider's
+	// SupportsVMReadinessProbe().
+	ConfigureControlPlaneVMReadinessProbe bool
 }
 
 // String returns VSphereMachineGroupVersionKind VSphereMachineNamespace/VSphereMachineName.

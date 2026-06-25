@@ -18,40 +18,42 @@ package vmware
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
 // VSphereMachine implements a validation and defaulting webhook for VSphereMachine.
 type VSphereMachine struct{}
 
 // SetupWebhookWithManager sets up VSphereMachine webhooks.
-func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
-	return (&vmware.VSphereMachine{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager, client client.Client, networkProviderFactory manager.NetworkProviderFactory) error {
+	return (&vmware.VSphereMachine{Client: client, NetworkProviderFactory: networkProviderFactory}).SetupWebhookWithManager(mgr)
 }
 
 // VSphereMachineTemplate implements a validation webhook for VSphereMachineTemplate.
 type VSphereMachineTemplate struct{}
 
 // SetupWebhookWithManager sets up VSphereMachineTemplate webhooks.
-func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
-	return (&vmware.VSphereMachineTemplate{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager, client client.Client, networkProviderFactory manager.NetworkProviderFactory) error {
+	return (&vmware.VSphereMachineTemplate{Client: client, NetworkProviderFactory: networkProviderFactory}).SetupWebhookWithManager(mgr)
 }
 
 // VSphereCluster implements a validation and defaulting webhook for VSphereCluster.
 type VSphereCluster struct{}
 
 // SetupWebhookWithManager sets up VSphereCluster webhooks.
-func (webhook *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
-	return (&vmware.VSphereCluster{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager, networkProviderFactory manager.NetworkProviderFactory) error {
+	return (&vmware.VSphereCluster{NetworkProviderFactory: networkProviderFactory}).SetupWebhookWithManager(mgr)
 }
 
 // VSphereClusterTemplate implements a validation and defaulting webhook for VSphereClusterTemplate.
 type VSphereClusterTemplate struct{}
 
 // SetupWebhookWithManager sets up VSphereClusterTemplate webhooks.
-func (webhook *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
-	return (&vmware.VSphereClusterTemplate{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager, networkProviderFactory manager.NetworkProviderFactory) error {
+	return (&vmware.VSphereClusterTemplate{NetworkProviderFactory: networkProviderFactory}).SetupWebhookWithManager(mgr)
 }
 
 // ProviderServiceAccount implements a converter for ProviderServiceAccount.

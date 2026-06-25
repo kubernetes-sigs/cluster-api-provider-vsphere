@@ -328,8 +328,8 @@ spec:
                                     it must be between 1 and 15 characters long, start with an
                                     alphanumeric character, and contain only alphanumeric characters,
                                     hyphens, underscores, or dots.
-                                  maxLength: 15
-                                  minLength: 1
+                                  maxLength: 16
+                                  minLength: 2
                                   pattern: ^[a-zA-Z0-9][a-zA-Z0-9._-]{1,15}$
                                   type: string
                               required:
@@ -826,8 +826,8 @@ spec:
                                     it must be between 1 and 15 characters long, start with an
                                     alphanumeric character, and contain only alphanumeric characters,
                                     hyphens, underscores, or dots.
-                                  maxLength: 15
-                                  minLength: 1
+                                  maxLength: 16
+                                  minLength: 2
                                   pattern: ^[a-zA-Z0-9][a-zA-Z0-9._-]{1,15}$
                                   type: string
                               required:

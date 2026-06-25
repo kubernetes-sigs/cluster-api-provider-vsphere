@@ -19,6 +19,7 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,10 +75,32 @@ func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereC
 			"createSubnetSet can only be set when MultiNetworks feature gate is enabled",
 		))
 	}
-	if cluster.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
+
+	// When the ClusterNetworkProvider gate is enabled, the provider to validate against is the
+	// cluster's own spec.network.provider; otherwise it is the static flag value.
+	provider := webhook.NetworkProvider
+	if feature.Gates.Enabled(feature.ClusterNetworkProvider) {
+		provider = cluster.Spec.Network.Provider
+
+		if provider == "" {
+			allErrs = append(allErrs, field.Required(
+				field.NewPath("spec", "network", "provider"),
+				"spec.network.provider must be set",
+			))
+			return allErrs
+		}
+	} else if cluster.Spec.Network.Provider != "" {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "network", "provider"),
+			"provider can only be set when ClusterNetworkProvider feature gate is enabled",
+		))
+		return allErrs
+	}
+
+	if cluster.Spec.Network.NSXVPC.IsDefined() && provider != manager.NSXVPCNetworkProvider {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("spec", "network", "nsxVPC"),
-			"nsxVPC can only be set when network provider is NSX-VPC",
+			fmt.Sprintf("nsxVPC can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
 		))
 	}
 

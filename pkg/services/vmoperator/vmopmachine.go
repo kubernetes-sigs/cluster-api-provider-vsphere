@@ -56,8 +56,7 @@ const (
 
 // VmopMachineService reconciles VM Operator VM.
 type VmopMachineService struct {
-	Client                                client.Client
-	ConfigureControlPlaneVMReadinessProbe bool
+	Client client.Client
 }
 
 // GetMachinesInCluster returns a list of VSphereMachine objects belonging to the cluster.
@@ -620,7 +619,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	// Not all network providers (for example, NSX-VPC) provide support for VM
 	// readiness probes. The flag PerformsVMReadinessProbe is used to determine
 	// whether a VM readiness probe should be conducted.
-	if v.ConfigureControlPlaneVMReadinessProbe && infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) && ptr.Deref(supervisorMachineCtx.Cluster.Status.Initialization.ControlPlaneInitialized, false) {
+	if supervisorMachineCtx.ConfigureControlPlaneVMReadinessProbe && infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) && ptr.Deref(supervisorMachineCtx.Cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		vmOperatorVM.Spec.ReadinessProbe = &vmoprvhub.VirtualMachineReadinessProbeSpec{
 			TCPSocket: &vmoprvhub.TCPSocketAction{
 				Port: intstr.FromInt(defaultAPIBindPort),

@@ -115,6 +115,10 @@ func (o *Options) defaults() {
 	} else {
 		o.PodNamespace = DefaultPodNamespace
 	}
+
+	if o.NetworkProvider != "" {
+		o.NetworkProvider = ConvertNetworkProviderName(o.NetworkProvider)
+	}
 }
 
 func (o *Options) getCredentials() map[string]string {

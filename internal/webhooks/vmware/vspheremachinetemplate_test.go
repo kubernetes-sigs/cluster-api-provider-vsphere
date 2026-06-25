@@ -18,6 +18,7 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -188,7 +189,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "primary interface can not be set when network provider is vsphere-network",
+			wantErrMsg: fmt.Sprintf("primary interface can not be set when network provider is %s", manager.VDSNetworkProvider),
 		},
 		{
 			name:            "secondary interface with wrong type for VDS provider",
@@ -707,7 +708,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "vlans can only be set when network provider is NSX-VPC",
+			wantErrMsg: fmt.Sprintf("vlans can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
 		},
 		{
 			name:            "vlans name duplicate with primary interface name",

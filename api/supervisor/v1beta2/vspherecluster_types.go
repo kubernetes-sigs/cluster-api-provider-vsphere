@@ -165,11 +165,18 @@ func (r *NSXVPC) IsDefined() bool {
 
 // Network defines the network configuration for the cluster with different network providers.
 // +kubebuilder:validation:XValidation:rule="has(self.nsxVPC) == has(oldSelf.nsxVPC)",message="field 'nsxVPC' cannot be added or removed after creation"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.provider) || self.provider == oldSelf.provider",message="provider is immutable once set"
 // +kubebuilder:validation:MinProperties=1
 type Network struct {
 	// nsxVPC defines the configuration when the network provider is NSX-VPC.
 	// +optional
 	NSXVPC NSXVPC `json:"nsxVPC,omitempty,omitzero"`
+
+	// provider is the network provider used by the cluster.
+	// The value is immutable once set.
+	// +optional
+	// +kubebuilder:validation:Enum=VSphereDistributed;NSXTier1;VPC
+	Provider string `json:"provider,omitempty"`
 }
 
 // IsDefined returns true if the Network is defined.
@@ -178,7 +185,7 @@ func (r *Network) IsDefined() bool {
 }
 
 // VSphereClusterSpec defines the desired state of VSphereCluster.
-// +kubebuilder:validation:XValidation:rule="has(self.network) == has(oldSelf.network)",message="field 'network' cannot be added or removed after creation"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.network) || has(self.network)",message="field 'network' cannot be removed once set"
 // +kubebuilder:validation:MinProperties=1
 type VSphereClusterSpec struct {
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.

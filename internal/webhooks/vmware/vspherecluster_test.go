@@ -18,6 +18,7 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -105,7 +106,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+			errMsg:          fmt.Sprintf("nsxVPC can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
 		},
 		{
 			name: "failed VSphereCluster creation with nsxVPC when network provider is NSX",
@@ -118,7 +119,49 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+			errMsg:          fmt.Sprintf("nsxVPC can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
+		},
+		{
+			name: "gate on: successful creation with nsxVPC when spec.network.provider is VPC",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
+				NSXVPC: vmwarev1.NSXVPC{
+					CreateSubnetSet: ptr.To(true),
+				},
+				Provider: manager.NSXVPCNetworkProvider,
+			}, vmwarev1.FailureDomainsSpec{}),
+			featureGates: map[string]bool{"MultiNetworks": true, "ClusterNetworkProvider": true},
+			wantErr:      false,
+		},
+		{
+			name: "gate on: failed creation with nsxVPC when spec.network.provider is VSphereDistributed",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
+				NSXVPC: vmwarev1.NSXVPC{
+					CreateSubnetSet: ptr.To(true),
+				},
+				Provider: manager.VDSNetworkProvider,
+			}, vmwarev1.FailureDomainsSpec{}),
+			featureGates: map[string]bool{"MultiNetworks": true, "ClusterNetworkProvider": true},
+			wantErr:      true,
+			errType:      &apierrors.StatusError{},
+			errMsg:       fmt.Sprintf("nsxVPC can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
+		},
+		{
+			name: "gate off: failed creation with spec.network.provider set",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
+				Provider: manager.NSXVPCNetworkProvider,
+			}, vmwarev1.FailureDomainsSpec{}),
+			featureGates: map[string]bool{"ClusterNetworkProvider": false},
+			wantErr:      true,
+			errType:      &apierrors.StatusError{},
+			errMsg:       "provider can only be set when ClusterNetworkProvider feature gate is enabled",
+		},
+		{
+			name:           "gate on: failed creation with empty spec.network.provider",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
+			featureGates:   map[string]bool{"ClusterNetworkProvider": true},
+			wantErr:        true,
+			errType:        &apierrors.StatusError{},
+			errMsg:         "spec.network.provider must be set",
 		},
 		{
 			name: "successful VSphereCluster creation with valid control plane selector and feature gate enabled",
@@ -237,6 +280,15 @@ func TestVSphereCluster_ValidateUpdate(t *testing.T) {
 			errType:         &apierrors.StatusError{},
 			errMsg:          "control plane zone selector can only be set when feature gate NamespaceScopedZones is enabled",
 		},
+		{
+			name:              "gate off: failed update with spec.network.provider set",
+			oldVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
+			newVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{Provider: manager.NSXVPCNetworkProvider}, vmwarev1.FailureDomainsSpec{}),
+			featureGates:      map[string]bool{"ClusterNetworkProvider": false},
+			wantErr:           true,
+			errType:           &apierrors.StatusError{},
+			errMsg:            "provider can only be set when ClusterNetworkProvider feature gate is enabled",
+		},
 	}
 
 	for _, tc := range tests {
@@ -299,6 +351,9 @@ func setupFeatureGates(t *testing.T, featureGates map[string]bool) {
 		}
 		if featureName == "NamespaceScopedZones" {
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZones, enabled)
+		}
+		if featureName == "ClusterNetworkProvider" {
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterNetworkProvider, enabled)
 		}
 	}
 }

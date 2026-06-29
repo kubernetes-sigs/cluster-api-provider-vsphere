@@ -288,22 +288,19 @@ func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes
 }
 
 func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
-	if !feature.Gates.Enabled(feature.VLANSubinterface) {
-		return errors.New("feature gate VLANSubinterface is not enabled")
-	}
 	if len(machine.Spec.Network.VLANs) == 0 {
 		return nil
+	}
+	if !feature.Gates.Enabled(feature.VLANSubinterface) {
+		return errors.New("feature gate VLANSubinterface is not enabled")
 	}
 	if vm.Spec.Network == nil {
 		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
 	}
 	for _, vlan := range machine.Spec.Network.VLANs {
-		if vlan.ID == nil {
-			return errors.Errorf("VLAN ID cannot be nil for VLAN %s", vlan.Name)
-		}
 		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
 			Name: vlan.Name,
-			ID:   int64(*vlan.ID),
+			ID:   int64(vlan.ID),
 			Link: vlan.Link,
 		})
 	}

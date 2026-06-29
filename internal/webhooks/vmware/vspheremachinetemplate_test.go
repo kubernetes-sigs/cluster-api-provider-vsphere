@@ -488,7 +488,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 				},
@@ -503,7 +503,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth0",
 					},
 				},
@@ -532,12 +532,12 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan-nic",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 					{
 						Name: "vlan-nic",
-						ID:   ptr.To(int32(102)),
+						ID:   int32(102),
 						Link: "eth1",
 					},
 				},
@@ -566,7 +566,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan-nic",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth2",
 					},
 				},
@@ -595,12 +595,12 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan1",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 					{
 						Name: "vlan2",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 				},
@@ -636,7 +636,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 				},

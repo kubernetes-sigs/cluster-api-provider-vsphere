@@ -56,11 +56,15 @@ const (
 )
 
 var _ = Describe("When testing KCP infra adoption 1CP [vcsim] [supervisor]", func() {
-	Setup(kcpAdoptionSpecName+"-1-cp", KCPInfraAdoptionTest(kcpAdoptionSpecName+"-1-cp", 1), SkipIf(testMode == GovmomiTestMode))
+	// Note: We have to keep the IPAddressClaim after the test completes because we do not clean up VMs at the end of the test,
+	// so the IP would then be used by multiple tests at the same time which leads to connectivity and cert validation errors.
+	Setup(kcpAdoptionSpecName+"-1-cp", KCPInfraAdoptionTest(kcpAdoptionSpecName+"-1-cp", 1), SkipIf(testMode == GovmomiTestMode), SkipCleanupIPAddressClaim(true))
 })
 
 var _ = Describe("When testing KCP infra adoption 3CP [vcsim] [supervisor]", func() {
-	Setup(kcpAdoptionSpecName+"-3-cp", KCPInfraAdoptionTest(kcpAdoptionSpecName+"-3-cp", 3), SkipIf(testMode == GovmomiTestMode))
+	// Note: We have to keep the IPAddressClaim after the test completes because we do not clean up VMs at the end of the test,
+	// so the IP would then be used by multiple tests at the same time which leads to connectivity and cert validation errors.
+	Setup(kcpAdoptionSpecName+"-3-cp", KCPInfraAdoptionTest(kcpAdoptionSpecName+"-3-cp", 3), SkipIf(testMode == GovmomiTestMode), SkipCleanupIPAddressClaim(true))
 })
 
 func KCPInfraAdoptionTest(specName string, controlPlaneMachineCount int64) func(testSpecificSettingsGetter func() testSettings) {

@@ -54,6 +54,7 @@ type setupOptions struct {
 	additionalVCSimServer     bool
 	useMOID                   bool
 	skip                      bool
+	skipCleanupIPAddressClaim bool
 }
 
 // SetupOption is a configuration option supplied to Setup.
@@ -100,6 +101,13 @@ func WithMOID(t bool) SetupOption {
 func SkipIf(t bool) SetupOption {
 	return func(o *setupOptions) {
 		o.skip = t
+	}
+}
+
+// SkipCleanupIPAddressClaim defines when to skip the cleanup of IPAddressClaim in AfterEach.
+func SkipCleanupIPAddressClaim(t bool) SetupOption {
+	return func(o *setupOptions) {
+		o.skipCleanupIPAddressClaim = t
 	}
 }
 
@@ -231,7 +239,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			// Cleanup IPs/controlPlaneEndpoint created by the IPAddressManager.
 			// Note: we cannot cleanup IPs using VCSim in a separate kind management cluster,
 			// because the test deletes the management cluster before we would reach this code.
-			if !options.additionalVCSimServer {
+			if !options.additionalVCSimServer && !options.skipCleanupIPAddressClaim {
 				Expect(testSpecificIPAddressManager.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
 			}
 		}

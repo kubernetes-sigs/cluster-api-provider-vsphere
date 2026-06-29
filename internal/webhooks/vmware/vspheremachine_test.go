@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
@@ -455,7 +454,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 				},
@@ -470,41 +469,13 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth0",
 					},
 				},
 			},
 			wantErr:    true,
 			wantErrMsg: "secondary interfaces is required when vlans is specified",
-		},
-		{
-			name:        "vlan ID is nil",
-			featureGate: true,
-			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: vmwarev1.InterfacesSpec{
-					Secondary: []vmwarev1.SecondaryInterfaceSpec{
-						{
-							Name: "eth1",
-							InterfaceSpec: vmwarev1.InterfaceSpec{
-								NetworkRef: vmwarev1.InterfaceNetworkReference{
-									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
-									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
-									Name:       "secondary-subnet",
-								},
-							},
-						},
-					},
-				},
-				VLANs: []vmwarev1.VLANSpec{
-					{
-						Name: "vlan-nic",
-						Link: "eth1",
-					},
-				},
-			},
-			wantErr:    true,
-			wantErrMsg: "VLAN ID cannot be nil",
 		},
 		{
 			name:        "duplicate vlan names",
@@ -527,12 +498,12 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan-nic",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 					{
 						Name: "vlan-nic",
-						ID:   ptr.To(int32(102)),
+						ID:   int32(102),
 						Link: "eth1",
 					},
 				},
@@ -561,7 +532,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan-nic",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth2",
 					},
 				},
@@ -590,12 +561,12 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan1",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 					{
 						Name: "vlan2",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 				},
@@ -631,7 +602,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   ptr.To(int32(101)),
+						ID:   int32(101),
 						Link: "eth1",
 					},
 				},
@@ -701,7 +672,7 @@ func TestVSphereMachine_ValidateUpdate_VLANs(t *testing.T) {
 	newVSphereMachine.Spec.Network.VLANs = []vmwarev1.VLANSpec{
 		{
 			Name: "vlan1",
-			ID:   ptr.To(int32(101)),
+			ID:   int32(101),
 			Link: "eth1",
 		},
 	}

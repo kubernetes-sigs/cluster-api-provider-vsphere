@@ -475,7 +475,7 @@ type VLANSpec struct {
 	// +required
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=4094
-	ID *int32 `json:"id,omitempty"`
+	ID int32 `json:"id,omitempty"`
 
 	// link is the name of the secondary interface this VLAN is associated with.
 	//

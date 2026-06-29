@@ -200,13 +200,6 @@ func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Pa
 		secondaryNames[s.Name] = struct{}{}
 	}
 	for i, vlan := range network.VLANs {
-		if vlan.ID == nil {
-			allErrs = append(allErrs, field.Invalid(
-				fldPath.Child("vlans").Index(i).Child("name"),
-				vlan.Name,
-				"VLAN ID cannot be nil"))
-			break
-		}
 		if _, ok := vlanNames[vlan.Name]; ok {
 			allErrs = append(allErrs, field.Invalid(
 				fldPath.Child("vlans").Index(i).Child("name"),
@@ -225,15 +218,15 @@ func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Pa
 		if vlanIDsPerLink[vlan.Link] == nil {
 			vlanIDsPerLink[vlan.Link] = map[int32]string{}
 		}
-		if existingVlanName, exists := vlanIDsPerLink[vlan.Link][*vlan.ID]; exists {
+		if existingVlanName, exists := vlanIDsPerLink[vlan.Link][vlan.ID]; exists {
 			allErrs = append(allErrs, field.Invalid(
 				fldPath.Child("vlans").Index(i).Child("id"),
 				vlan.ID,
 				fmt.Sprintf("VLAN ID %d is already used by VLAN %q on the same link %q",
-					*vlan.ID, existingVlanName, vlan.Link),
+					vlan.ID, existingVlanName, vlan.Link),
 			))
 		} else {
-			vlanIDsPerLink[vlan.Link][*vlan.ID] = vlan.Name
+			vlanIDsPerLink[vlan.Link][vlan.ID] = vlan.Name
 		}
 	}
 	return allErrs

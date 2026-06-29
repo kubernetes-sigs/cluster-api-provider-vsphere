@@ -807,7 +807,7 @@ func Convert_v1beta2_SecondaryInterfaceSpec_To_v1beta1_SecondaryInterfaceSpec(in
 
 func autoConvert_v1beta1_VLANSpec_To_v1beta2_VLANSpec(in *VLANSpec, out *v1beta2.VLANSpec, s conversion.Scope) error {
 	out.Name = in.Name
-	out.ID = (*int32)(unsafe.Pointer(in.ID))
+	out.ID = in.ID
 	out.Link = in.Link
 	return nil
 }
@@ -819,7 +819,7 @@ func Convert_v1beta1_VLANSpec_To_v1beta2_VLANSpec(in *VLANSpec, out *v1beta2.VLA
 
 func autoConvert_v1beta2_VLANSpec_To_v1beta1_VLANSpec(in *v1beta2.VLANSpec, out *VLANSpec, s conversion.Scope) error {
 	out.Name = in.Name
-	out.ID = (*int32)(unsafe.Pointer(in.ID))
+	out.ID = in.ID
 	out.Link = in.Link
 	return nil
 }

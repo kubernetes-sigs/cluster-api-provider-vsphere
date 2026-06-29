@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
-	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
@@ -90,7 +89,7 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 					resourceVersionInput := framework.ValidateResourceVersionStableInput{
 						ClusterProxy:             proxy,
 						Namespace:                namespace,
-						OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+						OwnerGraphFilterFunction: TMPDropVSphereMachineAndFilterObjectsWithKindAndName(clusterName),
 						WaitToBecomeStable:       e2eConfig.GetIntervals(specName, "wait-resource-versions-become-stable"),
 						WaitToRemainStable:       e2eConfig.GetIntervals(specName, "wait-resource-versions-remain-stable"),
 					}

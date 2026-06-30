@@ -10,6 +10,8 @@ metadata:
   name: '${CLUSTER_CLASS_NAME}'
 spec:
   controlPlane:
+    deletion:
+      nodeDeletionTimeoutSeconds: 0
     machineInfrastructure:
       templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -237,6 +239,8 @@ spec:
           kind: KubeadmConfigTemplate
           name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
       class: ${CLUSTER_CLASS_NAME}-worker
+      deletion:
+        nodeDeletionTimeoutSeconds: 0
       infrastructure:
         templateRef:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2

@@ -98,6 +98,9 @@ func getControlPlaneClass() clusterv1.ControlPlaneClass {
 				Name:       fmt.Sprintf("%s-template", env.ClusterClassNameVar),
 			},
 		},
+		Deletion: clusterv1.ControlPlaneClassMachineDeletionSpec{
+			NodeDeletionTimeoutSeconds: new(int32(0)),
+		},
 	}
 }
 
@@ -114,6 +117,9 @@ func getVMWareControlPlaneClass() clusterv1.ControlPlaneClass {
 				Kind:       util.TypeToKind(&vmwarev1.VSphereMachineTemplate{}),
 				Name:       fmt.Sprintf("%s-template", env.ClusterClassNameVar),
 			},
+		},
+		Deletion: clusterv1.ControlPlaneClassMachineDeletionSpec{
+			NodeDeletionTimeoutSeconds: new(int32(0)),
 		},
 	}
 }
@@ -136,6 +142,9 @@ func getWorkersClass() clusterv1.WorkersClass {
 						Name:       fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar),
 						APIVersion: infrav1.GroupVersion.String(),
 					},
+				},
+				Deletion: clusterv1.MachineDeploymentClassMachineDeletionSpec{
+					NodeDeletionTimeoutSeconds: new(int32(0)),
 				},
 			},
 		},
@@ -160,6 +169,9 @@ func getVMWareWorkersClass() clusterv1.WorkersClass {
 						Name:       fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar),
 						APIVersion: vmwarev1.GroupVersion.String(),
 					},
+				},
+				Deletion: clusterv1.MachineDeploymentClassMachineDeletionSpec{
+					NodeDeletionTimeoutSeconds: new(int32(0)),
 				},
 			},
 		},

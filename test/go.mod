@@ -15,14 +15,14 @@ require (
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20260506225634-46e3104c57d1
 	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20260506225634-46e3104c57d1
-	github.com/vmware/govmomi v0.54.1
+	github.com/vmware/govmomi v0.55.0
 )
 
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/dougm/pretty v0.0.0-20171025230240-2ee9d7453c02
 	github.com/onsi/ginkgo/v2 v2.32.0
-	github.com/onsi/gomega v1.42.0
+	github.com/onsi/gomega v1.42.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.10
 	github.com/vmware-tanzu/vm-operator/external/infra v0.0.0-20260506225634-46e3104c57d1
@@ -172,7 +172,7 @@ require (
 	golang.org/x/term v0.44.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.46.0 // indirect
+	golang.org/x/tools v0.47.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/grpc v1.80.0 // indirect

@@ -38,6 +38,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
@@ -272,7 +273,9 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 
 	// Set the VM secondary interfaces
 	setVMSecondaryInterfaces(machine, vm)
-	return nil
+
+	// Set the VM VLAN sub-interfaces
+	return setVLANs(machine, vm)
 }
 
 func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes []vmwarev1.RouteSpec) {
@@ -282,6 +285,30 @@ func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes
 			Via: route.Via,
 		})
 	}
+}
+
+func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
+	if len(machine.Spec.Network.VLANs) == 0 {
+		return nil
+	}
+	if !feature.Gates.Enabled(feature.VLANSubinterface) {
+		return errors.New("feature gate VLANSubinterface is not enabled")
+	}
+	if vm.Spec.Network == nil {
+		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	}
+	for _, vlan := range machine.Spec.Network.VLANs {
+		var vlanID int64
+		if vlan.ID != nil {
+			vlanID = int64(*vlan.ID)
+		}
+		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
+			Name: vlan.Name,
+			ID:   vlanID,
+			Link: vlan.Link,
+		})
+	}
+	return nil
 }
 
 func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {

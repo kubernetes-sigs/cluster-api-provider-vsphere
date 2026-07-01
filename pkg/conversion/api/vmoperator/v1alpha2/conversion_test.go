@@ -91,6 +91,7 @@ func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubVirtualMachineVolume,
 		hubVirtualMachineSpec,
 		hubVirtualMachineStatus,
+		hubVirtualMachineNetworkSpec,
 		hubVirtualMachineNetworkInterfaceSpec,
 	}
 }
@@ -141,4 +142,11 @@ func hubVirtualMachineStatus(in *vmoprvhub.VirtualMachineStatus, c randfill.Cont
 	// Policies exists in hub and v1alpha5 but not in v1alpha2; zero it so the
 	// hub-spoke-hub round-trip test does not report spurious data loss.
 	in.Policies = nil
+}
+
+func hubVirtualMachineNetworkSpec(in *vmoprvhub.VirtualMachineNetworkSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// VLANs exists in hub and v1alpha6 but not in v1alpha2; zero it so the
+	// hub-spoke-hub round-trip test does not report spurious data loss.
+	in.VLANs = nil
 }

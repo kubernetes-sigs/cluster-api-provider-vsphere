@@ -80,6 +80,7 @@ func TestFuzzyConversion(t *testing.T) {
 
 func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubVirtualMachineNetworkSpec,
 		hubVirtualMachineNetworkInterfaceSpec,
 	}
 }
@@ -92,4 +93,11 @@ func hubVirtualMachineNetworkInterfaceSpec(in *vmoprvhub.VirtualMachineNetworkIn
 	in.Type = ""
 	in.VMXNet3 = nil
 	in.VNUMANodeID = nil
+}
+
+func hubVirtualMachineNetworkSpec(in *vmoprvhub.VirtualMachineNetworkSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// VLANs exists in hub and v1alpha6 but not in v1alpha5; zero it so the
+	// hub-spoke-hub round-trip test does not report spurious data loss.
+	in.VLANs = nil
 }

@@ -691,6 +691,9 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate client.Obje
 						Kind:     machineTemplate.GetObjectKind().GroupVersionKind().Kind,
 						Name:     machineTemplate.GetName(),
 					},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDeletionTimeoutSeconds: new(int32(0)),
+					},
 				},
 			},
 		},
@@ -715,6 +718,9 @@ func newKubeadmControlplane(infraTemplate client.Object, files []bootstrapv1.Fil
 						APIGroup: infraTemplate.GetObjectKind().GroupVersionKind().Group,
 						Kind:     infraTemplate.GetObjectKind().GroupVersionKind().Kind,
 						Name:     infraTemplate.GetName(),
+					},
+					Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+						NodeDeletionTimeoutSeconds: new(int32(0)),
 					},
 				},
 			},
@@ -741,6 +747,9 @@ func newIgnitionKubeadmControlplane(infraTemplate infrav1.VSphereMachineTemplate
 						APIGroup: infraTemplate.GroupVersionKind().Group,
 						Kind:     infraTemplate.Kind,
 						Name:     infraTemplate.Name,
+					},
+					Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+						NodeDeletionTimeoutSeconds: new(int32(0)),
 					},
 				},
 			},

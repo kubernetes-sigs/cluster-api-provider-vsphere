@@ -92,52 +92,11 @@ func regexVar(str string) string {
 	return "((?m:\\" + str + "$))"
 }
 
-func isZeroValue(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
-		return v.Len() == 0 || v.IsZero()
-	case reflect.Struct:
-		return v.IsZero() || v.IsNil() || v.IsZero()
-	case reflect.Bool:
-		return !v.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return v.Uint() == 0 || v.IsNil()
-	case reflect.Float32, reflect.Float64:
-		return v.Float() == 0
-	case reflect.Interface, reflect.Pointer:
-		return v.IsNil() || v.IsZero()
-	}
-	return false
-}
-
-func deleteZeroValues(o map[string]interface{}) map[string]interface{} {
-	for k, v := range o {
-		val := reflect.ValueOf(v)
-		if v == nil || isZeroValue(val) || !val.IsValid() {
-			delete(o, k)
-			continue
-		}
-		if val.Kind() == reflect.Map {
-			newMap := v.(map[string]interface{})
-			newMap = deleteZeroValues(newMap)
-			if isZeroValue(reflect.ValueOf(newMap)) {
-				delete(o, k)
-			}
-			continue
-		}
-	}
-	return o
-}
-
 func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 	data, err := toUnstructured(obj, obj.GetObjectKind().GroupVersionKind())
 	if err != nil {
 		panic(err)
 	}
-
-	data.Object = deleteZeroValues(data.Object)
 
 	for _, v := range replacements {
 		v := v

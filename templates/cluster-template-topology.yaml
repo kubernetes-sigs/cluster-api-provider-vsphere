@@ -173,6 +173,7 @@ data:
       name: csi.vsphere.vmware.com
     spec:
       attachRequired: true
+      podInfoOnMount: false
     ---
     apiVersion: v1
     kind: ServiceAccount
@@ -492,6 +493,7 @@ data:
           app: vsphere-csi-controller
       strategy:
         rollingUpdate:
+          maxSurge: 0
           maxUnavailable: 1
         type: RollingUpdate
       template:

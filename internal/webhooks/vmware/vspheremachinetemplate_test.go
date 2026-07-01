@@ -488,7 +488,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   int32(101),
+						ID:   ptr.To[int32](101),
 						Link: "eth1",
 					},
 				},
@@ -503,13 +503,41 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   int32(101),
+						ID:   ptr.To[int32](101),
 						Link: "eth0",
 					},
 				},
 			},
 			wantErr:    true,
 			wantErrMsg: "secondary interfaces is required when vlans is specified",
+		},
+		{
+			name:        "vlan ID is nil",
+			featureGate: true,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+									Name:       "secondary-subnet",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan-nic",
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "VLAN ID cannot be nil",
 		},
 		{
 			name:        "duplicate vlan names",
@@ -532,12 +560,12 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan-nic",
-						ID:   int32(101),
+						ID:   ptr.To[int32](101),
 						Link: "eth1",
 					},
 					{
 						Name: "vlan-nic",
-						ID:   int32(102),
+						ID:   ptr.To[int32](102),
 						Link: "eth1",
 					},
 				},
@@ -566,7 +594,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan-nic",
-						ID:   int32(101),
+						ID:   ptr.To[int32](101),
 						Link: "eth2",
 					},
 				},
@@ -595,12 +623,12 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan1",
-						ID:   int32(101),
+						ID:   ptr.To[int32](101),
 						Link: "eth1",
 					},
 					{
 						Name: "vlan2",
-						ID:   int32(101),
+						ID:   ptr.To[int32](101),
 						Link: "eth1",
 					},
 				},
@@ -636,7 +664,7 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vlan101",
-						ID:   int32(101),
+						ID:   ptr.To[int32](101),
 						Link: "eth1",
 					},
 				},

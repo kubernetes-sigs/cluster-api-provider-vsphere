@@ -215,18 +215,25 @@ func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Pa
 				"link must reference an existing secondary interface name"))
 		}
 
+		if vlan.ID == nil {
+			allErrs = append(allErrs, field.Required(
+				fldPath.Child("vlans").Index(i).Child("id"),
+				"VLAN ID cannot be nil"))
+			continue
+		}
+
 		if vlanIDsPerLink[vlan.Link] == nil {
 			vlanIDsPerLink[vlan.Link] = map[int32]string{}
 		}
-		if existingVlanName, exists := vlanIDsPerLink[vlan.Link][vlan.ID]; exists {
+		if existingVlanName, exists := vlanIDsPerLink[vlan.Link][*vlan.ID]; exists {
 			allErrs = append(allErrs, field.Invalid(
 				fldPath.Child("vlans").Index(i).Child("id"),
 				vlan.ID,
 				fmt.Sprintf("VLAN ID %d is already used by VLAN %q on the same link %q",
-					vlan.ID, existingVlanName, vlan.Link),
+					*vlan.ID, existingVlanName, vlan.Link),
 			))
 		} else {
-			vlanIDsPerLink[vlan.Link][vlan.ID] = vlan.Name
+			vlanIDsPerLink[vlan.Link][*vlan.ID] = vlan.Name
 		}
 	}
 	return allErrs

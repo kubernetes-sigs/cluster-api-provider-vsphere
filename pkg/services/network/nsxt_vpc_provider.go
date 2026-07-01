@@ -351,9 +351,13 @@ func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) er
 		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
 	}
 	for _, vlan := range machine.Spec.Network.VLANs {
+		var vlanID int64
+		if vlan.ID != nil {
+			vlanID = int64(*vlan.ID)
+		}
 		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
 			Name: vlan.Name,
-			ID:   int64(vlan.ID),
+			ID:   vlanID,
 			Link: vlan.Link,
 		})
 	}

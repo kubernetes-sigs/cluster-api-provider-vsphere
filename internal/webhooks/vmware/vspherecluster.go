@@ -34,6 +34,13 @@ import (
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-vmware-infrastructure-cluster-x-k8s-io-v1beta2-vspherecluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=vmware.infrastructure.cluster.x-k8s.io,resources=vsphereclusters,versions=v1beta2,name=validation.vspherecluster.vmware.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
+// validProviders is the set of known network provider values accepted on spec.network.provider.
+var validProviders = map[string]struct{}{
+	manager.VDSNetworkProvider:    {},
+	manager.NSXNetworkProvider:    {},
+	manager.NSXVPCNetworkProvider: {},
+}
+
 // VSphereCluster implements a validation and defaulting webhook for VSphereCluster.
 type VSphereCluster struct {
 	// NetworkProvider is the network provider used by Supervisor based clusters
@@ -74,10 +81,29 @@ func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereC
 			"createSubnetSet can only be set when MultiNetworks feature gate is enabled",
 		))
 	}
-	if cluster.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
+
+	// When the ClusterNetworkProvider gate is enabled, the provider to validate against is the
+	// cluster's own spec.network.provider; otherwise it is the static flag value.
+	provider := webhook.NetworkProvider
+	if feature.Gates.Enabled(feature.ClusterNetworkProvider) {
+		provider = cluster.Spec.Network.Provider
+
+		// Secondary guard for the enum (the CRD enum is primary): reject unknown non-empty values.
+		if provider != "" {
+			if _, ok := validProviders[provider]; !ok {
+				allErrs = append(allErrs, field.Invalid(
+					field.NewPath("spec", "network", "provider"),
+					provider,
+					"unknown network provider",
+				))
+			}
+		}
+	}
+
+	if cluster.Spec.Network.NSXVPC.IsDefined() && provider != manager.NSXVPCNetworkProvider {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("spec", "network", "nsxVPC"),
-			"nsxVPC can only be set when network provider is NSX-VPC",
+			"nsxVPC can only be set when network provider is vpc",
 		))
 	}
 

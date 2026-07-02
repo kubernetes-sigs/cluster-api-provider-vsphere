@@ -28,11 +28,11 @@ import (
 
 const (
 	// NSXVPCNetworkProvider identifies the nsx-vpc network provider.
-	NSXVPCNetworkProvider = "NSX-VPC"
+	NSXVPCNetworkProvider = "vpc"
 	// NSXNetworkProvider identifies the NSX network provider.
-	NSXNetworkProvider = "NSX"
+	NSXNetworkProvider = "nsx-tier1"
 	// VDSNetworkProvider identifies the VDS network provider.
-	VDSNetworkProvider = "vsphere-network"
+	VDSNetworkProvider = "vsphere-distributed"
 	// DummyLBNetworkProvider identifies the Dummy network provider.
 	DummyLBNetworkProvider = "DummyLBNetworkProvider"
 )

@@ -135,10 +135,21 @@ spec:
                     - message: createSubnetSet value cannot be changed after creation
                       rule: has(self.createSubnetSet) == has(oldSelf.createSubnetSet)
                         && self.createSubnetSet == oldSelf.createSubnetSet
+                  provider:
+                    description: |-
+                      provider is the network provider used by the cluster.
+                      The value is immutable once set.
+                    enum:
+                    - vsphere-distributed
+                    - nsx-tier1
+                    - vpc
+                    type: string
                 type: object
                 x-kubernetes-validations:
                 - message: field 'nsxVPC' cannot be added or removed after creation
                   rule: has(self.nsxVPC) == has(oldSelf.nsxVPC)
+                - message: provider is immutable once set
+                  rule: '!has(oldSelf.provider) || self.provider == oldSelf.provider'
             type: object
             x-kubernetes-validations:
             - message: field 'network' cannot be added or removed after creation
@@ -450,10 +461,21 @@ spec:
                     - message: createSubnetSet value cannot be changed after creation
                       rule: has(self.createSubnetSet) == has(oldSelf.createSubnetSet)
                         && self.createSubnetSet == oldSelf.createSubnetSet
+                  provider:
+                    description: |-
+                      provider is the network provider used by the cluster.
+                      The value is immutable once set.
+                    enum:
+                    - vsphere-distributed
+                    - nsx-tier1
+                    - vpc
+                    type: string
                 type: object
                 x-kubernetes-validations:
                 - message: field 'nsxVPC' cannot be added or removed after creation
                   rule: has(self.nsxVPC) == has(oldSelf.nsxVPC)
+                - message: provider is immutable once set
+                  rule: '!has(oldSelf.provider) || self.provider == oldSelf.provider'
             type: object
             x-kubernetes-validations:
             - message: field 'network' cannot be added or removed after creation

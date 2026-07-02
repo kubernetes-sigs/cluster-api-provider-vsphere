@@ -20,6 +20,7 @@ package vmware
 import (
 	"cmp"
 	"context"
+	stderrors "errors"
 	"fmt"
 	"slices"
 
@@ -50,6 +51,7 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	inframanager "sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -60,11 +62,11 @@ const (
 
 // ClusterReconciler reconciles VSphereClusters.
 type ClusterReconciler struct {
-	Client                client.Client
-	Recorder              record.EventRecorder
-	NetworkProvider       services.NetworkProvider
-	ControlPlaneService   services.ControlPlaneEndpointService
-	ResourcePolicyService services.ResourcePolicyService
+	Client                 client.Client
+	Recorder               record.EventRecorder
+	NetworkProviderFactory inframanager.NetworkProviderFactory
+	ControlPlaneService    services.ControlPlaneEndpointService
+	ResourcePolicyService  services.ResourcePolicyService
 }
 
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch;create;update;patch;delete
@@ -277,15 +279,35 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 		Reason: vmwarev1.VSphereClusterResourcePolicyReadyReason,
 	})
 
+	// Resolve the network provider for this cluster. When the ClusterNetworkProvider feature gate is
+	// enabled this is read from VSphereCluster.spec.network.provider; otherwise the static provider
+	// built from the --network-provider flag is returned.
+	np, err := r.NetworkProviderFactory.ForCluster(ctx, clusterCtx.VSphereCluster)
+	if err != nil {
+		if stderrors.Is(err, inframanager.ErrNetworkProviderEmpty) {
+			log.Info("Network Provider is empty, wait for a valid value")
+			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+				Type:    vmwarev1.VSphereClusterNetworkReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereClusterNetworkNotReadyReason,
+				Message: inframanager.ErrNetworkProviderEmpty.Error(),
+			})
+			return nil
+		}
+		return errors.Wrapf(err,
+			"failed to resolve network provider for VSphereCluster %s/%s",
+			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
+	}
+
 	// Configure the cluster for the cluster network
-	err = r.NetworkProvider.ProvisionClusterNetwork(ctx, clusterCtx)
+	err = np.ProvisionClusterNetwork(ctx, clusterCtx)
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to configure cluster network for VSphereCluster %s/%s",
 			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
 
-	if err := r.reconcileControlPlaneEndpoint(ctx, clusterCtx); err != nil {
+	if err := r.reconcileControlPlaneEndpoint(ctx, clusterCtx, np); err != nil {
 		return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", clusterCtx.VSphereCluster.Name)
 	}
 
@@ -300,7 +322,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	return nil
 }
 
-func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
+func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, clusterCtx *vmware.ClusterContext, np services.NetworkProvider) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if !clusterCtx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
@@ -317,7 +339,7 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 			Status: metav1.ConditionTrue,
 			Reason: vmwarev1.VSphereClusterLoadBalancerReadyReason,
 		})
-		if r.NetworkProvider.HasLoadBalancer() {
+		if np.HasLoadBalancer() {
 			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition)
 		}
 		return nil
@@ -335,14 +357,14 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 			Status: metav1.ConditionTrue,
 			Reason: vmwarev1.VSphereClusterLoadBalancerReadyReason,
 		})
-		if r.NetworkProvider.HasLoadBalancer() {
+		if np.HasLoadBalancer() {
 			deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition)
 		}
 		return nil
 	}
 
-	if r.NetworkProvider.HasLoadBalancer() {
-		if err := r.reconcileLoadBalancedEndpoint(ctx, clusterCtx); err != nil {
+	if np.HasLoadBalancer() {
+		if err := r.reconcileLoadBalancedEndpoint(ctx, clusterCtx, np); err != nil {
 			return errors.Wrapf(err,
 				"failed to reconcile loadbalanced endpoint for VSphereCluster %s/%s",
 				clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
@@ -360,11 +382,11 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 	return nil
 }
 
-func (r *ClusterReconciler) reconcileLoadBalancedEndpoint(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
+func (r *ClusterReconciler) reconcileLoadBalancedEndpoint(ctx context.Context, clusterCtx *vmware.ClusterContext, np services.NetworkProvider) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Will create a VirtualMachineService for a NetworkProvider that supports load balancing
-	cpEndpoint, err := r.ControlPlaneService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, r.NetworkProvider)
+	cpEndpoint, err := r.ControlPlaneService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, np)
 	if err != nil {
 		return err
 	}

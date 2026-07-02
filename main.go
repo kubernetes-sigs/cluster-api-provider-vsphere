@@ -668,10 +668,10 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 		return err
 	}
 
-	if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, false, concurrency(vSphereClusterConcurrency)); err != nil {
+	if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, false, concurrency(vSphereClusterConcurrency), nil); err != nil {
 		return err
 	}
-	if err := controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, false, concurrency(vSphereMachineConcurrency)); err != nil {
+	if err := controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, false, concurrency(vSphereMachineConcurrency), nil); err != nil {
 		return err
 	}
 	if err := controllers.AddVMControllerToManager(ctx, controllerCtx, mgr, clusterCache, concurrency(vSphereVMConcurrency)); err != nil {
@@ -685,10 +685,24 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 }
 
 func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, clusterCache clustercache.ClusterCache, secretCachingClient client.Client) error {
-	if err := (&vmwarewebhooks.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
+	// Build a single NetworkProviderFactory based on the ClusterNetworkProvider feature gate.
+	// When enabled, the provider is resolved per-cluster from VSphereCluster.spec.network.provider;
+	// otherwise the static provider built from the --network-provider flag is used.
+	var networkProviderFactory manager.NetworkProviderFactory
+	var err error
+	if feature.Gates.Enabled(feature.ClusterNetworkProvider) {
+		networkProviderFactory, err = manager.NewPerClusterNetworkProviderFactory(ctx, controllerCtx.Client)
+	} else {
+		networkProviderFactory, err = manager.NewStaticNetworkProviderFactory(ctx, controllerCtx.Client, controllerCtx.NetworkProvider)
+	}
+	if err != nil {
+		return perrors.Wrap(err, "failed to create a network provider factory")
+	}
+
+	if err := (&vmwarewebhooks.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr, mgr.GetClient(), controllerCtx.NetworkProvider); err != nil {
 		return err
 	}
-	if err := (&vmwarewebhooks.VSphereMachine{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
+	if err := (&vmwarewebhooks.VSphereMachine{}).SetupWebhookWithManager(mgr, mgr.GetClient(), controllerCtx.NetworkProvider); err != nil {
 		return err
 	}
 	if err := (&vmwarewebhooks.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
@@ -700,11 +714,11 @@ func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.
 	if err := (&vmwarewebhooks.ProviderServiceAccount{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
-	if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereClusterConcurrency)); err != nil {
+	if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereClusterConcurrency), networkProviderFactory); err != nil {
 		return err
 	}
 
-	if err := controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereMachineConcurrency)); err != nil {
+	if err := controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereMachineConcurrency), networkProviderFactory); err != nil {
 		return err
 	}
 

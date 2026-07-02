@@ -73,10 +73,15 @@ func (webhook *VSphereClusterTemplate) validateClusterTemplateNetwork(template *
 			"createSubnetSet can only be set when MultiNetworks feature gate is enabled",
 		))
 	}
-	if template.Spec.Template.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
+
+	// A VSphereClusterTemplate does not belong to any Cluster, so there is no spec.network.provider
+	// to resolve. When the ClusterNetworkProvider gate is enabled, skip the provider-based check and
+	// rely on per-cluster validation at VSphereCluster admission time instead.
+	if !feature.Gates.Enabled(feature.ClusterNetworkProvider) &&
+		template.Spec.Template.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("spec", "template", "spec", "network", "nsxVPC"),
-			"nsxVPC can only be set when network provider is NSX-VPC",
+			"nsxVPC can only be set when network provider is vpc",
 		))
 	}
 

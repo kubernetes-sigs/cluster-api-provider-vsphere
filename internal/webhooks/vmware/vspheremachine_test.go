@@ -179,7 +179,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "primary interface can not be set when network provider is vsphere-network",
+			wantErrMsg: "primary interface can not be set when network provider is vsphere-distributed",
 		},
 		{
 			name:            "secondary interface with wrong type for VDS provider",

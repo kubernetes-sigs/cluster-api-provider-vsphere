@@ -50,6 +50,13 @@ const (
 	// alpha: v1.15
 	NodeAutoPlacement featuregate.Feature = "NodeAutoPlacement"
 
+	// ClusterNetworkProvider is a feature gate for the per-cluster network provider functionality
+	// for supervisor. When enabled, the network provider is resolved per-cluster from
+	// VSphereCluster.spec.network.provider instead of the static --network-provider flag.
+	//
+	// alpha: v1.17
+	ClusterNetworkProvider featuregate.Feature = "ClusterNetworkProvider"
+
 	// InfrastructurePolicies is a feature gate for the Support for Supervisor infrastructure policies.
 	// When enabled, VSphereMachine.spec.policies are validated on admission and
 	// mapped to the underlying VirtualMachine spec.
@@ -88,9 +95,10 @@ var (
 	}
 
 	supervisorGates = map[featuregate.Feature]featuregate.FeatureSpec{
-		NamespaceScopedZones: {Default: false, PreRelease: featuregate.Alpha},
-		NodeAutoPlacement:    {Default: false, PreRelease: featuregate.Alpha},
-		MultiNetworks:        {Default: false, PreRelease: featuregate.Alpha},
+		NamespaceScopedZones:   {Default: false, PreRelease: featuregate.Alpha},
+		NodeAutoPlacement:      {Default: false, PreRelease: featuregate.Alpha},
+		ClusterNetworkProvider: {Default: false, PreRelease: featuregate.Alpha},
+		MultiNetworks:          {Default: false, PreRelease: featuregate.Alpha},
 	}
 
 	supervisorVersionedGates = map[featuregate.Feature]featuregate.VersionedSpecs{

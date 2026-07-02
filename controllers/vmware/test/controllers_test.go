@@ -264,21 +264,26 @@ func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) man
 	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
 
 	opts.AddToManager = func(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, true, controllerOpts); err != nil {
+		networkProviderFactory, err := manager.NewStaticNetworkProviderFactory(ctx, controllerCtx.Client, controllerCtx.NetworkProvider)
+		if err != nil {
+			return err
+		}
+
+		if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, true, controllerOpts, networkProviderFactory); err != nil {
 			return err
 		}
 
 		if withWebhooks {
-			if err := (&vmwarewebhooks.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			if err := (&vmwarewebhooks.VSphereMachineTemplate{Client: mgr.GetClient(), NetworkProvider: controllerCtx.NetworkProvider}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
-			if err := (&vmwarewebhooks.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+			if err := (&vmwarewebhooks.VSphereMachine{Client: mgr.GetClient(), NetworkProvider: controllerCtx.NetworkProvider}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
-			if err := (&vmwarewebhooks.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			if err := (&vmwarewebhooks.VSphereCluster{NetworkProvider: controllerCtx.NetworkProvider}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
-			if err := (&vmwarewebhooks.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			if err := (&vmwarewebhooks.VSphereClusterTemplate{NetworkProvider: controllerCtx.NetworkProvider}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
 			if err := (&vmwarewebhooks.ProviderServiceAccount{}).SetupWebhookWithManager(mgr); err != nil {
@@ -289,7 +294,7 @@ func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) man
 			return err
 		}
 
-		return controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, true, controllerOpts)
+		return controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, true, controllerOpts, networkProviderFactory)
 	}
 
 	mgr, err := manager.New(ctx, opts)

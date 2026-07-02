@@ -103,7 +103,18 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+			errMsg:          "nsxVPC can only be set when network provider is vpc",
+		},
+		{
+			name: "gate on: nsxVPC check is skipped for cluster templates",
+			template: createVSphereClusterTemplate("test-template", vmwarev1.Network{
+				NSXVPC: vmwarev1.NSXVPC{
+					CreateSubnetSet: ptr.To(true),
+				},
+			}, vmwarev1.FailureDomainsSpec{}),
+			networkProvider: manager.VDSNetworkProvider,
+			featureGates:    map[string]bool{"MultiNetworks": true, "ClusterNetworkProvider": true},
+			wantErr:         false,
 		},
 		{
 			name: "failed creation with nsxVPC when network provider is NSX",
@@ -116,7 +127,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			featureGates:    map[string]bool{"MultiNetworks": true},
 			wantErr:         true,
 			errType:         &apierrors.StatusError{},
-			errMsg:          "nsxVPC can only be set when network provider is NSX-VPC",
+			errMsg:          "nsxVPC can only be set when network provider is vpc",
 		},
 		{
 			name: "successful creation with valid control plane selector and feature gate enabled",

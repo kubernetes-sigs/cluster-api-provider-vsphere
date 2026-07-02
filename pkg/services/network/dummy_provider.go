@@ -37,6 +37,10 @@ func DummyNetworkProvider() services.NetworkProvider {
 	return &dummyNetworkProvider{}
 }
 
+func (np *dummyNetworkProvider) SupportsIPv6DualStack() bool {
+	return false
+}
+
 func (np *dummyNetworkProvider) HasLoadBalancer() bool {
 	return false
 }

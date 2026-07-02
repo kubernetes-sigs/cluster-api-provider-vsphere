@@ -55,6 +55,10 @@ func NsxtNetworkProvider(client client.Client, disableFW string) services.Networ
 	}
 }
 
+func (np *nsxtNetworkProvider) SupportsIPv6DualStack() bool {
+	return false
+}
+
 func (np *nsxtNetworkProvider) HasLoadBalancer() bool {
 	return true
 }

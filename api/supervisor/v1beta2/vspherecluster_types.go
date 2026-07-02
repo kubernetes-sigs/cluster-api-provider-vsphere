@@ -99,6 +99,10 @@ const (
 	// VSphereClusterLoadBalancerWaitingForIPReason surfaces when the LoadBalancer for a VSphereCluster is waiting for an IP to be assigned.
 	VSphereClusterLoadBalancerWaitingForIPReason = "WaitingForIP"
 
+	// VSphereClusterLoadBalancerWaitingForKubeadmControlPlaneSpecReadyReason surfaces when the LoadBalancer has IP(s) but CAPV is waiting for
+	// KubeadmControlPlane to have correct certSANs and observedGeneration == generation (avoids extra rollout for dual stack).
+	VSphereClusterLoadBalancerWaitingForKubeadmControlPlaneSpecReadyReason = "WaitingForKubeadmControlPlaneSpecReady"
+
 	// VSphereClusterLoadBalancerDeletingReason surfaces when the LoadBalancer for a VSphereCluster is being deleted.
 	VSphereClusterLoadBalancerDeletingReason = clusterv1.DeletingReason
 )

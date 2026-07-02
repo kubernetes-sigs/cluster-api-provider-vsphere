@@ -103,7 +103,7 @@ func TestNCPSupportFW(t *testing.T) {
 	}
 }
 
-func newNCPConfigMap(version string) client.Object {
+func newNCPConfigMap(version string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NCPVersionConfigMap,

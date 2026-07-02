@@ -367,6 +367,95 @@ spec:
             type: object
         type: object
     served: true
+    storage: false
+    subresources:
+      status: {}
+  - name: v1alpha6
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VirtualMachineWebConsoleRequest allows the creation of a one-time, web
+          console connection to a VM.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              VirtualMachineWebConsoleRequestSpec describes the desired state for a web
+              console request to a VM.
+            properties:
+              name:
+                description: |-
+                  Name is the name of a VM in the same Namespace as this web console
+                  request.
+                type: string
+              publicKey:
+                description: PublicKey is used to encrypt the status.response. This
+                  is expected to be a RSA OAEP public key in X.509 PEM format.
+                type: string
+            required:
+            - name
+            - publicKey
+            type: object
+          status:
+            description: |-
+              VirtualMachineWebConsoleRequestStatus describes the observed state of the
+              request.
+            properties:
+              expiryTime:
+                description: ExpiryTime is the time at which access via this request
+                  will expire.
+                format: date-time
+                type: string
+              proxyAddr:
+                description: |-
+                  ProxyAddr describes the host address and optional port used to access
+                  the VM's web console.
+
+                  The value could be a DNS entry, IPv4, or IPv6 address, followed by an
+                  optional port. For example, valid values include:
+
+                      DNS
+                          * host.com
+                          * host.com:6443
+
+                      IPv4
+                          * 1.2.3.4
+                          * 1.2.3.4:6443
+
+                      IPv6
+                          * 1234:1234:1234:1234:1234:1234:1234:1234
+                          * [1234:1234:1234:1234:1234:1234:1234:1234]:6443
+                          * 1234:1234:1234:0000:0000:0000:1234:1234
+                          * 1234:1234:1234::::1234:1234
+                          * [1234:1234:1234::::1234:1234]:6443
+
+                  In other words, the field may be set to any value that is parsable
+                  by Go's https://pkg.go.dev/net#ResolveIPAddr and
+                  https://pkg.go.dev/net#ParseIP functions.
+                type: string
+              response:
+                description: Response will be the authenticated ticket corresponding
+                  to this web console request.
+                type: string
+            type: object
+        type: object
+    served: true
     storage: true
     subresources:
       status: {}

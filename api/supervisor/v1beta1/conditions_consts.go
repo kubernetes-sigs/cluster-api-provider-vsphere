@@ -52,6 +52,9 @@ const (
 	// WaitingForLoadBalancerIPReason is used when waiting for load
 	// balancer IP to exist.
 	WaitingForLoadBalancerIPReason = "WaitingForLoadBalancerIP"
+	// WaitingForKubeadmControlPlaneSpecReadyReason is used when waiting for KubeadmControlPlane to have
+	// correct certSANs and observedGeneration equal to generation.
+	WaitingForKubeadmControlPlaneSpecReadyReason = "WaitingForKubeadmControlPlaneSpecReady"
 )
 
 // Conditions and condition Reasons for VSphereMachine.

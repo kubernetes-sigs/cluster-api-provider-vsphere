@@ -19,10 +19,12 @@ package controllers
 import (
 	"context"
 	"reflect"
+	"slices"
 
 	"github.com/pkg/errors"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	"k8s.io/klog/v2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -31,8 +33,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -94,6 +98,48 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 			)
 		}
 
+		// Conditionally add a Watch for KCP when the network provider supports IPv6 and dual-stack
+		if networkProvider.SupportsIPv6DualStack() {
+			builder = builder.Watches(
+				&controlplanev1.KubeadmControlPlane{},
+				handler.EnqueueRequestsFromMapFunc(reconciler.KubeadmControlPlaneToCluster),
+				predicate.Funcs{
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						oldKCP, okOld := e.ObjectOld.(*controlplanev1.KubeadmControlPlane)
+						newKCP, okNew := e.ObjectNew.(*controlplanev1.KubeadmControlPlane)
+						if !okOld || !okNew {
+							return false
+						}
+						if oldKCP.Status.ObservedGeneration != newKCP.Status.ObservedGeneration {
+							return true
+						}
+						// Check if any condition's observedGeneration changed to the new generation
+						for _, cond := range newKCP.Status.Conditions {
+							if cond.ObservedGeneration == newKCP.GetGeneration() {
+								found := false
+								for _, oldCond := range oldKCP.Status.Conditions {
+									if oldCond.Type == cond.Type && oldCond.ObservedGeneration == cond.ObservedGeneration {
+										found = true
+										break
+									}
+								}
+								if !found {
+									return true
+								}
+							}
+						}
+						return !slices.Equal(oldKCP.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.CertSANs,
+							newKCP.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.CertSANs)
+					},
+					CreateFunc: func(event.CreateEvent) bool {
+						return true
+					},
+					DeleteFunc: func(event.DeleteEvent) bool {
+						return false
+					},
+				},
+			)
+		}
 		return builder.Complete(ctx, reconciler)
 	}
 

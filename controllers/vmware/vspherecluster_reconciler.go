@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -77,6 +78,7 @@ type ClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;create;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
 
+// Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -287,6 +289,10 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 		return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", clusterCtx.VSphereCluster.Name)
 	}
 
+	if clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
+		return nil
+	}
+
 	if !ptr.Deref(clusterCtx.VSphereCluster.Status.Initialization.Provisioned, false) {
 		log.Info("VSphereCluster provisioning complete")
 	}
@@ -360,15 +366,11 @@ func (r *ClusterReconciler) reconcileLoadBalancedEndpoint(ctx context.Context, c
 	// Will create a VirtualMachineService for a NetworkProvider that supports load balancing
 	cpEndpoint, err := r.ControlPlaneService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, r.NetworkProvider)
 	if err != nil {
-		// Likely the endpoint is not ready. Keep retrying.
-		return errors.Wrapf(err,
-			"failed to get control plane endpoint for VSphereCluster %s/%s",
-			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
+		return err
 	}
 
 	if cpEndpoint == nil {
-		return fmt.Errorf("control plane endpoint not available for VSphereCluster %s/%s",
-			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
+		return nil
 	}
 
 	// If we've got here and we have a cpEndpoint, we're done.
@@ -642,4 +644,38 @@ func markControlPlaneFailureDomain(
 	// Backwards-compatible default
 	failureDomain.ControlPlane = ptr.To(true)
 	return nil
+}
+
+// KubeadmControlPlaneToCluster maps a KubeadmControlPlane change back to the owning VSphereCluster request.
+func (r *ClusterReconciler) KubeadmControlPlaneToCluster(ctx context.Context, o client.Object) []reconcile.Request {
+	kcp, ok := o.(*controlplanev1.KubeadmControlPlane)
+	if !ok {
+		return nil
+	}
+
+	// Fetch the Cluster name from the KCP object labels
+	clusterName := kcp.Labels[clusterv1.ClusterNameLabel]
+
+	if clusterName == "" {
+		return nil
+	}
+
+	// Retrieve the matching VSphereCluster infrastructure object (Supervisor)
+	cluster := &clusterv1.Cluster{}
+	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: kcp.Namespace, Name: clusterName}, cluster); err != nil {
+		return nil
+	}
+
+	if cluster.Spec.InfrastructureRef.Name == "" || cluster.Spec.InfrastructureRef.Kind != "VSphereCluster" {
+		return nil
+	}
+
+	return []reconcile.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: kcp.Namespace,
+				Name:      cluster.Spec.InfrastructureRef.Name,
+			},
+		},
+	}
 }

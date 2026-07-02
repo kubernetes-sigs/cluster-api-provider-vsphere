@@ -37,6 +37,7 @@ import (
 const (
 	testSupervisorAPIServerVIP         = "10.0.0.100"
 	testSupervisorAPIServerVIP2        = "10.0.0.200"
+	testSupervisorAPIServerIPv6VIP     = "fd00::100"
 	testSupervisorAPIServerVIPHostName = "vip.example.com"
 	testSupervisorAPIServerFIP         = "192.168.1.100"
 	testSupervisorAPIServerFIPHostName = "fip.example.com"
@@ -103,6 +104,16 @@ func assertHeadlessSvcWithFIPEndpoints(ctx context.Context, guestClient client.C
 	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(testSupervisorAPIServerPort)))
 }
 
+func assertHeadlessSvcWithDualStackEndpoints(ctx context.Context, guestClient client.Client, namespace, name string) {
+	assertHeadlessSvc(ctx, guestClient, namespace, name)
+	headlessEndpoints := &corev1.Endpoints{}
+	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)
+	Expect(headlessEndpoints.Subsets[0].Addresses).To(HaveLen(2))
+	Expect(headlessEndpoints.Subsets[0].Addresses[0].IP).To(Equal(testSupervisorAPIServerVIP))
+	Expect(headlessEndpoints.Subsets[0].Addresses[1].IP).To(Equal(testSupervisorAPIServerIPv6VIP))
+	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(supervisorAPIServerPort)))
+}
+
 func assertServiceDiscoveryCondition(vsphereCluster *vmwarev1.VSphereCluster, status metav1.ConditionStatus,
 	message string, reason string) {
 	c := conditions.Get(vsphereCluster, vmwarev1.VSphereClusterServiceDiscoveryReadyCondition)
@@ -149,6 +160,37 @@ func newTestSupervisorLBServiceWithHostnameStatus() *corev1.Service {
 			Ingress: []corev1.LoadBalancerIngress{
 				{
 					Hostname: testSupervisorAPIServerVIPHostName,
+				},
+			},
+		},
+	}
+	return svc
+}
+
+func newTestSupervisorLBServiceWithDualStackStatus() *corev1.Service {
+	svc := newTestSupervisorLBService()
+	svc.Status = corev1.ServiceStatus{
+		LoadBalancer: corev1.LoadBalancerStatus{
+			Ingress: []corev1.LoadBalancerIngress{
+				{
+					IP: testSupervisorAPIServerVIP,
+				},
+				{
+					IP: testSupervisorAPIServerIPv6VIP,
+				},
+			},
+		},
+	}
+	return svc
+}
+
+func newTestSupervisorLBServiceWithIPv6Status() *corev1.Service {
+	svc := newTestSupervisorLBService()
+	svc.Status = corev1.ServiceStatus{
+		LoadBalancer: corev1.LoadBalancerStatus{
+			Ingress: []corev1.LoadBalancerIngress{
+				{
+					IP: testSupervisorAPIServerIPv6VIP,
 				},
 			},
 		},

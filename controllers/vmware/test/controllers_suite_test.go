@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -69,6 +70,7 @@ func TestAPIs(t *testing.T) {
 
 func getTestEnv() (*envtest.Environment, *rest.Config) {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(controlplanev1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 
 	// Get the root of the current file to use in CRD paths.
@@ -81,6 +83,7 @@ func getTestEnv() (*envtest.Environment, *rest.Config) {
 			filepath.Join(root, "config", "supervisor", "crd", "bases"),
 			filepath.Join(root, "config", "deployments", "integration-tests", "crds"),
 			filepath.Join(clusterAPIDir, "config", "crd", "bases"),
+			filepath.Join(clusterAPIDir, "controlplane", "kubeadm", "config", "crd", "bases"),
 		},
 		ControlPlaneStopTimeout: 60 * time.Second,
 	}

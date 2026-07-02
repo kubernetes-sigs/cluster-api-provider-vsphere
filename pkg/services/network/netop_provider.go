@@ -45,6 +45,10 @@ func NetOpNetworkProvider(client client.Client) services.NetworkProvider {
 	}
 }
 
+func (np *netopNetworkProvider) SupportsIPv6DualStack() bool {
+	return false
+}
+
 // HasLoadBalancer is always true for the NetOp Network Provider.
 func (np *netopNetworkProvider) HasLoadBalancer() bool {
 	return true
@@ -145,7 +149,7 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clu
 	})
 
 	// Set the VM secondary interfaces
-	setVMSecondaryInterfaces(machine, vm)
+	setVMSecondaryInterfaces(machine, vm, nil)
 
 	return nil
 }

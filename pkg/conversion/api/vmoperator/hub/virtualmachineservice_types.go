@@ -17,6 +17,7 @@ limitations under the License.
 package hub
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	conversionmeta "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta"
@@ -110,6 +111,40 @@ type VirtualMachineServiceSpec struct {
 	// Selector, that is used to match this VirtualMachineService with the set
 	// of VirtualMachines that should back this VirtualMachineService.
 	Selector map[string]string `json:"selector,omitempty"`
+
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=2
+	// +optional
+
+	// IPFamilies is a list of IP families (e.g. IPv4, IPv6) assigned to this
+	// VirtualMachineService. Together with ipFamilyPolicy, it guides how the controller
+	// configures the Kubernetes Service. Cluster-level constraints (for example requesting IPv6
+	// when no IPv6 Service range exists) usually surface as errors reconciling the child Service,
+	// not as rejection of the VirtualMachineService object at create time.
+	// This field is conditionally mutable: it allows
+	// for adding or removing a secondary IP family, but it does not allow
+	// changing the primary IP family of the VirtualMachineService. Valid values are "IPv4"
+	// and "IPv6". This field applies to types ClusterIP (including headless) and LoadBalancer.
+	// This field will be wiped when updating a VirtualMachineService to type ExternalName.
+	//
+	// This field may hold a maximum of two entries (dual-stack families, in
+	// either order).  These families must correspond to the values of the
+	// clusterIPs field, if specified. Both clusterIPs and ipFamilies are
+	// governed by the ipFamilyPolicy field.
+	IPFamilies []corev1.IPFamily `json:"ipFamilies,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:Enum=SingleStack;PreferDualStack;RequireDualStack
+
+	// IPFamilyPolicy represents the dual-stack-ness requested or required by
+	// this VirtualMachineService. If there is no value provided, then this field will be set
+	// to SingleStack. VirtualMachineServices can be "SingleStack" (a single IP family),
+	// "PreferDualStack" (two IP families on dual-stack configured clusters or
+	// a single IP family on single-stack clusters), or "RequireDualStack"
+	// (two IP families on dual-stack configured clusters, otherwise fail). The
+	// ipFamilies and clusterIPs fields depend on the value of this field. This
+	// field will be wiped when updating a VirtualMachineService to type ExternalName.
+	IPFamilyPolicy *corev1.IPFamilyPolicy `json:"ipFamilyPolicy,omitempty"`
 }
 
 // VirtualMachineServiceStatus defines the observed state of

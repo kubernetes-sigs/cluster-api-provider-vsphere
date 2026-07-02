@@ -19,6 +19,7 @@ package feature
 
 import (
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	"k8s.io/component-base/featuregate"
 )
 
@@ -68,6 +69,12 @@ const (
 	//
 	// beta: v1.16
 	ReconcilerRateLimiting featuregate.Feature = "ReconcilerRateLimiting"
+
+	// IPv6DualStack enables IPv6 and dualstack support for clusters with NSX-VPC network provider.
+	// Requires vm-operator v1alpha6 or later on the supervisor.
+	//
+	// alpha: v1.17
+	IPv6DualStack featuregate.Feature = "IPv6DualStack"
 )
 
 var (
@@ -97,6 +104,9 @@ var (
 		// },
 		InfrastructurePolicies: {
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
+		IPv6DualStack: {
+			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 	}
 )

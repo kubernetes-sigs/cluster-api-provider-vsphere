@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/component-base/featuregate"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -39,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
@@ -377,6 +379,82 @@ var _ = Describe("Network provider", func() {
 				np = NSXTVpcNetworkProvider(client)
 			})
 
+			Context("ConfigureVirtualMachine with different IP families", func() {
+				var oldGates map[string]bool
+
+				BeforeEach(func() {
+					// Save old gates and enable dual stack for these tests
+					oldGates = make(map[string]bool)
+					oldGates[string(feature.IPv6DualStack)] = feature.Gates.Enabled(feature.IPv6DualStack)
+					Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=true")).To(Succeed())
+				})
+
+				AfterEach(func() {
+					// Restore gates
+					for k, v := range oldGates {
+						val := "false"
+						if v {
+							val = "true"
+						}
+						_ = feature.Gates.(featuregate.MutableFeatureGate).Set(k + "=" + val)
+					}
+				})
+
+				It("should set IPAMModes to IPv4 for IPv4 single-stack", func() {
+					clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.0.0.0/16"},
+						},
+					}
+					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
+				})
+
+				It("should set IPAMModes to IPv6 for IPv6 single-stack", func() {
+					clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"fd00::/32"},
+						},
+					}
+					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv6Protocol}))
+				})
+
+				It("should set IPAMModes to IPv4 and IPv6 for dual-stack", func() {
+					clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.0.0.0/16", "fd00::/32"},
+						},
+					}
+					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}))
+				})
+
+				It("should set IPAMModes to IPv4 only for dual-stack if feature gate is disabled", func() {
+					Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=false")).To(Succeed())
+
+					clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.0.0.0/16", "fd00::/32"},
+						},
+					}
+					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
+				})
+
+				It("should return error if cluster IP family cannot be determined", func() {
+					clusterCtx.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks = nil
+					clusterCtx.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks = nil
+					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("failed to determine cluster IP family"))
+				})
+			})
+
 			Context("ConfigureVirtualMachine without network.interfaces set in vSphereMachine spec", func() {
 				It("should add nsx-t-subnetset type network interface", func() {
 				})
@@ -397,6 +475,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(nsxvpcv1.SchemeGroupVersion.String()))
 					Expect(vm.Spec.Network.Interfaces[0].Gateway4).To(BeEmpty())
 					Expect(vm.Spec.Network.Interfaces[0].Gateway6).To(BeEmpty())
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
 				})
 			})
 
@@ -453,6 +532,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(nsxvpcv1.SchemeGroupVersion.String()))
 					Expect(vm.Spec.Network.Interfaces[0].Gateway4).To(BeEmpty())
 					Expect(vm.Spec.Network.Interfaces[0].Gateway6).To(BeEmpty())
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
 
 					// Verify first secondary interface
 					Expect(vm.Spec.Network.Interfaces[1].Name).To(Equal("eth1"))
@@ -465,6 +545,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[1].Network.Name).To(Equal("secondary-subnetset"))
 					Expect(vm.Spec.Network.Interfaces[1].Gateway4).To(Equal("None"))
 					Expect(vm.Spec.Network.Interfaces[1].Gateway6).To(Equal("None"))
+					Expect(vm.Spec.Network.Interfaces[1].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
 
 					// Verify second secondary interface
 					Expect(vm.Spec.Network.Interfaces[2].Name).To(Equal("eth2"))
@@ -475,6 +556,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[2].Network.Name).To(Equal("another-secondary-subnetset"))
 					Expect(vm.Spec.Network.Interfaces[2].Gateway4).To(Equal("None"))
 					Expect(vm.Spec.Network.Interfaces[2].Gateway6).To(Equal("None"))
+					Expect(vm.Spec.Network.Interfaces[2].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
 				})
 
 				It("should add primary and secondary network interfaces", func() {
@@ -970,6 +1052,8 @@ var _ = Describe("Network provider", func() {
 					Namespace: dummyNs,
 				}, createdSubnetSet)
 				Expect(err).ToNot(HaveOccurred())
+				// When the IPv6DualStack feature gate is not enabled, IPAddressType should not be set.
+				Expect(createdSubnetSet.Spec.IPAddressType).To(BeEmpty())
 			})
 		})
 
@@ -1179,5 +1263,148 @@ var _ = Describe("Network provider", func() {
 				Expect(hasLB).To(BeTrue())
 			})
 		})
+	})
+})
+
+var _ = Describe("NSXT VPC Provider DualStack", func() {
+	var (
+		ctx          context.Context
+		scheme       *runtime.Scheme
+		vp           *nsxtVPCNetworkProvider
+		clusterCtx   *vmware.ClusterContext
+		dummyNs      = "dummy-ns"
+		dummyCluster = "dummy-cluster"
+		oldGates     map[string]bool
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		scheme = runtime.NewScheme()
+		Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
+		Expect(nsxvpcv1.AddToScheme(scheme)).To(Succeed())
+		Expect(vmoprvhub.AddToScheme(scheme)).To(Succeed())
+
+		// Setup cluster context
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      dummyCluster,
+				Namespace: dummyNs,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: clusterv1.ClusterNetwork{
+					Pods: clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"10.0.0.0/16", "fd00::/64"},
+					},
+				},
+			},
+		}
+		vsphereCluster := &vmwarev1.VSphereCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      dummyCluster,
+				Namespace: dummyNs,
+			},
+		}
+		clusterCtx, _ = util.CreateClusterContext(cluster, vsphereCluster)
+
+		// Save old gates and enable dual stack
+		oldGates = make(map[string]bool)
+		oldGates[string(feature.IPv6DualStack)] = feature.Gates.Enabled(feature.IPv6DualStack)
+		Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=true")).To(Succeed())
+	})
+
+	AfterEach(func() {
+		// Restore gates
+		for k, v := range oldGates {
+			val := "false"
+			if v {
+				val = "true"
+			}
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set(k + "=" + val)).To(Succeed())
+		}
+	})
+
+	It("should set IPAddressType to IPv4IPv6 when dual stack is supported and cluster is dual stack", func() {
+		clusterCtx, ctrlCtx := util.CreateClusterContext(clusterCtx.Cluster, clusterCtx.VSphereCluster)
+		Expect(nsxvpcv1.AddToScheme(ctrlCtx.Scheme)).To(Succeed())
+
+		vp = &nsxtVPCNetworkProvider{client: ctrlCtx.Client}
+
+		// Use the mock object to bypass some ncp/status checks
+		mocknp := &MockNSXTVpcNetworkProvider{vp}
+		err := mocknp.ProvisionClusterNetwork(ctx, clusterCtx)
+		Expect(err).ToNot(HaveOccurred())
+
+		createdSubnetSet := &nsxvpcv1.SubnetSet{}
+		err = ctrlCtx.Client.Get(ctx, apitypes.NamespacedName{
+			Name:      dummyCluster,
+			Namespace: dummyNs,
+		}, createdSubnetSet)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(createdSubnetSet.Spec.IPAddressType).To(Equal(nsxvpcv1.IPAddressTypeIPv4IPv6))
+	})
+
+	It("should set IPAddressType to IPv4 when dual stack is supported and cluster is IPv4 only", func() {
+		clusterCtx.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks = []string{"10.0.0.0/16"}
+		clusterCtx, ctrlCtx := util.CreateClusterContext(clusterCtx.Cluster, clusterCtx.VSphereCluster)
+		Expect(nsxvpcv1.AddToScheme(ctrlCtx.Scheme)).To(Succeed())
+
+		vp = &nsxtVPCNetworkProvider{client: ctrlCtx.Client}
+
+		mocknp := &MockNSXTVpcNetworkProvider{vp}
+		err := mocknp.ProvisionClusterNetwork(ctx, clusterCtx)
+		Expect(err).ToNot(HaveOccurred())
+
+		createdSubnetSet := &nsxvpcv1.SubnetSet{}
+		err = ctrlCtx.Client.Get(ctx, apitypes.NamespacedName{
+			Name:      dummyCluster,
+			Namespace: dummyNs,
+		}, createdSubnetSet)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(createdSubnetSet.Spec.IPAddressType).To(Equal(nsxvpcv1.IPAddressTypeIPv4))
+	})
+
+	It("should set IPAddressType to IPv6 when dual stack is supported and cluster is IPv6 only", func() {
+		clusterCtx.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks = []string{"fd00::/64"}
+		clusterCtx, ctrlCtx := util.CreateClusterContext(clusterCtx.Cluster, clusterCtx.VSphereCluster)
+		Expect(nsxvpcv1.AddToScheme(ctrlCtx.Scheme)).To(Succeed())
+
+		vp = &nsxtVPCNetworkProvider{client: ctrlCtx.Client}
+
+		mocknp := &MockNSXTVpcNetworkProvider{vp}
+		err := mocknp.ProvisionClusterNetwork(ctx, clusterCtx)
+		Expect(err).ToNot(HaveOccurred())
+
+		createdSubnetSet := &nsxvpcv1.SubnetSet{}
+		err = ctrlCtx.Client.Get(ctx, apitypes.NamespacedName{
+			Name:      dummyCluster,
+			Namespace: dummyNs,
+		}, createdSubnetSet)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(createdSubnetSet.Spec.IPAddressType).To(Equal(nsxvpcv1.IPAddressTypeIPv6))
+	})
+
+	It("should not set IPAddressType when dual stack is not supported", func() {
+		Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=false")).To(Succeed())
+		clusterCtx, ctrlCtx := util.CreateClusterContext(clusterCtx.Cluster, clusterCtx.VSphereCluster)
+		Expect(nsxvpcv1.AddToScheme(ctrlCtx.Scheme)).To(Succeed())
+
+		vp = &nsxtVPCNetworkProvider{client: ctrlCtx.Client}
+
+		// Use the mock object to bypass some ncp/status checks
+		mocknp := &MockNSXTVpcNetworkProvider{vp}
+		err := mocknp.ProvisionClusterNetwork(ctx, clusterCtx)
+		Expect(err).ToNot(HaveOccurred())
+
+		createdSubnetSet := &nsxvpcv1.SubnetSet{}
+		err = ctrlCtx.Client.Get(ctx, apitypes.NamespacedName{
+			Name:      dummyCluster,
+			Namespace: dummyNs,
+		}, createdSubnetSet)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(createdSubnetSet.Spec.IPAddressType).To(BeEmpty())
 	})
 })

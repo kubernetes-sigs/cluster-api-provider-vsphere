@@ -38,9 +38,11 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
+	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // nsxtVPCNetworkProvider provisions nsx-vpc type cluster network.
@@ -53,6 +55,10 @@ func NSXTVpcNetworkProvider(client client.Client) services.NetworkProvider {
 	return &nsxtVPCNetworkProvider{
 		client: client,
 	}
+}
+
+func (vp *nsxtVPCNetworkProvider) SupportsIPv6DualStack() bool {
+	return feature.Gates.Enabled(feature.IPv6DualStack)
 }
 
 func (vp *nsxtVPCNetworkProvider) HasLoadBalancer() bool {
@@ -168,6 +174,24 @@ func (vp *nsxtVPCNetworkProvider) ProvisionClusterNetwork(ctx context.Context, c
 		Spec: nsxvpcv1.SubnetSetSpec{},
 	}
 
+	if vp.SupportsIPv6DualStack() {
+		ipFamily, err := infrautilv1.DetermineClusterIPFamily(clusterCtx.Cluster)
+		if err != nil {
+			return errors.Wrap(err, "failed to determine cluster IP family")
+		}
+
+		switch ipFamily {
+		case infrautilv1.IPv4SingleStack:
+			subnetset.Spec.IPAddressType = nsxvpcv1.IPAddressTypeIPv4
+		case infrautilv1.IPv6SingleStack:
+			subnetset.Spec.IPAddressType = nsxvpcv1.IPAddressTypeIPv6
+		case infrautilv1.DualStackIPv4Primary, infrautilv1.DualStackIPv6Primary:
+			subnetset.Spec.IPAddressType = nsxvpcv1.IPAddressTypeIPv4IPv6
+		default:
+			subnetset.Spec.IPAddressType = nsxvpcv1.IPAddressTypeIPv4
+		}
+	}
+
 	subnetSetExists := true
 	if err := vp.client.Get(ctx, client.ObjectKeyFromObject(subnetset), subnetset); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -230,6 +254,11 @@ func (vp *nsxtVPCNetworkProvider) GetVMServiceAnnotations(_ context.Context, _ *
 func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clusterCtx *vmware.ClusterContext, machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
 	vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
 
+	ipamModes, err := getIPAMModes(clusterCtx)
+	if err != nil {
+		return err
+	}
+
 	// Set the VM primary interface
 	if createSubnetSet(clusterCtx) {
 		if machine.Spec.Network.Interfaces.Primary.IsDefined() {
@@ -245,6 +274,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 				},
 				Name: networkName,
 			},
+			IPAMModes: ipamModes,
 		})
 	} else {
 		if !machine.Spec.Network.Interfaces.Primary.IsDefined() {
@@ -264,15 +294,39 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 				},
 				Name: primary.NetworkRef.Name,
 			},
-			MTU: mtu,
+			MTU:       mtu,
+			IPAMModes: ipamModes,
 		}
 		setRoutes(&vmInterface, primary.Routes)
 		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterface)
 	}
 
 	// Set the VM secondary interfaces
-	setVMSecondaryInterfaces(machine, vm)
+	setVMSecondaryInterfaces(machine, vm, ipamModes)
 	return nil
+}
+
+// getIPAMModes maps the ClusterIPFamily to the VM Operator's expected IPAMModes format.
+// For dual-stack configurations, it always returns [IPv4, IPv6] regardless of which is primary.
+// Note: This function is feature gated by IPv6DualStack.
+func getIPAMModes(clusterCtx *vmware.ClusterContext) ([]corev1.IPFamily, error) {
+	if !feature.Gates.Enabled(feature.IPv6DualStack) {
+		return []corev1.IPFamily{corev1.IPv4Protocol}, nil
+	}
+	ipFamily, err := infrautilv1.DetermineClusterIPFamily(clusterCtx.Cluster)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to determine cluster IP family")
+	}
+	switch ipFamily {
+	case infrautilv1.IPv4SingleStack:
+		return []corev1.IPFamily{corev1.IPv4Protocol}, nil
+	case infrautilv1.IPv6SingleStack:
+		return []corev1.IPFamily{corev1.IPv6Protocol}, nil
+	case infrautilv1.DualStackIPv4Primary, infrautilv1.DualStackIPv6Primary:
+		return []corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}, nil
+	default:
+		return []corev1.IPFamily{corev1.IPv4Protocol}, nil
+	}
 }
 
 func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes []vmwarev1.RouteSpec) {
@@ -284,7 +338,7 @@ func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes
 	}
 }
 
-func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {
+func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine, ipamModes []corev1.IPFamily) {
 	if len(machine.Spec.Network.Interfaces.Secondary) == 0 {
 		return
 	}
@@ -302,9 +356,10 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.Vi
 				},
 				Name: secondaryInterface.NetworkRef.Name,
 			},
-			MTU:      mtu,
-			Gateway4: "None",
-			Gateway6: "None",
+			MTU:       mtu,
+			Gateway4:  "None",
+			Gateway6:  "None",
+			IPAMModes: ipamModes,
 		}
 		setRoutes(&vmInterface, secondaryInterface.Routes)
 		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterface)

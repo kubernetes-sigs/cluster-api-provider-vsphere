@@ -284,6 +284,277 @@ spec:
             type: object
         type: object
     served: true
+    storage: false
+    subresources:
+      status: {}
+  - name: v1alpha6
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VirtualMachineGroupPublishRequest defines the information necessary to
+          publish the VirtualMachines in a VirtualMachineGroup as VirtualMachineImages
+          to an image registry.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              VirtualMachineGroupPublishRequestSpec defines the desired state of a
+              VirtualMachineGroupPublishRequest.
+
+              All the fields in this spec are optional. This is especially useful when a
+              DevOps persona wants to publish a VM Group without doing anything more than
+              applying a VirtualMachineGroupPublishRequest resource that has the same name
+              as said VMs in the same namespace as said VMs in VM Group.
+            properties:
+              source:
+                description: |-
+                  Source is the name of the VirtualMachineGroup to be published.
+
+                  If this value is omitted then the publication controller checks to
+                  see if there is a VirtualMachineGroup with the same name as this
+                  VirtualMachineGroupPublishRequest resource. If such a resource exists,
+                  then it is the source of the publication.
+                type: string
+              target:
+                description: |-
+                  Target is the name of the ContentLibrary resource to which the
+                  VirtualMachines from the VirtualMachineGroup should be published.
+
+                  When this value is omitted, the controller attempts to identify the
+                  target location by matching a ContentLibrary resource with the label
+                  "imageregistry.vmware.com/default".
+
+                  Please note that while optional, if a VirtualMachineGroupPublishRequest
+                  sans target information is applied to a namespace without a default
+                  publication target, then the VirtualMachineGroupPublishRequest resource
+                  will be marked in error.
+                type: string
+              ttlSecondsAfterFinished:
+                description: |-
+                  TTLSecondsAfterFinished is the time-to-live duration for how long this
+                  resource will be allowed to exist once the publication operation
+                  completes. After the TTL expires, the resource will be automatically
+                  deleted without the user having to take any direct action.
+                  This will be passed into each VirtualMachinePublishRequestSpec.
+
+                  If this field is unset then the request resource will not be
+                  automatically deleted. If this field is set to zero then the request
+                  resource is eligible for deletion immediately after it finishes.
+                format: int64
+                minimum: 0
+                type: integer
+              virtualMachines:
+                description: |-
+                  VirtualMachines is a list of the VirtualMachine objects from the source
+                  VirtualMachineGroup that are included in this publish request.
+
+                  If omitted, this field defaults to the names of all of the VMs currently
+                  a member of the group, either directly or indirectly via a nested group.
+                items:
+                  type: string
+                type: array
+            type: object
+          status:
+            description: |-
+              VirtualMachineGroupPublishRequestStatus defines the observed state of a
+              VirtualMachineGroupPublishRequest.
+            properties:
+              completionTime:
+                description: |-
+                  CompletionTime represents when the request was completed. It is not
+                  guaranteed to be set in happens-before order across separate operations.
+                  It is represented in RFC3339 form and is in UTC.
+
+                  The value of this field should be equal to the value of the
+                  LastTransitionTime for the status condition Type=Complete.
+                format: date-time
+                type: string
+              conditions:
+                description: |-
+                  Conditions is a list of the latest, available observations of the
+                  request's current state.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              images:
+                description: |-
+                  Images describes the observed status of the individual VirtualMachine
+                  publications.
+                items:
+                  properties:
+                    conditions:
+                      description: |-
+                        Conditions is a copy of the conditions from the
+                        VirtualMachinePublishRequest object created to publish the VM.
+                      items:
+                        description: Condition contains details for one aspect of
+                          the current state of this API Resource.
+                        properties:
+                          lastTransitionTime:
+                            description: |-
+                              lastTransitionTime is the last time the condition transitioned from one status to another.
+                              This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                            format: date-time
+                            type: string
+                          message:
+                            description: |-
+                              message is a human readable message indicating details about the transition.
+                              This may be an empty string.
+                            maxLength: 32768
+                            type: string
+                          observedGeneration:
+                            description: |-
+                              observedGeneration represents the .metadata.generation that the condition was set based upon.
+                              For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                              with respect to the current state of the instance.
+                            format: int64
+                            minimum: 0
+                            type: integer
+                          reason:
+                            description: |-
+                              reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                              Producers of specific condition types may define expected values and meanings for this field,
+                              and whether the values are considered a guaranteed API.
+                              The value should be a CamelCase string.
+                              This field may not be empty.
+                            maxLength: 1024
+                            minLength: 1
+                            pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                            type: string
+                          status:
+                            description: status of the condition, one of True, False,
+                              Unknown.
+                            enum:
+                            - "True"
+                            - "False"
+                            - Unknown
+                            type: string
+                          type:
+                            description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                            maxLength: 316
+                            pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                            type: string
+                        required:
+                        - lastTransitionTime
+                        - message
+                        - reason
+                        - status
+                        - type
+                        type: object
+                      type: array
+                    imageName:
+                      description: |-
+                        ImageName is the name of the VirtualMachineImage resource that is
+                        eventually realized after the publication operation completes.
+
+                        This field will not be set until the VirtualMachineImage resource
+                        is realized.
+                      type: string
+                    publishRequestName:
+                      description: |-
+                        PublishRequestName is the name of the VirtualMachinePublishRequest object
+                        created to publish the VM.
+                      type: string
+                    source:
+                      description: Source is the name of the published VirtualMachine.
+                      type: string
+                  required:
+                  - publishRequestName
+                  - source
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - source
+                x-kubernetes-list-type: map
+              source:
+                description: Source is the name of the published VirtualMachineGroup.
+                type: string
+              startTime:
+                description: |-
+                  StartTime represents when the request was acknowledged by the
+                  controller. It is not guaranteed to be set in happens-before order
+                  across separate operations. It is represented in RFC3339 form and is
+                  in UTC.
+
+                  Please note that the group will not be published until the group's Ready
+                  condition is true.
+                format: date-time
+                type: string
+              target:
+                description: Target is the name of the ContentLibrary to which the
+                  group is published.
+                type: string
+            type: object
+        type: object
+    served: true
     storage: true
     subresources:
       status: {}

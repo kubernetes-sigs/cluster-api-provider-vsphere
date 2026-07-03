@@ -302,7 +302,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 	}
 
 	// Set the VM secondary interfaces
-	setVMSecondaryInterfaces(machine, vm)
+	setVMSecondaryInterfaces(machine, vm, ipamModes)
 
 	// Set the VM VLAN sub-interfaces
 	return setVLANs(machine, vm)
@@ -340,31 +340,7 @@ func setRoutes(vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec, routes
 	}
 }
 
-func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
-	if len(machine.Spec.Network.VLANs) == 0 {
-		return nil
-	}
-	if !feature.Gates.Enabled(feature.VLANSubinterface) {
-		return errors.New("feature gate VLANSubinterface is not enabled")
-	}
-	if vm.Spec.Network == nil {
-		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
-	}
-	for _, vlan := range machine.Spec.Network.VLANs {
-		var vlanID int64
-		if vlan.ID != nil {
-			vlanID = int64(*vlan.ID)
-		}
-		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
-			Name: vlan.Name,
-			ID:   vlanID,
-			Link: vlan.Link,
-		})
-	}
-	return nil
-}
-
-func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) {
+func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine, ipamModes []corev1.IPFamily) {
 	if len(machine.Spec.Network.Interfaces.Secondary) == 0 {
 		return
 	}
@@ -390,4 +366,28 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.Vi
 		setRoutes(&vmInterface, secondaryInterface.Routes)
 		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterface)
 	}
+}
+
+func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
+	if len(machine.Spec.Network.VLANs) == 0 {
+		return nil
+	}
+	if !feature.Gates.Enabled(feature.VLANSubinterface) {
+		return errors.New("feature gate VLANSubinterface is not enabled")
+	}
+	if vm.Spec.Network == nil {
+		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	}
+	for _, vlan := range machine.Spec.Network.VLANs {
+		var vlanID int64
+		if vlan.ID != nil {
+			vlanID = int64(*vlan.ID)
+		}
+		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
+			Name: vlan.Name,
+			ID:   vlanID,
+			Link: vlan.Link,
+		})
+	}
+	return nil
 }

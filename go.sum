@@ -213,8 +213,8 @@ github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260603231928-46d6f2c00
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260603231928-46d6f2c0092e/go.mod h1:vyehM6sDYoSoIuNg2rjzH+yxQmcjipS6YtKNHevymXk=
 github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20260603231928-46d6f2c0092e h1:hwJ4TtspdObYxq6KX9uqa07DxtkYBf/hN+zvZ+vZOFI=
 github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20260603231928-46d6f2c0092e/go.mod h1:326qBqmaI6wKTloAzAtrTvTQGAzQsX9/d4UYcalkGr4=
-github.com/vmware/govmomi v0.55.0 h1:b02z/onIxqdpV8gKw11OYrrGdCnSA9WoBc70Fbr+HBg=
-github.com/vmware/govmomi v0.55.0/go.mod h1:QR6UoTHdmvT5XvdomNKwyi7VPOnrE0QZxjPBJ0mWWQs=
+github.com/vmware/govmomi v0.55.1 h1:7FW6VXIdKe/7AXftBoFTHaf0UO8Kdl84tIjothNDlZI=
+github.com/vmware/govmomi v0.55.1/go.mod h1:QR6UoTHdmvT5XvdomNKwyi7VPOnrE0QZxjPBJ0mWWQs=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=

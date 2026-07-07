@@ -167,19 +167,26 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 	}
 
 	if len(network.VLANs) > 0 {
-		allErrs = append(allErrs, validateVLANs(network, fldPath)...)
+		allErrs = append(allErrs, validateVLANs(networkProvider, network, fldPath)...)
 	}
 
 	return allErrs
 }
 
-func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Path) field.ErrorList {
+func validateVLANs(networkProvider string, network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if !feature.Gates.Enabled(feature.VLANSubinterface) {
 		allErrs = append(allErrs, field.Forbidden(
 			fldPath.Child("vlans"),
 			"vlans can only be set when feature gate VLANSubinterface is enabled"))
+		return allErrs
+	}
+	// secondary nics only support NSX-VPC and VDS network providers
+	if networkProvider != manager.NSXVPCNetworkProvider && networkProvider != manager.VDSNetworkProvider {
+		allErrs = append(allErrs, field.Forbidden(
+			fldPath.Child("vlans"),
+			fmt.Sprintf("vlans can not be set when network provider is %s", networkProvider)))
 		return allErrs
 	}
 	// vlan sub-interfaces only can link to a secondary interface
@@ -205,6 +212,16 @@ func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Pa
 				fldPath.Child("vlans").Index(i).Child("name"),
 				vlan.Name,
 				"VLAN name must be unique"))
+		} else if vlan.Name == pkgnetwork.PrimaryInterfaceName {
+			allErrs = append(allErrs, field.Invalid(
+				fldPath.Child("vlans").Index(i).Child("name"),
+				vlan.Name,
+				"VLAN name is already in use by the primary interface"))
+		} else if _, ok := secondaryNames[vlan.Name]; ok {
+			allErrs = append(allErrs, field.Invalid(
+				fldPath.Child("vlans").Index(i).Child("name"),
+				vlan.Name,
+				"VLAN name is already in use by a secondary interface"))
 		} else {
 			vlanNames[vlan.Name] = struct{}{}
 		}

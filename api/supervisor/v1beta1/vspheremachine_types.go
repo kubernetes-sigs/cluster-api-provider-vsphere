@@ -148,6 +148,7 @@ type VSphereMachineNetworkSpec struct {
 	// network interfaces. Each VLAN is linked to a specific secondary interface
 	// via the link field.
 	//
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +listType=atomic
 	// +optional
@@ -400,9 +401,9 @@ type VLANSpec struct {
 	// hyphens, underscores, or dots.
 	//
 	// +required
-	// +kubebuilder:validation:MinLength=2
-	// +kubebuilder:validation:MaxLength=16
-	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9][a-zA-Z0-9._-]{1,15}$"
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
 	Name string `json:"name,omitempty"`
 
 	// id is the VLAN ID used to tag traffic on this sub-interface,

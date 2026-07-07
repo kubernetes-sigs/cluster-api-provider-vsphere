@@ -185,8 +185,8 @@ func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Pa
 	// vlan sub-interfaces only can link to a secondary interface
 	if !network.Interfaces.IsDefined() || len(network.Interfaces.Secondary) == 0 {
 		allErrs = append(allErrs, field.Required(
-			fldPath.Child("interfaces", "secondary"),
-			"secondary interfaces is required when vlans is specified"))
+			fldPath.Child("vlans"),
+			"vlans can only be specified if there are corresponding secondary interfaces"))
 		return allErrs
 	}
 	// secondaryNames records all the secondary interface names, for checking vlan Link refers to an existing secondary interface name
@@ -218,7 +218,7 @@ func validateVLANs(network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Pa
 		if vlan.ID == nil {
 			allErrs = append(allErrs, field.Required(
 				fldPath.Child("vlans").Index(i).Child("id"),
-				"VLAN ID cannot be nil"))
+				"VLAN ID cannot be unset"))
 			continue
 		}
 

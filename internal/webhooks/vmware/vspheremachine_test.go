@@ -476,7 +476,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "secondary interfaces is required when vlans is specified",
+			wantErrMsg: "vlans can only be specified if there are corresponding secondary interfaces",
 		},
 		{
 			name:        "vlan ID is nil",
@@ -504,7 +504,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "VLAN ID cannot be nil",
+			wantErrMsg: "VLAN ID cannot be unset",
 		},
 		{
 			name:        "duplicate vlan names",

@@ -182,11 +182,11 @@ func validateVLANs(networkProvider string, network vmwarev1.VSphereMachineNetwor
 			"vlans can only be set when feature gate VLANSubinterface is enabled"))
 		return allErrs
 	}
-	// secondary nics only support NSX-VPC and VDS network providers
-	if networkProvider != manager.NSXVPCNetworkProvider && networkProvider != manager.VDSNetworkProvider {
+	// vlan sub-interfaces feature only supports NSX-VPC Provider
+	if networkProvider != manager.NSXVPCNetworkProvider {
 		allErrs = append(allErrs, field.Forbidden(
 			fldPath.Child("vlans"),
-			fmt.Sprintf("vlans can not be set when network provider is %s", networkProvider)))
+			fmt.Sprintf("vlans can only be set when network provider is %s", manager.NSXVPCNetworkProvider)))
 		return allErrs
 	}
 	// vlan sub-interfaces only can link to a secondary interface

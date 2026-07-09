@@ -649,7 +649,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 		{
 			name:            "vlans set with unsupported network provider",
 			featureGate:     true,
-			networkProvider: manager.NSXNetworkProvider,
+			networkProvider: manager.VDSNetworkProvider,
 			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
 					Secondary: []vmwarev1.SecondaryInterfaceSpec{
@@ -674,7 +674,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "vlans can not be set when network provider is NSX",
+			wantErrMsg: "vlans can only be set when network provider is NSX-VPC",
 		},
 		{
 			name:            "vlans name duplicate with primary interface name",

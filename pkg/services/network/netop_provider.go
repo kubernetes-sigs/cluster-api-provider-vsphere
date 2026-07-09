@@ -151,8 +151,7 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clu
 	// Set the VM secondary interfaces
 	setVMSecondaryInterfaces(machine, vm, nil)
 
-	// Set the VM VLAN sub-interfaces
-	return setVLANs(machine, vm)
+	return nil
 }
 
 func (np *netopNetworkProvider) VerifyNetworkStatus(_ context.Context, _ *vmware.ClusterContext, obj runtime.Object) error {

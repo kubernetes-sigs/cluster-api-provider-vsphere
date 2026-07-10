@@ -433,7 +433,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}))
 				})
 
-				It("should set IPAMModes to IPv4 only for dual-stack if feature gate is disabled", func() {
+				It("should set IPAMModes to nil if feature gate is disabled", func() {
 					Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=false")).To(Succeed())
 
 					clusterCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{
@@ -443,7 +443,7 @@ var _ = Describe("Network provider", func() {
 					}
 					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(BeNil())
 				})
 
 				It("should return error if cluster IP family cannot be determined", func() {
@@ -475,7 +475,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(nsxvpcv1.SchemeGroupVersion.String()))
 					Expect(vm.Spec.Network.Interfaces[0].Gateway4).To(BeEmpty())
 					Expect(vm.Spec.Network.Interfaces[0].Gateway6).To(BeEmpty())
-					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(BeNil())
 				})
 			})
 
@@ -532,7 +532,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(nsxvpcv1.SchemeGroupVersion.String()))
 					Expect(vm.Spec.Network.Interfaces[0].Gateway4).To(BeEmpty())
 					Expect(vm.Spec.Network.Interfaces[0].Gateway6).To(BeEmpty())
-					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
+					Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(BeNil())
 
 					// Verify first secondary interface
 					Expect(vm.Spec.Network.Interfaces[1].Name).To(Equal("eth1"))
@@ -545,7 +545,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[1].Network.Name).To(Equal("secondary-subnetset"))
 					Expect(vm.Spec.Network.Interfaces[1].Gateway4).To(Equal("None"))
 					Expect(vm.Spec.Network.Interfaces[1].Gateway6).To(Equal("None"))
-					Expect(vm.Spec.Network.Interfaces[1].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
+					Expect(vm.Spec.Network.Interfaces[1].IPAMModes).To(BeNil())
 
 					// Verify second secondary interface
 					Expect(vm.Spec.Network.Interfaces[2].Name).To(Equal("eth2"))
@@ -556,7 +556,7 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces[2].Network.Name).To(Equal("another-secondary-subnetset"))
 					Expect(vm.Spec.Network.Interfaces[2].Gateway4).To(Equal("None"))
 					Expect(vm.Spec.Network.Interfaces[2].Gateway6).To(Equal("None"))
-					Expect(vm.Spec.Network.Interfaces[2].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol}))
+					Expect(vm.Spec.Network.Interfaces[2].IPAMModes).To(BeNil())
 				})
 
 				It("should add primary and secondary network interfaces", func() {

@@ -311,7 +311,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 // Note: This function is feature gated by IPv6DualStack.
 func getIPAMModes(clusterCtx *vmware.ClusterContext) ([]corev1.IPFamily, error) {
 	if !feature.Gates.Enabled(feature.IPv6DualStack) {
-		return []corev1.IPFamily{corev1.IPv4Protocol}, nil
+		return nil, nil
 	}
 	ipFamily, err := infrautilv1.DetermineClusterIPFamily(clusterCtx.Cluster)
 	if err != nil {

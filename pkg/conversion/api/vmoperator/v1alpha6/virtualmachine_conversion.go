@@ -154,6 +154,16 @@ func convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
 			}
 		}
+		if src.Spec.Network.VLANs != nil {
+			dst.Spec.Network.VLANs = make([]vmoprvhub.VirtualMachineNetworkVLANSpec, len(src.Spec.Network.VLANs))
+			for i, vlan := range src.Spec.Network.VLANs {
+				dst.Spec.Network.VLANs[i] = vmoprvhub.VirtualMachineNetworkVLANSpec{
+					Name: vlan.Name,
+					ID:   vlan.ID,
+					Link: vlan.Link,
+				}
+			}
+		}
 	}
 	if src.Spec.Policies != nil {
 		dst.Spec.Policies = make([]vmoprvhub.PolicySpec, len(src.Spec.Policies))
@@ -438,6 +448,16 @@ func convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(_ context.Context, sr
 				}
 				d.VNUMANodeID = iface.VNUMANodeID
 				dst.Spec.Network.Interfaces = append(dst.Spec.Network.Interfaces, d)
+			}
+		}
+		if src.Spec.Network.VLANs != nil {
+			dst.Spec.Network.VLANs = make([]vmoprv1alpha6.VirtualMachineNetworkVLANSpec, len(src.Spec.Network.VLANs))
+			for i, vlan := range src.Spec.Network.VLANs {
+				dst.Spec.Network.VLANs[i] = vmoprv1alpha6.VirtualMachineNetworkVLANSpec{
+					Name: vlan.Name,
+					ID:   vlan.ID,
+					Link: vlan.Link,
+				}
 			}
 		}
 	}

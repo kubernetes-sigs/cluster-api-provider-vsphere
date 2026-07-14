@@ -246,6 +246,30 @@ type VirtualMachineNetworkInterfaceSpec struct {
 	IPAMModes []corev1.IPFamily `json:"ipamModes,omitempty"`
 }
 
+// VirtualMachineNetworkVLANSpec describes a VLAN sub-interface configuration.
+type VirtualMachineNetworkVLANSpec struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+
+	// Name is the name of this VLAN interface.
+	Name string `json:"name"`
+
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4094
+
+	// ID is the VLAN ID, a number between 0 and 4094.
+	ID int64 `json:"id"`
+
+	// +kubebuilder:validation:Required
+
+	// Link is the name of the parent interface on which this VLAN is created.
+	// This must reference an interface name from the Interfaces list.
+	Link string `json:"link"`
+}
+
 // VirtualMachineNetworkSpec defines a VM's desired network configuration.
 type VirtualMachineNetworkSpec struct {
 	// +optional
@@ -261,6 +285,14 @@ type VirtualMachineNetworkSpec struct {
 	// The maximum number of network interface allowed is 10 because a vSphere
 	// virtual machine may not have more than 10 virtual ethernet card devices.
 	Interfaces []VirtualMachineNetworkInterfaceSpec `json:"interfaces,omitempty"`
+
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+
+	// VLANs is a list of VLAN interfaces to be configured on top of the
+	// physical network interfaces.
+	VLANs []VirtualMachineNetworkVLANSpec `json:"vlans,omitempty"`
 }
 
 // VirtualMachineNetworkDNSStatus describes the observed state of the guest's

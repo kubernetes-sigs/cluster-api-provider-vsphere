@@ -75,6 +75,11 @@ const (
 	//
 	// alpha: v1.17
 	IPv6DualStack featuregate.Feature = "IPv6DualStack"
+
+	// VLANSubinterface is a feature gate for the VLAN sub-interface functionality for supervisor.
+	//
+	// alpha: v1.17
+	VLANSubinterface featuregate.Feature = "VLANSubinterface"
 )
 
 var (
@@ -106,6 +111,9 @@ var (
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 		IPv6DualStack: {
+			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
+		VLANSubinterface: {
 			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 	}

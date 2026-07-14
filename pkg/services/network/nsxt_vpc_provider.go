@@ -303,7 +303,9 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 
 	// Set the VM secondary interfaces
 	setVMSecondaryInterfaces(machine, vm, ipamModes)
-	return nil
+
+	// Set the VM VLAN sub-interfaces
+	return setVLANs(machine, vm)
 }
 
 // getIPAMModes maps the ClusterIPFamily to the VM Operator's expected IPAMModes format.
@@ -364,4 +366,24 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.Vi
 		setRoutes(&vmInterface, secondaryInterface.Routes)
 		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterface)
 	}
+}
+
+func setVLANs(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
+	if len(machine.Spec.Network.VLANs) == 0 {
+		return nil
+	}
+	if !feature.Gates.Enabled(feature.VLANSubinterface) {
+		return errors.New("invalid configuration: VLANs cannot be used as feature gate VLANSubinterface is not enabled")
+	}
+	if vm.Spec.Network == nil {
+		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	}
+	for _, vlan := range machine.Spec.Network.VLANs {
+		vm.Spec.Network.VLANs = append(vm.Spec.Network.VLANs, vmoprvhub.VirtualMachineNetworkVLANSpec{
+			Name: vlan.Name,
+			ID:   int64(ptr.Deref(vlan.ID, 0)),
+			Link: vlan.Link,
+		})
+	}
+	return nil
 }

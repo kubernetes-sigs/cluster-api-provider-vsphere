@@ -660,6 +660,62 @@ var _ = Describe("Network provider", func() {
 					Expect(vm.Spec.Network.Interfaces).To(HaveLen(2))
 				})
 			})
+
+			Context("ConfigureVirtualMachine with VLANs set in vSphereMachine spec", func() {
+				var oldGates map[string]bool
+
+				BeforeEach(func() {
+					oldGates = make(map[string]bool)
+					oldGates[string(feature.VLANSubinterface)] = feature.Gates.Enabled(feature.VLANSubinterface)
+
+					machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+						VLANs: []vmwarev1.VLANSpec{
+							{
+								Name: "vl100",
+								ID:   ptr.To(int32(100)),
+								Link: "eth1",
+							},
+							{
+								Name: "vl200",
+								ID:   ptr.To(int32(200)),
+								Link: "eth2",
+							},
+						},
+					}
+				})
+
+				AfterEach(func() {
+					// Restore gates
+					for k, v := range oldGates {
+						val := "false"
+						if v {
+							val = "true"
+						}
+						_ = feature.Gates.(featuregate.MutableFeatureGate).Set(k + "=" + val)
+					}
+				})
+
+				It("should return error if feature gate VLANSubinterface is disabled", func() {
+					Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("VLANSubinterface=false")).To(Succeed())
+					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("VLANs cannot be used as feature gate VLANSubinterface is not enabled"))
+				})
+
+				It("should configure VLANs if feature gate VLANSubinterface is enabled", func() {
+					Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("VLANSubinterface=true")).To(Succeed())
+					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(vm.Spec.Network).ToNot(BeNil())
+					Expect(vm.Spec.Network.VLANs).To(HaveLen(2))
+					Expect(vm.Spec.Network.VLANs[0].Name).To(Equal("vl100"))
+					Expect(vm.Spec.Network.VLANs[0].ID).To(Equal(int64(100)))
+					Expect(vm.Spec.Network.VLANs[0].Link).To(Equal("eth1"))
+					Expect(vm.Spec.Network.VLANs[1].Name).To(Equal("vl200"))
+					Expect(vm.Spec.Network.VLANs[1].ID).To(Equal(int64(200)))
+					Expect(vm.Spec.Network.VLANs[1].Link).To(Equal("eth2"))
+				})
+			})
 		})
 	})
 

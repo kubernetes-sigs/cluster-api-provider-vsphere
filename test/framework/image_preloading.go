@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/httpstream" //nolint:staticcheck // Let's migrate this to the new package after we did the same in core Cluster API.
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/remotecommand"
@@ -121,37 +123,40 @@ func (eh *loadImagesEventHandler) loadImagesViaPod(ctx context.Context, clusterP
 		return
 	}
 
-	Byf("Loading images to Node %s via Pod %s", pod.Spec.NodeName, klog.KObj(pod))
+	_ = wait.PollUntilContextCancel(ctx, 15*time.Second, true, func(ctx context.Context) (bool, error) {
+		Byf("Loading images to Node %s via Pod %s", pod.Spec.NodeName, klog.KObj(pod))
 
-	// Open source tar file.
-	reader, writer := io.Pipe()
-	file, err := os.Open(filepath.Clean(sourceFile))
-	if err != nil {
-		Byf("Failed loading images to Node %s via Pod %s: failed to load source file %s: %v", pod.Spec.NodeName, klog.KObj(pod), sourceFile, err)
-		return
-	}
-
-	// Use go routine to pipe source file content into then stdin.
-	go func(file *os.File, writer io.WriteCloser) {
-		defer writer.Close()
-		defer file.Close()
-		// Ignoring the error here because the execPod command should fail in case of
-		// failure copying over the data.
-		_, err := io.Copy(writer, file)
+		// Open source tar file.
+		reader, writer := io.Pipe()
+		file, err := os.Open(filepath.Clean(sourceFile))
 		if err != nil {
-			fmt.Fprintf(GinkgoWriter, "Failed to copy file data to io.Pipe: %v\n", err)
+			Byf("Failed loading images to Node %s via Pod %s: failed to load source file %s: %v", pod.Spec.NodeName, klog.KObj(pod), sourceFile, err)
+			return false, nil
 		}
-	}(file, writer)
 
-	// Load the container images using ctr and delete the file.
-	loadCommand := "ctr -n k8s.io images import -"
+		// Use go routine to pipe source file content into then stdin.
+		go func(file *os.File, writer io.WriteCloser) {
+			defer writer.Close()
+			defer file.Close()
+			// Ignoring the error here because the execPod command should fail in case of
+			// failure copying over the data.
+			_, err := io.Copy(writer, file)
+			if err != nil {
+				fmt.Fprintf(GinkgoWriter, "Failed to copy file data to io.Pipe: %v\n", err)
+			}
+		}(file, writer)
 
-	if err := execPod(ctx, clusterProxy, pod.Namespace, pod.Name, containerName, loadCommand, reader); err != nil {
-		Byf("Failed loading images to Node %s via Pod %s: %s", pod.Spec.NodeName, klog.KObj(pod), err)
-		eh.imageLoadPods.Delete(pod.GetUID()) // Delete so we try again on next update.
-		return
-	}
-	Byf("Succeeded loading images to Node %s via Pod %s", pod.Spec.NodeName, klog.KObj(pod))
+		// Load the container images using ctr and delete the file.
+		loadCommand := "ctr -n k8s.io images import -"
+
+		if err := execPod(ctx, clusterProxy, pod.Namespace, pod.Name, containerName, loadCommand, reader); err != nil {
+			Byf("Failed loading images to Node %s via Pod %s: %s", pod.Spec.NodeName, klog.KObj(pod), err)
+			eh.imageLoadPods.Delete(pod.GetUID()) // Delete so we try again on next update.
+			return false, nil
+		}
+		Byf("Succeeded loading images to Node %s via Pod %s", pod.Spec.NodeName, klog.KObj(pod))
+		return true, nil
+	})
 }
 
 // execPod executes a command at a pod.

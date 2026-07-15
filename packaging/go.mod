@@ -3,10 +3,10 @@ module sigs.k8s.io/cluster-api-provider-vsphere/packaging
 go 1.26.0
 
 replace (
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-alpha.0
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-beta.0
 	sigs.k8s.io/cluster-api-provider-vsphere => ../
 	sigs.k8s.io/cluster-api-provider-vsphere/api => ../api
-	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-alpha.0
+	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-beta.0
 )
 
 require (
@@ -90,5 +90,5 @@ require (
 	k8s.io/kube-openapi v0.0.0-20260414162039-ec9c827d403f // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 )

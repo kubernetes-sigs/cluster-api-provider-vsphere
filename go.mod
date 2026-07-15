@@ -3,9 +3,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 go 1.26.0
 
 replace (
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-alpha.0
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-beta.0
 	sigs.k8s.io/cluster-api-provider-vsphere/api => ./api
-	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-alpha.0
+	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-beta.0
 )
 
 require (
@@ -104,7 +104,7 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	k8s.io/streaming v0.36.2 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 )
 
 require (

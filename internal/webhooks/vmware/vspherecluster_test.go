@@ -22,10 +22,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
@@ -246,12 +249,17 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 }
 
 func TestVSphereCluster_ValidateUpdate(t *testing.T) {
+	emptyProviderCluster := createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{})
+	emptyProviderClusterDryRun := emptyProviderCluster.DeepCopy()
+	emptyProviderClusterDryRun.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
+
 	tests := []struct {
 		name              string
 		oldVSphereCluster *vmwarev1.VSphereCluster
 		newVSphereCluster *vmwarev1.VSphereCluster
 		networkProvider   string
 		featureGates      map[string]bool
+		req               *admission.Request
 		wantErr           bool
 		errType           *apierrors.StatusError
 		errMsg            string // expected error message or substring
@@ -289,6 +297,31 @@ func TestVSphereCluster_ValidateUpdate(t *testing.T) {
 			errType:           &apierrors.StatusError{},
 			errMsg:            "provider can only be set when ClusterNetworkProvider feature gate is enabled",
 		},
+		{
+			name:              "gate on: failed update with empty spec.network.provider",
+			oldVSphereCluster: emptyProviderCluster,
+			newVSphereCluster: emptyProviderCluster,
+			featureGates:      map[string]bool{"ClusterNetworkProvider": true},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
+			wantErr:           true,
+			errType:           &apierrors.StatusError{},
+			errMsg:            "spec.network.provider must be set",
+		},
+		{
+			name:              "gate on: allow empty provider on topology SSA dry-run",
+			oldVSphereCluster: emptyProviderCluster,
+			newVSphereCluster: emptyProviderClusterDryRun,
+			featureGates:      map[string]bool{"ClusterNetworkProvider": true},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
+			wantErr:           false,
+		},
+		{
+			name:              "gate on: successful update setting spec.network.provider",
+			oldVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{}),
+			newVSphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{Provider: manager.NSXVPCNetworkProvider}, vmwarev1.FailureDomainsSpec{}),
+			featureGates:      map[string]bool{"ClusterNetworkProvider": true},
+			wantErr:           false,
+		},
 	}
 
 	for _, tc := range tests {
@@ -302,7 +335,12 @@ func TestVSphereCluster_ValidateUpdate(t *testing.T) {
 				NetworkProvider: tc.networkProvider,
 			}
 
-			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereCluster, tc.newVSphereCluster)
+			ctx := context.Background()
+			if tc.req != nil {
+				ctx = admission.NewContextWithRequest(ctx, *tc.req)
+			}
+
+			_, err := webhook.ValidateUpdate(ctx, tc.oldVSphereCluster, tc.newVSphereCluster)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				if tc.errType != nil {

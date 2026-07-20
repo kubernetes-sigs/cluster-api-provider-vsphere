@@ -58,6 +58,10 @@ func (np *netopNetworkProvider) SupportsVMReadinessProbe() bool {
 	return true
 }
 
+func (np *netopNetworkProvider) SupportsSupervisorService() bool {
+	return true
+}
+
 // ProvisionClusterNetwork marks the VSphereClusterNetworkReadyCondition true.
 func (np *netopNetworkProvider) ProvisionClusterNetwork(_ context.Context, clusterCtx *vmware.ClusterContext) error {
 	deprecatedv1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyV1Beta1Condition)

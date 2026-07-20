@@ -22,9 +22,11 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 )
 
 func clusterWithProvider(provider string) *vmwarev1.VSphereCluster {
@@ -73,6 +75,28 @@ func TestPerClusterNetworkProviderFactory(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(ContainSubstring("unknown network provider"))
 		g.Expect(np).To(BeNil())
+	})
+
+	t.Run("ExternallyManaged is rejected when gate is disabled", func(t *testing.T) {
+		g := NewWithT(t)
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.ExternallyManagedProvider, false)
+		factory, err := NewPerClusterNetworkProviderFactory(ctx, c)
+		g.Expect(err).ToNot(HaveOccurred())
+		np, err := factory.ForCluster(ctx, clusterWithProvider(ExternallyManagedNetworkProvider))
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("unknown network provider"))
+		g.Expect(np).To(BeNil())
+	})
+
+	t.Run("ExternallyManaged is registered when gate is enabled", func(t *testing.T) {
+		g := NewWithT(t)
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.ExternallyManagedProvider, true)
+		factory, err := NewPerClusterNetworkProviderFactory(ctx, c)
+		g.Expect(err).ToNot(HaveOccurred())
+		np, err := factory.ForCluster(ctx, clusterWithProvider(ExternallyManagedNetworkProvider))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(np).ToNot(BeNil())
+		g.Expect(np.SupportsSupervisorService()).To(BeFalse())
 	})
 }
 

@@ -72,6 +72,10 @@ func (vp *nsxtVPCNetworkProvider) SupportsVMReadinessProbe() bool {
 	return false
 }
 
+func (vp *nsxtVPCNetworkProvider) SupportsSupervisorService() bool {
+	return true
+}
+
 // verifyNsxtVpcSubnetSetStatus checks the status conditions of a given SubnetSet within a cluster context.
 // If the subnet isn't ready, it is marked as false, and the function returns an error.
 // If the subnet is ready, the function updates the VSphereCluster with a "true" status and returns nil.

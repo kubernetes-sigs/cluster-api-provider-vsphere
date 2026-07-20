@@ -138,6 +138,14 @@ rules:
 - apiGroups:
   - crd.nsx.vmware.com
   resources:
+  - subnets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - crd.nsx.vmware.com
+  resources:
   - subnetsets
   - subnetsets/status
   verbs:

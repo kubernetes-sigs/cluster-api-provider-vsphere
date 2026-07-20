@@ -95,6 +95,13 @@ func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereC
 			))
 			return allErrs
 		}
+
+		if provider == manager.ExternallyManagedNetworkProvider && !feature.Gates.Enabled(feature.ExternallyManagedProvider) {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath("spec", "network", "provider"),
+				"provider ExternallyManaged can only be set when feature gate ExternallyManagedProvider is enabled",
+			))
+		}
 	} else if cluster.Spec.Network.Provider != "" {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("spec", "network", "provider"),

@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
 
@@ -50,7 +51,11 @@ type perClusterNetworkProviderFactory struct {
 // pre-built for the in-scope provider names.
 func NewPerClusterNetworkProviderFactory(ctx context.Context, client client.Client) (NetworkProviderFactory, error) {
 	registry := map[string]services.NetworkProvider{}
-	for _, name := range []string{VDSNetworkProvider, NSXNetworkProvider, NSXVPCNetworkProvider} {
+	names := []string{VDSNetworkProvider, NSXNetworkProvider, NSXVPCNetworkProvider}
+	if feature.Gates.Enabled(feature.ExternallyManagedProvider) {
+		names = append(names, ExternallyManagedNetworkProvider)
+	}
+	for _, name := range names {
 		np, err := GetNetworkProvider(ctx, client, name)
 		if err != nil {
 			return nil, err

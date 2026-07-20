@@ -167,6 +167,24 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			errMsg:         "spec.network.provider must be set",
 		},
 		{
+			name: "ExternallyManaged rejected when ExternallyManagedProvider gate is off",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
+				Provider: manager.ExternallyManagedNetworkProvider,
+			}, vmwarev1.FailureDomainsSpec{}),
+			featureGates: map[string]bool{"ClusterNetworkProvider": true, "ExternallyManagedProvider": false},
+			wantErr:      true,
+			errType:      &apierrors.StatusError{},
+			errMsg:       "provider ExternallyManaged can only be set when feature gate ExternallyManagedProvider is enabled",
+		},
+		{
+			name: "ExternallyManaged accepted when ExternallyManagedProvider and ClusterNetworkProvider gates are on",
+			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
+				Provider: manager.ExternallyManagedNetworkProvider,
+			}, vmwarev1.FailureDomainsSpec{}),
+			featureGates: map[string]bool{"ClusterNetworkProvider": true, "ExternallyManagedProvider": true},
+			wantErr:      false,
+		},
+		{
 			name: "successful VSphereCluster creation with valid control plane selector and feature gate enabled",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{}, vmwarev1.FailureDomainsSpec{
 				ControlPlane: vmwarev1.FailureDomainsControlPlaneSpec{
@@ -392,6 +410,9 @@ func setupFeatureGates(t *testing.T, featureGates map[string]bool) {
 		}
 		if featureName == "ClusterNetworkProvider" {
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterNetworkProvider, enabled)
+		}
+		if featureName == "ExternallyManagedProvider" {
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.ExternallyManagedProvider, enabled)
 		}
 	}
 }

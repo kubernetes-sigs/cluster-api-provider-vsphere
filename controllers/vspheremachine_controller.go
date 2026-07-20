@@ -82,6 +82,8 @@ const (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachineimages;virtualmachineimages/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=crd.nsx.vmware.com,resources=subnets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=crd.nsx.vmware.com,resources=subnetsets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=nodes;events;configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get;update;patch
 

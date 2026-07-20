@@ -67,6 +67,10 @@ func (np *nsxtNetworkProvider) SupportsVMReadinessProbe() bool {
 	return true
 }
 
+func (np *nsxtNetworkProvider) SupportsSupervisorService() bool {
+	return true
+}
+
 // GetNSXTVirtualNetworkName returns the name of the NSX-T vnet object.
 func GetNSXTVirtualNetworkName(clusterName string) string {
 	return fmt.Sprintf("%s-vnet", clusterName)

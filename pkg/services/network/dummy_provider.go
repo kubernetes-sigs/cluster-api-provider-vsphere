@@ -49,6 +49,10 @@ func (np *dummyNetworkProvider) SupportsVMReadinessProbe() bool {
 	return true
 }
 
+func (np *dummyNetworkProvider) SupportsSupervisorService() bool {
+	return true
+}
+
 func (np *dummyNetworkProvider) ProvisionClusterNetwork(_ context.Context, clusterCtx *vmware.ClusterContext) error {
 	conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   vmwarev1.VSphereClusterNetworkReadyCondition,

@@ -22,11 +22,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	vmwarehelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
@@ -46,6 +48,14 @@ func (d *dummyDualStackNetworkProvider) SupportsIPv6DualStack() bool {
 
 func (d *dummyDualStackNetworkProvider) HasLoadBalancer() bool {
 	return true
+}
+
+type noSupervisorServiceNetworkProvider struct {
+	services.NetworkProvider
+}
+
+func (n *noSupervisorServiceNetworkProvider) SupportsSupervisorService() bool {
+	return false
 }
 
 type testNetworkProviderFactory struct {
@@ -488,3 +498,50 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		})
 	})
 }
+
+var _ = Describe("ServiceDiscoveryReconciler Reconcile skip supervisor service", func() {
+	It("marks ServiceDiscoveryReady and creates no Service/Endpoints when SupportsSupervisorService is false", func() {
+		namespace := capiutil.RandomString(6)
+		clusterName := "skip-supervisor-svc"
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterName,
+				Namespace: namespace,
+			},
+		}
+		vsphereCluster := &vmwarev1.VSphereCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterName,
+				Namespace: namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+			},
+		}
+
+		controllerManagerCtx := fake.NewControllerManagerContext(cluster, vsphereCluster)
+		guestClient := fake.NewFakeGuestClusterClient()
+		np := &noSupervisorServiceNetworkProvider{NetworkProvider: network.DummyNetworkProvider()}
+		reconciler := serviceDiscoveryReconciler{
+			Client:                 controllerManagerCtx.Client,
+			NetworkProviderFactory: newTestNetworkProviderFactory(np),
+			// clusterCache intentionally nil: skip path must return before GetClient.
+		}
+
+		_, err := reconciler.Reconcile(ctx, reconcile.Request{
+			NamespacedName: client.ObjectKeyFromObject(vsphereCluster),
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		updated := &vmwarev1.VSphereCluster{}
+		Expect(controllerManagerCtx.Client.Get(ctx, client.ObjectKeyFromObject(vsphereCluster), updated)).To(Succeed())
+		assertServiceDiscoveryCondition(updated, metav1.ConditionTrue, "", vmwarev1.VSphereClusterServiceDiscoveryReadyReason)
+
+		svc := &corev1.Service{}
+		err = guestClient.Get(ctx, client.ObjectKey{Namespace: supervisorHeadlessSvcNamespace, Name: supervisorHeadlessSvcName}, svc)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		eps := &corev1.Endpoints{}
+		err = guestClient.Get(ctx, client.ObjectKey{Namespace: supervisorHeadlessSvcNamespace, Name: supervisorHeadlessSvcName}, eps)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+})

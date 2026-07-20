@@ -111,6 +111,10 @@ type NetworkProvider interface {
 	// SupportsVMReadinessProbe indicates whether this provider support vm readiness probe.
 	SupportsVMReadinessProbe() bool
 
+	// SupportsSupervisorService indicates whether the ServiceDiscovery controller should
+	// reconcile the default/supervisor headless Service/Endpoints in the target cluster.
+	SupportsSupervisorService() bool
+
 	// ProvisionClusterNetwork creates network resource for a given cluster
 	// This operation should be idempotent
 	ProvisionClusterNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext) error

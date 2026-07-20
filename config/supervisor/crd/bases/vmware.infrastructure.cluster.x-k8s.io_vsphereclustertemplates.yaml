@@ -155,6 +155,7 @@ spec:
                             - VSphereDistributed
                             - NSXTier1
                             - VPC
+                            - ExternallyManaged
                             type: string
                         type: object
                         x-kubernetes-validations:
@@ -354,6 +355,7 @@ spec:
                             - VSphereDistributed
                             - NSXTier1
                             - VPC
+                            - ExternallyManaged
                             type: string
                         type: object
                         x-kubernetes-validations:

@@ -19,7 +19,6 @@ package services
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -114,20 +113,17 @@ type NetworkProvider interface {
 	// SupportsVMReadinessProbe indicates whether this provider support vm readiness probe.
 	SupportsVMReadinessProbe() bool
 
+	// SupportsSupervisorService indicates whether the ServiceDiscovery controller should
+	// reconcile the default/supervisor headless Service/Endpoints in the target cluster.
+	SupportsSupervisorService() bool
+
 	// ProvisionClusterNetwork creates network resource for a given cluster
 	// This operation should be idempotent
 	ProvisionClusterNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext) error
-
-	// GetClusterNetworkName returns the name of a valid cluster network if one exists
-	// Returns an empty string if the operation is not supported
-	GetClusterNetworkName(ctx context.Context, clusterCtx *vmware.ClusterContext) (string, error)
 
 	// GetVMServiceAnnotations returns the annotations, if any, to place on a VM Service.
 	GetVMServiceAnnotations(ctx context.Context, clusterCtx *vmware.ClusterContext) (map[string]string, error)
 
 	// ConfigureVirtualMachine configures a VM for the particular network
 	ConfigureVirtualMachine(ctx context.Context, clusterCtx *vmware.ClusterContext, machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error
-
-	// VerifyNetworkStatus verifies the status of the network after vnet creation
-	VerifyNetworkStatus(ctx context.Context, clusterCtx *vmware.ClusterContext, obj runtime.Object) error
 }

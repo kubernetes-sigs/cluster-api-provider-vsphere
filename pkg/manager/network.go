@@ -19,7 +19,6 @@ package manager
 import (
 	"context"
 
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
@@ -33,6 +32,9 @@ const (
 	NSXNetworkProvider = network.NSXTier1NetworkProviderName
 	// VDSNetworkProvider identifies the vSphere Distributed Switch network provider.
 	VDSNetworkProvider = network.VSphereDistributedNetworkProviderName
+	// ExternallyManagedNetworkProvider identifies the ExternallyManaged network provider.
+	// Used when network objects are provisioned and managed externally and CAPV only attaches VMs.
+	ExternallyManagedNetworkProvider = network.ExternallyManagedNetworkProviderName
 	// DummyLBNetworkProvider identifies the Dummy LB network provider.
 	DummyLBNetworkProvider = network.DummyLBNetworkProviderName
 
@@ -64,25 +66,20 @@ func ConvertNetworkProviderName(name string) string {
 // GetNetworkProvider will return a network provider instance based on the environment
 // the cfg is used to initialize a client that talks directly to api-server without using the cache.
 // networkProvider must be a canonical PascalCase name; legacy flag values are not accepted here.
-func GetNetworkProvider(ctx context.Context, client client.Client, networkProvider string) (services.NetworkProvider, error) {
-	log := ctrl.LoggerFrom(ctx)
-
+func GetNetworkProvider(_ context.Context, client client.Client, networkProvider string) (services.NetworkProvider, error) {
 	switch networkProvider {
 	case NSXVPCNetworkProvider:
-		log.Info("Pick NSX-VPC network provider")
 		return network.NSXTVpcNetworkProvider(client), nil
 	case NSXNetworkProvider:
 		// TODO: disableFirewall not configurable
-		log.Info("Pick NSX-T network provider")
 		return network.NsxtNetworkProvider(client, "false"), nil
 	case VDSNetworkProvider:
-		log.Info("Pick NetOp (VDS) network provider")
 		return network.NetOpNetworkProvider(client), nil
+	case ExternallyManagedNetworkProvider:
+		return network.ExternallyManagedNetworkProvider(client), nil
 	case DummyLBNetworkProvider:
-		log.Info("Pick Dummy network provider")
 		return network.DummyLBNetworkProvider(), nil
 	default:
-		log.Info("NetworkProvider not set. Pick Dummy network provider")
 		return network.DummyNetworkProvider(), nil
 	}
 }

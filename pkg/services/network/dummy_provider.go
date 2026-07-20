@@ -20,7 +20,6 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
@@ -53,6 +52,10 @@ func (np *dummyNetworkProvider) SupportsVMReadinessProbe() bool {
 	return true
 }
 
+func (np *dummyNetworkProvider) SupportsSupervisorService() bool {
+	return true
+}
+
 func (np *dummyNetworkProvider) ProvisionClusterNetwork(_ context.Context, clusterCtx *vmware.ClusterContext) error {
 	conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   vmwarev1.VSphereClusterNetworkReadyCondition,
@@ -62,20 +65,12 @@ func (np *dummyNetworkProvider) ProvisionClusterNetwork(_ context.Context, clust
 	return nil
 }
 
-func (np *dummyNetworkProvider) GetClusterNetworkName(_ context.Context, _ *vmware.ClusterContext) (string, error) {
-	return "", nil
-}
-
 func (np *dummyNetworkProvider) ConfigureVirtualMachine(_ context.Context, _ *vmware.ClusterContext, _ *vmwarev1.VSphereMachine, _ *vmoprvhub.VirtualMachine) error {
 	return nil
 }
 
 func (np *dummyNetworkProvider) GetVMServiceAnnotations(_ context.Context, _ *vmware.ClusterContext) (map[string]string, error) {
 	return map[string]string{}, nil
-}
-
-func (np *dummyNetworkProvider) VerifyNetworkStatus(_ context.Context, _ *vmware.ClusterContext, _ runtime.Object) error {
-	return nil
 }
 
 type dummyLBNetworkProvider struct {

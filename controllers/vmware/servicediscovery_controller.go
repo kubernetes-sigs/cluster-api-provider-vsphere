@@ -214,6 +214,21 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 			klog.KObj(vsphereCluster))
 	}
 
+	// ExternallyManaged (and any provider that does not support the supervisor
+	// headless Service) skips ServiceDiscovery entirely. Mark ready so the skip
+	// is an explicit, observable success. Do this before waiting on guest-cluster
+	// connectivity since we will not touch the guest.
+	if !np.SupportsSupervisorService() {
+		log.Info("Skipping supervisor Service/Endpoints reconciliation; network provider does not support supervisor service")
+		deprecatedv1beta1conditions.MarkTrue(vsphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition)
+		conditions.Set(vsphereCluster, metav1.Condition{
+			Type:   vmwarev1.VSphereClusterServiceDiscoveryReadyCondition,
+			Status: metav1.ConditionTrue,
+			Reason: vmwarev1.VSphereClusterServiceDiscoveryReadyReason,
+		})
+		return reconcile.Result{}, nil
+	}
+
 	// We cannot proceed until we are able to access the target cluster. Until
 	// then just return a no-op and wait for the next sync.
 	guestClient, err := r.clusterCache.GetClient(ctx, client.ObjectKeyFromObject(cluster))

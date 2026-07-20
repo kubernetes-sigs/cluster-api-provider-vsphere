@@ -1464,3 +1464,432 @@ var _ = Describe("NSXT VPC Provider DualStack", func() {
 		Expect(createdSubnetSet.Spec.IPAddressType).To(BeEmpty())
 	})
 })
+
+var _ = Describe("ExternallyManaged network provider", func() {
+	var (
+		ctx            = context.Background()
+		clusterCtx     *vmware.ClusterContext
+		np             services.NetworkProvider
+		client         runtimeclient.Client
+		cluster        *clusterv1.Cluster
+		vSphereCluster *vmwarev1.VSphereCluster
+		vm             *vmoprvhub.VirtualMachine
+		machine        *vmwarev1.VSphereMachine
+		scheme         *runtime.Scheme
+		dummyNs        = "dummy-ns"
+		dummyCluster   = "dummy-cluster"
+		dummyVM        = "dummy-vm"
+	)
+
+	BeforeEach(func() {
+		cluster = &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      dummyCluster,
+				Namespace: dummyNs,
+			},
+		}
+		vSphereCluster = &vmwarev1.VSphereCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      dummyCluster,
+				Namespace: dummyNs,
+			},
+		}
+		clusterCtx, _ = util.CreateClusterContext(cluster, vSphereCluster)
+		vm = &vmoprvhub.VirtualMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: dummyNs,
+				Name:      dummyVM,
+			},
+		}
+		machine = &vmwarev1.VSphereMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: dummyNs,
+				Name:      dummyVM,
+			},
+		}
+		scheme = runtime.NewScheme()
+		Expect(nsxvpcv1.AddToScheme(scheme)).To(Succeed())
+		Expect(netopv1.AddToScheme(scheme)).To(Succeed())
+		client = fake.NewClientBuilder().WithScheme(scheme).Build()
+		np = ExternallyManagedNetworkProvider(client)
+	})
+
+	It("HasLoadBalancer returns false", func() {
+		Expect(np.HasLoadBalancer()).To(BeFalse())
+	})
+
+	It("SupportsVMReadinessProbe returns false", func() {
+		Expect(np.SupportsVMReadinessProbe()).To(BeFalse())
+	})
+
+	It("SupportsSupervisorService returns false", func() {
+		Expect(np.SupportsSupervisorService()).To(BeFalse())
+	})
+
+	It("GetClusterNetworkName returns empty", func() {
+		name, err := np.GetClusterNetworkName(ctx, clusterCtx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(name).To(BeEmpty())
+	})
+
+	It("GetVMServiceAnnotations returns empty map", func() {
+		annotations, err := np.GetVMServiceAnnotations(ctx, clusterCtx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(annotations).To(Equal(map[string]string{}))
+	})
+
+	It("ProvisionClusterNetwork creates nothing and marks network ready", func() {
+		err := np.ProvisionClusterNetwork(ctx, clusterCtx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterNetworkReadyCondition)).To(BeTrue())
+		Expect(deprecatedv1beta1conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyV1Beta1Condition)).To(BeTrue())
+
+		subnetList := &nsxvpcv1.SubnetList{}
+		Expect(client.List(ctx, subnetList)).To(Succeed())
+		Expect(subnetList.Items).To(BeEmpty())
+	})
+
+	Context("ConfigureVirtualMachine", func() {
+		var oldGates map[string]bool
+
+		BeforeEach(func() {
+			oldGates = map[string]bool{
+				string(feature.IPv6DualStack):    feature.Gates.Enabled(feature.IPv6DualStack),
+				string(feature.VLANSubinterface): feature.Gates.Enabled(feature.VLANSubinterface),
+			}
+		})
+
+		AfterEach(func() {
+			for k, v := range oldGates {
+				val := "false"
+				if v {
+					val = "true"
+				}
+				Expect(feature.Gates.(featuregate.MutableFeatureGate).Set(k + "=" + val)).To(Succeed())
+			}
+		})
+
+		It("errors when primary interface is missing", func() {
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("primary interface must be defined"))
+		})
+
+		It("propagates name/MTU/network and not routes; sets secondary gateways to None", func() {
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=false")).To(Succeed())
+			machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "workload-subnet",
+						},
+						MTU: 1600,
+						Routes: []vmwarev1.RouteSpec{{
+							To:  "10.0.0.0/8",
+							Via: "10.0.0.1",
+						}},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: "eth1",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       NetworkGVKNetOperator.Kind,
+								APIVersion: NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "management-network",
+							},
+							MTU: 1700,
+							Routes: []vmwarev1.RouteSpec{{
+								To:  "192.168.0.0/16",
+								Via: "192.168.0.1",
+							}},
+						},
+					}},
+				},
+			}
+
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(vm.Spec.Network.Interfaces).To(HaveLen(2))
+
+			Expect(vm.Spec.Network.Interfaces[0].Name).To(Equal(PrimaryInterfaceName))
+			Expect(*vm.Spec.Network.Interfaces[0].MTU).To(Equal(int64(1600)))
+			Expect(vm.Spec.Network.Interfaces[0].Network.Name).To(Equal("workload-subnet"))
+			Expect(vm.Spec.Network.Interfaces[0].Network.Kind).To(Equal(NetworkGVKNSXTVPCSubnet.Kind))
+			Expect(vm.Spec.Network.Interfaces[0].Routes).To(BeEmpty())
+			Expect(vm.Spec.Network.Interfaces[0].Gateway4).To(BeEmpty())
+			Expect(vm.Spec.Network.Interfaces[0].Gateway6).To(BeEmpty())
+
+			Expect(vm.Spec.Network.Interfaces[1].Name).To(Equal("eth1"))
+			Expect(*vm.Spec.Network.Interfaces[1].MTU).To(Equal(int64(1700)))
+			Expect(vm.Spec.Network.Interfaces[1].Network.Name).To(Equal("management-network"))
+			Expect(vm.Spec.Network.Interfaces[1].Network.Kind).To(Equal(NetworkGVKNetOperator.Kind))
+			Expect(vm.Spec.Network.Interfaces[1].Routes).To(BeEmpty())
+			Expect(vm.Spec.Network.Interfaces[1].Gateway4).To(Equal("None"))
+			Expect(vm.Spec.Network.Interfaces[1].Gateway6).To(Equal("None"))
+		})
+
+		DescribeTable("derives IPAMModes from Subnet/SubnetSet ipAddressType when IPv6DualStack is enabled",
+			func(kind string, apiVersion string, createObj func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object, ipType nsxvpcv1.IPAddressType, expected []corev1.IPFamily) {
+				Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=true")).To(Succeed())
+				name := "test-net"
+				obj := createObj(name, ipType)
+				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(obj).Build()
+				np = ExternallyManagedNetworkProvider(client)
+
+				machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+					Interfaces: vmwarev1.InterfacesSpec{
+						Primary: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       kind,
+								APIVersion: apiVersion,
+								Name:       name,
+							},
+						},
+					},
+				}
+
+				err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal(expected))
+			},
+			Entry("Subnet IPv4", NetworkGVKNSXTVPCSubnet.Kind, NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+				func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object {
+					return &nsxvpcv1.Subnet{ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: name}, Spec: nsxvpcv1.SubnetSpec{IPAddressType: ipType}}
+				}, nsxvpcv1.IPAddressTypeIPv4, []corev1.IPFamily{corev1.IPv4Protocol}),
+			Entry("Subnet IPv6", NetworkGVKNSXTVPCSubnet.Kind, NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+				func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object {
+					return &nsxvpcv1.Subnet{ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: name}, Spec: nsxvpcv1.SubnetSpec{IPAddressType: ipType}}
+				}, nsxvpcv1.IPAddressTypeIPv6, []corev1.IPFamily{corev1.IPv6Protocol}),
+			Entry("Subnet dual-stack", NetworkGVKNSXTVPCSubnet.Kind, NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+				func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object {
+					return &nsxvpcv1.Subnet{ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: name}, Spec: nsxvpcv1.SubnetSpec{IPAddressType: ipType}}
+				}, nsxvpcv1.IPAddressTypeIPv4IPv6, []corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}),
+			Entry("Subnet defaulted/empty", NetworkGVKNSXTVPCSubnet.Kind, NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+				func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object {
+					return &nsxvpcv1.Subnet{ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: name}, Spec: nsxvpcv1.SubnetSpec{IPAddressType: ipType}}
+				}, nsxvpcv1.IPAddressType(""), []corev1.IPFamily{corev1.IPv4Protocol}),
+			Entry("SubnetSet IPv4", NetworkGVKNSXTVPCSubnetSet.Kind, NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+				func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object {
+					return &nsxvpcv1.SubnetSet{ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: name}, Spec: nsxvpcv1.SubnetSetSpec{IPAddressType: ipType}}
+				}, nsxvpcv1.IPAddressTypeIPv4, []corev1.IPFamily{corev1.IPv4Protocol}),
+			Entry("SubnetSet IPv6", NetworkGVKNSXTVPCSubnetSet.Kind, NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+				func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object {
+					return &nsxvpcv1.SubnetSet{ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: name}, Spec: nsxvpcv1.SubnetSetSpec{IPAddressType: ipType}}
+				}, nsxvpcv1.IPAddressTypeIPv6, []corev1.IPFamily{corev1.IPv6Protocol}),
+			Entry("SubnetSet dual-stack", NetworkGVKNSXTVPCSubnetSet.Kind, NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+				func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object {
+					return &nsxvpcv1.SubnetSet{ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: name}, Spec: nsxvpcv1.SubnetSetSpec{IPAddressType: ipType}}
+				}, nsxvpcv1.IPAddressTypeIPv4IPv6, []corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}),
+			Entry("SubnetSet defaulted/empty", NetworkGVKNSXTVPCSubnetSet.Kind, NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+				func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object {
+					return &nsxvpcv1.SubnetSet{ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: name}, Spec: nsxvpcv1.SubnetSetSpec{IPAddressType: ipType}}
+				}, nsxvpcv1.IPAddressType(""), []corev1.IPFamily{corev1.IPv4Protocol}),
+		)
+
+		It("leaves IPAMModes unset when IPv6DualStack is disabled", func() {
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=false")).To(Succeed())
+			subnet := &nsxvpcv1.Subnet{
+				ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: "workload-subnet"},
+				Spec:       nsxvpcv1.SubnetSpec{IPAddressType: nsxvpcv1.IPAddressTypeIPv4IPv6},
+			}
+			client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(subnet).Build()
+			np = ExternallyManagedNetworkProvider(client)
+			machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "workload-subnet",
+						},
+					},
+				},
+			}
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(BeNil())
+		})
+
+		It("leaves IPAMModes unset for Network and VirtualNetwork refs", func() {
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=true")).To(Succeed())
+			machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       NetworkGVKNetOperator.Kind,
+							APIVersion: NetworkGVKNetOperator.GroupVersion().String(),
+							Name:       "vds-network",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: "eth1",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       NetworkGVKNSXT.Kind,
+								APIVersion: NetworkGVKNSXT.GroupVersion().String(),
+								Name:       "nsx-vnet",
+							},
+						},
+					}},
+				},
+			}
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(BeNil())
+			Expect(vm.Spec.Network.Interfaces[1].IPAMModes).To(BeNil())
+		})
+
+		It("errors when referenced Subnet is missing", func() {
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=true")).To(Succeed())
+			machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "missing-subnet",
+						},
+					},
+				},
+			}
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to get Subnet"))
+		})
+
+		It("errors when referenced SubnetSet is missing", func() {
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=true")).To(Succeed())
+			machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       NetworkGVKNSXTVPCSubnetSet.Kind,
+							APIVersion: NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+							Name:       "missing-subnetset",
+						},
+					},
+				},
+			}
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to get SubnetSet"))
+		})
+
+		It("supports mixed-provider refs (VPC Subnet on eth0 + VDS Network on eth1)", func() {
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=true")).To(Succeed())
+			subnet := &nsxvpcv1.Subnet{
+				ObjectMeta: metav1.ObjectMeta{Namespace: dummyNs, Name: "supervisor-workload"},
+				Spec:       nsxvpcv1.SubnetSpec{IPAddressType: nsxvpcv1.IPAddressTypeIPv4IPv6},
+			}
+			client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(subnet).Build()
+			np = ExternallyManagedNetworkProvider(client)
+			machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "supervisor-workload",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: "eth1",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							MTU: 1700,
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       NetworkGVKNetOperator.Kind,
+								APIVersion: NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "management-network",
+							},
+						},
+					}},
+				},
+			}
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(vm.Spec.Network.Interfaces).To(HaveLen(2))
+			Expect(vm.Spec.Network.Interfaces[0].IPAMModes).To(Equal([]corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}))
+			Expect(vm.Spec.Network.Interfaces[1].IPAMModes).To(BeNil())
+			Expect(vm.Spec.Network.Interfaces[1].Gateway4).To(Equal("None"))
+			Expect(vm.Spec.Network.Interfaces[1].Gateway6).To(Equal("None"))
+		})
+
+		It("propagates VLANs when VLANSubinterface is enabled", func() {
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=false")).To(Succeed())
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("VLANSubinterface=true")).To(Succeed())
+			machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "workload-subnet",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: "eth1",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       NetworkGVKNetOperator.Kind,
+								APIVersion: NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "management-network",
+							},
+						},
+					}},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vl100",
+						ID:   ptr.To(int32(100)),
+						Link: "eth1",
+					},
+				},
+			}
+
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(vm.Spec.Network.VLANs).To(HaveLen(1))
+			Expect(vm.Spec.Network.VLANs[0].Name).To(Equal("vl100"))
+			Expect(vm.Spec.Network.VLANs[0].ID).To(Equal(int64(100)))
+			Expect(vm.Spec.Network.VLANs[0].Link).To(Equal("eth1"))
+		})
+
+		It("errors when VLANs are set but VLANSubinterface is disabled", func() {
+			Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("VLANSubinterface=false")).To(Succeed())
+			machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "workload-subnet",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: "eth1",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       NetworkGVKNetOperator.Kind,
+								APIVersion: NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "management-network",
+							},
+						},
+					}},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vl100",
+						ID:   ptr.To(int32(100)),
+						Link: "eth1",
+					},
+				},
+			}
+
+			err := np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("VLANs cannot be used as feature gate VLANSubinterface is not enabled"))
+		})
+	})
+})

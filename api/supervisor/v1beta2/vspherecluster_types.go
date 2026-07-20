@@ -175,7 +175,7 @@ type Network struct {
 	// provider is the network provider used by the cluster.
 	// The value is immutable once set.
 	// +optional
-	// +kubebuilder:validation:Enum=VSphereDistributed;NSXTier1;VPC
+	// +kubebuilder:validation:Enum=VSphereDistributed;NSXTier1;VPC;ExternallyManaged
 	Provider string `json:"provider,omitempty"`
 }
 

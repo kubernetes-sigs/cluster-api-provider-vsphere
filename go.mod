@@ -20,7 +20,7 @@ require (
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/go-task/slim-sprig/v3 v3.0.0
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.32.0

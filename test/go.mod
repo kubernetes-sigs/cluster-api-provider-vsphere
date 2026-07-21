@@ -3,11 +3,11 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 go 1.26.0
 
 replace (
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-beta.0
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-beta.1
 	sigs.k8s.io/cluster-api-provider-vsphere => ../
 	sigs.k8s.io/cluster-api-provider-vsphere/api => ../api
-	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-beta.0
-	sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.14.0-beta.0
+	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-beta.1
+	sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.14.0-beta.1
 )
 
 require (

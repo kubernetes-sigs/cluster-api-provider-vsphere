@@ -26,8 +26,8 @@ github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UF
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/coredns/caddy v1.1.1 h1:2eYKZT7i6yxIfGP3qLJoJ7HAsDJqYB+X68g4NYjSrE0=
 github.com/coredns/caddy v1.1.1/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.33 h1:A+Wk7VCvzf25RKYJ7OEp+AgmfWMxWoSbsxxnmNRkJRY=
-github.com/coredns/corefile-migration v1.0.33/go.mod h1:56DPqONc3njpVPsdilEnfijCwNGC3/kTJLl7i7SPavY=
+github.com/coredns/corefile-migration v1.0.34 h1:Evzog/Av6/EQVy/xEAVZo2wsYAWMirIlunDfXxLg5Hk=
+github.com/coredns/corefile-migration v1.0.34/go.mod h1:56DPqONc3njpVPsdilEnfijCwNGC3/kTJLl7i7SPavY=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -321,10 +321,10 @@ k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 h1:AZYQSJemyQB5eRxqcPky+/7EdBj0x
 k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2/go.mod h1:xDxuJ0whA3d0I4mf/C4ppKHxXynQ+fxnkmQH0vTHnuk=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0 h1:hSfpvjjTQXQY2Fol2CS0QHMNs/WI1MOSGzCm1KhM5ec=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
-sigs.k8s.io/cluster-api v1.14.0-beta.0 h1:ivgmntIvphLCEadekd7ab5LMghvBHrn63MZqSl4KOJk=
-sigs.k8s.io/cluster-api v1.14.0-beta.0/go.mod h1:Wcr8wRLn2b14eORVVTMDZ5I9Qwh/YFSP0/XIFwSfPA8=
-sigs.k8s.io/cluster-api/api v1.14.0-beta.0 h1:l3l13ZAbcplgg7DV8u/ojXkpy16csGJoj8yz8Aw8JTA=
-sigs.k8s.io/cluster-api/api v1.14.0-beta.0/go.mod h1:CsaskPBcrT/otQ25uskl7aTMP/db2BxqapFxqj0fF8Q=
+sigs.k8s.io/cluster-api v1.14.0-beta.1 h1:9EAXlM6hnkSagp0xIhxVu91JmtxzZt2kkQbebX89p34=
+sigs.k8s.io/cluster-api v1.14.0-beta.1/go.mod h1:AIErvTzp7RVApDyVFuyaT25E5WRc0ojwYY04z8ftH1w=
+sigs.k8s.io/cluster-api/api v1.14.0-beta.1 h1:iBgbpYLuugRj2/0ta+G8CdcJ01CMUjZzXK0wQp+p+D8=
+sigs.k8s.io/cluster-api/api v1.14.0-beta.1/go.mod h1:tdjgSfVJ+hBeIM7Mf3gXiIvEuigCnFp2bGzY7VCmnr0=
 sigs.k8s.io/controller-runtime v0.24.1 h1:miPEwrmirImAvgME1L9qebGHrOnGJoVmVdtOU9fRfo4=
 sigs.k8s.io/controller-runtime v0.24.1/go.mod h1:vFkfY5fGt5xAC/sKb8IBFKgWPNKG9OUG29dR8Y2wImw=
 sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 h1:IpInykpT6ceI+QxKBbEflcR5EXP7sU1kvOlxwZh5txg=

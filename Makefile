@@ -122,7 +122,7 @@ KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
 KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
 
-SETUP_ENVTEST_VER := v0.24.0
+SETUP_ENVTEST_VER := v0.24.1
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
@@ -199,7 +199,7 @@ KIND_BIN := kind
 KIND := $(abspath $(TOOLS_BIN_DIR)/$(KIND_BIN)-$(KIND_VER))
 KIND_PKG := sigs.k8s.io/kind
 
-CAPI_HACK_TOOLS_VER := 32387845fd59ba118400eb802d95eb69b4c7c8dd # Note: this the commit ID of CAPI v1.14.0-beta.0.
+CAPI_HACK_TOOLS_VER := bca3a0642111512e508f5fd914f8a0332d5b38e5 # Note: this the commit ID of CAPI v1.14.0-beta.1.
 
 BOSKOSCTL_BIN := boskosctl
 BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))

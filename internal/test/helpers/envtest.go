@@ -361,7 +361,7 @@ func (t *TestEnvironment) CreateKubeconfigSecret(ctx context.Context, cluster *c
 }
 
 func getFilePathToCAPICRDs() []string {
-	packageName := "sigs.k8s.io/cluster-api"
+	packageName := "sigs.k8s.io/cluster-api/core"
 	packageConfig := &packages.Config{
 		Mode: packages.NeedModule,
 	}
@@ -374,7 +374,7 @@ func getFilePathToCAPICRDs() []string {
 	pkg := pkgs[0]
 
 	return []string{
-		filepath.Join(pkg.Module.Dir, "config", "crd", "bases"),
+		filepath.Join(pkg.Module.Dir, "core", "config", "crd", "bases"),
 		filepath.Join(pkg.Module.Dir, "controlplane", "kubeadm", "config", "crd", "bases"),
 	}
 }

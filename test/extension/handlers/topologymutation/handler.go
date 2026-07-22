@@ -27,7 +27,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -102,32 +102,32 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			case *controlplanev1.KubeadmControlPlaneTemplate:
 				if err := patchKubeadmControlPlaneTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching KubeadmControlPlaneTemplate")
-					return errors.Wrap(err, "error patching KubeadmControlPlaneTemplate")
+					return pkgerrors.Wrap(err, "error patching KubeadmControlPlaneTemplate")
 				}
 			case *bootstrapv1.KubeadmConfigTemplate:
 				if err := patchKubeadmConfigTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching KubeadmConfigTemplate")
-					return errors.Wrap(err, "error patching KubeadmConfigTemplate")
+					return pkgerrors.Wrap(err, "error patching KubeadmConfigTemplate")
 				}
 			case *infrav1beta1.VSphereClusterTemplate, *infrav1.VSphereClusterTemplate:
 				if err := patchGovmomiClusterTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching VSphereClusterTemplate")
-					return errors.Wrap(err, "error patching VSphereClusterTemplate")
+					return pkgerrors.Wrap(err, "error patching VSphereClusterTemplate")
 				}
 			case *infrav1beta1.VSphereMachineTemplate, *infrav1.VSphereMachineTemplate:
 				if err := patchGovmomiMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
 					log.Error(err, "Error patching VSphereMachineTemplate")
-					return errors.Wrap(err, "error patching VSphereMachineTemplate")
+					return pkgerrors.Wrap(err, "error patching VSphereMachineTemplate")
 				}
 			case *vmwarev1beta1.VSphereClusterTemplate, *vmwarev1.VSphereClusterTemplate:
 				if err := patchSupervisorClusterTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching VSphereClusterTemplate")
-					return errors.Wrap(err, "error patching VSphereClusterTemplate")
+					return pkgerrors.Wrap(err, "error patching VSphereClusterTemplate")
 				}
 			case *vmwarev1beta1.VSphereMachineTemplate, *vmwarev1.VSphereMachineTemplate:
 				if err := patchSupervisorMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
 					log.Error(err, "Error patching VSphereMachineTemplate")
-					return errors.Wrap(err, "error patching VSphereMachineTemplate")
+					return pkgerrors.Wrap(err, "error patching VSphereMachineTemplate")
 				}
 			}
 			return nil
@@ -216,7 +216,7 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.Kub
 	//    If this is unset continue as this variable is not required.
 	kcpControlPlaneMaxSurge, err := topologymutation.GetStringVariable(templateVariables, "kubeadmControlPlaneMaxSurge")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate MaxSurge")
+		return pkgerrors.Wrap(err, "could not set KubeadmControlPlaneTemplate MaxSurge")
 	}
 	if kcpControlPlaneMaxSurge != "" {
 		// This has to be converted to IntOrString type.
@@ -229,7 +229,7 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.Kub
 	files := []fileVariable{}
 	err = topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate files")
+		return pkgerrors.Wrap(err, "could not set KubeadmControlPlaneTemplate files")
 	}
 	if len(files) > 0 {
 		tpl.Spec.Template.Spec.KubeadmConfigSpec.Files = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.Files,
@@ -282,7 +282,7 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfi
 	files := []fileVariable{}
 	err = topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set KubeadmConfigTemplate files")
+		return pkgerrors.Wrap(err, "could not set KubeadmConfigTemplate files")
 	}
 	if len(files) > 0 {
 		tpl.Spec.Template.Spec.Files = append(tpl.Spec.Template.Spec.Files,
@@ -418,39 +418,39 @@ func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate runti
 	var customVMXKeys map[string]string
 	numCPUsJSON, err := topologymutation.GetVariable(templateVariables, "numCPUs")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set numCPUs")
+		return pkgerrors.Wrap(err, "could not set numCPUs")
 	}
 	if numCPUsJSON != nil {
 		i, err := strconv.ParseInt(string(numCPUsJSON.Raw), 10, 32)
 		if err != nil {
-			return errors.Wrap(err, "could not set numCPUs")
+			return pkgerrors.Wrap(err, "could not set numCPUs")
 		}
 		numCPUs = ptr.To(int32(i))
 	}
 	memoryMiBJSON, err := topologymutation.GetVariable(templateVariables, "memoryMiB")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set memoryMiB")
+		return pkgerrors.Wrap(err, "could not set memoryMiB")
 	}
 	if memoryMiBJSON != nil {
 		i, err := strconv.ParseInt(string(memoryMiBJSON.Raw), 10, 64)
 		if err != nil {
-			return errors.Wrap(err, "could not set memoryMiB")
+			return pkgerrors.Wrap(err, "could not set memoryMiB")
 		}
 		memoryMiB = ptr.To(i)
 	}
 	diskGiBJSON, err := topologymutation.GetVariable(templateVariables, "diskGiB")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set diskGiB")
+		return pkgerrors.Wrap(err, "could not set diskGiB")
 	}
 	if diskGiBJSON != nil {
 		i, err := strconv.ParseInt(string(diskGiBJSON.Raw), 10, 32)
 		if err != nil {
-			return errors.Wrap(err, "could not set diskGiB")
+			return pkgerrors.Wrap(err, "could not set diskGiB")
 		}
 		diskGiB = ptr.To(int32(i))
 	}
 	if err := topologymutation.GetObjectVariableInto(templateVariables, "customVMXKeys", &customVMXKeys); err != nil {
-		return errors.Wrap(err, "could not set customVMXKeys")
+		return pkgerrors.Wrap(err, "could not set customVMXKeys")
 	}
 
 	switch vsphereMachineTemplate := vsphereMachineTemplate.(type) {
@@ -500,7 +500,7 @@ func patchSupervisorMachineTemplate(_ context.Context, vsphereMachineTemplate ru
 
 	className, err := topologymutation.GetStringVariable(templateVariables, "virtualMachineClass")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
-		return errors.Wrap(err, "could not set virtualMachineClass")
+		return pkgerrors.Wrap(err, "could not set virtualMachineClass")
 	}
 	if className == "" {
 		return nil

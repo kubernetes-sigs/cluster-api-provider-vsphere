@@ -22,7 +22,7 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -95,11 +95,11 @@ func (webhook *VSphereVM) ValidateUpdate(_ context.Context, oldTyped, newTyped *
 
 	newVSphereVM, err := runtime.DefaultUnstructuredConverter.ToUnstructured(newTyped)
 	if err != nil {
-		return nil, apierrors.NewInternalError(errors.Wrap(err, "failed to convert new VSphereVM to unstructured object"))
+		return nil, apierrors.NewInternalError(pkgerrors.Wrap(err, "failed to convert new VSphereVM to unstructured object"))
 	}
 	oldVSphereVM, err := runtime.DefaultUnstructuredConverter.ToUnstructured(oldTyped)
 	if err != nil {
-		return nil, apierrors.NewInternalError(errors.Wrap(err, "failed to convert old VSphereVM to unstructured object"))
+		return nil, apierrors.NewInternalError(pkgerrors.Wrap(err, "failed to convert old VSphereVM to unstructured object"))
 	}
 
 	newVSphereVMSpec := newVSphereVM["spec"].(map[string]interface{})

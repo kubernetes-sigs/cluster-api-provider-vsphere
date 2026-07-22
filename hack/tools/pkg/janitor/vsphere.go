@@ -20,7 +20,7 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/cns"
 	"github.com/vmware/govmomi/find"
@@ -155,7 +155,7 @@ func recursiveList(ctx context.Context, inventoryPath string, govmomiClient *gov
 		return nil, err
 	}
 	if len(objList) != 1 {
-		return nil, errors.Errorf("expected to find exactly 1 object at managed object at path: %s", inventoryPath)
+		return nil, pkgerrors.Errorf("expected to find exactly 1 object at managed object at path: %s", inventoryPath)
 	}
 
 	root := objList[0].Object.Reference()

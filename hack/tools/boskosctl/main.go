@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go4.org/netipx"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -199,21 +199,21 @@ func acquire(ctx context.Context, client *boskos.Client, resourceType string) er
 	log.Info("Acquiring resource")
 	res, err := client.Acquire(resourceType, boskos.Free, boskos.Busy)
 	if err != nil {
-		return errors.Wrapf(err, "failed to acquire resource of type %s", resourceType)
+		return pkgerrors.Wrapf(err, "failed to acquire resource of type %s", resourceType)
 	}
 	log.Info(fmt.Sprintf("Acquired resource %q", res.Name))
 
 	if res.UserData == nil {
-		return errors.Errorf("failed to get user data, resource %q is missing user data", res.Name)
+		return pkgerrors.Errorf("failed to get user data, resource %q is missing user data", res.Name)
 	}
 
 	folder, hasFolder := res.UserData.Load("folder")
 	if !hasFolder {
-		return errors.Errorf("failed to get user data, resource %q is missing \"folder\" key", res.Name)
+		return pkgerrors.Errorf("failed to get user data, resource %q is missing \"folder\" key", res.Name)
 	}
 	resourcePool, hasResourcePool := res.UserData.Load("resourcePool")
 	if !hasResourcePool {
-		return errors.Errorf("failed to get user data, resource %q is missing \"resourcePool\" key", res.Name)
+		return pkgerrors.Errorf("failed to get user data, resource %q is missing \"resourcePool\" key", res.Name)
 	}
 	ipPool, hasIPPool := res.UserData.Load("ipPool")
 
@@ -225,7 +225,7 @@ func acquire(ctx context.Context, client *boskos.Client, resourceType string) er
 	if hasIPPool {
 		envVars, err := getIPPoolEnvVars(ipPool.(string))
 		if err != nil {
-			return errors.Wrapf(err, "failed to calculate IP pool env vars")
+			return pkgerrors.Wrapf(err, "failed to calculate IP pool env vars")
 		}
 		for k, v := range envVars {
 			fmt.Fprintf(&sb, "export %s=%s\n", k, v)
@@ -264,7 +264,7 @@ func getIPPoolEnvVars(ipPool string) (map[string]string, error) {
 
 	ipSet, err := allIPs(ipPoolSpec.Addresses)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to calculate IP addresses")
+		return nil, pkgerrors.Wrapf(err, "failed to calculate IP addresses")
 	}
 
 	envVars := map[string]string{
@@ -307,7 +307,7 @@ func allIPs(addressesArray []string) ([]netip.Addr, error) {
 	}
 	ipSet, err := builder.IPSet()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to calculate IP set from addresses")
+		return nil, pkgerrors.Wrapf(err, "failed to calculate IP set from addresses")
 	}
 
 	var allIPs []netip.Addr
@@ -360,7 +360,7 @@ func release(ctx context.Context, client *boskos.Client, resourceName, vSphereUs
 		UserAgent:  "boskosctl",
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to create vSphere clients")
+		return pkgerrors.Wrap(err, "failed to create vSphere clients")
 	}
 	defer vSphereClients.Logout(ctx)
 
@@ -376,18 +376,18 @@ func release(ctx context.Context, client *boskos.Client, resourceName, vSphereUs
 		// Try to release resource as dirty.
 		log.Info("Releasing resource as dirty")
 		if releaseErr := client.Release(resourceName, boskos.Dirty); releaseErr != nil {
-			return errors.Wrapf(kerrors.NewAggregate([]error{err, releaseErr}), "cleaning up vSphere and releasing resource as dirty failed, resource will now become stale")
+			return pkgerrors.Wrapf(kerrors.NewAggregate([]error{err, releaseErr}), "cleaning up vSphere and releasing resource as dirty failed, resource will now become stale")
 		}
 		log.Info("Releasing resource as dirty succeeded")
 
-		return errors.Wrapf(err, "cleaning up vSphere failed, resource was released as dirty")
+		return pkgerrors.Wrapf(err, "cleaning up vSphere failed, resource was released as dirty")
 	}
 	log.Info("Cleaning up vSphere succeeded")
 
 	// Try to release resource as free.
 	log.Info("Releasing resource as free")
 	if releaseErr := client.Release(resourceName, boskos.Free); releaseErr != nil {
-		return errors.Wrapf(releaseErr, "cleaning up vSphere succeeded and releasing resource as free failed, resource will now become stale")
+		return pkgerrors.Wrapf(releaseErr, "cleaning up vSphere succeeded and releasing resource as free failed, resource will now become stale")
 	}
 	log.Info("Releasing resource as free succeeded")
 

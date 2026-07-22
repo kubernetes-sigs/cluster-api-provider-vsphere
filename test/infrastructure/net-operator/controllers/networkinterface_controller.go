@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -61,7 +61,7 @@ func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if networkInterface.Status.NetworkID == "" {
 		s, err := vmoperator.GetVCenterSession(ctx, r.Client)
 		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to get vcenter session")
+			return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get vcenter session")
 		}
 
 		distributedPortGroupName, err := vmoperator.GetDistributedPortGroup(ctx, r.Client)
@@ -71,7 +71,7 @@ func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		distributedPortGroup, err := s.Finder.Network(ctx, distributedPortGroupName)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get DistributedPortGroup %s", distributedPortGroupName)
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get DistributedPortGroup %s", distributedPortGroupName)
 		}
 
 		original := networkInterface.DeepCopy()
@@ -109,7 +109,7 @@ func (r *NetworkInterfaceReconciler) SetupWithManager(ctx context.Context, mgr c
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	return nil

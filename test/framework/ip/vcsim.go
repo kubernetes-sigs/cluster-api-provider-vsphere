@@ -26,7 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -180,12 +180,12 @@ func (h *vcsim) claimIPAddress(ctx context.Context) (_, _ string, _ *vcsimv1.Con
 	// Wait for the controlPlaneEndpoint to report an IPAddress.
 	_ = wait.PollUntilContextTimeout(ctx, time.Second, time.Second*30, true, func(ctx context.Context) (done bool, err error) {
 		if err := h.client.Get(ctx, client.ObjectKeyFromObject(controlPlaneEndpoint), controlPlaneEndpoint); err != nil {
-			retryError = errors.Wrap(err, "getting vcsim ControlPlaneEndpoint")
+			retryError = pkgerrors.Wrap(err, "getting vcsim ControlPlaneEndpoint")
 			return false, nil
 		}
 
 		if controlPlaneEndpoint.Status.Host == "" {
-			retryError = errors.New("vcsim ControlPlaneEndpoint.Status.Host is not set")
+			retryError = pkgerrors.New("vcsim ControlPlaneEndpoint.Status.Host is not set")
 			return false, nil
 		}
 

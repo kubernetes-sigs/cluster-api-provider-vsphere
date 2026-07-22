@@ -28,7 +28,7 @@ import (
 	"sync"
 
 	_ "github.com/dougm/pretty" // NOTE: this is required to add commands vm.* to cli.Run
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi/cli"
 	_ "github.com/vmware/govmomi/cli/tags"             // NOTE: this is required to add commands tags.* to cli.Run
 	_ "github.com/vmware/govmomi/cli/tags/association" // NOTE: this is required to add commands tags.attach.* to cli.Run
@@ -164,7 +164,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 			model.Datastore = int(ptr.Deref(vCenterSimulator.Spec.Model.Datastore, int32(model.Datastore)))
 		}
 		if err := model.Create(); err != nil {
-			return errors.Wrapf(err, "failed to create vcsim server model")
+			return pkgerrors.Wrapf(err, "failed to create vcsim server model")
 		}
 		model.Service.RegisterSDK(pbmsimulator.New())
 
@@ -180,7 +180,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		}
 		vcsimURL, err := url.Parse(fmt.Sprintf("https://%s", net.JoinHostPort(host, port)))
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse vcsim server url")
+			return pkgerrors.Wrapf(err, "failed to parse vcsim server url")
 		}
 
 		// Start the vcsim instance
@@ -191,7 +191,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 			Build()
 
 		if err != nil {
-			return errors.Wrapf(err, "failed to create vcsim server instance")
+			return pkgerrors.Wrapf(err, "failed to create vcsim server instance")
 		}
 		r.vcsimInstances[key] = vcsimInstance
 		log.Info("Created vcsim server", "url", vcsimInstance.ServerURL())
@@ -221,7 +221,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		addr := vCenterSimulator.Status.Host
 		conn, err := tls.Dial("tcp", addr, config) //nolint:noctx
 		if err != nil {
-			return errors.Wrapf(err, "failed to connect to vcsim server instance to infer thumbprint")
+			return pkgerrors.Wrapf(err, "failed to connect to vcsim server instance to infer thumbprint")
 		}
 		defer conn.Close()
 
@@ -267,12 +267,12 @@ func createVMTemplates(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSim
 		for dc := 0; dc < datacenters; dc++ {
 			exit := cli.Run([]string{"vm.create", fmt.Sprintf("-ds=%s", vcsimhelpers.DatastoreName(datastore)), fmt.Sprintf("-cluster=%s", vcsimhelpers.ClusterName(dc, cluster)), fmt.Sprintf("-net=%s", vcsimhelpers.DefaultNetworkName), "-disk=20G", "-on=false", "-k=true", fmt.Sprintf("-u=%s", govcURL), t})
 			if exit != 0 {
-				return errors.New("failed to create vm template")
+				return pkgerrors.New("failed to create vm template")
 			}
 
 			exit = cli.Run([]string{"vm.markastemplate", "-k=true", fmt.Sprintf("-u=%s", govcURL), vcsimhelpers.VMPath(dc, t)})
 			if exit != 0 {
-				return errors.New("failed to mark vm template")
+				return pkgerrors.New("failed to mark vm template")
 			}
 			log.Info("Created VM template", "name", t)
 		}
@@ -331,7 +331,7 @@ func (r *VCenterSimulatorReconciler) SetupWithManager(ctx context.Context, mgr c
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	return nil

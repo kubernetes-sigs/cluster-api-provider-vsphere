@@ -23,7 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"gopkg.in/fsnotify.v1"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
@@ -94,7 +94,7 @@ password: '%s'
 		g.Expect(managerOptsTest.Password).To(Equal(password))
 
 		t.Log("sending an error on the channel")
-		watch.Errors <- errors.Errorf("force failure")
+		watch.Errors <- pkgerrors.Errorf("force failure")
 
 		// Update the file and wait for watch to detect the change
 		content := fmt.Sprintf(contentFmt, updatedUsername, updatedPassword)

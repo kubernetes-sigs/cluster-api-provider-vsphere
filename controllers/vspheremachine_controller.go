@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -98,7 +98,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 	if supervisorBased {
 		networkProvider, err := inframanager.GetNetworkProvider(ctx, controllerManagerContext.Client, controllerManagerContext.NetworkProvider)
 		if err != nil {
-			return errors.Wrap(err, "failed to create a network provider")
+			return pkgerrors.Wrap(err, "failed to create a network provider")
 		}
 		r.networkProvider = networkProvider
 		r.VMService = &vmoperator.VmopMachineService{Client: controllerManagerContext.Client, ConfigureControlPlaneVMReadinessProbe: r.networkProvider.SupportsVMReadinessProbe()}
@@ -106,7 +106,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 		vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
 		if err != nil {
-			return errors.Wrap(err, "failed to create watch object for VirtualMachine")
+			return pkgerrors.Wrap(err, "failed to create watch object for VirtualMachine")
 		}
 
 		return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
@@ -204,7 +204,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// Fetch the CAPI Machine.
 	machine, err := clusterutilv1.GetOwnerMachine(ctx, r.Client, machineContext.GetObjectMeta())
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get Machine for VSphereMachine")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get Machine for VSphereMachine")
 	}
 	if machine == nil {
 		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
@@ -316,7 +316,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 				),
 			},
 		); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to set %s condition", infrav1.VSphereMachineReadyCondition)})
+			reterr = kerrors.NewAggregate([]error{reterr, pkgerrors.Wrapf(err, "failed to set %s condition", infrav1.VSphereMachineReadyCondition)})
 			return
 		}
 
@@ -363,7 +363,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// Fetch the VSphereCluster and update the machine context
 	machineContext, err = r.VMService.FetchVSphereCluster(ctx, cluster, machineContext)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get VSphereCluster")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get VSphereCluster")
 	}
 
 	// Handle non-deleted machines
@@ -466,7 +466,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 	// before attempting to patch.
 	err = r.patchMachineLabelsWithHostInfo(ctx, machineCtx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to patch Machine with host info label")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to patch Machine with host info label")
 	}
 
 	deprecatedv1beta1conditions.MarkTrue(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition)
@@ -490,7 +490,7 @@ func (r *machineReconciler) patchMachineLabelsWithHostInfo(ctx context.Context, 
 	info := util.SanitizeHostInfoLabel(hostInfo)
 	errs := validation.IsValidLabelValue(info)
 	if len(errs) > 0 {
-		return errors.Errorf("%s (hostInfo: %s): %s", hostInfoErrStr, hostInfo, strings.Join(errs, ","))
+		return pkgerrors.Errorf("%s (hostInfo: %s): %s", hostInfoErrStr, hostInfo, strings.Join(errs, ","))
 	}
 
 	machine := machineCtx.GetMachine()
@@ -511,7 +511,7 @@ func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvc
 	log := ctrl.LoggerFrom(ctx)
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
-		return errors.New("received unexpected MachineContext. expecting SupervisorMachineContext type")
+		return pkgerrors.New("received unexpected MachineContext. expecting SupervisorMachineContext type")
 	}
 
 	networkModifier := func(obj runtime.Object) (runtime.Object, error) {
@@ -520,7 +520,7 @@ func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvc
 		log.V(3).Info("Applying network config to VM")
 		err := r.networkProvider.ConfigureVirtualMachine(ctx, supervisorMachineCtx.GetClusterContext(), supervisorMachineCtx.VSphereMachine, vm)
 		if err != nil {
-			return nil, errors.Errorf("failed to configure machine network: %+v", err)
+			return nil, pkgerrors.Errorf("failed to configure machine network: %+v", err)
 		}
 		return vm, nil
 	}

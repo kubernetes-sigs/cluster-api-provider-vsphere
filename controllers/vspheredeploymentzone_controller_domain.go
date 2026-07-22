@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -44,7 +44,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 			Reason:  infrav1.VSphereDeploymentZoneFailureDomainRegionMisconfiguredReason,
 			Message: err.Error(),
 		})
-		return errors.Wrapf(err, "failed to reconcile failure domain: region is not configured correctly")
+		return pkgerrors.Wrapf(err, "failed to reconcile failure domain: region is not configured correctly")
 	}
 
 	// verify the failure domain for the zone
@@ -56,17 +56,17 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 			Reason:  infrav1.VSphereDeploymentZoneFailureDomainZoneMisconfiguredReason,
 			Message: err.Error(),
 		})
-		return errors.Wrapf(err, "failed to reconcile failure domain: zone is not configured correctly")
+		return pkgerrors.Wrapf(err, "failed to reconcile failure domain: zone is not configured correctly")
 	}
 
 	if computeCluster := vsphereFailureDomain.Spec.Topology.ComputeCluster; computeCluster != "" {
 		if err := r.reconcileComputeCluster(ctx, deploymentZoneCtx, vsphereFailureDomain); err != nil {
-			return errors.Wrapf(err, "failed to reconcile failure domain: compute cluster %s is not configured correctly", computeCluster)
+			return pkgerrors.Wrapf(err, "failed to reconcile failure domain: compute cluster %s is not configured correctly", computeCluster)
 		}
 	}
 
 	if err := r.reconcileTopology(ctx, deploymentZoneCtx, vsphereFailureDomain); err != nil {
-		return errors.Wrap(err, "failed to reconcile failure domain: topology is not configured correctly")
+		return pkgerrors.Wrap(err, "failed to reconcile failure domain: topology is not configured correctly")
 	}
 
 	// Ensure the VSphereDeploymentZone is marked as an owner of the VSphereFailureDomain.
@@ -115,7 +115,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 				Reason:  infrav1.VSphereDeploymentZoneFailureDomainDatastoreNotFoundReason,
 				Message: fmt.Sprintf("datastore %s is misconfigured", datastore),
 			})
-			return errors.Wrapf(err, "unable to find datastore %s", datastore)
+			return pkgerrors.Wrapf(err, "unable to find datastore %s", datastore)
 		}
 	}
 
@@ -128,7 +128,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 				Reason:  infrav1.VSphereDeploymentZoneFailureDomainNetworkNotFoundReason,
 				Message: fmt.Sprintf("network %s is not found", network),
 			})
-			return errors.Wrapf(err, "unable to find network %s", network)
+			return pkgerrors.Wrapf(err, "unable to find network %s", network)
 		}
 	}
 
@@ -141,7 +141,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 				Reason:  infrav1.VSphereDeploymentZoneFailureDomainNetworkNotFoundReason,
 				Message: fmt.Sprintf("network %s is not found", networkConfig.NetworkName),
 			})
-			return errors.Wrapf(err, "unable to find network %s", networkConfig.NetworkName)
+			return pkgerrors.Wrapf(err, "unable to find network %s", networkConfig.NetworkName)
 		}
 	}
 
@@ -181,13 +181,13 @@ func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Con
 			Reason:  infrav1.VSphereDeploymentZoneFailureDomainComputeClusterNotFoundReason,
 			Message: fmt.Sprintf("compute cluster %s not found", computeCluster),
 		})
-		return errors.Wrap(err, "compute cluster not found")
+		return pkgerrors.Wrap(err, "compute cluster not found")
 	}
 
 	if resourcePool := deploymentZoneCtx.VSphereDeploymentZone.Spec.PlacementConstraint.ResourcePool; resourcePool != "" {
 		rp, err := deploymentZoneCtx.AuthSession.Finder.ResourcePool(ctx, resourcePool)
 		if err != nil {
-			return errors.Wrapf(err, "unable to find resource pool")
+			return pkgerrors.Wrapf(err, "unable to find resource pool")
 		}
 
 		ref, err := rp.Owner(ctx)
@@ -199,7 +199,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Con
 				Reason:  infrav1.VSphereDeploymentZoneFailureDomainComputeClusterNotFoundReason,
 				Message: "resource pool owner not found",
 			})
-			return errors.Wrap(err, "unable to find owner compute resource")
+			return pkgerrors.Wrap(err, "unable to find owner compute resource")
 		}
 		if ref.Reference() != ccr.Reference() {
 			deprecatedv1beta1conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedV1Beta1Condition, infrav1.ResourcePoolNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "resource pool is not owned by compute cluster")
@@ -209,7 +209,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Con
 				Reason:  infrav1.VSphereDeploymentZoneFailureDomainResourcePoolNotFoundReason,
 				Message: "resource pool is not owned by compute cluster",
 			})
-			return errors.Errorf("compute cluster %s does not own resource pool %s", computeCluster, resourcePool)
+			return pkgerrors.Errorf("compute cluster %s does not own resource pool %s", computeCluster, resourcePool)
 		}
 	}
 	return nil
@@ -219,22 +219,22 @@ func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Con
 // checks whether the specified tags exist on the DataCenter or Compute Cluster or Hosts (in a HostGroup).
 func (r vsphereDeploymentZoneReconciler) verifyFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain, failureDomain infrav1.FailureDomain) error {
 	if _, err := deploymentZoneCtx.AuthSession.TagManager.GetTagForCategory(ctx, failureDomain.Name, failureDomain.TagCategory); err != nil {
-		return errors.Wrapf(err, "failed to verify tag %s and category %s", failureDomain.Name, failureDomain.TagCategory)
+		return pkgerrors.Wrapf(err, "failed to verify tag %s and category %s", failureDomain.Name, failureDomain.TagCategory)
 	}
 
 	objects, err := taggable.GetObjects(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain.Type)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get objects of type %s", failureDomain.Type)
+		return pkgerrors.Wrapf(err, "failed to get objects of type %s", failureDomain.Type)
 	}
 
 	// All the objects should be associated to the tag
 	for _, obj := range objects {
 		hasTag, err := obj.HasTag(ctx, failureDomain.Name)
 		if err != nil {
-			return errors.Wrapf(err, "failed to verify if object %s has tag %s", obj, failureDomain.Name)
+			return pkgerrors.Wrapf(err, "failed to verify if object %s has tag %s", obj, failureDomain.Name)
 		}
 		if !hasTag {
-			return errors.Errorf("object %s does not have tag %s", obj, failureDomain.Name)
+			return pkgerrors.Errorf("object %s does not have tag %s", obj, failureDomain.Name)
 		}
 	}
 	return nil

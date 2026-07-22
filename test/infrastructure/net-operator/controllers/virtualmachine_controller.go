@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -74,7 +74,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		var err error
 		kickTime, err = time.Parse(time.RFC3339, t)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse date from %s annotation on %s", VMKickTimeAnnotation, klog.KObj(virtualMachine))
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to parse date from %s annotation on %s", VMKickTimeAnnotation, klog.KObj(virtualMachine))
 		}
 	}
 
@@ -92,12 +92,12 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	patch, err := conversionclient.MergeFrom(ctx, r.Client, o)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create patch for VirtualMachine object")
 	}
 
 	virtualMachine.SetAnnotations(annotations)
 	if err := r.Client.Patch(ctx, virtualMachine, patch); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to patch VirtualMachine %s", klog.KObj(virtualMachine))
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to patch VirtualMachine %s", klog.KObj(virtualMachine))
 	}
 
 	log.Info("Triggering VirtualMachine reconciliation to speed up initial provisioning")
@@ -110,7 +110,7 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 	vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
 	if err != nil {
-		return errors.Wrap(err, "failed to create watch object for VirtualMachines")
+		return pkgerrors.Wrap(err, "failed to create watch object for VirtualMachines")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "virtualmachine")
@@ -121,7 +121,7 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
 }

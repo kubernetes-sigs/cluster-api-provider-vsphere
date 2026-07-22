@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
@@ -348,7 +348,7 @@ func main() {
 
 	// Continuing startup does not make sense without having managers added.
 	if !govmomiMode && !supervisorMode {
-		err := errors.New("neither supervisor nor govmomi CRDs detected")
+		err := pkgerrors.New("neither supervisor nor govmomi CRDs detected")
 		setupLog.Error(err, "CAPV CRDs are not deployed yet, restarting")
 		os.Exit(1)
 	}

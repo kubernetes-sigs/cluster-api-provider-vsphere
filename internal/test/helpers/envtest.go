@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	"github.com/vmware/govmomi/simulator"
 	"golang.org/x/tools/go/packages"
@@ -332,7 +332,7 @@ func (t *TestEnvironment) CleanupAndWait(ctx context.Context, objs ...client.Obj
 				return false, nil
 			})
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "key %s, %s is not being deleted from the testenv client cache", o.GetObjectKind().GroupVersionKind().String(), key))
+			errs = append(errs, pkgerrors.Wrapf(err, "key %s, %s is not being deleted from the testenv client cache", o.GetObjectKind().GroupVersionKind().String(), key))
 		}
 	}
 	return kerrors.NewAggregate(errs)

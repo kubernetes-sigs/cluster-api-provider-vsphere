@@ -20,7 +20,7 @@ package crs
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,14 +53,14 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 
 	cpiManifests, err := cloudprovider.CloudControllerManagerManifests()
 	if err != nil {
-		panic(errors.Wrapf(err, "creating cloudcontrollermanager manifests"))
+		panic(pkgerrors.Wrapf(err, "creating cloudcontrollermanager manifests"))
 	}
 
 	cpiObjects := []runtime.Object{} //nolint:prealloc
 
 	cloudConfig, err := CPIConfigString()
 	if err != nil {
-		panic(errors.Errorf("invalid cloudConfig"))
+		panic(pkgerrors.Errorf("invalid cloudConfig"))
 	}
 	// cloud config secret is wrapped in another secret so it could be injected via CRS
 	cloudConfigConfigMap := cloudprovider.CloudControllerManagerConfigMap(cloudConfig)

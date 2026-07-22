@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
@@ -341,10 +341,10 @@ func (vms *VMService) reconcileNetworkStatus(ctx context.Context, virtualMachine
 // A discovered IPAddress is expected to contain a valid IP, Prefix and Gateway.
 func (vms *VMService) reconcileIPAddresses(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {
 	ipamState, err := ipam.BuildState(ctx, virtualMachineCtx.VMContext, virtualMachineCtx.State.Network)
-	if err != nil && !errors.Is(err, ipam.ErrWaitingForIPAddr) {
+	if err != nil && !pkgerrors.Is(err, ipam.ErrWaitingForIPAddr) {
 		return false, err
 	}
-	if errors.Is(err, ipam.ErrWaitingForIPAddr) {
+	if pkgerrors.Is(err, ipam.ErrWaitingForIPAddr) {
 		deprecatedv1beta1conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForIPAddressV1Beta1Reason, clusterv1.ConditionSeverityInfo, "%v", err)
 		conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMVirtualMachineProvisionedCondition,
@@ -379,7 +379,7 @@ func (vms *VMService) reconcileMetadata(ctx context.Context, virtualMachineCtx *
 	log.Info("Updating VM metadata")
 	taskRef, err := vms.setMetadata(ctx, virtualMachineCtx, newMetadata)
 	if err != nil {
-		return false, errors.Wrapf(err, "unable to set metadata on vm %s", virtualMachineCtx)
+		return false, pkgerrors.Wrapf(err, "unable to set metadata on vm %s", virtualMachineCtx)
 	}
 
 	virtualMachineCtx.VSphereVM.Status.TaskRef = taskRef
@@ -406,7 +406,7 @@ func (vms *VMService) reconcilePowerState(ctx context.Context, virtualMachineCtx
 				Reason:  infrav1.VSphereVMVirtualMachineNotProvisionedReason,
 				Message: err.Error(),
 			})
-			return false, errors.Wrapf(err, "failed to trigger power on op for vm %s", virtualMachineCtx)
+			return false, pkgerrors.Wrapf(err, "failed to trigger power on op for vm %s", virtualMachineCtx)
 		}
 		deprecatedv1beta1conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition, infrav1.PoweringOnV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
@@ -431,7 +431,7 @@ func (vms *VMService) reconcilePowerState(ctx context.Context, virtualMachineCtx
 		log.Info("VM is powered on")
 		return true, nil
 	default:
-		return false, errors.Errorf("unexpected power state %q for vm %s", powerState, virtualMachineCtx)
+		return false, pkgerrors.Errorf("unexpected power state %q for vm %s", powerState, virtualMachineCtx)
 	}
 }
 
@@ -455,11 +455,11 @@ func (vms *VMService) reconcileStoragePolicy(ctx context.Context, virtualMachine
 
 	pbmClient, err := pbm.NewClient(ctx, virtualMachineCtx.Session.Client.Client)
 	if err != nil {
-		return errors.Wrap(err, "unable to create pbm client")
+		return pkgerrors.Wrap(err, "unable to create pbm client")
 	}
 	storageProfileID, err := pbmClient.ProfileIDByName(ctx, virtualMachineCtx.VSphereVM.Spec.StoragePolicyName)
 	if err != nil {
-		return errors.Wrap(err, "unable to retrieve storage profile ID")
+		return pkgerrors.Wrap(err, "unable to retrieve storage profile ID")
 	}
 
 	var changes []types.BaseVirtualDeviceConfigSpec
@@ -493,7 +493,7 @@ func (vms *VMService) reconcileStoragePolicy(ctx context.Context, virtualMachine
 
 	diskObjects, err := pbmClient.QueryAssociatedProfiles(ctx, disksRefs)
 	if err != nil {
-		return errors.Wrap(err, "unable to query disks associated profiles")
+		return pkgerrors.Wrap(err, "unable to query disks associated profiles")
 	}
 
 	// Ensure storage policy is set correctly for all disks of the VM
@@ -520,7 +520,7 @@ func (vms *VMService) reconcileStoragePolicy(ctx context.Context, virtualMachine
 			DeviceChange: changes,
 		})
 		if err != nil {
-			return errors.Wrapf(err, "unable to set storagePolicy on vm %s", virtualMachineCtx)
+			return pkgerrors.Wrapf(err, "unable to set storagePolicy on vm %s", virtualMachineCtx)
 		}
 		virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
 	}
@@ -537,17 +537,17 @@ func (vms *VMService) reconcileHardwareVersion(ctx context.Context, virtualMachi
 	if virtualMachineCtx.VSphereVM.Spec.HardwareVersion != "" {
 		var virtualMachine mo.VirtualMachine
 		if err := virtualMachineCtx.Obj.Properties(ctx, virtualMachineCtx.Obj.Reference(), []string{"config.version"}, &virtualMachine); err != nil {
-			return false, errors.Wrapf(err, "error getting guestInfo version information from VM %s", virtualMachineCtx.VSphereVM.Name)
+			return false, pkgerrors.Wrapf(err, "error getting guestInfo version information from VM %s", virtualMachineCtx.VSphereVM.Name)
 		}
 		toUpgrade, err := util.LessThan(virtualMachine.Config.Version, virtualMachineCtx.VSphereVM.Spec.HardwareVersion)
 		if err != nil {
-			return false, errors.Wrapf(err, "failed to parse hardware version")
+			return false, pkgerrors.Wrapf(err, "failed to parse hardware version")
 		}
 		if toUpgrade {
 			log.Info("Upgrading hardware version", "fromVersion", virtualMachine.Config.Version, "toVersion", virtualMachineCtx.VSphereVM.Spec.HardwareVersion)
 			task, err := virtualMachineCtx.Obj.UpgradeVM(ctx, virtualMachineCtx.VSphereVM.Spec.HardwareVersion)
 			if err != nil {
-				return false, errors.Wrapf(err, "error trigging upgrade op for machine %s", virtualMachineCtx)
+				return false, pkgerrors.Wrapf(err, "error trigging upgrade op for machine %s", virtualMachineCtx)
 			}
 			virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
 			return false, nil
@@ -595,11 +595,11 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 				Reason:  infrav1.VSphereVMPCIDevicesDetachedNotFoundReason,
 				Message: "PCI devices removed after VM was powered on",
 			})
-			return errors.Errorf("missing PCI devices")
+			return pkgerrors.Errorf("missing PCI devices")
 		}
 		log.Info("PCI devices to be added", "number", len(specsToBeAdded))
 		if err := virtualMachineCtx.Obj.AddDevice(ctx, pci.ConstructDeviceSpecs(specsToBeAdded)...); err != nil {
-			return errors.Wrapf(err, "error adding pci devices for %q", virtualMachineCtx)
+			return pkgerrors.Wrapf(err, "error adding pci devices for %q", virtualMachineCtx)
 		}
 	}
 	return nil
@@ -614,7 +614,7 @@ func (vms *VMService) getMetadata(ctx context.Context, virtualMachineCtx *virtua
 	)
 
 	if err := pc.RetrieveOne(ctx, virtualMachineCtx.Ref, props, &obj); err != nil {
-		return "", errors.Wrapf(err, "unable to fetch props %v for vm %s", props, virtualMachineCtx)
+		return "", pkgerrors.Wrapf(err, "unable to fetch props %v for vm %s", props, virtualMachineCtx)
 	}
 	if obj.Config == nil {
 		return "", nil
@@ -635,7 +635,7 @@ func (vms *VMService) getMetadata(ctx context.Context, virtualMachineCtx *virtua
 
 	metadataBuf, err := base64.StdEncoding.DecodeString(metadataBase64)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to decode metadata for %s", virtualMachineCtx)
+		return "", pkgerrors.Wrapf(err, "unable to decode metadata for %s", virtualMachineCtx)
 	}
 
 	return string(metadataBuf), nil
@@ -663,7 +663,7 @@ func (vms *VMService) setMetadata(ctx context.Context, virtualMachineCtx *virtua
 		ExtraConfig: extraConfig,
 	})
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to set metadata on vm %s", virtualMachineCtx)
+		return "", pkgerrors.Wrapf(err, "unable to set metadata on vm %s", virtualMachineCtx)
 	}
 
 	return task.Reference().Value, nil
@@ -705,7 +705,7 @@ func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.V
 		Name:      vmCtx.VSphereVM.Spec.BootstrapRef.Name,
 	}
 	if err := vmCtx.Client.Get(ctx, secretKey, secret); err != nil {
-		return nil, "", errors.Wrapf(err, "failed to get bootstrap data secret for %s", vmCtx)
+		return nil, "", pkgerrors.Wrapf(err, "failed to get bootstrap data secret for %s", vmCtx)
 	}
 
 	format, ok := secret.Data["format"]
@@ -716,7 +716,7 @@ func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.V
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
+		return nil, "", pkgerrors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
 	return value, bootstrapv1.Format(format), nil
@@ -733,18 +733,18 @@ func (vms *VMService) reconcileVMGroupInfo(ctx context.Context, virtualMachineCt
 	topology := virtualMachineCtx.VSphereFailureDomain.Spec.Topology
 	vmGroup, err := cluster.FindVMGroup(ctx, virtualMachineCtx, topology.ComputeCluster, topology.Hosts.VMGroupName)
 	if err != nil {
-		return false, errors.Wrapf(err, "unable to find VM Group %s", topology.Hosts.VMGroupName)
+		return false, pkgerrors.Wrapf(err, "unable to find VM Group %s", topology.Hosts.VMGroupName)
 	}
 
 	hasVM, err := vmGroup.HasVM(virtualMachineCtx.Ref)
 	if err != nil {
-		return false, errors.Wrapf(err, "unable to find VM Group %s membership", topology.Hosts.VMGroupName)
+		return false, pkgerrors.Wrapf(err, "unable to find VM Group %s membership", topology.Hosts.VMGroupName)
 	}
 
 	if !hasVM {
 		task, err := vmGroup.Add(ctx, virtualMachineCtx.Ref)
 		if err != nil {
-			return false, errors.Wrapf(err, "failed to add VM %s to VM group", virtualMachineCtx.VSphereVM.Name)
+			return false, pkgerrors.Wrapf(err, "failed to add VM %s to VM group", virtualMachineCtx.VSphereVM.Name)
 		}
 		virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
 		log.Info("Wait for VM to be added to group")
@@ -763,7 +763,7 @@ func (vms *VMService) reconcileTags(ctx context.Context, virtualMachineCtx *virt
 
 	err := virtualMachineCtx.Session.TagManager.AttachMultipleTagsToObject(ctx, virtualMachineCtx.VSphereVM.Spec.TagIDs, virtualMachineCtx.Ref)
 	if err != nil {
-		return errors.Wrapf(err, "failed to attach tags %v to VM %s", virtualMachineCtx.VSphereVM.Spec.TagIDs, virtualMachineCtx.VSphereVM.Name)
+		return pkgerrors.Wrapf(err, "failed to attach tags %v to VM %s", virtualMachineCtx.VSphereVM.Spec.TagIDs, virtualMachineCtx.VSphereVM.Name)
 	}
 
 	return nil

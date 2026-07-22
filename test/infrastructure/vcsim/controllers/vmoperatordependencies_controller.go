@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -118,7 +118,7 @@ func (r *VMOperatorDependenciesReconciler) SetupWithManager(ctx context.Context,
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
 }

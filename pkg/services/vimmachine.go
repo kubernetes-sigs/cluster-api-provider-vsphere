@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -81,7 +81,7 @@ func (v *VimMachineService) FetchVSphereMachine(ctx context.Context, name types.
 func (v *VimMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
 	vimMachineCtx, ok := machineContext.(*capvcontext.VIMMachineContext)
 	if !ok {
-		return nil, errors.New("received unexpected VIMMachineContext type")
+		return nil, pkgerrors.New("received unexpected VIMMachineContext type")
 	}
 	vsphereCluster := &infrav1.VSphereCluster{}
 	vsphereClusterName := client.ObjectKey{
@@ -98,7 +98,7 @@ func (v *VimMachineService) FetchVSphereCluster(ctx context.Context, cluster *cl
 func (v *VimMachineService) ReconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) error {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
-		return errors.New("received unexpected VIMMachineContext type")
+		return pkgerrors.New("received unexpected VIMMachineContext type")
 	}
 
 	vm, err := v.findVSphereVM(ctx, vimMachineCtx)
@@ -127,7 +127,7 @@ func (v *VimMachineService) ReconcileDelete(ctx context.Context, machineCtx capv
 func (v *VimMachineService) SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) error {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
-		return errors.New("received unexpected VIMMachineContext type")
+		return pkgerrors.New("received unexpected VIMMachineContext type")
 	}
 
 	vsphereVM, err := v.findVSphereVM(ctx, vimMachineCtx)
@@ -157,7 +157,7 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 	log := ctrl.LoggerFrom(ctx)
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
-		return false, errors.New("received unexpected VIMMachineContext type")
+		return false, pkgerrors.New("received unexpected VIMMachineContext type")
 	}
 	vsphereVM, err := v.findVSphereVM(ctx, vimMachineCtx)
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -185,7 +185,7 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
 	if ok, err := v.reconcileProviderID(ctx, vimMachineCtx, vm); !ok {
 		if err != nil {
-			return false, errors.Wrapf(err, "unexpected error while reconciling provider ID for %s", vimMachineCtx)
+			return false, pkgerrors.Wrapf(err, "unexpected error while reconciling provider ID for %s", vimMachineCtx)
 		}
 		return true, nil
 	}
@@ -193,7 +193,7 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 	// Reconcile the VSphereMachine's node addresses from the VM's IP addresses.
 	if ok, err := v.reconcileNetwork(ctx, vimMachineCtx, vm); !ok {
 		if err != nil {
-			return false, errors.Wrapf(err, "unexpected error while reconciling network for %s", vimMachineCtx)
+			return false, pkgerrors.Wrapf(err, "unexpected error while reconciling network for %s", vimMachineCtx)
 		}
 		deprecatedv1beta1conditions.MarkFalse(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForNetworkAddressesV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(vimMachineCtx.VSphereMachine, metav1.Condition{
@@ -213,7 +213,7 @@ func (v *VimMachineService) GetHostInfo(ctx context.Context, machineCtx capvcont
 	log := ctrl.LoggerFrom(ctx)
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
-		return "", errors.New("received unexpected VIMMachineContext type")
+		return "", pkgerrors.New("received unexpected VIMMachineContext type")
 	}
 
 	name, err := generateVMObjectName(vimMachineCtx, vimMachineCtx.Machine.Name)
@@ -265,7 +265,7 @@ func (v *VimMachineService) reconcileProviderID(ctx context.Context, vimMachineC
 
 	providerID := infrautilv1.ConvertUUIDToProviderID(biosUUID)
 	if providerID == "" {
-		return false, errors.Errorf("failed to reconcile providerID: invalid BIOS UUID %s for %s", biosUUID, vimMachineCtx)
+		return false, pkgerrors.Errorf("failed to reconcile providerID: invalid BIOS UUID %s for %s", biosUUID, vimMachineCtx)
 	}
 	if vimMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
 		vimMachineCtx.VSphereMachine.Spec.ProviderID = providerID
@@ -290,7 +290,7 @@ func (v *VimMachineService) reconcileNetwork(ctx context.Context, vimMachineCtx 
 			var networkStatus infrav1.NetworkStatus
 			err := json.Unmarshal(buf, &networkStatus)
 			if err == nil && networkStatus.MACAddr == "" {
-				err = errors.New("macAddr is required")
+				err = pkgerrors.New("macAddr is required")
 				errs = append(errs, err)
 			}
 			if err != nil {
@@ -404,7 +404,7 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachi
 
 	result, err := ctrlutil.CreateOrPatch(ctx, v.Client, vm, mutateFn)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to CreateOrPatch VSphereVM")
+		return nil, pkgerrors.Wrapf(err, "failed to CreateOrPatch VSphereVM")
 	}
 	switch result {
 	case ctrlutil.OperationResultNone:
@@ -446,7 +446,7 @@ func GenerateVSphereVMName(machineName string, namingStrategy infrav1.VSphereVMN
 
 	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, namingStrategy.Template)
 	if err != nil {
-		return name, errors.Wrap(err, "failed to generate name for VSphereVM")
+		return name, pkgerrors.Wrap(err, "failed to generate name for VSphereVM")
 	}
 
 	return name, nil

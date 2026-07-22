@@ -22,7 +22,7 @@ import (
 	"text/template"
 
 	sprig "github.com/go-task/slim-sprig/v3"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 const (
@@ -55,7 +55,7 @@ func GenerateMachineNameFromTemplate(machineName string, nameTemplate string) (s
 
 	tpl, err := nameTpl.Parse(nameTemplate)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to parse template %q", nameTemplate)
+		return "", pkgerrors.Wrapf(err, "unable to parse template %q", nameTemplate)
 	}
 
 	var buf bytes.Buffer

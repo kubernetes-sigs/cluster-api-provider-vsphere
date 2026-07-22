@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -164,7 +164,7 @@ func (r vsphereDeploymentZoneReconciler) patch(ctx context.Context, vsphereDeplo
 			),
 		},
 	); err != nil {
-		return errors.Wrapf(err, "failed to set %s condition", infrav1.VSphereDeploymentZoneReadyCondition)
+		return pkgerrors.Wrapf(err, "failed to set %s condition", infrav1.VSphereDeploymentZoneReadyCondition)
 	}
 
 	return vsphereDeploymentZoneContext.PatchHelper.Patch(ctx, vsphereDeploymentZoneContext.VSphereDeploymentZone,
@@ -188,7 +188,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 	failureDomain := &infrav1.VSphereFailureDomain{}
 	failureDomainKey := client.ObjectKey{Name: deploymentZoneCtx.VSphereDeploymentZone.Spec.FailureDomain}
 	if err := r.Client.Get(ctx, failureDomainKey, failureDomain); err != nil {
-		return errors.Wrapf(err, "failed to get VSphereFailureDomain %s", klog.KRef(failureDomainKey.Namespace, failureDomainKey.Name))
+		return pkgerrors.Wrapf(err, "failed to get VSphereFailureDomain %s", klog.KRef(failureDomainKey.Namespace, failureDomainKey.Name))
 	}
 
 	authSession, err := r.getVCenterSession(ctx, deploymentZoneCtx, failureDomain.Spec.Topology.Datacenter)
@@ -240,7 +240,7 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 				Reason:  infrav1.VSphereDeploymentZonePlacementConstraintResourcePoolNotFoundReason,
 				Message: fmt.Sprintf("resource pool %s is misconfigured", resourcePool),
 			})
-			return errors.Wrapf(err, "failed to reconcile placement contraint: unable to find resource pool %s", resourcePool)
+			return pkgerrors.Wrapf(err, "failed to reconcile placement contraint: unable to find resource pool %s", resourcePool)
 		}
 	}
 
@@ -253,7 +253,7 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 				Reason:  infrav1.VSphereDeploymentZonePlacementConstraintFolderNotFoundReason,
 				Message: fmt.Sprintf("folder %s is misconfigured", folder),
 			})
-			return errors.Wrapf(err, "failed to reconcile placement contraint: unable to find folder %s", folder)
+			return pkgerrors.Wrapf(err, "failed to reconcile placement contraint: unable to find folder %s", folder)
 		}
 	}
 
@@ -277,7 +277,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, 
 
 	clusterList := &infrav1.VSphereClusterList{}
 	if err := r.Client.List(ctx, clusterList); err != nil {
-		return nil, errors.Wrapf(err, "failed to list VSphereClusters")
+		return nil, pkgerrors.Wrapf(err, "failed to list VSphereClusters")
 	}
 
 	for _, vsphereCluster := range clusterList.Items {
@@ -327,7 +327,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 
 	machines := &clusterv1.MachineList{}
 	if err := r.Client.List(ctx, machines); err != nil {
-		return errors.Wrapf(err, "failed to list Machines")
+		return pkgerrors.Wrapf(err, "failed to list Machines")
 	}
 
 	machinesUsingDeploymentZone := collections.FromMachineList(machines).Filter(collections.ActiveMachines, func(machine *clusterv1.Machine) bool {
@@ -335,7 +335,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 	})
 	if len(machinesUsingDeploymentZone) > 0 {
 		machineNamesStr := util.MachinesAsString(machinesUsingDeploymentZone.SortedByCreationTimestamp())
-		return errors.Errorf("blocking VSphereDeploymentZone deletion: currently in use by Machines %s", machineNamesStr)
+		return pkgerrors.Errorf("blocking VSphereDeploymentZone deletion: currently in use by Machines %s", machineNamesStr)
 	}
 
 	failureDomain := &infrav1.VSphereFailureDomain{}
@@ -348,7 +348,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 			ctrlutil.RemoveFinalizer(deploymentZoneCtx.VSphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
 			return nil
 		}
-		return errors.Wrapf(err, "failed to get VSphereFailureDomain")
+		return pkgerrors.Wrapf(err, "failed to get VSphereFailureDomain")
 	}
 
 	// Reconcile the deletion of the VSphereFailureDomain by removing ownerReferences and deleting if necessary.
@@ -365,7 +365,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 	if len(failureDomain.OwnerReferences) == 0 && failureDomain.DeletionTimestamp.IsZero() {
 		log.Info("Deleting VSphereFailureDomain")
 		if err := r.Client.Delete(ctx, failureDomain); err != nil && !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to delete VSphereFailureDomain %s", failureDomain.Name)
+			return pkgerrors.Wrapf(err, "failed to delete VSphereFailureDomain %s", failureDomain.Name)
 		}
 	}
 
@@ -383,7 +383,7 @@ func updateOwnerReferences(ctx context.Context, obj client.Object, client client
 
 	obj.SetOwnerReferences(ownerRefFunc())
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to update OwnerReferences")
+		return pkgerrors.Wrapf(err, "failed to update OwnerReferences")
 	}
 
 	return nil

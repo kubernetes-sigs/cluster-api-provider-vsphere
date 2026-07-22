@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,7 +78,7 @@ func (r *EnvVarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 	var vCenterSimulator *vcsimv1.VCenterSimulator
 	if envVar.Spec.VCenterSimulator != nil {
 		if envVar.Spec.VCenterSimulator.Name == "" {
-			return ctrl.Result{}, errors.New("Spec.VCenterSimulator.Name cannot be empty")
+			return ctrl.Result{}, pkgerrors.New("Spec.VCenterSimulator.Name cannot be empty")
 		}
 		if envVar.Spec.VCenterSimulator.Namespace == "" {
 			envVar.Spec.VCenterSimulator.Namespace = envVar.Namespace
@@ -89,7 +89,7 @@ func (r *EnvVarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 			Namespace: envVar.Spec.VCenterSimulator.Namespace,
 			Name:      envVar.Spec.VCenterSimulator.Name,
 		}, vCenterSimulator); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get VCenter")
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get VCenter")
 		}
 		log = log.WithValues("VCenter", klog.KObj(vCenterSimulator))
 		ctx = ctrl.LoggerInto(ctx, log)
@@ -97,7 +97,7 @@ func (r *EnvVarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 
 	// Fetch the ControlPlaneEndpoint instance
 	if envVar.Spec.ControlPlaneEndpoint.Name == "" {
-		return ctrl.Result{}, errors.New("Spec.ControlPlaneEndpoint.Name cannot be empty")
+		return ctrl.Result{}, pkgerrors.New("Spec.ControlPlaneEndpoint.Name cannot be empty")
 	}
 	if envVar.Spec.ControlPlaneEndpoint.Namespace == "" {
 		envVar.Spec.ControlPlaneEndpoint.Namespace = envVar.Namespace
@@ -108,7 +108,7 @@ func (r *EnvVarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 		Namespace: envVar.Spec.ControlPlaneEndpoint.Namespace,
 		Name:      envVar.Spec.ControlPlaneEndpoint.Name,
 	}, controlPlaneEndpoint); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get ControlPlaneEndpoint")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get ControlPlaneEndpoint")
 	}
 	log = log.WithValues("ControlPlaneEndpoint", klog.KObj(controlPlaneEndpoint))
 	ctx = ctrl.LoggerInto(ctx, log)
@@ -177,7 +177,7 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 				Namespace: envVar.Spec.VMOperatorDependencies.Namespace,
 				Name:      envVar.Spec.VMOperatorDependencies.Name,
 			}, dependenciesConfig); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get VMOperatorDependencies")
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get VMOperatorDependencies")
 			}
 		}
 
@@ -200,7 +200,7 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 	// variables for govmomi mode derived from envVar.Spec.Cluster
 	replaceGovmomi, err := clusterEnvVarSpecGovmomiVariables(ctx, &envVar.Spec.Cluster, envVar.Spec.UseMOID, envVar.Status.Variables)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting govmomi vars")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "error getting govmomi vars")
 	}
 	for k, v := range replaceGovmomi {
 		envVar.Status.Variables[k] = v
@@ -282,12 +282,12 @@ func clusterEnvVarSpecGovmomiVariables(ctx context.Context, c *vcsimv1.ClusterEn
 
 	s, err := session.GetOrCreate(ctx, params)
 	if err != nil {
-		return vars, errors.Errorf("error creating test session: %v", err)
+		return vars, pkgerrors.Errorf("error creating test session: %v", err)
 	}
 
 	dc, err := s.Finder.Datacenter(ctx, vcsimhelpers.DatacenterName(datacenter))
 	if err != nil {
-		return vars, errors.Errorf("failed to locate datacenter reference: %v", err)
+		return vars, pkgerrors.Errorf("failed to locate datacenter reference: %v", err)
 	}
 
 	vars["VSPHERE_DATACENTER"] = dc.Reference().String()
@@ -295,31 +295,31 @@ func clusterEnvVarSpecGovmomiVariables(ctx context.Context, c *vcsimv1.ClusterEn
 
 	dsRef, err := s.Finder.Datastore(ctx, vcsimhelpers.DatastoreName(datastore))
 	if err != nil {
-		return vars, errors.Errorf("failed to locate datastore reference: %v", err)
+		return vars, pkgerrors.Errorf("failed to locate datastore reference: %v", err)
 	}
 	vars["VSPHERE_DATASTORE"] = dsRef.Reference().String()
 
 	folderRef, err := s.Finder.Folder(ctx, vcsimhelpers.VMFolderName(datacenter))
 	if err != nil {
-		return vars, errors.Errorf("failed to locate folder reference: %v", err)
+		return vars, pkgerrors.Errorf("failed to locate folder reference: %v", err)
 	}
 	vars["VSPHERE_FOLDER"] = folderRef.Reference().String()
 
 	rpRef, err := s.Finder.ResourcePool(ctx, vcsimhelpers.ResourcePoolPath(datacenter, cluster))
 	if err != nil {
-		return vars, errors.Errorf("failed to locate resource pool reference: %v", err)
+		return vars, pkgerrors.Errorf("failed to locate resource pool reference: %v", err)
 	}
 	vars["VSPHERE_RESOURCE_POOL"] = rpRef.Reference().String()
 
 	networkRef, err := s.Finder.Network(ctx, vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName))
 	if err != nil {
-		return vars, errors.Errorf("failed to locate network reference: %v", err)
+		return vars, pkgerrors.Errorf("failed to locate network reference: %v", err)
 	}
 	vars["VSPHERE_NETWORK"] = networkRef.Reference().String()
 
 	templateRef, err := s.Finder.VirtualMachine(ctx, vcsimhelpers.VMPath(datacenter, template))
 	if err != nil {
-		return vars, errors.Errorf("failed to locate template reference: %v", err)
+		return vars, pkgerrors.Errorf("failed to locate template reference: %v", err)
 	}
 	vars["VSPHERE_TEMPLATE"] = templateRef.Reference().String()
 
@@ -361,16 +361,16 @@ func (r *EnvVarReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manage
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	privateKey, err := generatePrivateKey(4096)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate private key")
+		return pkgerrors.Wrapf(err, "failed to generate private key")
 	}
 	publicKeyBytes, err := generatePublicKey(&privateKey.PublicKey)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate public key")
+		return pkgerrors.Wrapf(err, "failed to generate public key")
 	}
 	r.sshAuthorizedKey = string(publicKeyBytes)
 

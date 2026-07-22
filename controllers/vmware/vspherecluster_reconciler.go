@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -182,7 +182,7 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 			),
 		},
 	); err != nil {
-		return errors.Wrapf(err, "failed to set %s condition", vmwarev1.VSphereClusterReadyCondition)
+		return pkgerrors.Wrapf(err, "failed to set %s condition", vmwarev1.VSphereClusterReadyCondition)
 	}
 
 	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
@@ -250,7 +250,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	// Discover and reconcile failure domains to report back to the CAPI core controller.
 	err := r.reconcileFailureDomains(ctx, clusterCtx.VSphereCluster)
 	if err != nil {
-		return errors.Wrapf(
+		return pkgerrors.Wrapf(
 			err,
 			"unexpected error while discovering failure domains for %s", clusterCtx.VSphereCluster.Name)
 	}
@@ -266,7 +266,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 			Reason:  vmwarev1.VSphereClusterResourcePolicyNotReadyReason,
 			Message: err.Error(),
 		})
-		return errors.Wrapf(err,
+		return pkgerrors.Wrapf(err,
 			"failed to configure resource policy for vsphereCluster %s/%s",
 			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
@@ -280,13 +280,13 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	// Configure the cluster for the cluster network
 	err = r.NetworkProvider.ProvisionClusterNetwork(ctx, clusterCtx)
 	if err != nil {
-		return errors.Wrapf(err,
+		return pkgerrors.Wrapf(err,
 			"failed to configure cluster network for VSphereCluster %s/%s",
 			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
 
 	if err := r.reconcileControlPlaneEndpoint(ctx, clusterCtx); err != nil {
-		return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", clusterCtx.VSphereCluster.Name)
+		return pkgerrors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", clusterCtx.VSphereCluster.Name)
 	}
 
 	if clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
@@ -343,7 +343,7 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 
 	if r.NetworkProvider.HasLoadBalancer() {
 		if err := r.reconcileLoadBalancedEndpoint(ctx, clusterCtx); err != nil {
-			return errors.Wrapf(err,
+			return pkgerrors.Wrapf(err,
 				"failed to reconcile loadbalanced endpoint for VSphereCluster %s/%s",
 				clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 		}
@@ -352,7 +352,7 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 	}
 
 	if err := r.reconcileAPIEndpoints(ctx, clusterCtx); err != nil {
-		return errors.Wrapf(err,
+		return pkgerrors.Wrapf(err,
 			"failed to reconcile API endpoints for VSphereCluster %s/%s",
 			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
@@ -384,7 +384,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 
 	machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, clusterCtx.Cluster, collections.ControlPlaneMachines(clusterCtx.Cluster.Name))
 	if err != nil {
-		return errors.Wrapf(err,
+		return pkgerrors.Wrapf(err,
 			"failed to get Machines for Cluster %s/%s",
 			clusterCtx.Cluster.Namespace, clusterCtx.Cluster.Name)
 	}
@@ -408,7 +408,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 		// Get the vsphereMachine for the CAPI Machine resource.
 		vsphereMachine, err := util.GetVSphereMachine(ctx, r.Client, machine.Namespace, machine.Name)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get VSphereMachine for Machine %s/%s", machine.Namespace, machine.Name)
+			return pkgerrors.Wrapf(err, "failed to get VSphereMachine for Machine %s/%s", machine.Namespace, machine.Name)
 		}
 		log = log.WithValues("VSphereMachine", klog.KObj(vsphereMachine))
 		ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
@@ -434,7 +434,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 	// discovered. Otherwise return an error so the cluster is requeued
 	// for reconciliation.
 	if len(apiEndpointList) == 0 {
-		return errors.Wrapf(err,
+		return pkgerrors.Wrapf(err,
 			"failed to reconcile API endpoints for %s/%s",
 			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
@@ -539,7 +539,7 @@ func (r *ClusterReconciler) reconcileFailureDomains(ctx context.Context, vsphere
 				Reason:  vmwarev1.VSphereClusterFailureDomainsReadyInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			})
-			return errors.Wrapf(err, "failed to list Zones in namespace %s", namespace)
+			return pkgerrors.Wrapf(err, "failed to list Zones in namespace %s", namespace)
 		}
 
 		for _, zone := range zoneList.Items {

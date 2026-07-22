@@ -19,7 +19,7 @@ package vmware
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -55,7 +55,7 @@ func AddVSphereMachineTemplateControllerToManager(ctx context.Context, controlle
 	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 	vmClass, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachineClass{})
 	if err != nil {
-		return errors.Wrap(err, "failed to create watch object for VirtualMachineClass")
+		return pkgerrors.Wrap(err, "failed to create watch object for VirtualMachineClass")
 	}
 
 	return capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
@@ -91,7 +91,7 @@ func (r *vSphereMachineTemplateReconciler) Reconcile(ctx context.Context, req ct
 	// Fetch the VirtualMachineClass
 	vmClass := &vmoprvhub.VirtualMachineClass{}
 	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: vSphereMachineTemplate.Spec.Template.Spec.ClassName}, vmClass); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get VirtualMachineClass %q for VSphereMachineTemplate", vSphereMachineTemplate.Spec.Template.Spec.ClassName)
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get VirtualMachineClass %q for VSphereMachineTemplate", vSphereMachineTemplate.Spec.Template.Spec.ClassName)
 	}
 
 	patchHelper, err := patch.NewHelper(vSphereMachineTemplate, r.Client)
@@ -165,7 +165,7 @@ func getOSAndArchFromClusterVirtualMachineImage(ctx context.Context, c client.Cl
 		if apierrors.IsNotFound(err) {
 			return "", "", nil
 		}
-		return "", "", errors.Wrapf(err, "failed to get ClusterVirtualMachineImage %q", imageName)
+		return "", "", pkgerrors.Wrapf(err, "failed to get ClusterVirtualMachineImage %q", imageName)
 	}
 
 	// Extract OS type and architecture from vmwareSystemProperties

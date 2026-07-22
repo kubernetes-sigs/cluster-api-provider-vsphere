@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/mod/modfile"
 )
 
@@ -58,7 +58,7 @@ func (m Mod) FindDependencyVersion(dependency string) (string, error) {
 		}
 	}
 	if version == "" {
-		return version, errors.Errorf("could not find required package: %s", dependency)
+		return version, pkgerrors.Errorf("could not find required package: %s", dependency)
 	}
 
 	for _, entry := range f.Replace {

@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -459,7 +459,7 @@ func Test_converter_Convert(t *testing.T) {
 					&testhub.A{},
 					v1alpha5GroupVersion.Version, &testv1alpha5.A{},
 					func(_ context.Context, _ runtime.Object, _ runtime.Object) error {
-						return errors.New("fail")
+						return pkgerrors.New("fail")
 					}, func(_ context.Context, _ runtime.Object, _ runtime.Object) error {
 						return nil
 					},

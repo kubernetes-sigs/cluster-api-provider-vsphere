@@ -28,7 +28,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -204,7 +204,7 @@ func execPod(ctx context.Context, clusterProxy framework.ClusterProxy, namespace
 		Tty:    false,
 	})
 	if err != nil {
-		return errors.Wrapf(err, "running command %q stdout=%q, stderr=%q", cmd, stdout.String(), stderr.String())
+		return pkgerrors.Wrapf(err, "running command %q stdout=%q, stderr=%q", cmd, stdout.String(), stderr.String())
 	}
 
 	return nil

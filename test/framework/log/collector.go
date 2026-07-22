@@ -28,7 +28,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -80,7 +80,7 @@ func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, ctrlClient 
 			}
 
 			if err := kerrors.NewAggregate(errs); err != nil {
-				return errors.Wrapf(err, "failed to run command %s for machine %s on ips [%s]", command, klog.KObj(m), strings.Join(machineIPAddresses, ", "))
+				return pkgerrors.Wrapf(err, "failed to run command %s for machine %s on ips [%s]", command, klog.KObj(m), strings.Join(machineIPAddresses, ", "))
 			}
 			return nil
 		}
@@ -120,7 +120,7 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient
 	if m.Spec.InfrastructureRef.APIGroup == vmwarev1.GroupVersion.Group {
 		vsphereMachine := &vmwarev1.VSphereMachine{}
 		if err := ctrlClient.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}, vsphereMachine); err != nil {
-			return nil, errors.Wrapf(err, "getting vmwarev1.VSphereMachine %s/%s", m.Namespace, m.Spec.InfrastructureRef.Name)
+			return nil, pkgerrors.Wrapf(err, "getting vmwarev1.VSphereMachine %s/%s", m.Namespace, m.Spec.InfrastructureRef.Name)
 		}
 
 		if len(vsphereMachine.Status.Addresses) > 0 {
@@ -134,7 +134,7 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient
 		var err error
 		vmName, err = vmoperator.GenerateVirtualMachineName(m.Name, vsphereMachine.Spec.Naming)
 		if err != nil {
-			return nil, errors.Wrapf(err, "generating VirtualMachine name for Machine %s/%s", m.Namespace, m.Name)
+			return nil, pkgerrors.Wrapf(err, "generating VirtualMachine name for Machine %s/%s", m.Namespace, m.Name)
 		}
 	}
 
@@ -147,7 +147,7 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient
 
 	if err := c.Client.RetrieveOne(ctx, vmObj.Reference(), []string{"guest.net"}, &vm); err != nil {
 		// We cannot get the properties e.g. when the vm already got deleted or is getting deleted.
-		return nil, errors.Errorf("error retrieving properties for machine %s", klog.KObj(m))
+		return nil, pkgerrors.Errorf("error retrieving properties for machine %s", klog.KObj(m))
 	}
 
 	addresses := []string{}
@@ -167,7 +167,7 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient
 	}
 
 	if len(addresses) == 0 {
-		return nil, errors.Errorf("unable to find IP Addresses for Machine %s", klog.KObj(m))
+		return nil, pkgerrors.Errorf("unable to find IP Addresses for Machine %s", klog.KObj(m))
 	}
 
 	return addresses, nil
@@ -189,13 +189,13 @@ func executeRemoteCommand(f io.StringWriter, hostIPAddr, command string, args ..
 
 	hostClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", hostIPAddr, port), config)
 	if err != nil {
-		return errors.Wrapf(err, "dialing host IP address at %s", hostIPAddr)
+		return pkgerrors.Wrapf(err, "dialing host IP address at %s", hostIPAddr)
 	}
 	defer hostClient.Close()
 
 	session, err := hostClient.NewSession()
 	if err != nil {
-		return errors.Wrap(err, "opening SSH session")
+		return pkgerrors.Wrap(err, "opening SSH session")
 	}
 	defer session.Close()
 
@@ -206,10 +206,10 @@ func executeRemoteCommand(f io.StringWriter, hostIPAddr, command string, args ..
 		command += " " + strings.Join(args, " ")
 	}
 	if err = session.Run(command); err != nil {
-		return errors.Wrapf(err, "running command \"%s\"", command)
+		return pkgerrors.Wrapf(err, "running command \"%s\"", command)
 	}
 	if _, err = f.WriteString(stdoutBuf.String()); err != nil {
-		return errors.Wrap(err, "writing output to file")
+		return pkgerrors.Wrap(err, "writing output to file")
 	}
 
 	return nil
@@ -224,7 +224,7 @@ func newSSHConfig() (*ssh.ClientConfig, error) {
 
 	signer, err := ssh.ParsePrivateKey(sshPrivateKeyContent)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing private key: %s", sshPrivateKeyContent)
+		return nil, pkgerrors.Wrapf(err, "error parsing private key: %s", sshPrivateKeyContent)
 	}
 
 	config := &ssh.ClientConfig{
@@ -241,7 +241,7 @@ func newSSHConfig() (*ssh.ClientConfig, error) {
 func readPrivateKey() ([]byte, error) {
 	privateKeyFilePath := os.Getenv(VSpherePrivateKeyFilePath)
 	if privateKeyFilePath == "" {
-		return nil, errors.Errorf("private key information missing. Please set %s environment variable", VSpherePrivateKeyFilePath)
+		return nil, pkgerrors.Errorf("private key information missing. Please set %s environment variable", VSpherePrivateKeyFilePath)
 	}
 
 	return os.ReadFile(filepath.Clean(privateKeyFilePath))

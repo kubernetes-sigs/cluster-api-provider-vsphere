@@ -20,7 +20,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,7 +40,7 @@ type RPService struct {
 // Returns the name of a policy if it exists, otherwise returns an error.
 func (s *RPService) ReconcileResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
 	if err := s.createOrPatchVirtualMachineSetResourcePolicy(ctx, clusterCtx); err != nil {
-		return errors.Errorf("failed to create Resource Policy: %+v", err)
+		return pkgerrors.Errorf("failed to create Resource Policy: %+v", err)
 	}
 	return nil
 }
@@ -82,7 +82,7 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 		vmResourcePolicy,
 		s.Client.Scheme(),
 	); err != nil {
-		return errors.Wrapf(
+		return pkgerrors.Wrapf(
 			err,
 			"error setting %s/%s as owner of %s/%s",
 			clusterCtx.VSphereCluster.Namespace,
@@ -99,10 +99,10 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 	} else if !reflect.DeepEqual(originalResourcePolicy, vmResourcePolicy) {
 		patch, err := conversionclient.MergeFrom(ctx, s.Client, originalResourcePolicy)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create patch for VirtualMachineSetResourcePolicy object")
+			return pkgerrors.Wrapf(err, "failed to create patch for VirtualMachineSetResourcePolicy object")
 		}
 		if err := s.Client.Patch(ctx, vmResourcePolicy, patch); err != nil {
-			return errors.Wrapf(err, "failed to patch VirtualMachineSetResourcePolicy object")
+			return pkgerrors.Wrapf(err, "failed to patch VirtualMachineSetResourcePolicy object")
 		}
 	}
 

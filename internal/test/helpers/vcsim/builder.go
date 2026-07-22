@@ -32,7 +32,7 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi/simulator"
 	_ "github.com/vmware/govmomi/vapi/cluster/simulator" // import this to register cluster module service test endpoint
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -168,12 +168,12 @@ func generateTLSKeyPair() (tls.Certificate, error) {
 
 	b, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
 	if err != nil {
-		return tls.Certificate{}, errors.Wrap(err, "failed to create certificate")
+		return tls.Certificate{}, pkgerrors.Wrap(err, "failed to create certificate")
 	}
 
 	cert, err := x509.ParseCertificate(b)
 	if err != nil {
-		return tls.Certificate{}, errors.Wrap(err, "failed to parse certificate")
+		return tls.Certificate{}, pkgerrors.Wrap(err, "failed to parse certificate")
 	}
 
 	return tls.X509KeyPair(certs.EncodeCertPEM(cert), certs.EncodePrivateKeyPEM(privateKey))

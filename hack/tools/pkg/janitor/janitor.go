@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	cnstypes "github.com/vmware/govmomi/cns/types"
 	"github.com/vmware/govmomi/object"
 	govmomicluster "github.com/vmware/govmomi/vapi/cluster"
@@ -66,36 +66,36 @@ func (s *Janitor) CleanupVSphere(ctx context.Context, folders, resourcePools, vm
 	// Delete vms to cleanup folders and resource pools.
 	for _, folder := range vmFolders {
 		if err := s.deleteVSphereVMs(ctx, folder); err != nil {
-			errList = append(errList, errors.Wrapf(err, "cleaning up vSphereVMs for folder %q", folder))
+			errList = append(errList, pkgerrors.Wrapf(err, "cleaning up vSphereVMs for folder %q", folder))
 		}
 	}
 	if err := kerrors.NewAggregate(errList); err != nil {
-		return errors.Wrap(err, "cleaning up vSphereVMs")
+		return pkgerrors.Wrap(err, "cleaning up vSphereVMs")
 	}
 
 	// Delete empty resource pools.
 	for _, resourcePool := range resourcePools {
 		if err := s.deleteObjectChildren(ctx, resourcePool, "ResourcePool"); err != nil {
-			errList = append(errList, errors.Wrapf(err, "cleaning up empty resource pool children for resource pool %q", resourcePool))
+			errList = append(errList, pkgerrors.Wrapf(err, "cleaning up empty resource pool children for resource pool %q", resourcePool))
 		}
 	}
 	if err := kerrors.NewAggregate(errList); err != nil {
-		return errors.Wrap(err, "cleaning up resource pools")
+		return pkgerrors.Wrap(err, "cleaning up resource pools")
 	}
 
 	// Delete empty folders.
 	for _, folder := range folders {
 		if err := s.deleteObjectChildren(ctx, folder, "Folder"); err != nil {
-			errList = append(errList, errors.Wrapf(err, "cleaning up empty folder children for folder %q", folder))
+			errList = append(errList, pkgerrors.Wrapf(err, "cleaning up empty folder children for folder %q", folder))
 		}
 	}
 	if err := kerrors.NewAggregate(errList); err != nil {
-		return errors.Wrap(err, "cleaning up folders")
+		return pkgerrors.Wrap(err, "cleaning up folders")
 	}
 
 	// Delete CNS volumes.
 	if err := s.DeleteCNSVolumes(ctx, boskosResourceName); err != nil {
-		return errors.Wrap(err, "cleaning up volumes")
+		return pkgerrors.Wrap(err, "cleaning up volumes")
 	}
 
 	if skipClusterModule {
@@ -104,7 +104,7 @@ func (s *Janitor) CleanupVSphere(ctx context.Context, folders, resourcePools, vm
 
 	// Delete empty cluster modules.
 	if err := s.deleteVSphereClusterModules(ctx); err != nil {
-		return errors.Wrap(err, "cleaning up vSphere cluster modules")
+		return pkgerrors.Wrap(err, "cleaning up vSphere cluster modules")
 	}
 
 	return nil
@@ -217,7 +217,7 @@ func (s *Janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 	}
 	// Wait for all destroy tasks to succeed.
 	if err := waitForTasksFinished(ctx, destroyTasks, false); err != nil {
-		return errors.Wrap(err, "failed to wait for vm destroy task to finish")
+		return pkgerrors.Wrap(err, "failed to wait for vm destroy task to finish")
 	}
 
 	return nil
@@ -320,7 +320,7 @@ func (s *Janitor) DeleteCNSVolumes(ctx context.Context, boskosResourceName strin
 		// Trigger deletion of the CNS Volume
 		task, err := s.vSphereClients.CNS.DeleteVolume(ctx, []cnstypes.CnsVolumeId{volume.volumeID}, true)
 		if err != nil {
-			return errors.Wrap(err, "failed to create CNS Volume deletion task")
+			return pkgerrors.Wrap(err, "failed to create CNS Volume deletion task")
 		}
 
 		log.Info("Created CNS Volume deletion task", "task", task.Reference().Value)
@@ -329,7 +329,7 @@ func (s *Janitor) DeleteCNSVolumes(ctx context.Context, boskosResourceName strin
 
 	// Wait for all delete tasks to succeed.
 	if err := waitForTasksFinished(ctx, deleteTasks, false); err != nil {
-		return errors.Wrap(err, "failed to wait for CNS Volume deletion tasks to finish")
+		return pkgerrors.Wrap(err, "failed to wait for CNS Volume deletion tasks to finish")
 	}
 
 	return nil
@@ -419,7 +419,7 @@ func (s *Janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 	}
 	// Wait for all destroy tasks to succeed.
 	if err := waitForTasksFinished(ctx, destroyTasks, false); err != nil {
-		return errors.Wrap(err, "failed to wait for object destroy task to finish")
+		return pkgerrors.Wrap(err, "failed to wait for object destroy task to finish")
 	}
 
 	return nil

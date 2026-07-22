@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -38,7 +38,7 @@ import (
 func TopologyVariable() (*clusterv1.ClusterVariable, error) {
 	out, err := json.Marshal(kubevip.PodYAML())
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to json-encode variable kubeVipPod")
+		return nil, pkgerrors.Wrapf(err, "failed to json-encode variable kubeVipPod")
 	}
 
 	return &clusterv1.ClusterVariable{
@@ -99,7 +99,7 @@ func TopologyPatch() clusterv1.ClusterClassPatch {
 func fileToTemplate(f bootstrapv1.File) (string, error) {
 	out, err := yaml.Marshal(f)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to wrap file %q", f.Path)
+		return "", pkgerrors.Wrapf(err, "unable to wrap file %q", f.Path)
 	}
 
 	return string(out), nil

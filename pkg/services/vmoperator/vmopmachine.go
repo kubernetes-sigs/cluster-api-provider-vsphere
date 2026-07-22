@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -93,7 +93,7 @@ func (v *VmopMachineService) FetchVSphereMachine(ctx context.Context, name apity
 func (v *VmopMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
 	machineCtx, ok := machineContext.(*vmware.SupervisorMachineContext)
 	if !ok {
-		return nil, errors.New("received unexpected SupervisorMachineContext type")
+		return nil, pkgerrors.New("received unexpected SupervisorMachineContext type")
 	}
 
 	vsphereCluster := &vmwarev1.VSphereCluster{}
@@ -112,7 +112,7 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 	log := ctrl.LoggerFrom(ctx)
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
-		return errors.New("received unexpected SupervisorMachineContext type")
+		return pkgerrors.New("received unexpected SupervisorMachineContext type")
 	}
 	log.Info("Deleting VirtualMachine")
 
@@ -178,7 +178,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	log := ctrl.LoggerFrom(ctx)
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
-		return false, errors.New("received unexpected SupervisorMachineContext type")
+		return false, pkgerrors.New("received unexpected SupervisorMachineContext type")
 	}
 
 	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
@@ -394,7 +394,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				Reason:  c.Reason,
 				Message: c.Message,
 			})
-			return false, errors.Errorf("vm prerequisites check failed for condition %s: %s", condition, klog.KObj(vmOperatorVM))
+			return false, pkgerrors.Errorf("vm prerequisites check failed for condition %s: %s", condition, klog.KObj(vmOperatorVM))
 		}
 
 		// All the pre-requisites are in place but the machines is not yet created, report it.
@@ -504,7 +504,7 @@ func GenerateVirtualMachineName(machineName string, namingStrategy vmwarev1.Virt
 
 	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, namingStrategy.Template)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to generate name for VirtualMachine")
+		return "", pkgerrors.Wrap(err, "failed to generate name for VirtualMachine")
 	}
 
 	return name, nil
@@ -514,7 +514,7 @@ func GenerateVirtualMachineName(machineName string, namingStrategy vmwarev1.Virt
 func (v *VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcontext.MachineContext) (string, error) {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
-		return "", errors.New("received unexpected SupervisorMachineContext type")
+		return "", pkgerrors.New("received unexpected SupervisorMachineContext type")
 	}
 
 	vmOperatorVM := &vmoprvhub.VirtualMachine{}
@@ -533,7 +533,7 @@ func (v *VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcon
 func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vmOperatorVM *vmoprvhub.VirtualMachine, affinityInfo *affinityInfo) error {
 	// All Machine resources should define the version of Kubernetes to use.
 	if supervisorMachineCtx.Machine.Spec.Version == "" {
-		return errors.Errorf(
+		return pkgerrors.Errorf(
 			"missing kubernetes version for %s %s/%s",
 			supervisorMachineCtx.Machine.GroupVersionKind(),
 			supervisorMachineCtx.Machine.Namespace,
@@ -676,7 +676,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 
 	// Make sure the VSphereMachine owns the VM Operator VirtualMachine.
 	if err := ctrlutil.SetControllerReference(supervisorMachineCtx.VSphereMachine, vmOperatorVM, v.Client.Scheme()); err != nil {
-		return errors.Wrapf(err, "failed to mark %s %s/%s as owner of %s %s/%s",
+		return pkgerrors.Wrapf(err, "failed to mark %s %s/%s as owner of %s %s/%s",
 			supervisorMachineCtx.VSphereMachine.GroupVersionKind(),
 			supervisorMachineCtx.VSphereMachine.Namespace,
 			supervisorMachineCtx.VSphereMachine.Name,
@@ -692,10 +692,10 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	} else if !reflect.DeepEqual(originalVM, vmOperatorVM) {
 		patch, err := conversionclient.MergeFrom(ctx, v.Client, originalVM)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create patch for VirtualMachine object")
+			return pkgerrors.Wrapf(err, "failed to create patch for VirtualMachine object")
 		}
 		if err := v.Client.Patch(ctx, vmOperatorVM, patch); err != nil {
-			return errors.Wrapf(err, "failed to patch VirtualMachine object")
+			return pkgerrors.Wrapf(err, "failed to patch VirtualMachine object")
 		}
 	}
 
@@ -796,7 +796,7 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 // First filter by ClusterSelectorKey. If the result is empty, they fall back to legacyClusterSelectorKey.
 func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext) ([]*vmoprvhub.VirtualMachine, error) {
 	if supervisorMachineCtx.Cluster == nil {
-		return []*vmoprvhub.VirtualMachine{}, errors.Errorf("No cluster is set for machine %s in namespace %s", supervisorMachineCtx.GetVSphereMachine().GetName(), supervisorMachineCtx.GetVSphereMachine().GetNamespace())
+		return []*vmoprvhub.VirtualMachine{}, pkgerrors.Errorf("No cluster is set for machine %s in namespace %s", supervisorMachineCtx.GetVSphereMachine().GetName(), supervisorMachineCtx.GetVSphereMachine().GetNamespace())
 	}
 	labels := map[string]string{ClusterSelectorKey: supervisorMachineCtx.Cluster.Name}
 	vmList := &vmoprvhub.VirtualMachineList{}
@@ -805,7 +805,7 @@ func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, su
 		ctx, vmList,
 		client.InNamespace(supervisorMachineCtx.Cluster.Namespace),
 		client.MatchingLabels(labels)); err != nil {
-		return nil, errors.Wrapf(
+		return nil, pkgerrors.Wrapf(
 			err, "error getting virtualmachines in cluster %s/%s",
 			supervisorMachineCtx.Cluster.Namespace, supervisorMachineCtx.Cluster.Name)
 	}
@@ -817,7 +817,7 @@ func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, su
 			ctx, vmList,
 			client.InNamespace(supervisorMachineCtx.Cluster.Namespace),
 			client.MatchingLabels(legacyLabels)); err != nil {
-			return nil, errors.Wrapf(
+			return nil, pkgerrors.Wrapf(
 				err, "error getting virtualmachines in cluster %s/%s using legacy labels",
 				supervisorMachineCtx.Cluster.Namespace, supervisorMachineCtx.Cluster.Name)
 		}
@@ -920,7 +920,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 			}
 			b, err := json.Marshal(topology)
 			if err != nil {
-				return errors.Errorf("failed to marshal zone topology %q: %s", zone, err)
+				return pkgerrors.Errorf("failed to marshal zone topology %q: %s", zone, err)
 			}
 			pvc.Annotations = map[string]string{
 				"csi.vsphere.volume-requested-topology": string(b),
@@ -933,7 +933,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 				pvc,
 				v.Client.Scheme(),
 			); err != nil {
-				return errors.Wrapf(
+				return pkgerrors.Wrapf(
 					err,
 					"error setting %s/%s as owner of %s/%s",
 					supervisorMachineCtx.VSphereMachine.Namespace,
@@ -944,7 +944,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 			}
 			return nil
 		}); err != nil {
-			return errors.Wrapf(
+			return pkgerrors.Wrapf(
 				err,
 				"failed to create volume %s/%s",
 				pvc.Namespace,

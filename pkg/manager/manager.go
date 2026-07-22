@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	nsxvpcv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
@@ -82,14 +82,14 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 	// Build the controller manager.
 	mgr, err := ctrl.NewManager(opts.KubeConfig, opts.Options)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create manager")
+		return nil, pkgerrors.Wrap(err, "unable to create manager")
 	}
 
 	cc := mgr.GetClient()
 	if opts.Converter != nil {
 		cc, err = conversionclient.NewWithConverter(mgr.GetClient(), opts.Converter)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create a conversion client")
+			return nil, pkgerrors.Wrap(err, "failed to create a conversion client")
 		}
 	}
 
@@ -113,7 +113,7 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 
 	// Add the requested items to the manager.
 	if err := opts.AddToManager(ctx, controllerManagerContext, mgr); err != nil {
-		return nil, errors.Wrap(err, "failed to add resources to the manager")
+		return nil, pkgerrors.Wrap(err, "failed to add resources to the manager")
 	}
 
 	return &manager{
@@ -143,10 +143,10 @@ func InitializeWatch(controllerManagerContext *capvcontext.ControllerManagerCont
 	updateEventCh := make(chan bool)
 	watch, err = fsnotify.NewWatcher()
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to create new Watcher for %s", capvCredentialsFile))
+		return nil, pkgerrors.Wrap(err, fmt.Sprintf("failed to create new Watcher for %s", capvCredentialsFile))
 	}
 	if err = watch.Add(capvCredentialsFile); err != nil {
-		return nil, errors.Wrap(err, "received error on CAPV credential watcher")
+		return nil, pkgerrors.Wrap(err, "received error on CAPV credential watcher")
 	}
 	go func() {
 		for {

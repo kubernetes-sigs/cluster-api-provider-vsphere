@@ -23,7 +23,7 @@ import (
 	"net/netip"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"golang.org/x/exp/slices"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -108,7 +108,7 @@ func BuildState(ctx context.Context, vmCtx capvcontext.VMContext, networkStatus 
 			msgs = append(msgs, err.Error())
 		}
 		msg := strings.Join(msgs, "\n")
-		return state, errors.New(msg)
+		return state, pkgerrors.New(msg)
 	}
 	return state, nil
 }
@@ -127,7 +127,7 @@ func buildIPAMDeviceConfigs(ctx context.Context, vmCtx capvcontext.VMContext, ne
 		if len(networkStatus) == 0 ||
 			len(networkStatus) <= devIdx ||
 			networkStatus[devIdx].MACAddr == "" {
-			return ipamDeviceConfigs, errors.New("waiting for devices to have MAC address set")
+			return ipamDeviceConfigs, pkgerrors.New("waiting for devices to have MAC address set")
 		}
 
 		ipamDeviceConfig := ipamDeviceConfig{
@@ -151,7 +151,7 @@ func buildIPAMDeviceConfigs(ctx context.Context, vmCtx capvcontext.VMContext, ne
 					// it would be odd for this to occur, a findorcreate just happened in a previous step
 					continue
 				}
-				return nil, errors.Wrapf(err, "failed to get IPAddressClaim %s", klog.KRef(vmCtx.VSphereVM.Namespace, ipAddrClaimName))
+				return nil, pkgerrors.Wrapf(err, "failed to get IPAddressClaim %s", klog.KRef(vmCtx.VSphereVM.Namespace, ipAddrClaimName))
 			}
 
 			log.V(5).Info("Fetched IPAddressClaim")

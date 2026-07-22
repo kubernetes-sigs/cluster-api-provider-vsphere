@@ -21,7 +21,6 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/pkg/errors"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	"k8s.io/klog/v2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -62,14 +61,10 @@ import (
 
 // AddClusterControllerToManager adds the cluster controller to the provided
 // manager.
-func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, supervisorBased bool, options controller.Options) error {
+func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, supervisorBased bool, options controller.Options, networkProviderFactory inframanager.NetworkProviderFactory) error {
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vspherecluster")
 
 	if supervisorBased {
-		networkProvider, err := inframanager.GetNetworkProvider(ctx, controllerManagerCtx.Client, controllerManagerCtx.NetworkProvider)
-		if err != nil {
-			return errors.Wrap(err, "failed to create a network provider")
-		}
 		reconciler := &vmware.ClusterReconciler{
 			Client:   controllerManagerCtx.Client,
 			Recorder: mgr.GetEventRecorderFor("vspherecluster-controller"),
@@ -79,7 +74,7 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 			ControlPlaneService: &vmoperator.CPService{
 				Client: controllerManagerCtx.Client,
 			},
-			NetworkProvider: networkProvider,
+			NetworkProviderFactory: networkProviderFactory,
 		}
 		builder := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 			For(&vmwarev1.VSphereCluster{}).
@@ -98,8 +93,10 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 			)
 		}
 
-		// Conditionally add a Watch for KCP when the network provider supports IPv6 and dual-stack
-		if networkProvider.SupportsIPv6DualStack() {
+		// Conditionally add a Watch for KCP when IPv6/dual-stack support is enabled.
+		// Per-cluster provider capability is evaluated at reconcile time; the watch must be
+		// registered whenever the IPv6DualStack gate is on so VPC clusters are requeued.
+		if feature.Gates.Enabled(feature.IPv6DualStack) {
 			builder = builder.Watches(
 				&controlplanev1.KubeadmControlPlane{},
 				handler.EnqueueRequestsFromMapFunc(reconciler.KubeadmControlPlaneToCluster),

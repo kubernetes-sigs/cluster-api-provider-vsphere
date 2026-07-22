@@ -118,7 +118,11 @@ func setup(ctx context.Context) (*helpers.TestEnvironment, client.Client, cluste
 	if err := AddServiceAccountProviderControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, clusterCache, secretCachingClient, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup ServiceAccount controller: %v", err))
 	}
-	if err := AddServiceDiscoveryControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, clusterCache, controllerOpts); err != nil {
+	networkProviderFactory, err := manager.NewStaticNetworkProviderFactory(ctx, testEnv.GetControllerManagerContext().Client, testEnv.GetControllerManagerContext().NetworkProvider)
+	if err != nil {
+		panic(fmt.Sprintf("unable to create network provider factory: %v", err))
+	}
+	if err := AddServiceDiscoveryControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, clusterCache, controllerOpts, networkProviderFactory); err != nil {
 		panic(fmt.Sprintf("unable to setup SvcDiscovery controller: %v", err))
 	}
 

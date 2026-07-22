@@ -17,6 +17,8 @@ limitations under the License.
 package vmware
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +31,7 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	vmwarehelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
+	inframanager "sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
 )
@@ -43,6 +46,18 @@ func (d *dummyDualStackNetworkProvider) SupportsIPv6DualStack() bool {
 
 func (d *dummyDualStackNetworkProvider) HasLoadBalancer() bool {
 	return true
+}
+
+type testNetworkProviderFactory struct {
+	np services.NetworkProvider
+}
+
+func (f *testNetworkProviderFactory) ForCluster(_ context.Context, _ *vmwarev1.VSphereCluster) (services.NetworkProvider, error) {
+	return f.np, nil
+}
+
+func newTestNetworkProviderFactory(np services.NetworkProvider) inframanager.NetworkProviderFactory {
+	return &testNetworkProviderFactory{np: np}
 }
 
 var _ = Describe("ServiceDiscoveryReconciler reconcileNormal", serviceDiscoveryUnitTestsReconcileNormal)
@@ -63,10 +78,10 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		vsphereCluster = fake.NewVSphereCluster(namespace)
 		controllerCtx = vmwarehelpers.NewUnitTestContextForController(ctx, namespace, &vsphereCluster, false, initObjects, nil)
 		reconciler = serviceDiscoveryReconciler{
-			Client:          controllerCtx.ControllerManagerContext.Client,
-			NetworkProvider: netProvider,
+			Client:                 controllerCtx.ControllerManagerContext.Client,
+			NetworkProviderFactory: newTestNetworkProviderFactory(netProvider),
 		}
-		err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext)
+		err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext, netProvider)
 		Expect(err).NotTo(HaveOccurred())
 	})
 	JustAfterEach(func() {
@@ -94,10 +109,9 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		})
 		It("Should get supervisor master endpoint IP", func() {
 			r := &serviceDiscoveryReconciler{
-				Client:          controllerCtx.ControllerManagerContext.Client,
-				NetworkProvider: network.DummyNetworkProvider(),
+				Client: controllerCtx.ControllerManagerContext.Client,
 			}
-			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, network.DummyNetworkProvider())
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(supervisorEndpointIPs).To(Equal([]string{testSupervisorAPIServerVIP}))
 		})
@@ -192,10 +206,9 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			}
 
 			r := &serviceDiscoveryReconciler{
-				Client:          controllerCtx.ControllerManagerContext.Client,
-				NetworkProvider: &dummyDualStackNetworkProvider{},
+				Client: controllerCtx.ControllerManagerContext.Client,
 			}
-			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, &dummyDualStackNetworkProvider{})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(supervisorEndpointIPs).To(Equal([]string{testSupervisorAPIServerVIP, testSupervisorAPIServerIPv6VIP}))
 		})
@@ -214,10 +227,9 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			}
 
 			r := &serviceDiscoveryReconciler{
-				Client:          controllerCtx.ControllerManagerContext.Client,
-				NetworkProvider: &dummyDualStackNetworkProvider{},
+				Client: controllerCtx.ControllerManagerContext.Client,
 			}
-			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, &dummyDualStackNetworkProvider{})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(supervisorEndpointIPs).To(Equal([]string{testSupervisorAPIServerIPv6VIP}))
 		})
@@ -236,22 +248,24 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			}
 
 			r := &serviceDiscoveryReconciler{
-				Client:          controllerCtx.ControllerManagerContext.Client,
-				NetworkProvider: &dummyDualStackNetworkProvider{},
+				Client: controllerCtx.ControllerManagerContext.Client,
 			}
-			_, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			_, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, &dummyDualStackNetworkProvider{})
 			Expect(err).To(HaveOccurred())
 			// Updated assertion: Verifies that failing to parse an IP correctly returns a distinct API server VIP error.
 			Expect(err.Error()).To(ContainSubstring("failed to discover supervisor API server VIPs"))
 		})
 	})
 	Context("getSupervisorAPIServerAddresses permutations", func() {
-		var r serviceDiscoveryReconciler
+		var (
+			r  serviceDiscoveryReconciler
+			np services.NetworkProvider
+		)
 
 		JustBeforeEach(func() {
+			np = &dummyDualStackNetworkProvider{}
 			r = serviceDiscoveryReconciler{
-				Client:          controllerCtx.ControllerManagerContext.Client,
-				NetworkProvider: &dummyDualStackNetworkProvider{},
+				Client: controllerCtx.ControllerManagerContext.Client,
 			}
 		})
 
@@ -265,7 +279,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"fd00:1::/64"}},
 			}
 
-			_, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			_, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("no supervisor apiserver IPv6 VIP found for IPv6 single stack cluster"))
 		})
@@ -286,7 +300,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16", "fd00:1::/64"}},
 			}
 
-			_, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			_, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("found too many VIPs"))
 		})
@@ -305,7 +319,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16", "fd00:1::/64"}},
 			}
 
-			_, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			_, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("must be an IP address"))
 		})
@@ -320,7 +334,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16", "fd00:1::/64"}},
 			}
 
-			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vips).To(Equal([]string{testSupervisorAPIServerVIP}))
 		})
@@ -335,14 +349,14 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16", "fd00:1::/64"}},
 			}
 
-			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vips).To(Equal([]string{testSupervisorAPIServerIPv6VIP}))
 		})
 
 		It("should succeed via FIP/VIP fallback when dual stack is NOT supported and cluster has NO CIDR blocks", func() {
 			// Setup: NetworkProvider does not support dual stack
-			r.NetworkProvider = network.DummyNetworkProvider()
+			np = network.DummyNetworkProvider()
 
 			// Setup: VIP and FIP are available
 			initObjects = []client.Object{
@@ -356,14 +370,14 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			// Setup: Cluster has NO CIDR blocks
 			controllerCtx.Cluster.Spec.ClusterNetwork = clusterv1.ClusterNetwork{}
 
-			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vips).To(Equal([]string{testSupervisorAPIServerVIP}))
 		})
 
 		It("should return IPv4 only for IPv4SingleStack cluster in a dual-stack enabled environment", func() {
 			// Setup: NetworkProvider supports dual stack
-			r.NetworkProvider = &dummyDualStackNetworkProvider{}
+			np = &dummyDualStackNetworkProvider{}
 
 			// Setup: VIP and FIP are available
 			initObjects = []client.Object{
@@ -379,13 +393,13 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16"}},
 			}
 
-			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vips).To(Equal([]string{testSupervisorAPIServerVIP}))
 		})
 
 		It("should return addresses in correct order for DualStackIPv4Primary", func() {
-			r.NetworkProvider = &dummyDualStackNetworkProvider{}
+			np = &dummyDualStackNetworkProvider{}
 			initObjects = []client.Object{newTestSupervisorLBServiceWithDualStackStatus()}
 			vsphereCluster = fake.NewVSphereCluster(namespace)
 			controllerCtx = vmwarehelpers.NewUnitTestContextForController(ctx, namespace, &vsphereCluster, false, initObjects, nil)
@@ -396,13 +410,13 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"192.168.0.0/16", "fd00:1::/64"}},
 			}
 
-			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vips).To(Equal([]string{testSupervisorAPIServerVIP, testSupervisorAPIServerIPv6VIP}))
 		})
 
 		It("should return addresses in correct order for DualStackIPv6Primary", func() {
-			r.NetworkProvider = &dummyDualStackNetworkProvider{}
+			np = &dummyDualStackNetworkProvider{}
 			initObjects = []client.Object{newTestSupervisorLBServiceWithDualStackStatus()}
 			vsphereCluster = fake.NewVSphereCluster(namespace)
 			controllerCtx = vmwarehelpers.NewUnitTestContextForController(ctx, namespace, &vsphereCluster, false, initObjects, nil)
@@ -413,7 +427,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Pods: clusterv1.NetworkRanges{CIDRBlocks: []string{"fd00:1::/64", "192.168.0.0/16"}},
 			}
 
-			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster)
+			vips, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, np)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vips).To(Equal([]string{testSupervisorAPIServerIPv6VIP, testSupervisorAPIServerVIP}))
 		})
@@ -433,7 +447,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			}
 
 			// We need to re-run reconcileNormal because JustBeforeEach already ran with the default cluster network
-			err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext)
+			err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext, netProvider)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating a service and endpoints using both VIPs in the guest cluster")

@@ -134,6 +134,8 @@ linters:
         # Misc
         - pkg: github.com/pkg/errors
           alias: pkgerrors
+        - pkg: errors
+          alias: ""
         # CAPV
         - pkg: sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1
           alias: infrav1beta1

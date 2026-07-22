@@ -24,6 +24,7 @@ patches:
 - path: patches/webhook_in_vspherevms.yaml
 - path: patches/webhook_in_vspherefailuredomains.yaml
 - path: patches/webhook_in_vspheredeploymentzones.yaml
+- path: patches/webhook_in_vsphereclusteridentities.yaml
 - path: patches/webhook_in_vsphereclustertemplates.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
@@ -35,6 +36,7 @@ patches:
 - path: patches/cainjection_in_vspherevms.yaml
 - path: patches/cainjection_in_vspherefailuredomains.yaml
 - path: patches/cainjection_in_vspheredeploymentzones.yaml
+- path: patches/cainjection_in_vsphereclusteridentities.yaml
 - path: patches/cainjection_in_vsphereclustertemplates.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 

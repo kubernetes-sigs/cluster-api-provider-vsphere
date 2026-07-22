@@ -381,9 +381,17 @@ func setupSpecNamespace(specName string, postNamespaceCreatedFunc func(managemen
 		LogFolder: filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
 	})
 
-	namespaces[namespace] = cancelWatches
+	watchCtx, cancelWatch := context.WithCancel(ctx)
+	namespaces[namespace] = func() {
+		cancelWatch()
+		cancelWatches()
+	}
 
-	postNamespaceCreatedFunc(bootstrapClusterProxy, namespace.Name)
+	if postNamespaceCreatedFunc != nil {
+		postNamespaceCreatedFunc(bootstrapClusterProxy, namespace.Name)
+	}
+
+	go watchCPIAndCSILogs(watchCtx, bootstrapClusterProxy, namespace.Name, artifactFolder)
 
 	return namespace
 }

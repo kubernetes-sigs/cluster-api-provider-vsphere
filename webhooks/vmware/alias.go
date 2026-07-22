@@ -18,6 +18,7 @@ package vmware
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware"
 )
@@ -26,16 +27,16 @@ import (
 type VSphereMachine struct{}
 
 // SetupWebhookWithManager sets up VSphereMachine webhooks.
-func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
-	return (&vmware.VSphereMachine{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager, client client.Client, networkProvider string) error {
+	return (&vmware.VSphereMachine{Client: client, NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
 }
 
 // VSphereMachineTemplate implements a validation webhook for VSphereMachineTemplate.
 type VSphereMachineTemplate struct{}
 
 // SetupWebhookWithManager sets up VSphereMachineTemplate webhooks.
-func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
-	return (&vmware.VSphereMachineTemplate{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager, client client.Client, networkProvider string) error {
+	return (&vmware.VSphereMachineTemplate{Client: client, NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
 }
 
 // VSphereCluster implements a validation and defaulting webhook for VSphereCluster.

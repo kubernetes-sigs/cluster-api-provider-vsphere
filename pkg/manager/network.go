@@ -27,20 +27,46 @@ import (
 )
 
 const (
-	// NSXVPCNetworkProvider identifies the nsx-vpc network provider.
-	NSXVPCNetworkProvider = "NSX-VPC"
-	// NSXNetworkProvider identifies the NSX network provider.
-	NSXNetworkProvider = "NSX"
-	// VDSNetworkProvider identifies the VDS network provider.
-	VDSNetworkProvider = "vsphere-network"
+	// NSXVPCNetworkProvider identifies the NSX VPC network provider.
+	NSXVPCNetworkProvider = "VPC"
+	// NSXNetworkProvider identifies the NSX Tier-1 network provider.
+	NSXNetworkProvider = "NSXTier1"
+	// VDSNetworkProvider identifies the vSphere Distributed Switch network provider.
+	VDSNetworkProvider = "VSphereDistributed"
+	// ExternallyManagedNetworkProvider identifies the ExternallyManaged network provider.
+	// Used when network objects are provisioned and managed externally and CAPV only attaches VMs.
+	ExternallyManagedNetworkProvider = "ExternallyManaged"
 	// DummyLBNetworkProvider identifies the Dummy network provider.
 	DummyLBNetworkProvider = "DummyLBNetworkProvider"
+
+	// Legacy global network provider names (pre-rename values of --network-provider).
+	// The current flag values reuse NSXNetworkProvider / NSXVPCNetworkProvider / VDSNetworkProvider
+	// (NSXTier1 / VPC / VSphereDistributed), matching VSphereCluster.spec.network.provider.
+	legacyNSXNetworkProvider    = "NSX"
+	legacyNSXVPCNetworkProvider = "NSX-VPC"
+	legacyVDSNetworkProvider    = "vsphere-network"
 )
+
+var legacyToNetworkProviderName = map[string]string{
+	legacyNSXNetworkProvider:    NSXNetworkProvider,
+	legacyNSXVPCNetworkProvider: NSXVPCNetworkProvider,
+	legacyVDSNetworkProvider:    VDSNetworkProvider,
+}
+
+// ConvertNetworkProviderName converts a legacy network provider name to the
+// PascalCase name used by CAPV. Unknown names are returned unchanged.
+func ConvertNetworkProviderName(name string) string {
+	if converted, ok := legacyToNetworkProviderName[name]; ok {
+		return converted
+	}
+	return name
+}
 
 // GetNetworkProvider will return a network provider instance based on the environment
 // the cfg is used to initialize a client that talks directly to api-server without using the cache.
 func GetNetworkProvider(ctx context.Context, client client.Client, networkProvider string) (services.NetworkProvider, error) {
 	log := ctrl.LoggerFrom(ctx)
+	networkProvider = ConvertNetworkProviderName(networkProvider)
 
 	switch networkProvider {
 	case NSXVPCNetworkProvider:
@@ -53,6 +79,9 @@ func GetNetworkProvider(ctx context.Context, client client.Client, networkProvid
 	case VDSNetworkProvider:
 		log.Info("Pick NetOp (VDS) network provider")
 		return network.NetOpNetworkProvider(client), nil
+	case ExternallyManagedNetworkProvider:
+		log.Info("Pick ExternallyManaged network provider")
+		return network.ExternallyManagedNetworkProvider(client), nil
 	case DummyLBNetworkProvider:
 		log.Info("Pick Dummy network provider")
 		return network.DummyLBNetworkProvider(), nil

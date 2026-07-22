@@ -18,6 +18,7 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -180,7 +181,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "primary interface can not be set when network provider is vsphere-network",
+			wantErrMsg: fmt.Sprintf("primary interface can not be set when network provider is %s", manager.VDSNetworkProvider),
 		},
 		{
 			name:            "secondary interface with wrong type for VDS provider",
@@ -321,6 +322,100 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 			},
 			wantErr:    true,
 			wantErrMsg: "interface name is already in use",
+		},
+		{
+			name:            "ExternallyManaged accepts cross-provider primary and secondary interfaces",
+			featureGate:     true,
+			networkProvider: manager.ExternallyManagedNetworkProvider,
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "workload-subnet",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: "eth1",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "management-network",
+							},
+						},
+					}},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:            "ExternallyManaged rejects missing primary interface",
+			featureGate:     true,
+			networkProvider: manager.ExternallyManagedNetworkProvider,
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: "eth1",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "management-network",
+							},
+						},
+					}},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "primary interface must be defined",
+		},
+		{
+			name:            "ExternallyManaged rejects duplicate interface names",
+			featureGate:     true,
+			networkProvider: manager.ExternallyManagedNetworkProvider,
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "workload-subnet",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
+						Name: pkgnetwork.PrimaryInterfaceName,
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							NetworkRef: vmwarev1.InterfaceNetworkReference{
+								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "management-network",
+							},
+						},
+					}},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "interface name is already in use",
+		},
+		{
+			name:            "ExternallyManaged interfaces rejected when MultiNetworks is off",
+			featureGate:     false,
+			networkProvider: manager.ExternallyManagedNetworkProvider,
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "workload-subnet",
+						},
+					},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "interfaces can only be set when feature gate MultiNetworks is enabled",
 		},
 	}
 
@@ -674,7 +769,43 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "vlans can only be set when network provider is NSX-VPC",
+			wantErrMsg: fmt.Sprintf("vlans can only be set when network provider is %s or %s", manager.NSXVPCNetworkProvider, manager.ExternallyManagedNetworkProvider),
+		},
+		{
+			name:            "valid vlans for ExternallyManaged network provider",
+			featureGate:     true,
+			networkProvider: manager.ExternallyManagedNetworkProvider,
+			networkSpec: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						NetworkRef: vmwarev1.InterfaceNetworkReference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+							Name:       "workload-subnet",
+						},
+					},
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{
+						{
+							Name: "eth1",
+							InterfaceSpec: vmwarev1.InterfaceSpec{
+								NetworkRef: vmwarev1.InterfaceNetworkReference{
+									Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
+									APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
+									Name:       "management-network",
+								},
+							},
+						},
+					},
+				},
+				VLANs: []vmwarev1.VLANSpec{
+					{
+						Name: "vlan101",
+						ID:   ptr.To[int32](101),
+						Link: "eth1",
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name:            "vlans name duplicate with primary interface name",

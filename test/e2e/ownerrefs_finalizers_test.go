@@ -25,7 +25,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -146,12 +146,12 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					Eventually(func() error {
 						machineList := &clusterv1.MachineList{}
 						if err := proxy.GetClient().List(ctx, machineList, ctrlclient.InNamespace(namespace)); err != nil {
-							return errors.Wrap(err, "list machines")
+							return pkgerrors.Wrap(err, "list machines")
 						}
 
 						for _, machine := range machineList.Items {
 							if !conditions.IsTrue(&machine, clusterv1.MachineNodeHealthyCondition) {
-								return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyCondition)
+								return pkgerrors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyCondition)
 							}
 						}
 
@@ -434,7 +434,7 @@ func checkClusterIdentitySecretOwnerRefAndFinalizer(ctx context.Context, c ctrlc
 			return err
 		}
 		if !sets.NewString(s.GetFinalizers()...).Equal(sets.NewString(infrav1.SecretIdentitySetFinalizer)) {
-			return errors.Errorf("the ClusterIdentitySecret %s does not have finalizers", klog.KRef(clusterIdentitySecretNamespace, clusterIdentityName))
+			return pkgerrors.Errorf("the ClusterIdentitySecret %s does not have finalizers", klog.KRef(clusterIdentitySecretNamespace, clusterIdentityName))
 		}
 		return nil
 	}, 1*time.Minute).Should(Succeed())
@@ -470,7 +470,7 @@ func checkClusterIdentitySecretOwnerRefAndFinalizer(ctx context.Context, c ctrlc
 			return err
 		}
 		if !sets.NewString(s.GetFinalizers()...).Equal(sets.NewString(infrav1.SecretIdentitySetFinalizer)) {
-			return errors.Errorf("the ClusterIdentitySecret %s does not have finalizers", klog.KRef(clusterIdentitySecretNamespace, clusterIdentityName))
+			return pkgerrors.Errorf("the ClusterIdentitySecret %s does not have finalizers", klog.KRef(clusterIdentitySecretNamespace, clusterIdentityName))
 		}
 		return nil
 	}, 5*time.Minute).Should(Succeed())

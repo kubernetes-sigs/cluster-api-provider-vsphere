@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -89,7 +89,7 @@ func run(ctx context.Context) error {
 		UserAgent:  "capv-janitor",
 	})
 	if err != nil {
-		return errors.Wrap(err, "creating vSphere clients")
+		return pkgerrors.Wrap(err, "creating vSphere clients")
 	}
 	defer vSphereClients.Logout(ctx)
 
@@ -108,7 +108,7 @@ func run(ctx context.Context) error {
 
 		metrics, err := client.Metric(resourceType)
 		if err != nil {
-			allErrs = append(allErrs, errors.Errorf("failed to get metrics before cleanup for resource type %q", resourceType))
+			allErrs = append(allErrs, pkgerrors.Errorf("failed to get metrics before cleanup for resource type %q", resourceType))
 		} else {
 			log.Info("State before cleanup", "resourceStates", metrics.Current, "resourceOwners", metrics.Owners)
 		}
@@ -123,30 +123,30 @@ func run(ctx context.Context) error {
 			res, err := client.Acquire(resourceType, boskos.Dirty, boskos.Cleaning)
 			if err != nil {
 				// If we get an error on acquire we're done looping through all dirty resources
-				if errors.Is(err, boskos.ErrNotFound) {
+				if pkgerrors.Is(err, boskos.ErrNotFound) {
 					// Note: ErrNotFound means there are no more dirty resources that are not owned.
 					log.Info("No more resources to cleanup")
 					break
 				}
-				allErrs = append(allErrs, errors.Wrapf(err, "failed to acquire resource"))
+				allErrs = append(allErrs, pkgerrors.Wrapf(err, "failed to acquire resource"))
 				break
 			}
 			log := log.WithValues("resourceName", res.Name)
 			ctx := ctrl.LoggerInto(ctx, log)
 
 			if res.UserData == nil {
-				allErrs = append(allErrs, errors.Errorf("failed to get user data, resource %q is missing user data", res.Name))
+				allErrs = append(allErrs, pkgerrors.Errorf("failed to get user data, resource %q is missing user data", res.Name))
 				continue
 			}
 
 			folder, hasFolder := res.UserData.Load("folder")
 			if !hasFolder {
-				allErrs = append(allErrs, errors.Errorf("failed to get user data, resource %q is missing \"folder\" key", res.Name))
+				allErrs = append(allErrs, pkgerrors.Errorf("failed to get user data, resource %q is missing \"folder\" key", res.Name))
 				continue
 			}
 			resourcePool, hasResourcePool := res.UserData.Load("resourcePool")
 			if !hasResourcePool {
-				allErrs = append(allErrs, errors.Errorf("failed to get user data, resource %q is missing \"resourcePool\" key", res.Name))
+				allErrs = append(allErrs, pkgerrors.Errorf("failed to get user data, resource %q is missing \"resourcePool\" key", res.Name))
 				continue
 			}
 
@@ -159,7 +159,7 @@ func run(ctx context.Context) error {
 				// Intentionally keep this resource in cleaning state. The reaper will move it from cleaning to dirty
 				// and we'll retry the cleanup.
 				// If we move it to dirty here, the for loop will pick it up again, and we get stuck in an infinite loop.
-				allErrs = append(allErrs, errors.Wrapf(err, "cleaning up vSphere failed, resource %q will now become stale", res.Name))
+				allErrs = append(allErrs, pkgerrors.Wrapf(err, "cleaning up vSphere failed, resource %q will now become stale", res.Name))
 				continue
 			}
 			log.Info("Cleaning up vSphere succeeded")
@@ -167,20 +167,20 @@ func run(ctx context.Context) error {
 			// Try to release resource as free.
 			log.Info("Releasing resource as free")
 			if releaseErr := client.Release(res.Name, boskos.Free); releaseErr != nil {
-				allErrs = append(allErrs, errors.Wrapf(releaseErr, "cleaning up vSphere succeeded and releasing resource as free failed, resource %q will now become stale", res.Name))
+				allErrs = append(allErrs, pkgerrors.Wrapf(releaseErr, "cleaning up vSphere succeeded and releasing resource as free failed, resource %q will now become stale", res.Name))
 			}
 			log.Info("Releasing resource as free succeeded")
 		}
 
 		metrics, err = client.Metric(resourceType)
 		if err != nil {
-			allErrs = append(allErrs, errors.Errorf("failed to get metrics after cleanup for resource type %q", resourceType))
+			allErrs = append(allErrs, pkgerrors.Errorf("failed to get metrics after cleanup for resource type %q", resourceType))
 		} else {
 			log.Info("State after cleanup", "resourceOwners", metrics.Owners, "resourceStates", metrics.Current)
 		}
 	}
 	if len(allErrs) > 0 {
-		return errors.Wrap(kerrors.NewAggregate(allErrs), "cleaning up Boskos resources")
+		return pkgerrors.Wrap(kerrors.NewAggregate(allErrs), "cleaning up Boskos resources")
 	}
 
 	return nil

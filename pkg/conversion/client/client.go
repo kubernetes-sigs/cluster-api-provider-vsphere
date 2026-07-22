@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -51,7 +51,7 @@ func checkConverterAndSchemeAreConsistent(converter *conversion.Converter, schem
 		}
 
 		if !scheme.Recognizes(gvk) {
-			allErrs = append(allErrs, errors.Errorf("converter is configured to handle %s but the client scheme is not aware of this type", gvk))
+			allErrs = append(allErrs, pkgerrors.Errorf("converter is configured to handle %s but the client scheme is not aware of this type", gvk))
 		}
 
 		for _, spokeGV := range scheme.PrioritizedVersionsForGroup(gvk.Group) {
@@ -64,7 +64,7 @@ func checkConverterAndSchemeAreConsistent(converter *conversion.Converter, schem
 				continue
 			}
 			if !converter.Recognizes(spokeGVK) {
-				allErrs = append(allErrs, errors.Errorf("converter is configured to handle %s but it is not configured for handling conversions from/to %s which is registered in the client scheme", gvk, spokeGV.Version))
+				allErrs = append(allErrs, pkgerrors.Errorf("converter is configured to handle %s but it is not configured for handling conversions from/to %s which is registered in the client scheme", gvk, spokeGV.Version))
 			}
 		}
 	}
@@ -94,7 +94,7 @@ func (c *conversionClient) Get(ctx context.Context, key client.ObjectKey, obj cl
 		return err
 	}
 	if err := c.converter.Convert(ctx, spokeObj, obj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s from spoke version while getting it", klog.KObj(spokeObj))
+		return pkgerrors.Wrapf(err, "failed to convert %s from spoke version while getting it", klog.KObj(spokeObj))
 	}
 	return nil
 }
@@ -123,7 +123,7 @@ func (c *conversionClient) List(ctx context.Context, list client.ObjectList, opt
 	for _, spokeRuntimeItem := range spokeListItems {
 		spokeItem, ok := spokeRuntimeItem.(client.Object)
 		if !ok {
-			return errors.Errorf("%T does not implement client.Object", spokeRuntimeItem)
+			return pkgerrors.Errorf("%T does not implement client.Object", spokeRuntimeItem)
 		}
 
 		listItem, err := c.newObjectListItemFor(list)
@@ -132,7 +132,7 @@ func (c *conversionClient) List(ctx context.Context, list client.ObjectList, opt
 		}
 
 		if err := c.converter.Convert(ctx, spokeItem, listItem); err != nil {
-			return errors.Wrapf(err, "failed to convert %s from spoke version while listing it", klog.KObj(listItem))
+			return pkgerrors.Wrapf(err, "failed to convert %s from spoke version while listing it", klog.KObj(listItem))
 		}
 		listItems = append(listItems, listItem)
 	}
@@ -143,7 +143,7 @@ func (c *conversionClient) List(ctx context.Context, list client.ObjectList, opt
 // Apply applies the given apply configuration to the Kubernetes cluster.
 func (c *conversionClient) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 	if cObj, ok := obj.(client.Object); ok && c.converter.IsHub(cObj) {
-		return errors.New("conversionClient only implements methods used in CAPV")
+		return pkgerrors.New("conversionClient only implements methods used in CAPV")
 	}
 
 	return c.internalClient.Apply(ctx, obj, opts...)
@@ -160,14 +160,14 @@ func (c *conversionClient) Create(ctx context.Context, obj client.Object, opts .
 		return err
 	}
 	if err := c.converter.Convert(ctx, obj, spokeObj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s to spoke version while creating it", klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to convert %s to spoke version while creating it", klog.KObj(obj))
 	}
 
 	if err := c.internalClient.Create(ctx, spokeObj, opts...); err != nil {
 		return err
 	}
 	if err := c.converter.Convert(ctx, spokeObj, obj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s from spoke version while creating it", klog.KObj(spokeObj))
+		return pkgerrors.Wrapf(err, "failed to convert %s from spoke version while creating it", klog.KObj(spokeObj))
 	}
 	return nil
 }
@@ -183,7 +183,7 @@ func (c *conversionClient) Delete(ctx context.Context, obj client.Object, opts .
 		return err
 	}
 	if err := c.converter.Convert(ctx, obj, spokeObj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s to spoke version while deleting it", klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to convert %s to spoke version while deleting it", klog.KObj(obj))
 	}
 
 	if err := c.internalClient.Delete(ctx, spokeObj, opts...); err != nil {
@@ -191,7 +191,7 @@ func (c *conversionClient) Delete(ctx context.Context, obj client.Object, opts .
 	}
 
 	if err := c.converter.Convert(ctx, spokeObj, obj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s from spoke version while deleting it", klog.KObj(spokeObj))
+		return pkgerrors.Wrapf(err, "failed to convert %s from spoke version while deleting it", klog.KObj(spokeObj))
 	}
 	return nil
 }
@@ -201,7 +201,7 @@ func (c *conversionClient) Update(ctx context.Context, obj client.Object, opts .
 	if !c.converter.IsHub(obj) {
 		return c.internalClient.Update(ctx, obj, opts...)
 	}
-	return errors.New("update must not be used for hub types. Use patch instead")
+	return pkgerrors.New("update must not be used for hub types. Use patch instead")
 }
 
 // Patch patches the given obj in the Kubernetes cluster.
@@ -211,7 +211,7 @@ func (c *conversionClient) Patch(ctx context.Context, obj client.Object, patch c
 	}
 
 	if _, ok := patch.(*conversionMergePatch); !ok {
-		return errors.Errorf("patch must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.MergeFrom or MergeFromWithOptions")
+		return pkgerrors.Errorf("patch must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.MergeFrom or MergeFromWithOptions")
 	}
 
 	spokeObj, err := c.newSpokeObjectFor(obj)
@@ -219,14 +219,14 @@ func (c *conversionClient) Patch(ctx context.Context, obj client.Object, patch c
 		return err
 	}
 	if err := c.converter.Convert(ctx, obj, spokeObj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s to spoke version while patching it", klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to convert %s to spoke version while patching it", klog.KObj(obj))
 	}
 
 	if err := c.internalClient.Patch(ctx, spokeObj, patch, opts...); err != nil {
 		return err
 	}
 	if err := c.converter.Convert(ctx, spokeObj, obj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s from spoke version while patching it", klog.KObj(spokeObj))
+		return pkgerrors.Wrapf(err, "failed to convert %s from spoke version while patching it", klog.KObj(spokeObj))
 	}
 	return nil
 }
@@ -237,7 +237,7 @@ func (c *conversionClient) DeleteAllOf(ctx context.Context, obj client.Object, o
 		return c.internalClient.DeleteAllOf(ctx, obj, opts...)
 	}
 
-	return errors.New("conversionClient only implements methods used in CAPV")
+	return pkgerrors.New("conversionClient only implements methods used in CAPV")
 }
 
 func (c *conversionClient) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
@@ -273,15 +273,15 @@ type conversionSubResourceClient struct {
 var _ client.SubResourceClient = &conversionSubResourceClient{}
 
 func (c conversionSubResourceClient) Get(_ context.Context, _ client.Object, _ client.Object, _ ...client.SubResourceGetOption) error {
-	return errors.New("conversionClient only implements methods used in CAPV")
+	return pkgerrors.New("conversionClient only implements methods used in CAPV")
 }
 
 func (c conversionSubResourceClient) Create(_ context.Context, _ client.Object, _ client.Object, _ ...client.SubResourceCreateOption) error {
-	return errors.New("conversionClient only implements methods used in CAPV")
+	return pkgerrors.New("conversionClient only implements methods used in CAPV")
 }
 
 func (c conversionSubResourceClient) Update(_ context.Context, _ client.Object, _ ...client.SubResourceUpdateOption) error {
-	return errors.New("update must not be used for hub types. Use patch instead")
+	return pkgerrors.New("update must not be used for hub types. Use patch instead")
 }
 
 func (c conversionSubResourceClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
@@ -294,7 +294,7 @@ func (c conversionSubResourceClient) Patch(ctx context.Context, obj client.Objec
 		return err
 	}
 	if err := c.converter.Convert(ctx, obj, spokeObj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s to spoke version while patching status on it", klog.KObj(obj))
+		return pkgerrors.Wrapf(err, "failed to convert %s to spoke version while patching status on it", klog.KObj(obj))
 	}
 
 	if err := c.internalClient.Status().Patch(ctx, spokeObj, patch, opts...); err != nil {
@@ -302,14 +302,14 @@ func (c conversionSubResourceClient) Patch(ctx context.Context, obj client.Objec
 	}
 
 	if err := c.converter.Convert(ctx, spokeObj, obj); err != nil {
-		return errors.Wrapf(err, "failed to convert %s from spoke version while patching status on it", klog.KObj(spokeObj))
+		return pkgerrors.Wrapf(err, "failed to convert %s from spoke version while patching status on it", klog.KObj(spokeObj))
 	}
 	return nil
 }
 
 func (c conversionSubResourceClient) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.SubResourceApplyOption) error {
 	if cObj, ok := obj.(client.Object); ok && c.converter.IsHub(cObj) {
-		return errors.New("conversionClient only implements methods used in CAPV")
+		return pkgerrors.New("conversionClient only implements methods used in CAPV")
 	}
 
 	return c.internalClient.Status().Apply(ctx, obj, opts...)
@@ -328,7 +328,7 @@ func (c *conversionClient) newSpokeObjectFor(obj client.Object) (client.Object, 
 
 	spokeObj, ok := o.(client.Object)
 	if !ok {
-		return nil, errors.Errorf("object for %s does not implement sigs.k8s.io/controller-runtime/pkg/client.Object", gvk)
+		return nil, pkgerrors.Errorf("object for %s does not implement sigs.k8s.io/controller-runtime/pkg/client.Object", gvk)
 	}
 	return spokeObj, nil
 }
@@ -346,7 +346,7 @@ func (c *conversionClient) newSpokeObjectListFor(list client.ObjectList) (client
 
 	spokeList, ok := o.(client.ObjectList)
 	if !ok {
-		return nil, errors.Errorf("object for %s does not implement sigs.k8s.io/controller-runtime/pkg/client.ObjectList", gvk)
+		return nil, pkgerrors.Errorf("object for %s does not implement sigs.k8s.io/controller-runtime/pkg/client.ObjectList", gvk)
 	}
 	return spokeList, nil
 }
@@ -358,7 +358,7 @@ func (c *conversionClient) newObjectListItemFor(list client.ObjectList) (client.
 	}
 
 	if !strings.HasSuffix(gvkList.Kind, "List") {
-		return nil, errors.Errorf("object %s does not have a kind with the List suffix", gvkList)
+		return nil, pkgerrors.Errorf("object %s does not have a kind with the List suffix", gvkList)
 	}
 
 	gvk := schema.GroupVersionKind{
@@ -374,7 +374,7 @@ func (c *conversionClient) newObjectListItemFor(list client.ObjectList) (client.
 
 	obj, ok := o.(client.Object)
 	if !ok {
-		return nil, errors.Errorf("object for %s does not implement sigs.k8s.io/controller-runtime/pkg/client.Object", gvk)
+		return nil, pkgerrors.Errorf("object for %s does not implement sigs.k8s.io/controller-runtime/pkg/client.Object", gvk)
 	}
 	return obj, nil
 }

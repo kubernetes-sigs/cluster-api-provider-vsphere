@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -65,11 +65,11 @@ func NewConverter(targetVersionSelector func(_ schema.GroupKind) (string, error)
 // AddHubTypes adds to the converter hub types that require conversion.
 func (s *Converter) AddHubTypes(gv schema.GroupVersion, types ...runtime.Object) error {
 	if gv.Group == "" {
-		return errors.Errorf("invalid group, group cannot be empty")
+		return pkgerrors.Errorf("invalid group, group cannot be empty")
 	}
 
 	if gv.Version == "" {
-		return errors.Errorf("invalid version, version cannot be empty")
+		return pkgerrors.Errorf("invalid version, version cannot be empty")
 	}
 
 	for _, obj := range types {
@@ -80,16 +80,16 @@ func (s *Converter) AddHubTypes(gv schema.GroupVersion, types ...runtime.Object)
 
 		_, isConvertible := obj.(conversionmeta.Convertible)
 		if !strings.HasSuffix(t.Name(), "List") && !isConvertible {
-			return errors.Errorf("all objects must implement sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta.Convertible, %v.%v does not", t.PkgPath(), t.Name())
+			return pkgerrors.Errorf("all objects must implement sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta.Convertible, %v.%v does not", t.PkgPath(), t.Name())
 		}
 
 		gvk := gv.WithKind(t.Name())
 		if oldT, found := s.gvkToType[gvk]; found && oldT != t {
-			return errors.Errorf("double registration of different types for %v: old=%v.%v, new=%v.%v", gvk, oldT.PkgPath(), oldT.Name(), t.PkgPath(), t.Name())
+			return pkgerrors.Errorf("double registration of different types for %v: old=%v.%v, new=%v.%v", gvk, oldT.PkgPath(), oldT.Name(), t.PkgPath(), t.Name())
 		}
 
 		if oldGvk, found := s.typeToGVK[t]; found && oldGvk != gvk {
-			return errors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", t.PkgPath(), t.Name(), oldGvk, gvk)
+			return pkgerrors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", t.PkgPath(), t.Name(), oldGvk, gvk)
 		}
 
 		s.gvkToType[gvk] = t
@@ -136,7 +136,7 @@ func (s *Converter) AddConversion(hub runtime.Object, spokeVersion string, spoke
 	}
 
 	if strings.HasSuffix(hubGVK.Kind, "List") {
-		return errors.New("invalid source type, source type for a conversion cannot have the List suffix")
+		return pkgerrors.New("invalid source type, source type for a conversion cannot have the List suffix")
 	}
 
 	spokeType, err := objType(spoke)
@@ -150,26 +150,26 @@ func (s *Converter) AddConversion(hub runtime.Object, spokeVersion string, spoke
 		Kind:    spokeType.Name(),
 	}
 	if spokeGVK.Group == "" {
-		return errors.Errorf("invalid group, group cannot be empty")
+		return pkgerrors.Errorf("invalid group, group cannot be empty")
 	}
 	if spokeGVK.Version == "" {
-		return errors.New("invalid version, version cannot be empty")
+		return pkgerrors.New("invalid version, version cannot be empty")
 	}
 
 	if spokeGVK.Version == hubGVK.Version {
-		return errors.New("invalid version, spokeVersion for a conversion cannot be the equal to the version registered for the hub object")
+		return pkgerrors.New("invalid version, spokeVersion for a conversion cannot be the equal to the version registered for the hub object")
 	}
 
 	if hubGVK.Kind != spokeGVK.Kind {
-		return errors.New("invalid spoke type, spoke type for a conversion must be of the same kind as the hub object")
+		return pkgerrors.New("invalid spoke type, spoke type for a conversion must be of the same kind as the hub object")
 	}
 
 	if oldT, found := s.gvkToType[spokeGVK]; found && oldT != spokeType {
-		return errors.Errorf("double registration of different types for %v: old=%v.%v, new=%v.%v", spokeGVK, oldT.PkgPath(), oldT.Name(), spokeType.PkgPath(), spokeType.Name())
+		return pkgerrors.Errorf("double registration of different types for %v: old=%v.%v, new=%v.%v", spokeGVK, oldT.PkgPath(), oldT.Name(), spokeType.PkgPath(), spokeType.Name())
 	}
 
 	if oldGVK, found := s.typeToGVK[spokeType]; found && oldGVK != spokeGVK {
-		return errors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", spokeType.PkgPath(), spokeType.Name(), oldGVK, spokeGVK)
+		return pkgerrors.Errorf("double registration of different gvk for %v.%v: old=%s, new=%s", spokeType.PkgPath(), spokeType.Name(), oldGVK, spokeGVK)
 	}
 
 	s.gvkToType[spokeGVK] = spokeType
@@ -181,7 +181,7 @@ func (s *Converter) AddConversion(hub runtime.Object, spokeVersion string, spoke
 	}
 
 	if oldC, found := s.conversionFuncs[hubGVK][spokeGVK]; found && reflect.ValueOf(oldC) != reflect.ValueOf(hubToSpokeFunc) {
-		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", hubGVK, spokeGVK.Version)
+		return pkgerrors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", hubGVK, spokeGVK.Version)
 	}
 	s.conversionFuncs[hubGVK][spokeGVK] = hubToSpokeFunc
 
@@ -189,7 +189,7 @@ func (s *Converter) AddConversion(hub runtime.Object, spokeVersion string, spoke
 		s.conversionFuncs[spokeGVK] = map[schema.GroupVersionKind]ConvertFunc{}
 	}
 	if oldC, found := s.conversionFuncs[spokeGVK][hubGVK]; found && reflect.ValueOf(oldC) != reflect.ValueOf(spokeToHubFunc) {
-		return errors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", spokeGVK, hubGVK.Version)
+		return pkgerrors.Errorf("double registration of conversion function from %v to %v: old function is different from the new function", spokeGVK, hubGVK.Version)
 	}
 	s.conversionFuncs[spokeGVK][hubGVK] = spokeToHubFunc
 
@@ -216,17 +216,17 @@ func (s *Converter) Convert(ctx context.Context, src runtime.Object, dst runtime
 		source := hub.GetSource()
 
 		if source.APIVersion != "" && source.APIVersion != dstGVK.GroupVersion().String() {
-			return errors.Errorf("objects with kind %s and source.APIVersion %s cannot be converted to %s", srcGVK.Kind, source.APIVersion, dstGVK.Version)
+			return pkgerrors.Errorf("objects with kind %s and source.APIVersion %s cannot be converted to %s", srcGVK.Kind, source.APIVersion, dstGVK.Version)
 		}
 	}
 
 	conversionFunc, ok := s.conversionFuncs[srcGVK][dstGVK]
 	if !ok {
-		return errors.Errorf("no conversion registered from %s to %s", srcGVK, dstGVK)
+		return pkgerrors.Errorf("no conversion registered from %s to %s", srcGVK, dstGVK)
 	}
 
 	if err := conversionFunc(ctx, src, dst); err != nil {
-		return errors.Wrapf(err, "error converting from %s to %s", srcGVK, dstGVK)
+		return pkgerrors.Wrapf(err, "error converting from %s to %s", srcGVK, dstGVK)
 	}
 
 	if s.gvkHubTypes[dstGVK] {
@@ -260,12 +260,12 @@ func (s *Converter) SpokeGroupVersionKindFor(obj runtime.Object) (schema.GroupVe
 	}
 
 	if !s.gvkHubTypes[gvk] {
-		return schema.GroupVersionKind{}, errors.Errorf("no type registered for %s", gvk)
+		return schema.GroupVersionKind{}, pkgerrors.Errorf("no type registered for %s", gvk)
 	}
 
 	spokeVersion, err := s.targetVersionSelector(gvk.GroupKind())
 	if err != nil {
-		return schema.GroupVersionKind{}, errors.Wrapf(err, "no target version registered for %s", gvk.GroupKind())
+		return schema.GroupVersionKind{}, pkgerrors.Wrapf(err, "no target version registered for %s", gvk.GroupKind())
 	}
 
 	spokeGVK := schema.GroupVersionKind{
@@ -275,7 +275,7 @@ func (s *Converter) SpokeGroupVersionKindFor(obj runtime.Object) (schema.GroupVe
 	}
 
 	if _, ok := s.conversionFuncs[gvk][spokeGVK]; !ok {
-		return schema.GroupVersionKind{}, errors.Errorf("no conversion registered from %s to %s", gvk, spokeGVK.Version)
+		return schema.GroupVersionKind{}, pkgerrors.Errorf("no conversion registered from %s to %s", gvk, spokeGVK.Version)
 	}
 
 	if isList {
@@ -295,23 +295,23 @@ func (s *Converter) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersion
 
 	gvk, ok := s.typeToGVK[t]
 	if !ok {
-		return schema.GroupVersionKind{}, errors.Errorf("no type registered for %s.%s", t.PkgPath(), t.Name())
+		return schema.GroupVersionKind{}, pkgerrors.Errorf("no type registered for %s.%s", t.PkgPath(), t.Name())
 	}
 	return gvk, nil
 }
 
 func objType(obj runtime.Object) (reflect.Type, error) {
 	if obj == nil {
-		return nil, errors.New("all objects must be pointers to structs, got nil")
+		return nil, pkgerrors.New("all objects must be pointers to structs, got nil")
 	}
 
 	t := reflect.TypeOf(obj)
 	if t.Kind() != reflect.Pointer {
-		return nil, errors.Errorf("all objects must be pointers to structs, got %s", t.Kind())
+		return nil, pkgerrors.Errorf("all objects must be pointers to structs, got %s", t.Kind())
 	}
 	t = t.Elem()
 	if t.Kind() != reflect.Struct {
-		return nil, errors.Errorf("all objects must be pointers to structs, got *%s", t.Kind())
+		return nil, pkgerrors.Errorf("all objects must be pointers to structs, got *%s", t.Kind())
 	}
 	return t, nil
 }

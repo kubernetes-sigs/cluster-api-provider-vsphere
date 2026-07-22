@@ -22,7 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -84,11 +84,11 @@ func Execute() {
 func RunRoot(command *cobra.Command) error {
 	flavor, err := command.Flags().GetString(flavorFlag)
 	if err != nil {
-		return errors.Wrapf(err, "error accessing flag %s for command %s", flavorFlag, command.Name())
+		return pkgerrors.Wrapf(err, "error accessing flag %s for command %s", flavorFlag, command.Name())
 	}
 	outputDir, err := command.Flags().GetString(outputDirFlag)
 	if err != nil {
-		return errors.Wrapf(err, "error accessing flag %s for command %s", outputDirFlag, command.Name())
+		return pkgerrors.Wrapf(err, "error accessing flag %s for command %s", outputDirFlag, command.Name())
 	}
 	var outputFlavors []string
 	if flavor != "" {
@@ -120,7 +120,7 @@ func RunRoot(command *cobra.Command) error {
 		yamlPath := filepath.Join(outputDir, yamlFileName)
 		err = os.WriteFile(yamlPath, []byte(manifest), 0600)
 		if err != nil {
-			return errors.Wrapf(err, "failed to save manifest content to file for flavor %s", f)
+			return pkgerrors.Wrapf(err, "failed to save manifest content to file for flavor %s", f)
 		}
 	}
 
@@ -191,7 +191,7 @@ func generateSingle(flavor string) (string, error) {
 			FieldPath: []string{"spec", "topology", "controlPlane", "replicas"},
 		})
 	default:
-		return "", errors.Errorf("invalid flavor")
+		return "", pkgerrors.Errorf("invalid flavor")
 	}
 
 	return util.GenerateManifestYaml(objs, replacements), nil

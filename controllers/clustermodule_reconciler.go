@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -83,7 +83,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 
 	objectMap, err := r.fetchMachineOwnerObjects(ctx, clusterCtx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get Machine owner objects")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get Machine owner objects")
 	}
 
 	modErrs := []clusterModError{}
@@ -115,7 +115,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 			// Verify the cluster module
 			exists, err := r.ClusterModuleService.DoesExist(ctx, clusterCtx, obj, mod.ModuleUUID)
 			if err != nil {
-				modErrs = append(modErrs, clusterModError{obj.GetName(), errors.Wrapf(err, "failed to check if cluster module %q exists", mod.ModuleUUID)})
+				modErrs = append(modErrs, clusterModError{obj.GetName(), pkgerrors.Wrapf(err, "failed to check if cluster module %q exists", mod.ModuleUUID)})
 				log.Error(err, "Failed to check if cluster module for object exists")
 				// Append the module and remove it from objectMap to not create new ones instead.
 				clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
@@ -150,7 +150,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 
 		moduleUUID, err := r.ClusterModuleService.Create(ctx, clusterCtx, obj)
 		if err != nil {
-			modErrs = append(modErrs, clusterModError{obj.GetName(), errors.Wrapf(err, "failed to create cluster module")})
+			modErrs = append(modErrs, clusterModError{obj.GetName(), pkgerrors.Wrapf(err, "failed to create cluster module")})
 			log.Error(err, "Failed to create cluster module for object")
 			continue
 		}
@@ -174,7 +174,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 		if len(incompatibleOwnerErrs) > 0 && len(incompatibleOwnerErrs) == len(modErrs) {
 			err = nil
 		} else {
-			err = errors.New(generateClusterModuleErrorMessage(modErrs))
+			err = pkgerrors.New(generateClusterModuleErrorMessage(modErrs))
 		}
 		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition, infrav1.ClusterModuleSetupFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityWarning, "%s", generateClusterModuleErrorMessage(modErrs))
@@ -279,7 +279,7 @@ func (r Reconciler) fetchMachineOwnerObjects(ctx context.Context, clusterCtx *ca
 
 	name, ok := clusterCtx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
 	if !ok {
-		return nil, errors.Errorf("failed to get Cluster name from VSphereCluster: missing cluster name label")
+		return nil, pkgerrors.Errorf("failed to get Cluster name from VSphereCluster: missing cluster name label")
 	}
 
 	labels := map[string]string{clusterv1.ClusterNameLabel: name}
@@ -288,10 +288,10 @@ func (r Reconciler) fetchMachineOwnerObjects(ctx context.Context, clusterCtx *ca
 		ctx, kcpList,
 		client.InNamespace(clusterCtx.VSphereCluster.GetNamespace()),
 		client.MatchingLabels(labels)); err != nil {
-		return nil, errors.Wrapf(err, "failed to list KubeadmControlPlane objects")
+		return nil, pkgerrors.Wrapf(err, "failed to list KubeadmControlPlane objects")
 	}
 	if len(kcpList.Items) > 1 {
-		return nil, errors.Errorf("multiple KubeadmControlPlane objects found, expected 1, found %d", len(kcpList.Items))
+		return nil, pkgerrors.Errorf("multiple KubeadmControlPlane objects found, expected 1, found %d", len(kcpList.Items))
 	}
 
 	if len(kcpList.Items) != 0 {
@@ -305,7 +305,7 @@ func (r Reconciler) fetchMachineOwnerObjects(ctx context.Context, clusterCtx *ca
 		ctx, mdList,
 		client.InNamespace(clusterCtx.VSphereCluster.GetNamespace()),
 		client.MatchingLabels(labels)); err != nil {
-		return nil, errors.Wrapf(err, "failed to list MachineDeployment objects")
+		return nil, pkgerrors.Wrapf(err, "failed to list MachineDeployment objects")
 	}
 	for _, md := range mdList.Items {
 		if md.DeletionTimestamp.IsZero() {

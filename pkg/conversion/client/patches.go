@@ -19,7 +19,7 @@ package client
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +31,7 @@ import (
 func MergeFromWithOptions(ctx context.Context, c client.Client, obj client.Object, opts ...client.MergeFromOption) (client.Patch, error) {
 	cc, ok := c.(*conversionClient)
 	if !ok {
-		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
+		return nil, pkgerrors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
 	}
 
 	_, err := cc.converter.SpokeGroupVersionKindFor(obj)
@@ -83,7 +83,7 @@ func (p *conversionMergePatch) Data(obj client.Object) ([]byte, error) {
 		return nil, err
 	}
 	if err := p.client.converter.Convert(p.conversionCtx, p.from, fromObj); err != nil {
-		return nil, errors.Wrapf(err, "failed to convert original %s to target version while computing patch data", klog.KObj(p.from))
+		return nil, pkgerrors.Wrapf(err, "failed to convert original %s to target version while computing patch data", klog.KObj(p.from))
 	}
 
 	toObj := obj
@@ -93,7 +93,7 @@ func (p *conversionMergePatch) Data(obj client.Object) ([]byte, error) {
 			return nil, err
 		}
 		if err := p.client.converter.Convert(p.conversionCtx, obj, toObj); err != nil {
-			return nil, errors.Wrapf(err, "failed to convert modified %s to target version while computing patch data", klog.KObj(obj))
+			return nil, pkgerrors.Wrapf(err, "failed to convert modified %s to target version while computing patch data", klog.KObj(obj))
 		}
 	}
 
@@ -106,7 +106,7 @@ func (p *conversionMergePatch) Data(obj client.Object) ([]byte, error) {
 		return nil, err
 	}
 	if gvkFrom != gvkTo {
-		return nil, errors.Errorf("cannot generate patch data between %s and %s", gvkFrom, gvkTo)
+		return nil, pkgerrors.Errorf("cannot generate patch data between %s and %s", gvkFrom, gvkTo)
 	}
 
 	return client.MergeFromWithOptions(fromObj, p.options...).Data(toObj)

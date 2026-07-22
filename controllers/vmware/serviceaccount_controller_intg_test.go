@@ -25,7 +25,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,7 +126,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 						return err
 					}
 					if roleBinding.RoleRef.Name != pSvcAccount.GetName() || len(roleBinding.Subjects) != 1 {
-						return errors.Errorf("roleBinding %s/%s is incorrect", roleBinding.GetNamespace(), roleBinding.GetName())
+						return pkgerrors.Errorf("roleBinding %s/%s is incorrect", roleBinding.GetNamespace(), roleBinding.GetName())
 					}
 					return nil
 				}).Should(Succeed())
@@ -346,7 +346,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 						},
 					}
 					if !reflect.DeepEqual(role.Rules, correctRules) {
-						return errors.Errorf("role %s/%s is incorrect", role.GetNamespace(), role.GetName())
+						return pkgerrors.Errorf("role %s/%s is incorrect", role.GetNamespace(), role.GetName())
 					}
 					return nil
 				}, "25s").Should(Succeed())
@@ -375,10 +375,10 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 						},
 					}
 					if !reflect.DeepEqual(role.RoleRef, correctRoleRef) {
-						return errors.Errorf("role reference %v is incorrect, got %v", correctRoleRef, role.RoleRef)
+						return pkgerrors.Errorf("role reference %v is incorrect, got %v", correctRoleRef, role.RoleRef)
 					}
 					if !reflect.DeepEqual(role.Subjects, correctSubjects) {
-						return errors.Errorf("subjects %v are incorrect, got %v", role.Subjects, role.RoleRef)
+						return pkgerrors.Errorf("subjects %v are incorrect, got %v", role.Subjects, role.RoleRef)
 					}
 					return nil
 				}, "25s").Should(Succeed())
@@ -390,10 +390,10 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 func verifyControllerOwnership(expected metav1.OwnerReference, obj client.Object) error {
 	controller := metav1.GetControllerOf(obj)
 	if controller == nil {
-		return errors.Errorf("%s/%s %s is not owned by %s/%s %s", obj.GetNamespace(), obj.GetName(), obj.GetObjectKind().GroupVersionKind().String(), expected.APIVersion, expected.Kind, expected.Name)
+		return pkgerrors.Errorf("%s/%s %s is not owned by %s/%s %s", obj.GetNamespace(), obj.GetName(), obj.GetObjectKind().GroupVersionKind().String(), expected.APIVersion, expected.Kind, expected.Name)
 	}
 	if controller.UID != expected.UID || controller.Name != expected.Name || controller.Kind != expected.Kind || controller.APIVersion != expected.APIVersion {
-		return errors.Errorf("object %s/%s %s is not a controller of %s %s/%s, got %s/%s %s",
+		return pkgerrors.Errorf("object %s/%s %s is not a controller of %s %s/%s, got %s/%s %s",
 			expected.APIVersion, expected.Kind, expected.Name,
 			obj.GetObjectKind().GroupVersionKind().String(), obj.GetNamespace(), obj.GetName(),
 			controller.APIVersion, controller.Kind, controller.Name)

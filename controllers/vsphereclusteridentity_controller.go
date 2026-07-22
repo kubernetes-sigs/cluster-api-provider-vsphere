@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -134,7 +134,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 			Reason:  infrav1.VSphereClusterIdentitySecretNotAvailableReason,
 			Message: err.Error(),
 		})
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get Secret %s", klog.KRef(secretKey.Namespace, secretKey.Name))
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get Secret %s", klog.KRef(secretKey.Namespace, secretKey.Name))
 	}
 
 	// If this secret is owned by a different VSphereClusterIdentity or a VSphereCluster, mark the identity as not ready and return an error.
@@ -147,7 +147,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 			Message: "secret being used by another Cluster/VSphereIdentity",
 		})
 		identity.Status.Ready = ptr.To(false)
-		return reconcile.Result{}, errors.New("secret being used by another Cluster/VSphereIdentity")
+		return reconcile.Result{}, pkgerrors.New("secret being used by another Cluster/VSphereIdentity")
 	}
 
 	// Ensure the VSphereClusterIdentity is set as the owner of the secret, and that the reference has an up to date APIVersion.
@@ -213,14 +213,14 @@ func (r clusterIdentityReconciler) reconcileDelete(ctx context.Context, identity
 	if ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
 		log.Info(fmt.Sprintf("Removing finalizer %s", infrav1.SecretIdentitySetFinalizer), "Secret", klog.KObj(secret))
 		if err := r.Client.Update(ctx, secret); err != nil {
-			return errors.Wrapf(err, "failed to update Secret %s", klog.KObj(secret))
+			return pkgerrors.Wrapf(err, "failed to update Secret %s", klog.KObj(secret))
 		}
 	}
 
 	if secret.DeletionTimestamp.IsZero() {
 		log.Info("Deleting Secret", "Secret", klog.KObj(secret))
 		if err := r.Client.Delete(ctx, secret); err != nil {
-			return errors.Wrapf(err, "failed to delete Secret %s", klog.KObj(secret))
+			return pkgerrors.Wrapf(err, "failed to delete Secret %s", klog.KObj(secret))
 		}
 	}
 

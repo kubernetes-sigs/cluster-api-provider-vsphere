@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	"k8s.io/klog/v2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -68,7 +68,7 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 	if supervisorBased {
 		networkProvider, err := inframanager.GetNetworkProvider(ctx, controllerManagerCtx.Client, controllerManagerCtx.NetworkProvider)
 		if err != nil {
-			return errors.Wrap(err, "failed to create a network provider")
+			return pkgerrors.Wrap(err, "failed to create a network provider")
 		}
 		reconciler := &vmware.ClusterReconciler{
 			Client:   controllerManagerCtx.Client,

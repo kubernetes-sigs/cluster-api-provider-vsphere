@@ -23,7 +23,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/mo"
 	corev1 "k8s.io/api/core/v1"
@@ -198,7 +198,7 @@ func verifyAntiAffinityForVMs(ctx context.Context, finder *find.Finder, vms []in
 		}
 
 		if _, ok := hostInfo[name]; ok {
-			return errors.New("multiple VMs exist on single host")
+			return pkgerrors.New("multiple VMs exist on single host")
 		}
 		hostInfo[name] = struct{}{}
 	}

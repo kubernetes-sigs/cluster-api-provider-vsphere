@@ -24,7 +24,7 @@ import (
 	"regexp"
 	"text/template"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -53,7 +53,7 @@ func GetVSphereMachine(
 }
 
 // ErrNoMachineIPAddr indicates that no valid IP addresses were found in a machine context.
-var ErrNoMachineIPAddr = errors.New("no IP addresses found for machine")
+var ErrNoMachineIPAddr = pkgerrors.New("no IP addresses found for machine")
 
 // GetMachinePreferredIPAddress returns the preferred IP address for a
 // VSphereMachine resource.
@@ -150,7 +150,7 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 		WaitForIPv4: waitForIPv4,
 		WaitForIPv6: waitForIPv6,
 	}); err != nil {
-		return nil, errors.Wrapf(
+		return nil, pkgerrors.Wrapf(
 			err,
 			"error getting cloud init metadata for vsphereVM %s/%s",
 			vsphereVM.Namespace, vsphereVM.Name)

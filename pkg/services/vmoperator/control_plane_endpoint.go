@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,7 +116,7 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 	vmService, err := s.getVMControlPlaneService(ctx, clusterCtx)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			err = errors.Wrapf(err, "failed to check if VirtualMachineService exists")
+			err = pkgerrors.Wrapf(err, "failed to check if VirtualMachineService exists")
 			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.LoadBalancerCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
@@ -130,7 +130,7 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 		// Get the provider annotations for the ControlPlane Service.
 		annotations, err := netProvider.GetVMServiceAnnotations(ctx, clusterCtx)
 		if err != nil {
-			err = errors.Wrapf(err, "failed to get provider VirtualMachineService annotations")
+			err = pkgerrors.Wrapf(err, "failed to get provider VirtualMachineService annotations")
 			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.LoadBalancerCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
@@ -143,7 +143,7 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 
 		vmService, err = s.createVMControlPlaneService(ctx, clusterCtx, annotations, ipv6DualStackSupported, ipFamily)
 		if err != nil {
-			err = errors.Wrapf(err, "failed to create VirtualMachineService")
+			err = pkgerrors.Wrapf(err, "failed to create VirtualMachineService")
 			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.LoadBalancerCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
@@ -184,7 +184,7 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 
 	cpEndpoint, err := getAPIEndpointFromVIP(vmService, primaryVIP)
 	if err != nil {
-		err = errors.Wrapf(err, "VirtualMachineService %s does not have an apiserver endpoint", klog.KObj(vmService))
+		err = pkgerrors.Wrapf(err, "VirtualMachineService %s does not have an apiserver endpoint", klog.KObj(vmService))
 		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.WaitingForLoadBalancerIPV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
@@ -288,7 +288,7 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 		vmService,
 		s.Client.Scheme(),
 	); err != nil {
-		return nil, errors.Wrapf(
+		return nil, pkgerrors.Wrapf(
 			err,
 			"error setting %s/%s as owner of %s/%s",
 			clusterCtx.VSphereCluster.Namespace,
@@ -302,15 +302,15 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 		log := ctrl.LoggerFrom(ctx)
 		log.Info("Creating VirtualMachineService", "VirtualMachineService", klog.KObj(vmService))
 		if err := s.Client.Create(ctx, vmService); err != nil {
-			return nil, errors.Wrapf(err, "failed to create VirtualMachineService %s", klog.KObj(vmService))
+			return nil, pkgerrors.Wrapf(err, "failed to create VirtualMachineService %s", klog.KObj(vmService))
 		}
 	} else if !reflect.DeepEqual(originalVMService, vmService) {
 		patch, err := conversionclient.MergeFrom(ctx, s.Client, originalVMService)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create patch for VirtualMachineService object")
+			return nil, pkgerrors.Wrapf(err, "failed to create patch for VirtualMachineService object")
 		}
 		if err := s.Client.Patch(ctx, vmService, patch); err != nil {
-			return nil, errors.Wrapf(err, "failed to patch VirtualMachineService object")
+			return nil, pkgerrors.Wrapf(err, "failed to patch VirtualMachineService object")
 		}
 	}
 
@@ -468,7 +468,7 @@ func ensureKCPReadyForControlPlaneEndpoint(ctx context.Context, c client.Client,
 		Name:      clusterCtx.Cluster.Spec.ControlPlaneRef.Name,
 	}
 	if err := c.Get(ctx, kcpKey, kcp); err != nil {
-		return errors.Wrapf(err, "failed to get KubeadmControlPlane %s", klog.KRef(kcpKey.Namespace, kcpKey.Name))
+		return pkgerrors.Wrapf(err, "failed to get KubeadmControlPlane %s", klog.KRef(kcpKey.Namespace, kcpKey.Name))
 	}
 
 	if !kcp.GetDeletionTimestamp().IsZero() {

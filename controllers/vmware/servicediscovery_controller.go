@@ -24,7 +24,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,7 +79,7 @@ const (
 func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterCache clustercache.ClusterCache, options controller.Options) error {
 	networkProvider, err := inframanager.GetNetworkProvider(ctx, controllerManagerCtx.Client, controllerManagerCtx.NetworkProvider)
 	if err != nil {
-		return errors.Wrap(err, "failed to create network provider")
+		return pkgerrors.Wrap(err, "failed to create network provider")
 	}
 
 	r := &serviceDiscoveryReconciler{
@@ -161,7 +161,7 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereCluster.ObjectMeta)
 	if err != nil {
-		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, errors.Wrapf(err, "failed to get Cluster from VSphereCluster")
+		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, pkgerrors.Wrapf(err, "failed to get Cluster from VSphereCluster")
 	}
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
@@ -210,7 +210,7 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	// then just return a no-op and wait for the next sync.
 	guestClient, err := r.clusterCache.GetClient(ctx, client.ObjectKeyFromObject(cluster))
 	if err != nil {
-		if errors.Is(err, clustercache.ErrClusterNotConnected) {
+		if pkgerrors.Is(err, clustercache.ErrClusterNotConnected) {
 			log.V(5).Info("Requeuing because connection to the workload cluster is down")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
@@ -247,7 +247,7 @@ func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestC
 			Reason:  vmwarev1.VSphereClusterServiceDiscoveryNotReadyReason,
 			Message: err.Error(),
 		})
-		return errors.Wrapf(err, "failed to reconcile supervisor headless Service")
+		return pkgerrors.Wrapf(err, "failed to reconcile supervisor headless Service")
 	}
 
 	return nil
@@ -269,13 +269,13 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 	testObj := svc.DeepCopyObject().(client.Object)
 	if err := guestClusterCtx.GuestClient.Get(ctx, client.ObjectKeyFromObject(svc), testObj); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to check if Service %s already exists", klog.KObj(svc))
+			return pkgerrors.Wrapf(err, "failed to check if Service %s already exists", klog.KObj(svc))
 		}
 
 		// If Secret doesn't exist, create it
 		log.Info("Creating supervisor headless Service")
 		if err := guestClusterCtx.GuestClient.Create(ctx, svc); err != nil && !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(err, "failed to create supervisor headless Service")
+			return pkgerrors.Wrapf(err, "failed to create supervisor headless Service")
 		}
 	}
 
@@ -338,7 +338,7 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 			return nil
 		})
 	if err != nil {
-		return errors.Wrapf(err, "failed to create or patch service Endpoints")
+		return pkgerrors.Wrapf(err, "failed to create or patch service Endpoints")
 	}
 
 	endpointsSubsetsStr := fmt.Sprintf("%+v", endpoints.Subsets)
@@ -376,18 +376,18 @@ func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddresses(ctx context
 		if ipFamily != util.IPv4SingleStack {
 			vips, err := getSupervisorAPIServerVIPs(ctx, r.Client)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to discover supervisor API server VIPs")
+				return nil, pkgerrors.Wrap(err, "failed to discover supervisor API server VIPs")
 			}
 
 			if len(vips) >= 3 {
-				return nil, errors.Errorf("found too many VIPs: %v", vips)
+				return nil, pkgerrors.Errorf("found too many VIPs: %v", vips)
 			}
 
 			var ipv4, ipv6 string
 			for _, ip := range vips {
 				parsedIP := net.ParseIP(ip)
 				if parsedIP == nil {
-					return nil, errors.Errorf("invalid supervisor API server VIP %q: must be an IP address", ip)
+					return nil, pkgerrors.Errorf("invalid supervisor API server VIP %q: must be an IP address", ip)
 				}
 				if parsedIP.To4() != nil {
 					ipv4 = ip
@@ -399,7 +399,7 @@ func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddresses(ctx context
 			switch ipFamily {
 			case util.IPv6SingleStack:
 				if ipv6 == "" {
-					return nil, errors.Errorf("no supervisor apiserver IPv6 VIP found for IPv6 single stack cluster")
+					return nil, pkgerrors.Errorf("no supervisor apiserver IPv6 VIP found for IPv6 single stack cluster")
 				}
 				return []string{ipv6}, nil
 
@@ -412,7 +412,7 @@ func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddresses(ctx context
 					result = append(result, ipv6)
 				}
 				if len(result) == 0 {
-					return nil, errors.Errorf("no supervisor apiserver VIP found for dual stack cluster")
+					return nil, pkgerrors.Errorf("no supervisor apiserver VIP found for dual stack cluster")
 				}
 				return result, nil
 
@@ -425,12 +425,12 @@ func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddresses(ctx context
 					result = append(result, ipv4)
 				}
 				if len(result) == 0 {
-					return nil, errors.Errorf("no supervisor apiserver VIP found for dual stack cluster")
+					return nil, pkgerrors.Errorf("no supervisor apiserver VIP found for dual stack cluster")
 				}
 				return result, nil
 			}
 
-			return nil, errors.Errorf("unknown cluster IPFamily")
+			return nil, pkgerrors.Errorf("unknown cluster IPFamily")
 		}
 	}
 
@@ -443,7 +443,7 @@ func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddresses(ctx context
 		var fipErr error
 		supervisorHost, fipErr = getSupervisorAPIServerFIP(ctx, r.Client)
 		if fipErr != nil {
-			return nil, errors.Wrapf(kerrors.NewAggregate([]error{vipErr, fipErr}), "Failed to discover supervisor API server endpoint")
+			return nil, pkgerrors.Wrapf(kerrors.NewAggregate([]error{vipErr, fipErr}), "Failed to discover supervisor API server endpoint")
 		}
 	}
 	return []string{supervisorHost}, nil
@@ -475,7 +475,7 @@ func newSupervisorHeadlessServiceEndpoints(targetHosts []string, targetPort int)
 	for _, targetHost := range targetHosts {
 		ip := net.ParseIP(targetHost)
 		if ip == nil {
-			return nil, errors.Errorf("invalid supervisor API server endpoint %q: must be an IP address", targetHost)
+			return nil, pkgerrors.Errorf("invalid supervisor API server endpoint %q: must be an IP address", targetHost)
 		}
 		addresses = append(addresses, corev1.EndpointAddress{IP: ip.String()})
 	}
@@ -503,7 +503,7 @@ func getSupervisorAPIServerVIP(ctx context.Context, client client.Client) (strin
 	svc := &corev1.Service{}
 	svcKey := types.NamespacedName{Name: vmwarev1.SupervisorLoadBalancerSvcName, Namespace: vmwarev1.SupervisorLoadBalancerSvcNamespace}
 	if err := client.Get(ctx, svcKey, svc); err != nil {
-		return "", errors.Wrapf(err, "unable to get supervisor loadbalancer Service %s", svcKey)
+		return "", pkgerrors.Wrapf(err, "unable to get supervisor loadbalancer Service %s", svcKey)
 	}
 	if len(svc.Status.LoadBalancer.Ingress) > 0 {
 		ingress := svc.Status.LoadBalancer.Ingress[0]
@@ -511,7 +511,7 @@ func getSupervisorAPIServerVIP(ctx context.Context, client client.Client) (strin
 			return ipAddr, nil
 		}
 	}
-	return "", errors.Errorf("no VIP found in the supervisor loadbalancer Service %s", svcKey)
+	return "", pkgerrors.Errorf("no VIP found in the supervisor loadbalancer Service %s", svcKey)
 }
 
 // getSupervisorAPIServerVIPs finds all load balancer IPs of the Supervisor APIServer.
@@ -519,7 +519,7 @@ func getSupervisorAPIServerVIPs(ctx context.Context, client client.Client) ([]st
 	svc := &corev1.Service{}
 	svcKey := types.NamespacedName{Name: vmwarev1.SupervisorLoadBalancerSvcName, Namespace: vmwarev1.SupervisorLoadBalancerSvcNamespace}
 	if err := client.Get(ctx, svcKey, svc); err != nil {
-		return nil, errors.Wrapf(err, "unable to get supervisor loadbalancer Service %s", svcKey)
+		return nil, pkgerrors.Wrapf(err, "unable to get supervisor loadbalancer Service %s", svcKey)
 	}
 
 	var vips []string
@@ -531,22 +531,22 @@ func getSupervisorAPIServerVIPs(ctx context.Context, client client.Client) ([]st
 	if len(vips) > 0 {
 		return vips, nil
 	}
-	return nil, errors.Errorf("no VIP found in the supervisor loadbalancer Service %s", svcKey)
+	return nil, pkgerrors.Errorf("no VIP found in the supervisor loadbalancer Service %s", svcKey)
 }
 
 // getSupervisorAPIServerFIP finds the floating ip of the Supervisor APIServer.
 func getSupervisorAPIServerFIP(ctx context.Context, client client.Client) (string, error) {
 	urlString, err := getSupervisorAPIServerURLWithFIP(ctx, client)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to get supervisor URL")
+		return "", pkgerrors.Wrap(err, "unable to get supervisor URL")
 	}
 	urlVal, err := url.Parse(urlString)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to parse supervisor URL from %s", urlString)
+		return "", pkgerrors.Wrapf(err, "unable to parse supervisor URL from %s", urlString)
 	}
 	host := urlVal.Hostname()
 	if host == "" {
-		return "", errors.Errorf("unable to get supervisor host from URL %s", urlVal)
+		return "", pkgerrors.Errorf("unable to get supervisor host from URL %s", urlVal)
 	}
 	return host, nil
 }
@@ -555,7 +555,7 @@ func getSupervisorAPIServerURLWithFIP(ctx context.Context, client client.Client)
 	cm := &corev1.ConfigMap{}
 	cmKey := types.NamespacedName{Name: bootstrapapi.ConfigMapClusterInfo, Namespace: metav1.NamespacePublic}
 	if err := client.Get(ctx, cmKey, cm); err != nil {
-		return "", errors.Wrapf(err, "unable to get ConfigMap %s", cmKey)
+		return "", pkgerrors.Wrapf(err, "unable to get ConfigMap %s", cmKey)
 	}
 	kubeconfig, err := tryParseClusterInfoFromConfigMap(cm)
 	if err != nil {
@@ -565,18 +565,18 @@ func getSupervisorAPIServerURLWithFIP(ctx context.Context, client client.Client)
 	if clusterConfig != nil {
 		return clusterConfig.Server, nil
 	}
-	return "", errors.Errorf("unable to get cluster from kubeconfig in ConfigMap %s", cmKey)
+	return "", pkgerrors.Errorf("unable to get cluster from kubeconfig in ConfigMap %s", cmKey)
 }
 
 // tryParseClusterInfoFromConfigMap tries to parse a kubeconfig file from a ConfigMap key.
 func tryParseClusterInfoFromConfigMap(cm *corev1.ConfigMap) (*clientcmdapi.Config, error) {
 	kubeConfigString, ok := cm.Data[bootstrapapi.KubeConfigKey]
 	if !ok || kubeConfigString == "" {
-		return nil, errors.Errorf("no %s key in ConfigMap %s/%s", bootstrapapi.KubeConfigKey, cm.Namespace, cm.Name)
+		return nil, pkgerrors.Errorf("no %s key in ConfigMap %s/%s", bootstrapapi.KubeConfigKey, cm.Namespace, cm.Name)
 	}
 	parsedKubeConfig, err := clientcmd.Load([]byte(kubeConfigString))
 	if err != nil {
-		return nil, errors.Wrapf(err, "couldn't parse the kubeconfig file in the ConfigMap %s/%s", cm.Namespace, cm.Name)
+		return nil, pkgerrors.Wrapf(err, "couldn't parse the kubeconfig file in the ConfigMap %s/%s", cm.Namespace, cm.Name)
 	}
 	return parsedKubeConfig, nil
 }

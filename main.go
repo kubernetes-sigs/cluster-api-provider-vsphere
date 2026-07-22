@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	perrors "github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
@@ -531,12 +531,12 @@ func main() {
 			},
 		})
 		if err != nil {
-			return perrors.Wrapf(err, "unable to create secret caching client")
+			return pkgerrors.Wrapf(err, "unable to create secret caching client")
 		}
 
 		clusterCache, err := setupClusterCache(ctx, mgr, secretCachingClient, isSupervisorCRDLoaded)
 		if err != nil {
-			return perrors.Wrapf(err, "unable to create remote cluster cache tracker")
+			return pkgerrors.Wrapf(err, "unable to create remote cluster cache tracker")
 		}
 
 		if isGovmomiCRDLoaded {
@@ -812,7 +812,7 @@ func setupClusterCache(ctx context.Context, mgr ctrlmgr.Manager, secretCachingCl
 		WatchFilterValue: managerOpts.WatchFilterValue,
 	}, concurrency(clusterCacheConcurrency))
 	if err != nil {
-		return nil, perrors.Wrapf(err, "Unable to create ClusterCache")
+		return nil, pkgerrors.Wrapf(err, "Unable to create ClusterCache")
 	}
 
 	return clusterCache, nil

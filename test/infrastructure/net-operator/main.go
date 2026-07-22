@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
@@ -269,7 +269,7 @@ func main() {
 
 	// Continuing startup does not make sense without having managers added.
 	if !supervisorMode {
-		err := errors.New("supervisor CRDs not detected")
+		err := pkgerrors.New("supervisor CRDs not detected")
 		setupLog.Error(err, "CAPV CRDs are not deployed yet, restarting")
 		os.Exit(1)
 	}

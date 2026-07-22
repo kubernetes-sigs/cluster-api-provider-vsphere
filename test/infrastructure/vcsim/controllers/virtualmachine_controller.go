@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -178,11 +178,11 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(ns), ns); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get %s Namespace", nsName)
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get %s Namespace", nsName)
 			}
 
 			if err := inmemoryClient.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to create %s Namespace", nsName)
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create %s Namespace", nsName)
 			}
 		}
 	}
@@ -213,26 +213,26 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					}
 				}
 				if err := r.Client.Patch(ctx, cluster, client.MergeFrom(orig)); err != nil {
-					return ctrl.Result{}, errors.Wrap(err, "failed to fixup controlPlaneEndpoint on Cluster")
+					return ctrl.Result{}, pkgerrors.Wrap(err, "failed to fixup controlPlaneEndpoint on Cluster")
 				}
 			}
 
 			// Note: Check if the kubeconfig secret has the wrong controlPlaneEndpoint, if yes, fix it up
 			kubeconfigSecret := &corev1.Secret{}
 			if err := r.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Name + "-kubeconfig"}, kubeconfigSecret); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to get kubeconfig Secret for Cluster")
+				return ctrl.Result{}, pkgerrors.Wrap(err, "failed to get kubeconfig Secret for Cluster")
 			}
 			data, ok := kubeconfigSecret.Data[secret.KubeconfigDataName]
 			if !ok {
-				return ctrl.Result{}, errors.Errorf("missing key %q in kubeconfig Secret for Cluster", secret.KubeconfigDataName)
+				return ctrl.Result{}, pkgerrors.Errorf("missing key %q in kubeconfig Secret for Cluster", secret.KubeconfigDataName)
 			}
 			config, err := clientcmd.Load(data)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+				return ctrl.Result{}, pkgerrors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
 			}
 			kubeconfigCluster, ok := config.Clusters[cluster.Name]
 			if !ok {
-				return ctrl.Result{}, errors.Errorf("missing clusters map entry in kubeconfig Secret for Cluster")
+				return ctrl.Result{}, pkgerrors.Errorf("missing clusters map entry in kubeconfig Secret for Cluster")
 			}
 			desiredServer := fmt.Sprintf("https://%s", net.JoinHostPort(c.Status.Host, strconv.Itoa(int(c.Status.Port))))
 			if kubeconfigCluster.Server != desiredServer {
@@ -258,7 +258,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			break
 		}
 		if !found {
-			return ctrl.Result{}, errors.Errorf("unable to find a ControlPlaneEndpoint for host %s, port %d", cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
+			return ctrl.Result{}, pkgerrors.Errorf("unable to find a ControlPlaneEndpoint for host %s, port %d", cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
 		}
 	}
 
@@ -271,7 +271,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	conditionsTracker := &infrav1beta1.VSphereVM{}
 	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(virtualMachine), conditionsTracker); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrap(err, "failed to get conditionsTracker")
+			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to get conditionsTracker")
 		}
 
 		conditionsTracker = &infrav1beta1.VSphereVM{
@@ -281,7 +281,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			},
 		}
 		if err := inmemoryClient.Create(ctx, conditionsTracker); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to create conditionsTracker")
+			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to create conditionsTracker")
 		}
 	}
 
@@ -342,11 +342,11 @@ func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster 
 
 	patch, err := conversionclient.MergeFrom(ctx, r.Client, original)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create patch for VirtualMachine object")
 	}
 
 	if err := r.Client.Patch(ctx, virtualMachine, patch); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to patch VirtualMachine object")
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to patch VirtualMachine object")
 	}
 	return ctrl.Result{}, nil
 }
@@ -413,12 +413,12 @@ func (r *VirtualMachineReconciler) simulateVMOperatorReconcileNormal(ctx context
 	defer func() {
 		patch, err := conversionclient.MergeFrom(ctx, r.Client, original)
 		if err != nil {
-			retErr = kerrors.NewAggregate([]error{retErr, errors.Wrapf(err, "failed to create patch for VirtualMachine object")})
+			retErr = kerrors.NewAggregate([]error{retErr, pkgerrors.Wrapf(err, "failed to create patch for VirtualMachine object")})
 			return
 		}
 
 		if err := r.Client.Status().Patch(ctx, virtualMachine, patch); err != nil {
-			retErr = kerrors.NewAggregate([]error{retErr, errors.Wrapf(err, "failed to create patch for VirtualMachine object")})
+			retErr = kerrors.NewAggregate([]error{retErr, pkgerrors.Wrapf(err, "failed to create patch for VirtualMachine object")})
 		}
 	}()
 
@@ -508,7 +508,7 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 	// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 	vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
 	if err != nil {
-		return errors.Wrap(err, "failed to create watch object for VirtualMachine")
+		return pkgerrors.Wrap(err, "failed to create watch object for VirtualMachine")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "virtualmachine")
@@ -536,7 +536,7 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
 }
@@ -557,11 +557,11 @@ func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 
 	patch, err := conversionclient.MergeFrom(ctx, c, original)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to create patch for VirtualMachine object")
+		return false, pkgerrors.Wrapf(err, "failed to create patch for VirtualMachine object")
 	}
 
 	if err := c.Patch(ctx, o, patch); err != nil {
-		return false, errors.Wrapf(err, "failed to patch VirtualMachine object")
+		return false, pkgerrors.Wrapf(err, "failed to patch VirtualMachine object")
 	}
 
 	return true, nil

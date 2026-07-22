@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -95,7 +95,7 @@ func (r *ControlPlaneEndpointReconciler) reconcileNormal(_ context.Context, cont
 	listenerName := klog.KObj(controlPlaneEndpoint).String()
 	listener, err := r.APIServerMux.InitWorkloadClusterListener(listenerName, controlPlaneEndpoint.Status.Port)
 	if err != nil {
-		return errors.Wrapf(err, "failed to init the listener for the control plane endpoint")
+		return pkgerrors.Wrapf(err, "failed to init the listener for the control plane endpoint")
 	}
 
 	controlPlaneEndpoint.Status.Host = r.PodIP // NOTE: we are replacing the listener ip with the pod ip so it will be accessible from other pods as well
@@ -114,7 +114,7 @@ func (r *ControlPlaneEndpointReconciler) reconcileDelete(_ context.Context, cont
 
 	// Delete the listener for the workload cluster;
 	if err := r.APIServerMux.DeleteWorkloadClusterListener(listenerName); err != nil {
-		return errors.Wrapf(err, "failed to delete the listener for the control plane endpoint")
+		return pkgerrors.Wrapf(err, "failed to delete the listener for the control plane endpoint")
 	}
 
 	controllerutil.RemoveFinalizer(controlPlaneEndpoint, vcsimv1.ControlPlaneEndpointFinalizer)
@@ -133,7 +133,7 @@ func (r *ControlPlaneEndpointReconciler) SetupWithManager(ctx context.Context, m
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
 }

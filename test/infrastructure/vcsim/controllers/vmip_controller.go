@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi/vim25/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,18 +50,18 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 
 	authSession, err := r.GetVCenterSession(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get vcenter session")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get vcenter session")
 	}
 
 	vm, err := authSession.Finder.VirtualMachine(ctx, r.GetVMPath())
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to find vm")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to find vm")
 	}
 
 	// Check if the VM already has network status (but it is not yet surfaced in conditions)
 	netStatus, err := govmominet.GetNetworkStatus(ctx, authSession.Client.Client, vm.Reference())
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get vm network status")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get vm network status")
 	}
 	ipAddrs := []string{}
 	for _, s := range netStatus {
@@ -75,7 +75,7 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 	var macAddress string
 	devices, err := vm.Device(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get devices for vm")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to get devices for vm")
 	}
 	for _, device := range devices {
 		if ethernetCard, ok := device.(types.BaseVirtualEthernetCard); ok {
@@ -83,12 +83,12 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 		}
 	}
 	if macAddress == "" {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to find mac address")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to find mac address")
 	}
 
 	powerState, err := vm.PowerState(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to check Power State of vm")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to check Power State of vm")
 	}
 
 	if powerState != types.VirtualMachinePowerStatePoweredOn {
@@ -99,10 +99,10 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 	log.Info("Powering Off the VM before applying an IP")
 	task, err := vm.PowerOff(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to PowerOff vm")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to PowerOff vm")
 	}
 	if err = task.Wait(ctx); err != nil { // deprecation on Wait is going to be removed, see https://github.com/vmware/govmomi/issues/3394
-		return reconcile.Result{}, errors.Wrapf(err, "failed to PowerOff vm task to complete")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to PowerOff vm task to complete")
 	}
 
 	// Add a fake ip address.
@@ -138,24 +138,24 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 	log.Info("Customizing the VM for applying an IP")
 	task, err = vm.Customize(ctx, spec)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to Customize vm")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to Customize vm")
 	}
 	if err = task.Wait(ctx); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to wait for Customize vm task to complete")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to wait for Customize vm task to complete")
 	}
 
 	log.Info("Powering On the VM after applying the IP")
 	task, err = vm.PowerOn(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to PowerOn vm")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to PowerOn vm")
 	}
 	if err = task.Wait(ctx); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to PowerOn vm task to complete")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to PowerOn vm task to complete")
 	}
 
 	ip, err := vm.WaitForIP(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to WaitForIP")
+		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to WaitForIP")
 	}
 	log.Info("IP assigned to the VM", "ip", ip)
 

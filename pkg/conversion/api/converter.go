@@ -18,7 +18,7 @@ limitations under the License.
 package api
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -38,7 +38,7 @@ func DefaultConverterFor(targetVersions ...schema.GroupVersion) *conversion.Conv
 				return gv.Version, nil
 			}
 		}
-		return "", errors.Errorf("target version for %s is not configured", gk.Group)
+		return "", pkgerrors.Errorf("target version for %s is not configured", gk.Group)
 	})
 
 	utilruntime.Must(vmoprvhub.AddToConverter(converter))

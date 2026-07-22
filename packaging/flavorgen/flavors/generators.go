@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -105,7 +105,7 @@ systemd:
 func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {
 	variables, err := clusterTopologyVariables(supervisorMode)
 	if err != nil {
-		return clusterv1.Cluster{}, errors.Wrap(err, "failed to create ClusterTopologyCluster template")
+		return clusterv1.Cluster{}, pkgerrors.Wrap(err, "failed to create ClusterTopologyCluster template")
 	}
 	return clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
@@ -144,15 +144,15 @@ func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {
 func clusterTopologyVariables(supervisorMode bool) ([]clusterv1.ClusterVariable, error) {
 	sshKey, err := json.Marshal(env.VSphereSSHAuthorizedKeysVar)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to json-encode variable VSphereSSHAuthorizedKeysVar: %q", env.VSphereSSHAuthorizedKeysVar)
+		return nil, pkgerrors.Wrapf(err, "failed to json-encode variable VSphereSSHAuthorizedKeysVar: %q", env.VSphereSSHAuthorizedKeysVar)
 	}
 	controlPlaneIP, err := json.Marshal(env.ControlPlaneEndpointHostVar)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointHostVar: %q", env.ControlPlaneEndpointHostVar)
+		return nil, pkgerrors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointHostVar: %q", env.ControlPlaneEndpointHostVar)
 	}
 	controlPlanePort, err := json.Marshal(env.ControlPlaneEndpointPortVar)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointPortVar: %q", env.ControlPlaneEndpointPortVar)
+		return nil, pkgerrors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointPortVar: %q", env.ControlPlaneEndpointPortVar)
 	}
 	kubeVipVariable, err := kubevip.TopologyVariable()
 	if err != nil {
@@ -188,7 +188,7 @@ func clusterTopologyVariables(supervisorMode bool) ([]clusterv1.ClusterVariable,
 		}
 		secretName, err := json.Marshal(env.ClusterNameVar)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to json-encode variable ClusterNameVar: %q", env.ClusterNameVar)
+			return nil, pkgerrors.Wrapf(err, "failed to json-encode variable ClusterNameVar: %q", env.ClusterNameVar)
 		}
 
 		varForNoneSupervisorMode := []clusterv1.ClusterVariable{
@@ -217,7 +217,7 @@ func getInfraServerValue() ([]byte, error) {
 		"thumbprint": env.VSphereThumbprint,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to json-encode, VSphereServerVar: %s, VSphereThumbprint: %s",
+		return nil, pkgerrors.Wrapf(err, "failed to json-encode, VSphereServerVar: %s, VSphereThumbprint: %s",
 			env.VSphereServerVar, env.VSphereThumbprint)
 	}
 	return byteArr, nil

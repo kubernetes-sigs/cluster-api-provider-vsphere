@@ -19,7 +19,7 @@ package clustermodule
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/cluster-api/util"
@@ -49,7 +49,7 @@ func (s *service) fetchSession(ctx context.Context, clusterCtx *capvcontext.Clus
 	if clusterCtx.VSphereCluster.Spec.IdentityRef.IsDefined() {
 		creds, err := identity.GetCredentials(ctx, s.Client, clusterCtx.VSphereCluster, s.ControllerManagerContext.Namespace)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get credentials from IdentityRef")
+			return nil, pkgerrors.Wrap(err, "failed to get credentials from IdentityRef")
 		}
 
 		params = params.WithUserInfo(creds.Username, creds.Password)
@@ -67,7 +67,7 @@ func (s *service) fetchTemplateRef(ctx context.Context, input Wrapper) (*corev1.
 	obj.SetName(input.GetName())
 	key := client.ObjectKey{Name: obj.GetName(), Namespace: input.GetNamespace()}
 	if err := s.Client.Get(ctx, key, obj); err != nil {
-		return nil, errors.Wrapf(err, "failed to get %s external object %q/%q", obj.GetKind(), key.Namespace, key.Name)
+		return nil, pkgerrors.Wrapf(err, "failed to get %s external object %q/%q", obj.GetKind(), key.Namespace, key.Name)
 	}
 
 	objRef := corev1.ObjectReference{}

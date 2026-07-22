@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -168,11 +168,11 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(ns), ns); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get %s Namespace", nsName)
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to get %s Namespace", nsName)
 			}
 
 			if err := inmemoryClient.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to create %s Namespace", nsName)
+				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create %s Namespace", nsName)
 			}
 		}
 	}
@@ -199,7 +199,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			break
 		}
 		if !found {
-			return ctrl.Result{}, errors.Errorf("unable to find a ControlPlaneEndpoint for host %s, port %d", cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
+			return ctrl.Result{}, pkgerrors.Errorf("unable to find a ControlPlaneEndpoint for host %s, port %d", cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
 		}
 	}
 
@@ -211,7 +211,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	conditionsTracker := &infrav1beta1.VSphereVM{}
 	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(vSphereVM), conditionsTracker); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrap(err, "failed to get conditionsTracker")
+			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to get conditionsTracker")
 		}
 
 		conditionsTracker = &infrav1beta1.VSphereVM{
@@ -221,7 +221,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			},
 		}
 		if err := inmemoryClient.Create(ctx, conditionsTracker); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to create conditionsTracker")
+			return ctrl.Result{}, pkgerrors.Wrap(err, "failed to create conditionsTracker")
 		}
 	}
 
@@ -320,13 +320,13 @@ func (r *VSphereVMReconciler) getVMBootstrapReconciler(vSphereVM *infrav1beta1.V
 
 func (r *VSphereVMReconciler) getVCenterSession(ctx context.Context, vSphereCluster *infrav1beta1.VSphereCluster, vSphereVM *infrav1beta1.VSphereVM) (*session.Session, error) {
 	if vSphereCluster.Spec.IdentityRef == nil {
-		return nil, errors.New("vcsim do not support using credentials provided to the manager")
+		return nil, pkgerrors.New("vcsim do not support using credentials provided to the manager")
 	}
 
 	// Note: Temporarily using a local copy of identity.GetCredentials until this controller can be migrated to v1beta2.
 	creds, err := GetCredentials(ctx, r.Client, vSphereCluster, capvNamespace)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve credentials from IdentityRef")
+		return nil, pkgerrors.Wrap(err, "failed to retrieve credentials from IdentityRef")
 	}
 
 	params := session.NewParams().
@@ -349,7 +349,7 @@ func (r *VSphereVMReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		Complete(ctx, r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
 }
@@ -382,16 +382,16 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1beta1.
 		}
 
 		if !identity.Status.Ready {
-			return nil, errors.New("identity isn't ready to be used yet")
+			return nil, pkgerrors.New("identity isn't ready to be used yet")
 		}
 
 		if identity.Spec.AllowedNamespaces == nil {
-			return nil, errors.New("allowedNamespaces set to nil, no namespaces are allowed to use this identity")
+			return nil, pkgerrors.New("allowedNamespaces set to nil, no namespaces are allowed to use this identity")
 		}
 
 		selector, err := metav1.LabelSelectorAsSelector(&identity.Spec.AllowedNamespaces.Selector)
 		if err != nil {
-			return nil, errors.New("failed to build selector")
+			return nil, pkgerrors.New("failed to build selector")
 		}
 
 		ns := &corev1.Namespace{}

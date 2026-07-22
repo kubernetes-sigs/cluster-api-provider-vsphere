@@ -22,7 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -65,12 +65,12 @@ func Get(ctx context.Context, c client.Client) (*vcsimv1.VCenterSimulator, error
 	// Wait for the Server to report an address.
 	_ = wait.PollUntilContextTimeout(ctx, time.Second, time.Second*5, true, func(ctx context.Context) (done bool, err error) {
 		if err := c.Get(ctx, client.ObjectKeyFromObject(vcsim), vcsim); err != nil {
-			retryError = errors.Wrap(err, "getting VCenterSimulator")
+			retryError = pkgerrors.Wrap(err, "getting VCenterSimulator")
 			return false, nil
 		}
 
 		if vcsim.Status.Host == "" {
-			retryError = errors.New("vcsim VCenterSimulator.Status.Host is not set")
+			retryError = pkgerrors.New("vcsim VCenterSimulator.Status.Host is not set")
 			return false, nil
 		}
 

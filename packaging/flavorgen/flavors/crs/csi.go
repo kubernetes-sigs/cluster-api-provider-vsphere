@@ -19,7 +19,7 @@ package crs
 import (
 	"path"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	"sigs.k8s.io/cluster-api/util/yaml"
@@ -78,7 +78,7 @@ func CreateCrsResourceObjectsCSI(crs *addonsv1.ClusterResourceSet) ([]runtime.Ob
 
 	cloudConfig, err := ConfigForCSI().MarshalINI()
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid cloudConfig")
+		return nil, pkgerrors.Wrapf(err, "invalid cloudConfig")
 	}
 
 	// cloud config secret is wrapped in another secret so it could be injected via CRS

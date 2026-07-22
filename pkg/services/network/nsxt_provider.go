@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,7 +90,7 @@ func (np *nsxtNetworkProvider) verifyNSXTVirtualNetworkStatus(vspherecluster *vm
 				Reason:  vmwarev1.VSphereClusterNetworkNotReadyReason,
 				Message: condition.Message,
 			})
-			return errors.Errorf("virtual network ready status is: '%s' in cluster %s. reason: %s, message: %s",
+			return pkgerrors.Errorf("virtual network ready status is: '%s' in cluster %s. reason: %s, message: %s",
 				condition.Status, types.NamespacedName{Namespace: namespace, Name: clusterName}, condition.Reason, condition.Message)
 		}
 	}
@@ -103,7 +103,7 @@ func (np *nsxtNetworkProvider) verifyNSXTVirtualNetworkStatus(vspherecluster *vm
 			Reason:  vmwarev1.VSphereClusterNetworkNotReadyReason,
 			Message: "No Ready status for virtual network",
 		})
-		return errors.Errorf("virtual network ready status in cluster %s has not been set", types.NamespacedName{Namespace: namespace, Name: clusterName})
+		return pkgerrors.Errorf("virtual network ready status in cluster %s has not been set", types.NamespacedName{Namespace: namespace, Name: clusterName})
 	}
 
 	deprecatedv1beta1conditions.MarkTrue(vspherecluster, vmwarev1.ClusterNetworkReadyV1Beta1Condition)
@@ -152,14 +152,14 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clus
 	if np.disableFW != "true" && vnet.Spec.WhitelistSourceRanges == "" {
 		supportFW, err := util.NCPSupportFW(ctx, np.client)
 		if err != nil {
-			return errors.Wrap(err, "failed to check if NCP supports firewall rules enforcement on GC T1 router")
+			return pkgerrors.Wrap(err, "failed to check if NCP supports firewall rules enforcement on GC T1 router")
 		}
 		// specify whitelist_source_ranges if needed and if NCP supports it
 		if supportFW {
 			// Find system namespace snat ip
 			systemNSSnatIP, err := util.GetNamespaceNetSnatIP(ctx, np.client, SystemNamespace)
 			if err != nil {
-				return errors.Wrap(err, "failed to get Snat IP for kube-system")
+				return pkgerrors.Wrap(err, "failed to get Snat IP for kube-system")
 			}
 			log.V(4).Info("Got system namespace snat ip", "ip", systemNSSnatIP)
 
@@ -173,7 +173,7 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clus
 		vnet,
 		np.client.Scheme(),
 	); err != nil {
-		return errors.Wrapf(
+		return pkgerrors.Wrapf(
 			err,
 			"error setting %s/%s as owner of %s/%s",
 			clusterCtx.VSphereCluster.Namespace,
@@ -198,7 +198,7 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clus
 			Reason:  vmwarev1.VSphereClusterNetworkNotReadyReason,
 			Message: err.Error(),
 		})
-		return errors.Wrap(err, "Failed to provision network")
+		return pkgerrors.Wrap(err, "Failed to provision network")
 	}
 
 	return np.verifyNSXTVirtualNetworkStatus(clusterCtx.VSphereCluster, vnet)

@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	vmopinfrav1 "github.com/vmware-tanzu/vm-operator/external/infra/api/v1alpha1"
 	spqv1 "github.com/vmware-tanzu/vm-operator/external/storage-policy-quota/api/v1alpha2"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
@@ -117,11 +117,11 @@ func ReconcileCapabilities(ctx context.Context, c client.Client, vmOperatorVersi
 	}
 	objs, err := utilyaml.ToUnstructured(capabilitiesFile)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse yaml for vm-operator capabilities ConfigMap")
+		return pkgerrors.Wrap(err, "failed to parse yaml for vm-operator capabilities ConfigMap")
 	}
 
 	if len(objs) != 1 || objs[0].GetKind() != "ConfigMap" || objs[0].GetName() != "wcp-cluster-capabilities" {
-		return errors.Wrap(err, "invalid yaml for vm-operator capabilities ConfigMap")
+		return pkgerrors.Wrap(err, "invalid yaml for vm-operator capabilities ConfigMap")
 	}
 
 	cm := &objs[0]
@@ -129,11 +129,11 @@ func ReconcileCapabilities(ctx context.Context, c client.Client, vmOperatorVersi
 		retryError = nil
 		if err := c.Get(ctx, client.ObjectKeyFromObject(cm), cm); err != nil {
 			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get vm-operator ConfigMap %s", cm.GetName())
+				retryError = pkgerrors.Wrapf(err, "failed to get vm-operator ConfigMap %s", cm.GetName())
 				return false, nil
 			}
 			if err := c.Create(ctx, cm); err != nil {
-				retryError = errors.Wrapf(err, "failed to create vm-operator ConfigMap %s", cm.GetName())
+				retryError = pkgerrors.Wrapf(err, "failed to create vm-operator ConfigMap %s", cm.GetName())
 				return false, nil
 			}
 			log.Info("Created vm-operator ConfigMap", "ConfigMap", klog.KObj(cm))
@@ -163,7 +163,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			Namespace: config.Spec.VCenterSimulatorRef.Namespace,
 			Name:      config.Spec.VCenterSimulatorRef.Name,
 		}, vCenterSimulator); err != nil {
-			return errors.Wrapf(err, "failed to get vCenterSimulator %s", klog.KRef(config.Spec.VCenterSimulatorRef.Namespace, config.Spec.VCenterSimulatorRef.Name))
+			return pkgerrors.Wrapf(err, "failed to get vCenterSimulator %s", klog.KRef(config.Spec.VCenterSimulatorRef.Namespace, config.Spec.VCenterSimulatorRef.Name))
 		}
 
 		config.SetVCenterFromVCenterSimulator(vCenterSimulator)
@@ -183,37 +183,37 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 	s, err := session.GetOrCreate(ctx, params)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to vCenter Server instance to read dependency references")
+		return pkgerrors.Wrapf(err, "failed to connect to vCenter Server instance to read dependency references")
 	}
 
 	datacenter, err := s.Finder.Datacenter(ctx, config.Spec.VCenter.Datacenter)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get datacenter %s", config.Spec.VCenter.Datacenter)
+		return pkgerrors.Wrapf(err, "failed to get datacenter %s", config.Spec.VCenter.Datacenter)
 	}
 
 	cluster, err := s.Finder.ClusterComputeResource(ctx, config.Spec.VCenter.Cluster)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get cluster %s", config.Spec.VCenter.Cluster)
+		return pkgerrors.Wrapf(err, "failed to get cluster %s", config.Spec.VCenter.Cluster)
 	}
 
 	folder, err := s.Finder.Folder(ctx, config.Spec.VCenter.Folder)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get folder %s", config.Spec.VCenter.Folder)
+		return pkgerrors.Wrapf(err, "failed to get folder %s", config.Spec.VCenter.Folder)
 	}
 
 	resourcePool, err := s.Finder.ResourcePool(ctx, config.Spec.VCenter.ResourcePool)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get resourcePool %s", config.Spec.VCenter.ResourcePool)
+		return pkgerrors.Wrapf(err, "failed to get resourcePool %s", config.Spec.VCenter.ResourcePool)
 	}
 
 	contentLibraryDatastore, err := s.Finder.Datastore(ctx, config.Spec.VCenter.ContentLibrary.Datastore)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get contentLibraryDatastore %s", config.Spec.VCenter.ContentLibrary.Datastore)
+		return pkgerrors.Wrapf(err, "failed to get contentLibraryDatastore %s", config.Spec.VCenter.ContentLibrary.Datastore)
 	}
 
 	pbmClient, err := pbm.NewClient(ctx, s.Client.Client)
 	if err != nil {
-		return errors.Wrap(err, "failed to get storage policy client")
+		return pkgerrors.Wrap(err, "failed to get storage policy client")
 	}
 
 	// Create StorageClasses & bind them to the user namespace via a ResourceQuota
@@ -221,7 +221,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	for _, sc := range config.Spec.StorageClasses {
 		storagePolicyID, err := pbmClient.ProfileIDByName(ctx, sc.StoragePolicy)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get storage policy profile %s", sc.StoragePolicy)
+			return pkgerrors.Wrapf(err, "failed to get storage policy profile %s", sc.StoragePolicy)
 		}
 
 		storageClass := &storagev1.StorageClass{
@@ -239,11 +239,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			retryError = nil
 			if err := c.Get(ctx, client.ObjectKeyFromObject(storageClass), storageClass); err != nil {
 				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get vm-operator StorageClass %s", storageClass.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to get vm-operator StorageClass %s", storageClass.Name)
 					return false, nil
 				}
 				if err := c.Create(ctx, storageClass); err != nil {
-					retryError = errors.Wrapf(err, "failed to create vm-operator StorageClass %s", storageClass.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to create vm-operator StorageClass %s", storageClass.Name)
 					return false, nil
 				}
 				log.Info("Created vm-operator StorageClass", "StorageClass", klog.KObj(storageClass))
@@ -272,11 +272,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			retryError = nil
 			if err := c.Get(ctx, client.ObjectKeyFromObject(resourceQuota), resourceQuota); err != nil {
 				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get vm-operator ResourceQuota %s", resourceQuota.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to get vm-operator ResourceQuota %s", resourceQuota.Name)
 					return false, nil
 				}
 				if err := c.Create(ctx, resourceQuota); err != nil {
-					retryError = errors.Wrapf(err, "failed to create vm-operator ResourceQuota %s", resourceQuota.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to create vm-operator ResourceQuota %s", resourceQuota.Name)
 					return false, nil
 				}
 				log.Info("Created vm-operator ResourceQuota", "ResourceQuota", klog.KObj(resourceQuota))
@@ -303,11 +303,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 					return true, nil
 				}
 				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get vm-operator StoragePolicyUsage %s", spu.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to get vm-operator StoragePolicyUsage %s", spu.Name)
 					return false, nil
 				}
 				if err := c.Create(ctx, spu); err != nil {
-					retryError = errors.Wrapf(err, "failed to create vm-operator StoragePolicyUsage %s", spu.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to create vm-operator StoragePolicyUsage %s", spu.Name)
 					return false, nil
 				}
 				log.Info("Created vm-operator StoragePolicyUsage", "StoragePolicyUsage", klog.KObj(spu))
@@ -343,11 +343,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 				retryError = nil
 				if err := c.Get(ctx, client.ObjectKeyFromObject(sp), sp); err != nil {
 					if !apierrors.IsNotFound(err) {
-						retryError = errors.Wrapf(err, "failed to get vm-operator StoragePolicy %s", sp.GetName())
+						retryError = pkgerrors.Wrapf(err, "failed to get vm-operator StoragePolicy %s", sp.GetName())
 						return false, nil
 					}
 					if err := c.Create(ctx, sp); err != nil {
-						retryError = errors.Wrapf(err, "failed to create vm-operator StoragePolicy %s", sp.GetName())
+						retryError = pkgerrors.Wrapf(err, "failed to create vm-operator StoragePolicy %s", sp.GetName())
 						return false, nil
 					}
 					log.Info("Created vm-operator StoragePolicy", "StoragePolicy", klog.KObj(sp))
@@ -361,7 +361,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			if apierrors.IsNotFound(err) {
 				log.Info("Skipping creation of vm-operator StoragePolicy, CRD not found (only required when using vm-operator >= 9.2)")
 			} else {
-				return errors.Wrapf(err, "failed to get StoragePolicy CRD")
+				return pkgerrors.Wrapf(err, "failed to get StoragePolicy CRD")
 			}
 		}
 	}
@@ -389,11 +389,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		retryError = nil
 		if err := c.Get(ctx, client.ObjectKeyFromObject(availabilityZone), availabilityZone); err != nil {
 			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get AvailabilityZone %s", availabilityZone.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to get AvailabilityZone %s", availabilityZone.Name)
 				return false, nil
 			}
 			if err := c.Create(ctx, availabilityZone); err != nil {
-				retryError = errors.Wrapf(err, "failed to create AvailabilityZone %s", availabilityZone.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to create AvailabilityZone %s", availabilityZone.Name)
 				return false, nil
 			}
 			log.Info("Created vm-operator AvailabilityZone", "AvailabilityZone", klog.KObj(availabilityZone))
@@ -406,7 +406,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 				FolderMoId: folder.Reference().Value,
 			}
 			if err := c.Patch(ctx, availabilityZone, client.MergeFrom(originalAvailabilityZone)); err != nil {
-				retryError = errors.Wrapf(err, "failed to patch AvailabilityZone %s", availabilityZone.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to patch AvailabilityZone %s", availabilityZone.Name)
 				return false, nil
 			}
 			log.Info("Update vm-operator AvailabilityZone", "AvailabilityZone", klog.KObj(availabilityZone))
@@ -451,11 +451,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			retryError = nil
 			if err := c.Get(ctx, client.ObjectKeyFromObject(zone), zone); err != nil {
 				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get Zone %s", zone.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to get Zone %s", zone.Name)
 					return false, nil
 				}
 				if err := c.Create(ctx, zone); err != nil {
-					retryError = errors.Wrapf(err, "failed to create Zone %s", zone.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to create Zone %s", zone.Name)
 					return false, nil
 				}
 				log.Info("Created vm-operator Zone", "Zone", klog.KObj(zone))
@@ -488,11 +488,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		retryError = nil
 		if err := c.Get(ctx, client.ObjectKeyFromObject(secret), secret); err != nil {
 			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get vm-operator Secret %s", secret.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to get vm-operator Secret %s", secret.Name)
 				return false, nil
 			}
 			if err := c.Create(ctx, secret); err != nil {
-				retryError = errors.Wrapf(err, "failed to create vm-operator Secret %s", secret.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to create vm-operator Secret %s", secret.Name)
 				return false, nil
 			}
 			log.Info("Created vm-operator Secret", "Secret", klog.KObj(secret))
@@ -520,11 +520,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		retryError = nil
 		if err := c.Get(ctx, client.ObjectKeyFromObject(secret), secret); err != nil {
 			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get vm-operator Secret %s", secret.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to get vm-operator Secret %s", secret.Name)
 				return false, nil
 			}
 			if err := c.Create(ctx, secret); err != nil {
-				retryError = errors.Wrapf(err, "failed to create vm-operator Secret %s", secret.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to create vm-operator Secret %s", secret.Name)
 				return false, nil
 			}
 			log.Info("Created vm-operator Secret", "Secret", klog.KObj(secret))
@@ -540,7 +540,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 	host, port, err := net.SplitHostPort(config.Spec.VCenter.ServerURL)
 	if err != nil {
-		return errors.Wrapf(err, "failed to split host %s", config.Spec.VCenter.ServerURL)
+		return pkgerrors.Wrapf(err, "failed to split host %s", config.Spec.VCenter.ServerURL)
 	}
 
 	providerConfigMap := &corev1.ConfigMap{
@@ -572,11 +572,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		retryError = nil
 		if err := c.Get(ctx, client.ObjectKeyFromObject(providerConfigMap), providerConfigMap); err != nil {
 			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get vm-operator ConfigMap %s", providerConfigMap.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to get vm-operator ConfigMap %s", providerConfigMap.Name)
 				return false, nil
 			}
 			if err := c.Create(ctx, providerConfigMap); err != nil {
-				retryError = errors.Wrapf(err, "failed to create vm-operator ConfigMap %s", providerConfigMap.Name)
+				retryError = pkgerrors.Wrapf(err, "failed to create vm-operator ConfigMap %s", providerConfigMap.Name)
 				return false, nil
 			}
 			log.Info("Created vm-operator ConfigMap", "ConfigMap", klog.KObj(providerConfigMap))
@@ -610,11 +610,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		retryError = nil
 		if err := c.Get(ctx, client.ObjectKeyFromObject(supervisorAPIServerVIPService), supervisorAPIServerVIPService); err != nil {
 			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get vm-operator service %s", klog.KObj(supervisorAPIServerVIPService))
+				retryError = pkgerrors.Wrapf(err, "failed to get vm-operator service %s", klog.KObj(supervisorAPIServerVIPService))
 				return false, nil
 			}
 			if err := c.Create(ctx, supervisorAPIServerVIPService); err != nil {
-				retryError = errors.Wrapf(err, "failed to create vm-operator service %s", klog.KObj(supervisorAPIServerVIPService))
+				retryError = pkgerrors.Wrapf(err, "failed to create vm-operator service %s", klog.KObj(supervisorAPIServerVIPService))
 				return false, nil
 			}
 			log.Info("Created vm-operator service", "Service", klog.KObj(supervisorAPIServerVIPService))
@@ -636,7 +636,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 		retryError = nil
 		if err := c.Status().Patch(ctx, supervisorAPIServerVIPService, client.MergeFrom(originalSupervisorAPIServerVIPService)); err != nil {
-			retryError = errors.Wrapf(err, "failed to update vm-operator service status %s", klog.KObj(supervisorAPIServerVIPService))
+			retryError = pkgerrors.Wrapf(err, "failed to update vm-operator service status %s", klog.KObj(supervisorAPIServerVIPService))
 			return false, nil
 		}
 		log.Info("Updated vm-operator service status", "Service", klog.KObj(supervisorAPIServerVIPService))
@@ -658,7 +658,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 	restClient := rest.NewClient(s.Client.Client)
 	if err := restClient.Login(ctx, url.UserPassword(config.Spec.VCenter.Username, config.Spec.VCenter.Password)); err != nil {
-		return errors.Wrap(err, "failed to login using the rest client")
+		return pkgerrors.Wrap(err, "failed to login using the rest client")
 	}
 
 	libMgr := library.NewManager(restClient)
@@ -675,7 +675,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	}
 	libraries, err := libMgr.GetLibraries(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get ContentLibraries")
+		return pkgerrors.Wrap(err, "failed to get ContentLibraries")
 	}
 
 	var contentLibraryID string
@@ -691,7 +691,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	if contentLibraryID == "" {
 		id, err := libMgr.CreateLibrary(ctx, contentLibrary)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create vm-operator ContentLibrary %s", contentLibrary.Name)
+			return pkgerrors.Wrapf(err, "failed to create vm-operator ContentLibrary %s", contentLibrary.Name)
 		}
 		log.Info("Created vm-operator ContentLibrary in vCenter", "ContentLibrary", contentLibrary.Name)
 		contentLibraryID = id
@@ -706,7 +706,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 		items, err := libMgr.GetLibraryItems(ctx, contentLibraryID)
 		if err != nil {
-			return errors.Wrap(err, "failed to get ContentLibraryItems")
+			return pkgerrors.Wrap(err, "failed to get ContentLibraryItems")
 		}
 
 		var libraryItemID string
@@ -720,7 +720,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		if libraryItemID == "" {
 			id, err := libMgr.CreateLibraryItem(ctx, libraryItem)
 			if err != nil {
-				return errors.Wrapf(err, "failed to create vm-operator ContentLibraryItem %s", libraryItem.Name)
+				return pkgerrors.Wrapf(err, "failed to create vm-operator ContentLibraryItem %s", libraryItem.Name)
 			}
 			log.Info("Created vm-operator LibraryItem in vCenter", "ContentLibrary", contentLibrary.Name, "LibraryItem", libraryItem.Name)
 			libraryItemID = id
@@ -742,11 +742,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			retryError = nil
 			if err := c.Get(ctx, client.ObjectKeyFromObject(virtualMachineImage), virtualMachineImage); err != nil {
 				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to get vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
 					return false, nil
 				}
 				if err := c.Create(ctx, virtualMachineImage); err != nil {
-					retryError = errors.Wrapf(err, "failed to create vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
+					retryError = pkgerrors.Wrapf(err, "failed to create vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
 					return false, nil
 				}
 				log.Info("Created vm-operator VirtualMachineImage", "VirtualMachineImage", klog.KObj(virtualMachineImage))
@@ -776,11 +776,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			retryError = nil
 			patch, err := conversionclient.MergeFrom(ctx, c, virtualMachineImage)
 			if err != nil {
-				retryError = errors.Wrapf(err, "failed to create patch for VirtualMachineImage object")
+				retryError = pkgerrors.Wrapf(err, "failed to create patch for VirtualMachineImage object")
 				return false, nil
 			}
 			if err := c.Status().Patch(ctx, virtualMachineImageReconciled, patch); err != nil {
-				retryError = errors.Wrapf(err, "failed to patch VirtualMachineImage object")
+				retryError = pkgerrors.Wrapf(err, "failed to patch VirtualMachineImage object")
 				return false, nil
 			}
 			log.Info("Patched vm-operator VirtualMachineImage", "VirtualMachineImage", klog.KObj(virtualMachineImage))
@@ -792,7 +792,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 		existingFiles, err := libMgr.ListLibraryItemFiles(ctx, libraryItemID)
 		if err != nil {
-			return errors.Wrapf(err, "failed to list files for vm-operator libraryItem %s", libraryItem.Name)
+			return pkgerrors.Wrapf(err, "failed to list files for vm-operator libraryItem %s", libraryItem.Name)
 		}
 
 		uploadFunc := func(sessionID, file string, content []byte) error {
@@ -831,13 +831,13 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 			sessionID, err := libMgr.CreateLibraryItemUpdateSession(ctx, library.Session{LibraryItemID: libraryItemID})
 			if err != nil {
-				return errors.Wrapf(err, "failed to start update session for vm-operator libraryItem %s", libraryItem.Name)
+				return pkgerrors.Wrapf(err, "failed to start update session for vm-operator libraryItem %s", libraryItem.Name)
 			}
 			if err := uploadFunc(sessionID, file.Name, file.Content); err != nil {
-				return errors.Wrapf(err, "failed to upload data for vm-operator libraryItem %s", libraryItem.Name)
+				return pkgerrors.Wrapf(err, "failed to upload data for vm-operator libraryItem %s", libraryItem.Name)
 			}
 			if err := libMgr.CompleteLibraryItemUpdateSession(ctx, sessionID); err != nil {
-				return errors.Wrapf(err, "failed to complete update session for vm-operator libraryItem %s", libraryItem.Name)
+				return pkgerrors.Wrapf(err, "failed to complete update session for vm-operator libraryItem %s", libraryItem.Name)
 			}
 			log.Info("Uploaded vm-operator LibraryItemFile in vCenter", "ContentLibrary", contentLibrary.Name, "libraryItem", libraryItem.Name, "LibraryItemFile", file.Name)
 		}
@@ -863,7 +863,7 @@ func ReconcileDependenciesVMOperatorSimMode(ctx context.Context, c client.Client
 			Namespace: config.Spec.VCenterSimulatorRef.Namespace,
 			Name:      config.Spec.VCenterSimulatorRef.Name,
 		}, vCenterSimulator); err != nil {
-			return errors.Wrapf(err, "failed to get vCenterSimulator %s", klog.KRef(config.Spec.VCenterSimulatorRef.Namespace, config.Spec.VCenterSimulatorRef.Name))
+			return pkgerrors.Wrapf(err, "failed to get vCenterSimulator %s", klog.KRef(config.Spec.VCenterSimulatorRef.Namespace, config.Spec.VCenterSimulatorRef.Name))
 		}
 
 		config.SetVCenterFromVCenterSimulator(vCenterSimulator)
@@ -895,11 +895,11 @@ func createVirtualMachineClass(ctx context.Context, c client.Client, config *vcs
 		_ = wait.PollUntilContextTimeout(ctx, 5*time.Second, time.Minute, true, func(ctx context.Context) (bool, error) {
 			if err := c.Get(ctx, client.ObjectKeyFromObject(vmClass), vmClass); err != nil {
 				if !apierrors.IsNotFound(err) {
-					retryError = kerrors.NewAggregate([]error{retryError, errors.Wrapf(err, "failed to get vm-operator VirtualMachineClass %s", vmClass.Name)})
+					retryError = kerrors.NewAggregate([]error{retryError, pkgerrors.Wrapf(err, "failed to get vm-operator VirtualMachineClass %s", vmClass.Name)})
 					return false, nil
 				}
 				if err := c.Create(ctx, vmClass); err != nil {
-					retryError = kerrors.NewAggregate([]error{retryError, errors.Wrapf(err, "failed to create vm-operator VirtualMachineClass %s", vmClass.Name)})
+					retryError = kerrors.NewAggregate([]error{retryError, pkgerrors.Wrapf(err, "failed to create vm-operator VirtualMachineClass %s", vmClass.Name)})
 					return false, nil
 				}
 				log.Info("Created vm-operator VirtualMachineClass", "VirtualMachineClass", klog.KObj(vmClass))
@@ -923,20 +923,20 @@ func GetVCenterSession(ctx context.Context, c client.Client) (*session.Session, 
 		},
 	}
 	if err := c.Get(ctx, client.ObjectKeyFromObject(configMap), configMap); err != nil {
-		return nil, errors.Wrapf(err, "failed to get vm-operator ConfigMap %s", configMap.Name)
+		return nil, pkgerrors.Wrapf(err, "failed to get vm-operator ConfigMap %s", configMap.Name)
 	}
 
 	serverURL := configMap.Data[serverURLConfigMapKey]
 	if serverURL == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator ConfigMap %s", serverURLConfigMapKey, configMap.Name)
+		return nil, pkgerrors.Errorf("%s value is missing from the vm-operator ConfigMap %s", serverURLConfigMapKey, configMap.Name)
 	}
 	datacenter := configMap.Data[datacenterNameConfigMapKey]
 	if datacenter == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator ConfigMap %s", datacenterNameConfigMapKey, configMap.Name)
+		return nil, pkgerrors.Errorf("%s value is missing from the vm-operator ConfigMap %s", datacenterNameConfigMapKey, configMap.Name)
 	}
 	secretName := configMap.Data[credentialSecretNameConfigMapKey]
 	if secretName == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator ConfigMap %s", credentialSecretNameConfigMapKey, configMap.Name)
+		return nil, pkgerrors.Errorf("%s value is missing from the vm-operator ConfigMap %s", credentialSecretNameConfigMapKey, configMap.Name)
 	}
 
 	secret := &corev1.Secret{
@@ -946,19 +946,19 @@ func GetVCenterSession(ctx context.Context, c client.Client) (*session.Session, 
 		},
 	}
 	if err := c.Get(ctx, client.ObjectKeyFromObject(secret), secret); err != nil {
-		return nil, errors.Wrapf(err, "failed to get vm-operator Credential Secret %s", secret.Name)
+		return nil, pkgerrors.Wrapf(err, "failed to get vm-operator Credential Secret %s", secret.Name)
 	}
 	username := string(secret.Data[usernameSecretKey])
 	if username == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", usernameSecretKey, secret.Name)
+		return nil, pkgerrors.Errorf("%s value is missing from the vm-operator Secret %s", usernameSecretKey, secret.Name)
 	}
 	password := string(secret.Data[passwordSecretKey])
 	if password == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", passwordSecretKey, secret.Name)
+		return nil, pkgerrors.Errorf("%s value is missing from the vm-operator Secret %s", passwordSecretKey, secret.Name)
 	}
 	thumbprint := string(secret.Data[thumbprintSecretKey])
 	if thumbprint == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", thumbprintSecretKey, secret.Name)
+		return nil, pkgerrors.Errorf("%s value is missing from the vm-operator Secret %s", thumbprintSecretKey, secret.Name)
 	}
 
 	params := session.NewParams().
@@ -979,12 +979,12 @@ func GetDistributedPortGroup(ctx context.Context, c client.Client) (string, erro
 		},
 	}
 	if err := c.Get(ctx, client.ObjectKeyFromObject(configMap), configMap); err != nil {
-		return "", errors.Wrapf(err, "failed to get vm-operator ConfigMap %s", configMap.Name)
+		return "", pkgerrors.Wrapf(err, "failed to get vm-operator ConfigMap %s", configMap.Name)
 	}
 
 	distributedPortGroup := configMap.Data[distributedPortGroupConfigMapKey]
 	if distributedPortGroup == "" {
-		return "", errors.Errorf("%s value is missing from the vm-operator ConfigMap %s", distributedPortGroupConfigMapKey, configMap.Name)
+		return "", pkgerrors.Errorf("%s value is missing from the vm-operator ConfigMap %s", distributedPortGroupConfigMapKey, configMap.Name)
 	}
 
 	return distributedPortGroup, nil

@@ -22,7 +22,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -145,7 +145,7 @@ func checkAndRetryTask(ctx context.Context, vmCtx *capvcontext.VMContext, task *
 	// Since RetryAfter is set, the last task failed. Wait for the RetryAfter time duration to expire
 	// before checking/resetting the task.
 	if !vmCtx.VSphereVM.Status.RetryAfter.IsZero() && time.Now().Before(vmCtx.VSphereVM.Status.RetryAfter.Time) {
-		return false, errors.Errorf("last task failed retry after %v", vmCtx.VSphereVM.Status.RetryAfter)
+		return false, pkgerrors.Errorf("last task failed retry after %v", vmCtx.VSphereVM.Status.RetryAfter)
 	}
 
 	// Otherwise the course of action is determined by the state of the task.
@@ -196,7 +196,7 @@ func checkAndRetryTask(ctx context.Context, vmCtx *capvcontext.VMContext, task *
 		}
 		return true, nil
 	default:
-		return false, errors.Errorf("unknown task state %q for %q", task.Info.State, vmCtx)
+		return false, pkgerrors.Errorf("unknown task state %q for %q", task.Info.State, vmCtx)
 	}
 }
 
@@ -217,21 +217,21 @@ func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx
 			// Wait for the VM to be powered on.
 			powerOnTaskInfo, err := powerOnTask.WaitForResult(ctx)
 			if err != nil && powerOnTaskInfo == nil {
-				return nil, nil, errors.Wrapf(err, "failed to wait for power on op for vm %s", virtualMachineCtx)
+				return nil, nil, pkgerrors.Wrapf(err, "failed to wait for power on op for vm %s", virtualMachineCtx)
 			}
 			powerState, err := virtualMachineCtx.Obj.PowerState(ctx)
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "failed to get power state for vm %s", virtualMachineCtx)
+				return nil, nil, pkgerrors.Wrapf(err, "failed to get power state for vm %s", virtualMachineCtx)
 			}
 			if powerState != types.VirtualMachinePowerStatePoweredOn {
-				return nil, nil, errors.Errorf(
+				return nil, nil, pkgerrors.Errorf(
 					"unexpected power state %v for vm %s",
 					powerState, ctx)
 			}
 
 			// Wait for all NICs to have valid MAC addresses.
 			if err := waitForMacAddresses(ctx, virtualMachineCtx); err != nil {
-				return nil, nil, errors.Wrapf(err, "failed to wait for mac addresses for vm %s", virtualMachineCtx)
+				return nil, nil, pkgerrors.Wrapf(err, "failed to wait for mac addresses for vm %s", virtualMachineCtx)
 			}
 
 			// Get all the MAC addresses. This is done separately from waiting
@@ -240,7 +240,7 @@ func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx
 			// specs, and not the propery change order.
 			_, macToDeviceIndex, deviceToMacIndex, err := getMacAddresses(ctx, virtualMachineCtx)
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "failed to get mac addresses for vm %s", virtualMachineCtx)
+				return nil, nil, pkgerrors.Wrapf(err, "failed to get mac addresses for vm %s", virtualMachineCtx)
 			}
 
 			// Wait for the IP addresses to show up for the VM.
@@ -297,7 +297,7 @@ func reconcileVSphereVMOnTaskCompletion(ctx context.Context, vmCtx *capvcontext.
 		// do not queue in the event channel when task fails as we don't
 		// want to retry right away
 		if taskInfo.State == types.TaskInfoStateError {
-			return nil, errors.Errorf("task failed: task is in state error")
+			return nil, pkgerrors.Errorf("task failed: task is in state error")
 		}
 
 		return []interface{}{
@@ -471,13 +471,13 @@ func waitForIPAddresses(
 				// device spec.
 				deviceSpecIndex, ok := macToDeviceIndex[mac]
 				if !ok {
-					chanErrs <- errors.Errorf("unknown device spec index for mac %s while waiting for ip addresses for vm %s", mac, virtualMachineCtx)
+					chanErrs <- pkgerrors.Errorf("unknown device spec index for mac %s while waiting for ip addresses for vm %s", mac, virtualMachineCtx)
 					// Return true to stop the property collector from waiting
 					// on any more changes.
 					return true
 				}
 				if deviceSpecIndex < 0 || deviceSpecIndex >= len(virtualMachineCtx.VSphereVM.Spec.Network.Devices) {
-					chanErrs <- errors.Errorf("invalid device spec index %d for mac %s while waiting for ip addresses for vm %s", deviceSpecIndex, mac, virtualMachineCtx)
+					chanErrs <- pkgerrors.Errorf("invalid device spec index %d for mac %s while waiting for ip addresses for vm %s", deviceSpecIndex, mac, virtualMachineCtx)
 					// Return true to stop the property collector from waiting
 					// on any more changes.
 					return true
@@ -565,7 +565,7 @@ func waitForIPAddresses(
 
 			mac, ok := deviceToMacIndex[i]
 			if !ok {
-				chanErrs <- errors.Errorf("invalid mac index %d waiting for ip addresses for vm %s", i, virtualMachineCtx)
+				chanErrs <- pkgerrors.Errorf("invalid mac index %d waiting for ip addresses for vm %s", i, virtualMachineCtx)
 
 				// Return true to stop the property collector from waiting
 				// on any more changes.
@@ -617,7 +617,7 @@ func waitForIPAddresses(
 		if err := property.Wait(
 			ctx, propCollector, virtualMachineCtx.Obj.Reference(),
 			[]string{"guest.net"}, onPropertyChange); err != nil {
-			chanErrs <- errors.Wrapf(err, "failed to wait for ip addresses for vm %s", virtualMachineCtx)
+			chanErrs <- pkgerrors.Wrapf(err, "failed to wait for ip addresses for vm %s", virtualMachineCtx)
 		}
 		close(chanIPAddresses)
 		close(chanErrs)

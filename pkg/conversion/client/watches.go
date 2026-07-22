@@ -17,7 +17,7 @@ limitations under the License.
 package client
 
 import (
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -25,7 +25,7 @@ import (
 func WatchObject(c client.Client, obj client.Object) (client.Object, error) {
 	cc, ok := c.(*conversionClient)
 	if !ok {
-		return nil, errors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
+		return nil, pkgerrors.Errorf("client must be created using sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client.NewWithConverter")
 	}
 
 	_, err := cc.converter.SpokeGroupVersionKindFor(obj)

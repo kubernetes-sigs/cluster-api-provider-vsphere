@@ -26,7 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -85,7 +85,7 @@ func InClusterAddressManager(ctx context.Context, client client.Client, e2eIPPoo
 
 	ipPool, err := createIPPool(ctx, client, e2eIPPool)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create IPPool")
+		return nil, pkgerrors.Wrapf(err, "failed to create IPPool")
 	}
 
 	return &inCluster{
@@ -269,7 +269,7 @@ func (h *inCluster) Teardown(ctx context.Context, opts ...TearDownOption) error 
 		}
 		if err := h.client.Get(ctx, client.ObjectKey{Namespace: ipAddressClaim.GetNamespace(), Name: ipAddressClaim.Status.AddressRef.Name}, ip); err != nil {
 			// If we are not able to get an IP Address we skip the deletion for it but collect and return the error.
-			errList = append(errList, errors.Wrapf(err, "getting IPAddress for IPAddressClaim %s", klog.KObj(&ipAddressClaim)))
+			errList = append(errList, pkgerrors.Wrapf(err, "getting IPAddress for IPAddressClaim %s", klog.KObj(&ipAddressClaim)))
 			continue
 		}
 
@@ -304,13 +304,13 @@ func getVirtualMachineIPAddresses(ctx context.Context, folderName string, vSpher
 	// Find the given folder.
 	folder, err := finder.FolderOrDefault(ctx, folderName)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting default folder")
+		return nil, pkgerrors.Wrap(err, "getting default folder")
 	}
 
 	// List all VirtualMachines in the folder.
 	managedObjects, err := finder.ManagedObjectListChildren(ctx, folder.InventoryPath+"/...", "VirtualMachine")
 	if err != nil {
-		return nil, errors.Wrap(err, "finding VirtualMachines")
+		return nil, pkgerrors.Wrap(err, "finding VirtualMachines")
 	}
 
 	var vm mo.VirtualMachine
@@ -371,21 +371,21 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ *ipamv1.IPAddress, _ 
 	// Wait for the IPAddressClaim to refer an IPAddress.
 	_ = wait.PollUntilContextTimeout(ctx, time.Second, time.Second*30, true, func(ctx context.Context) (done bool, err error) {
 		if err := h.client.Get(ctx, client.ObjectKeyFromObject(claim), claim); err != nil {
-			retryError = errors.Wrap(err, "getting IPAddressClaim")
+			retryError = pkgerrors.Wrap(err, "getting IPAddressClaim")
 			return false, nil
 		}
 
 		if claim.Status.AddressRef.Name == "" {
-			retryError = errors.New("IPAddressClaim.Status.AddressRef.Name is not set")
+			retryError = pkgerrors.New("IPAddressClaim.Status.AddressRef.Name is not set")
 			return false, nil
 		}
 
 		if err := h.client.Get(ctx, client.ObjectKey{Namespace: claim.GetNamespace(), Name: claim.Status.AddressRef.Name}, ip); err != nil {
-			retryError = errors.Wrap(err, "getting IPAddress")
+			retryError = pkgerrors.Wrap(err, "getting IPAddress")
 			return false, nil
 		}
 		if ip.Spec.Address == "" {
-			retryError = errors.New("IPAddress.Spec.Address is not set")
+			retryError = pkgerrors.New("IPAddress.Spec.Address is not set")
 			return false, nil
 		}
 

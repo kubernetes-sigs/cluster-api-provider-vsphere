@@ -25,7 +25,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 const gcfgTag = "gcfg"
@@ -36,7 +36,7 @@ var iniEscapeChars = regexp.MustCompile(`([\\"])`)
 // configuration data.
 func (c *CPIConfig) MarshalINI() ([]byte, error) {
 	if c == nil {
-		return nil, errors.New("config is nil")
+		return nil, pkgerrors.New("config is nil")
 	}
 
 	buf := &bytes.Buffer{}
@@ -200,6 +200,6 @@ func isEmpty(val reflect.Value) bool {
 		return val.Int() == 0
 
 	default:
-		panic(errors.Errorf("invalid kind: %s", val.Kind()))
+		panic(pkgerrors.Errorf("invalid kind: %s", val.Kind()))
 	}
 }

@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -71,7 +71,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 
 			err := vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)
 			if err != nil && !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to get IPAddressClaim %s", klog.KRef(ipAddrClaimKey.Namespace, ipAddrClaimKey.Name))
+				return pkgerrors.Wrapf(err, "failed to get IPAddressClaim %s", klog.KRef(ipAddrClaimKey.Namespace, ipAddrClaimKey.Name))
 			}
 			ipAddrClaim, created, err := createOrPatchIPAddressClaim(ctx, vmCtx, ipAddrClaimName, poolRef)
 			if err != nil {
@@ -124,7 +124,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 
 		if len(claims) > 0 {
 			if err := conditions.SetAggregateCondition(claims, vmCtx.VSphereVM, clusterv1.ReadyCondition, conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledCondition)); err != nil {
-				return errors.Wrap(err, "failed to aggregate Ready condition from IPAddressClaims")
+				return pkgerrors.Wrap(err, "failed to aggregate Ready condition from IPAddressClaims")
 			}
 		} else {
 			conditions.Set(vmCtx.VSphereVM, metav1.Condition{
@@ -206,7 +206,7 @@ func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMConte
 
 	result, err := ctrlutil.CreateOrPatch(ctx, vmCtx.Client, claim, mutateFn)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "failed to CreateOrPatch IPAddressClaim")
+		return nil, false, pkgerrors.Wrap(err, "failed to CreateOrPatch IPAddressClaim")
 	}
 	switch result {
 	case ctrlutil.OperationResultCreated:
@@ -237,13 +237,13 @@ func (r vmReconciler) deleteIPAddressClaims(ctx context.Context, vmCtx *capvcont
 				if apierrors.IsNotFound(err) {
 					continue
 				}
-				return errors.Wrapf(err, "failed to get IPAddressClaim %q to remove the finalizer", ipAddrClaimName)
+				return pkgerrors.Wrapf(err, "failed to get IPAddressClaim %q to remove the finalizer", ipAddrClaimName)
 			}
 
 			if ctrlutil.RemoveFinalizer(ipAddrClaim, infrav1.IPAddressClaimFinalizer) {
 				log.Info(fmt.Sprintf("Removing finalizer %s", infrav1.IPAddressClaimFinalizer), "IPAddressClaim", klog.KObj(ipAddrClaim))
 				if err := vmCtx.Client.Update(ctx, ipAddrClaim); err != nil {
-					return errors.Wrapf(err, "failed to update IPAddressClaim %s", klog.KObj(ipAddrClaim))
+					return pkgerrors.Wrapf(err, "failed to update IPAddressClaim %s", klog.KObj(ipAddrClaim))
 				}
 			}
 		}

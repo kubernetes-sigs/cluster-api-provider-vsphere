@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,8 +81,8 @@ func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.Cl
 
 	// Wait for a Cluster to be created in the namespace
 	var clusterName string
-	err := wait.PollImmediateWithContext(ctx, 5*time.Second, 10*time.Minute, func(ctx context.Context) (bool, error) {
-		clusters := &clusterv1.ClusterList{}
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		clusters := &clusterv1beta1.ClusterList{}
 		if err := managementClusterProxy.GetClient().List(ctx, clusters, client.InNamespace(namespace)); err != nil {
 			return false, err
 		}
@@ -99,10 +99,10 @@ func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.Cl
 
 	// Wait for the kubeconfig secret to be available
 	secretName := fmt.Sprintf("%s-kubeconfig", clusterName)
-	err = wait.PollImmediateWithContext(ctx, 5*time.Second, 10*time.Minute, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
 		secret := &corev1.Secret{}
 		if err := managementClusterProxy.GetClient().Get(ctx, types.NamespacedName{Namespace: namespace, Name: secretName}, secret); err != nil {
-			return false, nil
+			return false, err
 		}
 		return true, nil
 	})

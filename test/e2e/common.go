@@ -119,7 +119,7 @@ func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.Cl
 		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
 			dsList := &appsv1.DaemonSetList{}
 			if err := workloadProxy.GetClient().List(ctx, dsList, client.MatchingLabels(labels)); err != nil {
-				return false, nil
+				return false, nil //nolint:nilerr
 			}
 			return len(dsList.Items) > 0, nil
 		})
@@ -130,7 +130,7 @@ func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.Cl
 		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
 			dpList := &appsv1.DeploymentList{}
 			if err := workloadProxy.GetClient().List(ctx, dpList, client.MatchingLabels(labels)); err != nil {
-				return false, nil
+				return false, nil //nolint:nilerr
 			}
 			return len(dpList.Items) > 0, nil
 		})

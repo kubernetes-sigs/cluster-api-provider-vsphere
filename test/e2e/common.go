@@ -27,6 +27,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vapi/rest"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -114,36 +115,61 @@ func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.Cl
 	// Now we can get the workload cluster proxy
 	workloadProxy := managementClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 
+	waitForDaemonSet := func(labels map[string]string) bool {
+		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+			dsList := &appsv1.DaemonSetList{}
+			if err := workloadProxy.GetClient().List(ctx, dsList, client.MatchingLabels(labels)); err != nil {
+				return false, nil
+			}
+			return len(dsList.Items) > 0, nil
+		})
+		return err == nil
+	}
+
+	waitForDeployment := func(labels map[string]string) bool {
+		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+			dpList := &appsv1.DeploymentList{}
+			if err := workloadProxy.GetClient().List(ctx, dpList, client.MatchingLabels(labels)); err != nil {
+				return false, nil
+			}
+			return len(dpList.Items) > 0, nil
+		})
+		return err == nil
+	}
+
 	// Stream CPI logs
-	framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
-		GetLister: workloadProxy.GetClient(),
-		Cache:     workloadProxy.GetCache(ctx),
-		ClientSet: workloadProxy.GetClientSet(),
-		Labels: map[string]string{
-			"component": "cloud-controller-manager",
-		},
-		LogPath: filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
-	})
+	cpiLabels := map[string]string{"component": "cloud-controller-manager"}
+	if waitForDaemonSet(cpiLabels) {
+		framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
+			GetLister: workloadProxy.GetClient(),
+			Cache:     workloadProxy.GetCache(ctx),
+			ClientSet: workloadProxy.GetClientSet(),
+			Labels:    cpiLabels,
+			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
+		})
+	}
 
 	// Stream CSI Deployment logs
-	framework.WatchDeploymentLogsByLabelSelector(ctx, framework.WatchDeploymentLogsByLabelSelectorInput{
-		GetLister: workloadProxy.GetClient(),
-		Cache:     workloadProxy.GetCache(ctx),
-		ClientSet: workloadProxy.GetClientSet(),
-		Labels: map[string]string{
-			"app": "vsphere-csi-controller",
-		},
-		LogPath: filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
-	})
+	csiControllerLabels := map[string]string{"app": "vsphere-csi-controller"}
+	if waitForDeployment(csiControllerLabels) {
+		framework.WatchDeploymentLogsByLabelSelector(ctx, framework.WatchDeploymentLogsByLabelSelectorInput{
+			GetLister: workloadProxy.GetClient(),
+			Cache:     workloadProxy.GetCache(ctx),
+			ClientSet: workloadProxy.GetClientSet(),
+			Labels:    csiControllerLabels,
+			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
+		})
+	}
 
 	// Stream CSI Daemonset logs
-	framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
-		GetLister: workloadProxy.GetClient(),
-		Cache:     workloadProxy.GetCache(ctx),
-		ClientSet: workloadProxy.GetClientSet(),
-		Labels: map[string]string{
-			"app": "vsphere-csi-node",
-		},
-		LogPath: filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
-	})
+	csiNodeLabels := map[string]string{"app": "vsphere-csi-node"}
+	if waitForDaemonSet(csiNodeLabels) {
+		framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
+			GetLister: workloadProxy.GetClient(),
+			Cache:     workloadProxy.GetCache(ctx),
+			ClientSet: workloadProxy.GetClientSet(),
+			Labels:    csiNodeLabels,
+			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
+		})
+	}
 }

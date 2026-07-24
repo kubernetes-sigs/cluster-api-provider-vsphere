@@ -84,8 +84,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: initKubernetesVersion,
-				WorkloadKubernetesVersion: "v1.36.0",
+				InitWithKubernetesVersion: initKubernetesVersion, // Used for the kind mgmt cluster
+				WorkloadKubernetesVersion: "v1.36.0",             // Used for CAPV Machines
 				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
 				// below otherwise there will be no VCSim instance created in the management cluster.
@@ -141,8 +141,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: "v1.36.0",
-				WorkloadKubernetesVersion: "v1.36.0",
+				InitWithKubernetesVersion: "v1.36.1", // Used for the kind mgmt cluster
+				WorkloadKubernetesVersion: "v1.36.0", // Used for CAPV Machines
 				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
 				// below otherwise there will be no VCSim instance created in the management cluster.
@@ -198,8 +198,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: "v1.35.0",
-				WorkloadKubernetesVersion: "v1.35.0",
+				InitWithKubernetesVersion: "v1.35.0", // Used for the kind mgmt cluster
+				WorkloadKubernetesVersion: "v1.35.0", // Used for CAPV Machines
 				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
 				// below otherwise there will be no VCSim instance created in the management cluster.
@@ -255,8 +255,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.14
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: "v1.34.0",
-				WorkloadKubernetesVersion: "v1.34.0",
+				InitWithKubernetesVersion: "v1.34.0", // Used for the kind mgmt cluster
+				WorkloadKubernetesVersion: "v1.34.0", // Used for CAPV Machines
 				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
 				// below otherwise there will be no VCSim instance created in the management cluster.

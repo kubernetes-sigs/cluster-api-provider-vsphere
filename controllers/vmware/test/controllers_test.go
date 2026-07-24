@@ -583,9 +583,8 @@ var _ = Describe("Reconciliation tests", func() {
 			})
 			infraMachine.Spec.Policies = []vmwarev1.PolicyRef{
 				{
-					Name:       "policy-1",
-					Kind:       "ComputePolicy",
-					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+					Name: "policy-1",
+					Kind: "ComputePolicy",
 				},
 			}
 			Expect(k8sClient.Create(ctx, infraMachine)).To(Succeed())
@@ -597,9 +596,8 @@ var _ = Describe("Reconciliation tests", func() {
 			}, time.Second*30).Should(Succeed())
 
 			infraMachine.Spec.Policies = append(infraMachine.Spec.Policies, vmwarev1.PolicyRef{
-				Name:       "policy-2",
-				Kind:       "ComputePolicy",
-				APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				Name: "policy-2",
+				Kind: "ComputePolicy",
 			})
 			err := k8sClient.Update(ctx, infraMachine)
 			Expect(err).To(HaveOccurred())
@@ -618,9 +616,8 @@ var _ = Describe("Reconciliation tests", func() {
 							ClassName: "test-class",
 							Policies: []vmwarev1.PolicyRef{
 								{
-									Name:       "policy-1",
-									Kind:       "ComputePolicy",
-									APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+									Name: "policy-1",
+									Kind: "ComputePolicy",
 								},
 							},
 						},
@@ -636,9 +633,8 @@ var _ = Describe("Reconciliation tests", func() {
 			}, time.Second*30).Should(Succeed())
 
 			machineTemplate.Spec.Template.Spec.Policies = append(machineTemplate.Spec.Template.Spec.Policies, vmwarev1.PolicyRef{
-				Name:       "policy-2",
-				Kind:       "ComputePolicy",
-				APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+				Name: "policy-2",
+				Kind: "ComputePolicy",
 			})
 			err = k8sClient.Update(ctx, machineTemplate)
 			Expect(err).To(HaveOccurred())

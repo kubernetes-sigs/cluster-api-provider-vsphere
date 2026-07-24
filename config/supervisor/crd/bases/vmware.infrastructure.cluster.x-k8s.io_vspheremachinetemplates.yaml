@@ -346,18 +346,10 @@ spec:
                         description: policies specifies a list of optional infrastructure
                           policies to be applied to the virtual machine.
                         items:
-                          description: PolicyRef identifies an optional infrastructure
-                            policy to specify for the virtual machine.
+                          description: |-
+                            PolicyRef identifies an optional infrastructure policy to specify for the virtual machine by name and kind.
+                            ApiVersion is omitted from the PolicyRef by intention.
                           properties:
-                            apiVersion:
-                              description: |-
-                                apiVersion is the fully qualified group/version of the infrastructure policy resource
-                                (for example vsphere.policy.vmware.com/v1alpha1).
-                                apiVersion must be fully qualified domain name followed by / and a version.
-                              maxLength: 317
-                              minLength: 1
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                              type: string
                             kind:
                               description: |-
                                 kind of the infrastructure policy object being referenced.
@@ -375,7 +367,6 @@ spec:
                               pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                           required:
-                          - apiVersion
                           - kind
                           - name
                           type: object
@@ -845,18 +836,10 @@ spec:
                         description: policies specifies a list of optional infrastructure
                           policies to be applied to the virtual machine.
                         items:
-                          description: PolicyRef identifies an optional infrastructure
-                            policy to specify for the virtual machine.
+                          description: |-
+                            PolicyRef identifies an optional infrastructure policy to specify for the virtual machine by name and kind.
+                            ApiVersion is omitted from the PolicyRef by intention.
                           properties:
-                            apiVersion:
-                              description: |-
-                                apiVersion is the fully qualified group/version of the infrastructure policy resource
-                                (for example vsphere.policy.vmware.com/v1alpha1).
-                                apiVersion must be fully qualified domain name followed by / and a version.
-                              maxLength: 317
-                              minLength: 1
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                              type: string
                             kind:
                               description: |-
                                 kind of the infrastructure policy object being referenced.
@@ -874,7 +857,6 @@ spec:
                               pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                           required:
-                          - apiVersion
                           - kind
                           - name
                           type: object

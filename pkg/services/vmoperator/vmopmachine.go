@@ -639,7 +639,11 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 
 	// Only set spec.policies on create as the field is immutable.
 	if vmOperatorVM.CreationTimestamp.IsZero() {
-		vmOperatorVM.Spec.Policies = getPolicies(supervisorMachineCtx)
+		policies, err := getPolicies(supervisorMachineCtx)
+		if err != nil {
+			return err
+		}
+		vmOperatorVM.Spec.Policies = policies
 	}
 
 	// Apply hooks to modify the VM spec
@@ -1018,25 +1022,51 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, fa
 	return nil
 }
 
-func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprvhub.PolicySpec {
+// Refer to vm-operator policy GroupVersion info in https://github.com/vmware-tanzu/vm-operator/blob/main/external/vsphere-policy/api/v1alpha1/groupversion_info.go
+const (
+	policyAPIGroup    = "vsphere.policy.vmware.com"
+	policyAPIV1Alpha1 = "v1alpha1"
+	computePolicyKind = "ComputePolicy"
+)
+
+// policyKindToAPIVersion maps policy Kinds to their fully qualified APIVersion.
+// Currently, vm-operator v1alpha5 requires apiVersion to be set, but not honoring it,
+// see https://github.com/vmware-tanzu/vm-operator/blob/main/controllers/vspherepolicy/policyevaluation/policyevaluation_controller.go#L544-L559.
+// CAPV uses a hard-coded mapping maintained internally to keep the
+// API clean by omitting apiVersion fields.
+//
+// This mapping will only be necessary as the vm-operator API design evolves.
+// The apiVersion field in vm-operator policies could be a legacy design, and
+// keeping this mapping internal to CAPV gives us the flexibility to adapt to
+// future API changes (such as keeping apiVersion, moving to apiGroup, or dropping
+// the field entirely) without breaking the CAPV API.
+var policyKindToAPIVersion = map[string]string{
+	computePolicyKind: policyAPIGroup + "/" + policyAPIV1Alpha1,
+}
+
+func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) ([]vmoprvhub.PolicySpec, error) {
 	// Assign policies when the feature gate is enabled.
 	if !feature.Gates.Enabled(feature.InfrastructurePolicies) {
-		return nil
+		return nil, nil
 	}
 
 	refs := supervisorMachineCtx.VSphereMachine.Spec.Policies
 	if len(refs) == 0 {
-		return nil
+		return nil, nil
 	}
 	result := make([]vmoprvhub.PolicySpec, 0, len(refs))
 	for _, ref := range refs {
+		apiVersion, ok := policyKindToAPIVersion[ref.Kind]
+		if !ok {
+			return nil, fmt.Errorf("unknown policy kind %q", ref.Kind)
+		}
 		result = append(result, vmoprvhub.PolicySpec{
 			Name:       ref.Name,
 			Kind:       ref.Kind,
-			APIVersion: ref.APIVersion,
+			APIVersion: apiVersion,
 		})
 	}
-	return result
+	return result, nil
 }
 
 // getMachineDeploymentName returns the MachineDeployment name for a Cluster.

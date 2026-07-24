@@ -108,7 +108,8 @@ type VSphereMachineSpec struct {
 	NamingStrategy *VirtualMachineNamingStrategy `json:"namingStrategy,omitempty"`
 }
 
-// PolicyRef identifies an optional infrastructure policy to specify for the virtual machine.
+// PolicyRef identifies an optional infrastructure policy to specify for the virtual machine by name and kind.
+// ApiVersion is omitted from the PolicyRef by intention.
 type PolicyRef struct {
 	// name of the infrastructure policy.
 	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
@@ -125,15 +126,6 @@ type PolicyRef struct {
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
 	Kind string `json:"kind,omitempty"`
-
-	// apiVersion is the fully qualified group/version of the infrastructure policy resource
-	// (for example vsphere.policy.vmware.com/v1alpha1).
-	// apiVersion must be fully qualified domain name followed by / and a version.
-	// +required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=317
-	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
-	APIVersion string `json:"apiVersion,omitempty"`
 }
 
 // VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.

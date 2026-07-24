@@ -18,14 +18,24 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
+	"fmt"
 	"path/filepath"
+	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vapi/rest"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -65,4 +75,101 @@ func defaultConfigCluster(clusterName, namespace, flavor string, controlPlaneNod
 		configClusterInput.Flavor = flavor
 	}
 	return configClusterInput
+}
+
+func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.ClusterProxy, namespace string, artifactFolder string) {
+	defer ginkgo.GinkgoRecover()
+
+	// Wait for a Cluster to be created in the namespace
+	var clusterName string
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		clusters := &clusterv1beta1.ClusterList{}
+		if err := managementClusterProxy.GetClient().List(ctx, clusters, client.InNamespace(namespace)); err != nil {
+			return false, err
+		}
+		if len(clusters.Items) > 0 {
+			clusterName = clusters.Items[0].Name
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		// No cluster created in this namespace or timed out, nothing to watch
+		return
+	}
+
+	// Wait for the kubeconfig secret to be available
+	secretName := fmt.Sprintf("%s-kubeconfig", clusterName)
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		secret := &corev1.Secret{}
+		if err := managementClusterProxy.GetClient().Get(ctx, types.NamespacedName{Namespace: namespace, Name: secretName}, secret); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	if err != nil {
+		// Kubeconfig never became available
+		return
+	}
+
+	// Now we can get the workload cluster proxy
+	workloadProxy := managementClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+
+	waitForDaemonSet := func(labels map[string]string) bool {
+		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+			dsList := &appsv1.DaemonSetList{}
+			if err := workloadProxy.GetClient().List(ctx, dsList, client.MatchingLabels(labels)); err != nil {
+				return false, nil //nolint:nilerr
+			}
+			return len(dsList.Items) > 0, nil
+		})
+		return err == nil
+	}
+
+	waitForDeployment := func(labels map[string]string) bool {
+		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+			dpList := &appsv1.DeploymentList{}
+			if err := workloadProxy.GetClient().List(ctx, dpList, client.MatchingLabels(labels)); err != nil {
+				return false, nil //nolint:nilerr
+			}
+			return len(dpList.Items) > 0, nil
+		})
+		return err == nil
+	}
+
+	// Stream CPI logs
+	cpiLabels := map[string]string{"component": "cloud-controller-manager"}
+	if waitForDaemonSet(cpiLabels) {
+		framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
+			GetLister: workloadProxy.GetClient(),
+			Cache:     workloadProxy.GetCache(ctx),
+			ClientSet: workloadProxy.GetClientSet(),
+			Labels:    cpiLabels,
+			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
+		})
+	}
+
+	// Stream CSI Deployment logs
+	csiControllerLabels := map[string]string{"app": "vsphere-csi-controller"}
+	if waitForDeployment(csiControllerLabels) {
+		framework.WatchDeploymentLogsByLabelSelector(ctx, framework.WatchDeploymentLogsByLabelSelectorInput{
+			GetLister: workloadProxy.GetClient(),
+			Cache:     workloadProxy.GetCache(ctx),
+			ClientSet: workloadProxy.GetClientSet(),
+			Labels:    csiControllerLabels,
+			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
+		})
+	}
+
+	// Stream CSI Daemonset logs
+	csiNodeLabels := map[string]string{"app": "vsphere-csi-node"}
+	if waitForDaemonSet(csiNodeLabels) {
+		framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
+			GetLister: workloadProxy.GetClient(),
+			Cache:     workloadProxy.GetCache(ctx),
+			ClientSet: workloadProxy.GetClientSet(),
+			Labels:    csiNodeLabels,
+			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "logs"),
+		})
+	}
 }

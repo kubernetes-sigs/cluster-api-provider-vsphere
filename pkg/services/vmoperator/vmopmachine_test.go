@@ -753,14 +753,12 @@ var _ = Describe("VirtualMachine tests", func() {
 
 				vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
 					{
-						Name:       "policy-a",
-						Kind:       "ComputePolicy",
-						APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+						Name: "policy-a",
+						Kind: computePolicyKind,
 					},
 					{
-						Name:       "policy-b",
-						Kind:       "ComputePolicy",
-						APIVersion: "vsphere.policy.vmware.com/v1alpha1",
+						Name: "policy-b",
+						Kind: computePolicyKind,
 					},
 				}
 
@@ -773,12 +771,12 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Spec.Policies).To(HaveLen(2))
 				Expect(vmopVM.Spec.Policies[0]).To(Equal(vmoprv1alpha5.PolicySpec{
 					Name:       "policy-a",
-					Kind:       "ComputePolicy",
+					Kind:       computePolicyKind,
 					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
 				}))
 				Expect(vmopVM.Spec.Policies[1]).To(Equal(vmoprv1alpha5.PolicySpec{
 					Name:       "policy-b",
-					Kind:       "ComputePolicy",
+					Kind:       computePolicyKind,
 					APIVersion: "vsphere.policy.vmware.com/v1alpha1",
 				}))
 
@@ -800,7 +798,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedRequeue = true
 
 			vsphereMachine.Spec.Policies = []vmwarev1.PolicyRef{
-				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+				{Name: "policy-a", Kind: computePolicyKind},
 			}
 
 			By("VirtualMachine is created (gate off)")
@@ -1379,8 +1377,18 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 func Test_getPolicies(t *testing.T) {
 	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, true)
 
-	policyGVK := func(name, kind, apiVersion string) vmwarev1.PolicyRef {
-		return vmwarev1.PolicyRef{Name: name, Kind: kind, APIVersion: apiVersion}
+	// Add test-only policy mappings to the map for testing purposes
+	policyKindToAPIVersion["APolicy"] = policyAPIGroup + "/" + policyAPIV1Alpha1
+	policyKindToAPIVersion["BPolicy"] = policyAPIGroup + "/" + policyAPIV1Alpha1
+	policyKindToAPIVersion["ZPolicy"] = policyAPIGroup + "/v1alpha2"
+	defer func() {
+		delete(policyKindToAPIVersion, "APolicy")
+		delete(policyKindToAPIVersion, "BPolicy")
+		delete(policyKindToAPIVersion, "ZPolicy")
+	}()
+
+	policyGK := func(name, kind string) vmwarev1.PolicyRef {
+		return vmwarev1.PolicyRef{Name: name, Kind: kind}
 	}
 	const (
 		apiV1 = "vsphere.policy.vmware.com/v1alpha1"
@@ -1404,32 +1412,32 @@ func Test_getPolicies(t *testing.T) {
 		{
 			name: "single ComputePolicy maps to hub PolicySpec",
 			in: []vmwarev1.PolicyRef{
-				policyGVK("my-compute-policy", "ComputePolicy", apiV1),
+				policyGK("my-compute-policy", computePolicyKind),
 			},
 			want: []vmoprvhub.PolicySpec{
-				{Name: "my-compute-policy", Kind: "ComputePolicy", APIVersion: apiV1},
+				{Name: "my-compute-policy", Kind: computePolicyKind, APIVersion: apiV1},
 			},
 		},
 		{
 			name: "multiple ComputePolicies preserve input order",
 			in: []vmwarev1.PolicyRef{
-				policyGVK("policy-c", "ComputePolicy", apiV1),
-				policyGVK("policy-a", "ComputePolicy", apiV1),
-				policyGVK("policy-b", "ComputePolicy", apiV1),
+				policyGK("policy-c", computePolicyKind),
+				policyGK("policy-a", computePolicyKind),
+				policyGK("policy-b", computePolicyKind),
 			},
 			want: []vmoprvhub.PolicySpec{
-				{Name: "policy-c", Kind: "ComputePolicy", APIVersion: apiV1},
-				{Name: "policy-a", Kind: "ComputePolicy", APIVersion: apiV1},
-				{Name: "policy-b", Kind: "ComputePolicy", APIVersion: apiV1},
+				{Name: "policy-c", Kind: computePolicyKind, APIVersion: apiV1},
+				{Name: "policy-a", Kind: computePolicyKind, APIVersion: apiV1},
+				{Name: "policy-b", Kind: computePolicyKind, APIVersion: apiV1},
 			},
 		},
 		{
 			name: "mixed Kinds and APIVersions preserve input order",
 			in: []vmwarev1.PolicyRef{
-				policyGVK("alpha", "ZPolicy", apiV2),
-				policyGVK("beta", "APolicy", apiV1),
-				policyGVK("alpha", "APolicy", apiV1),
-				policyGVK("alpha", "BPolicy", apiV1),
+				policyGK("alpha", "ZPolicy"),
+				policyGK("beta", "APolicy"),
+				policyGK("alpha", "APolicy"),
+				policyGK("alpha", "BPolicy"),
 			},
 			want: []vmoprvhub.PolicySpec{
 				{Name: "alpha", Kind: "ZPolicy", APIVersion: apiV2},
@@ -1449,10 +1457,28 @@ func Test_getPolicies(t *testing.T) {
 					},
 				},
 			}
-			got := getPolicies(sm)
+			got, err := getPolicies(sm)
+			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
+
+	t.Run("unknown policy kind returns error", func(t *testing.T) {
+		g := NewWithT(t)
+		sm := &vmware.SupervisorMachineContext{
+			VSphereMachine: &vmwarev1.VSphereMachine{
+				Spec: vmwarev1.VSphereMachineSpec{
+					Policies: []vmwarev1.PolicyRef{
+						policyGK("policy-unknown", "UnknownPolicy"),
+					},
+				},
+			},
+		}
+		got, err := getPolicies(sm)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("unknown policy kind \"UnknownPolicy\""))
+		g.Expect(got).To(BeNil())
+	})
 }
 
 func Test_getPolicies_FeatureGateDisabled(t *testing.T) {
@@ -1462,11 +1488,12 @@ func Test_getPolicies_FeatureGateDisabled(t *testing.T) {
 		VSphereMachine: &vmwarev1.VSphereMachine{
 			Spec: vmwarev1.VSphereMachineSpec{
 				Policies: []vmwarev1.PolicyRef{
-					{Name: "policy-a", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+					{Name: "policy-a", Kind: computePolicyKind},
 				},
 			},
 		},
 	}
-	got := getPolicies(sm)
+	got, err := getPolicies(sm)
+	NewWithT(t).Expect(err).NotTo(HaveOccurred())
 	NewWithT(t).Expect(got).To(BeNil())
 }

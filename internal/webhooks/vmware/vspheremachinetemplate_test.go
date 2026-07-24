@@ -441,7 +441,7 @@ func TestVSphereMachineTemplate_ValidatePoliciesFeatureGate(t *testing.T) {
 					Template: vmwarev1.VSphereMachineTemplateResource{
 						Spec: vmwarev1.VSphereMachineSpec{
 							Policies: []vmwarev1.PolicyRef{
-								{Name: "policy-1", Kind: "ComputePolicy", APIVersion: "vsphere.policy.vmware.com/v1alpha1"},
+								{Name: "policy-1", Kind: "ComputePolicy"},
 							},
 						},
 					},

@@ -662,7 +662,6 @@ func Convert_v1beta2_Network_To_v1beta1_Network(in *v1beta2.Network, out *Networ
 func autoConvert_v1beta1_PolicyRef_To_v1beta2_PolicyRef(in *PolicyRef, out *v1beta2.PolicyRef, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Kind = in.Kind
-	out.APIVersion = in.APIVersion
 	return nil
 }
 
@@ -674,7 +673,6 @@ func Convert_v1beta1_PolicyRef_To_v1beta2_PolicyRef(in *PolicyRef, out *v1beta2.
 func autoConvert_v1beta2_PolicyRef_To_v1beta1_PolicyRef(in *v1beta2.PolicyRef, out *PolicyRef, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Kind = in.Kind
-	out.APIVersion = in.APIVersion
 	return nil
 }
 

@@ -138,12 +138,4 @@ network:
         {{- end }}
       {{- end }}
     {{- end }}
-  {{- if .Routes }}
-  routes:
-  {{- range .Routes }}
-  - to: "{{ .To }}"
-    via: "{{ .Via }}"
-    metric: {{ .Metric }}
-  {{- end }}
-  {{- end }}
 `

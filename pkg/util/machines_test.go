@@ -485,10 +485,84 @@ network:
       addresses:
       - "192.168.4.21"
       gateway4: "192.168.4.1"
-  routes:
-  - to: "192.168.5.1/24"
-    via: "192.168.4.254"
-    metric: 3
+      routes:
+      - to: "192.168.5.1/24"
+        via: "192.168.4.254"
+        metric: 3
+`,
+		},
+		{
+			name: "2nets+global-static-routes",
+			machine: &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP4:       ptr.To(true),
+									Routes: []infrav1.NetworkRouteSpec{
+										{
+											To:     "192.168.5.1/24",
+											Via:    "192.168.4.254",
+											Metric: ptr.To[int32](3),
+										},
+									},
+								},
+								{
+									NetworkName: "network12",
+									MACAddr:     "00:00:00:00:01",
+									DHCP6:       ptr.To(true),
+								},
+							},
+							Routes: []infrav1.NetworkRouteSpec{
+								{
+									To:     "0.0.0.0/0",
+									Via:    "192.168.4.1",
+									Metric: ptr.To[int32](222),
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      set-name: "eth0"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: false
+      accept-ra: false
+      routes:
+      - to: "192.168.5.1/24"
+        via: "192.168.4.254"
+        metric: 3
+      - to: "0.0.0.0/0"
+        via: "192.168.4.1"
+        metric: 222
+    id1:
+      match:
+        macaddress: "00:00:00:00:01"
+      set-name: "eth1"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+      accept-ra: true
+      routes:
+      - to: "0.0.0.0/0"
+        via: "192.168.4.1"
+        metric: 222
 `,
 		},
 		{

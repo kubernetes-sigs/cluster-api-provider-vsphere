@@ -31,6 +31,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
@@ -56,6 +57,7 @@ import (
 	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
+	servicesvmoperator "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
@@ -526,7 +528,28 @@ func (r *VirtualMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		).
 		Watches(
 			&vmwarev1beta1.VSphereMachine{},
-			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, _ client.Object) []reconcile.Request { return nil }),
+			handler.EnqueueRequestsFromMapFunc(func(_ context.Context, obj client.Object) []reconcile.Request {
+				vSphereMachine, ok := obj.(*vmwarev1beta1.VSphereMachine)
+				if !ok {
+					return nil
+				}
+
+				// Note: vSphereMachine name is identical to the Machine name
+				naming := vmwarev1.VirtualMachineNamingSpec{}
+				if vSphereMachine.Spec.NamingStrategy != nil {
+					naming.Template = ptr.Deref(vSphereMachine.Spec.NamingStrategy.Template, "")
+				}
+				virtualMachineName, err := servicesvmoperator.GenerateVirtualMachineName(vSphereMachine.Name, naming)
+				if err != nil {
+					return nil
+				}
+
+				return []reconcile.Request{
+					{
+						NamespacedName: types.NamespacedName{Namespace: vSphereMachine.Namespace, Name: virtualMachineName},
+					},
+				}
+			}),
 		).
 		Watches(
 			&vmwarev1beta1.VSphereCluster{},

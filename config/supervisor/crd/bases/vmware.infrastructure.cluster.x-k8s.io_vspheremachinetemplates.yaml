@@ -346,9 +346,9 @@ spec:
                         description: policies specifies a list of optional infrastructure
                           policies to be applied to the virtual machine.
                         items:
-                          description: |-
-                            PolicyRef identifies an optional infrastructure policy to specify for the virtual machine by name and kind.
-                            ApiVersion is omitted from the PolicyRef by intention.
+                          description: PolicyRef identifies an optional infrastructure
+                            policy to specify for the virtual machine by name and
+                            kind.
                           properties:
                             kind:
                               description: |-
@@ -836,9 +836,9 @@ spec:
                         description: policies specifies a list of optional infrastructure
                           policies to be applied to the virtual machine.
                         items:
-                          description: |-
-                            PolicyRef identifies an optional infrastructure policy to specify for the virtual machine by name and kind.
-                            ApiVersion is omitted from the PolicyRef by intention.
+                          description: PolicyRef identifies an optional infrastructure
+                            policy to specify for the virtual machine by name and
+                            kind.
                           properties:
                             kind:
                               description: |-

@@ -125,7 +125,6 @@ type VSphereMachineSpec struct {
 }
 
 // PolicyRef identifies an optional infrastructure policy to specify for the virtual machine by name and kind.
-// ApiVersion is omitted from the PolicyRef by intention.
 type PolicyRef struct {
 	// name of the infrastructure policy.
 	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.

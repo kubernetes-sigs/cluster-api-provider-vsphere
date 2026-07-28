@@ -90,6 +90,11 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 		// not as a top-level network property, so apply the VM-wide routes to
 		// every device instead of rendering them as an invalid top-level key.
 		devices[i].Routes = append(devices[i].Routes, vsphereVM.Spec.Network.Routes...)
+		if i == len(vsphereVM.Spec.Network.Devices)-1 {
+			for j := len(vsphereVM.Spec.Network.Devices); j < len(devices); j++ {
+				devices[j].Routes = append(devices[j].Routes, vsphereVM.Spec.Network.Routes...)
+			}
+		}
 
 		// Add the MAC Address to the network device
 		if len(networkStatuses) > i {

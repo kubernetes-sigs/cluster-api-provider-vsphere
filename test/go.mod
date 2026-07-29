@@ -3,11 +3,11 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 go 1.26.0
 
 replace (
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-beta.1
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-rc.0
 	sigs.k8s.io/cluster-api-provider-vsphere => ../
 	sigs.k8s.io/cluster-api-provider-vsphere/api => ../api
-	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-beta.1
-	sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.14.0-beta.1
+	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-rc.0
+	sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.14.0-rc.0
 )
 
 require (
@@ -125,7 +125,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/moby/api v1.55.0 // indirect
-	github.com/moby/moby/client v0.5.0 // indirect
+	github.com/moby/moby/client v0.5.1 // indirect
 	github.com/moby/spdystream v0.5.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
@@ -154,9 +154,9 @@ require (
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260603231928-46d6f2c0092e // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.etcd.io/etcd/api/v3 v3.6.13 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.6.13 // indirect
-	go.etcd.io/etcd/client/v3 v3.6.13 // indirect
+	go.etcd.io/etcd/api/v3 v3.6.14 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.6.14 // indirect
+	go.etcd.io/etcd/client/v3 v3.6.14 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0 // indirect

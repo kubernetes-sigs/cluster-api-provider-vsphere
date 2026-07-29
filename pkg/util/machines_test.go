@@ -826,7 +826,7 @@ network:
 `,
 		},
 		{
-			name: "more-network-statuses-than-spec-devices",
+			name: "more-network-statuses-than-spec-devices+global-static-routes",
 			machine: &infrav1.VSphereVM{
 				Spec: infrav1.VSphereVMSpec{
 					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
@@ -841,6 +841,13 @@ network:
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
 									DHCP6:       ptr.To(true),
+								},
+							},
+							Routes: []infrav1.NetworkRouteSpec{
+								{
+									To:     "0.0.0.0/0",
+									Via:    "192.168.4.1",
+									Metric: ptr.To[int32](222),
 								},
 							},
 						},
@@ -869,6 +876,10 @@ network:
       dhcp4: true
       dhcp6: false
       accept-ra: false
+      routes:
+      - to: "0.0.0.0/0"
+        via: "192.168.4.1"
+        metric: 222
     id1:
       match:
         macaddress: "00:00:00:00:cd"
@@ -877,6 +888,10 @@ network:
       dhcp4: false
       dhcp6: true
       accept-ra: true
+      routes:
+      - to: "0.0.0.0/0"
+        via: "192.168.4.1"
+        metric: 222
     id2:
       match:
         macaddress: "00:00:00:00:ef"
@@ -885,6 +900,10 @@ network:
       dhcp4: false
       dhcp6: false
       accept-ra: false
+      routes:
+      - to: "0.0.0.0/0"
+        via: "192.168.4.1"
+        metric: 222
 `,
 		},
 	}

@@ -77,33 +77,38 @@ func defaultConfigCluster(clusterName, namespace, flavor string, controlPlaneNod
 	return configClusterInput
 }
 
-func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.ClusterProxy, namespace string, artifactFolder string) {
+func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.ClusterProxy, artifactFolder string) {
 	defer ginkgo.GinkgoRecover()
 
-	// Wait for a Cluster to be created in the namespace
-	var clusterName string
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
-		clusters := &clusterv1beta1.ClusterList{}
-		if err := managementClusterProxy.GetClient().List(ctx, clusters, client.InNamespace(namespace)); err != nil {
-			return false, err
+	watchedClusters := make(map[string]bool)
+	_ = wait.PollUntilContextTimeout(ctx, 5*time.Second, 24*time.Hour, false, func(ctx context.Context) (bool, error) {
+		if managementClusterProxy == nil || managementClusterProxy.GetClient() == nil {
+			return false, nil
 		}
-		if len(clusters.Items) > 0 {
-			clusterName = clusters.Items[0].Name
-			return true, nil
+		clusters := &clusterv1beta1.ClusterList{}
+		if err := managementClusterProxy.GetClient().List(ctx, clusters); err != nil {
+			return false, nil //nolint:nilerr
+		}
+		for _, c := range clusters.Items {
+			key := fmt.Sprintf("%s/%s", c.Namespace, c.Name)
+			if !watchedClusters[key] {
+				watchedClusters[key] = true
+				go watchCPIAndCSILogsForCluster(ctx, managementClusterProxy, c.Namespace, c.Name, artifactFolder)
+			}
 		}
 		return false, nil
 	})
-	if err != nil {
-		// No cluster created in this namespace or timed out, nothing to watch
-		return
-	}
+}
+
+func watchCPIAndCSILogsForCluster(ctx context.Context, managementClusterProxy framework.ClusterProxy, namespace string, clusterName string, artifactFolder string) {
+	defer ginkgo.GinkgoRecover()
 
 	// Wait for the kubeconfig secret to be available
 	secretName := fmt.Sprintf("%s-kubeconfig", clusterName)
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
 		secret := &corev1.Secret{}
 		if err := managementClusterProxy.GetClient().Get(ctx, types.NamespacedName{Namespace: namespace, Name: secretName}, secret); err != nil {
-			return false, err
+			return false, nil //nolint:nilerr
 		}
 		return true, nil
 	})

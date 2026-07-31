@@ -302,6 +302,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		vcsimAddressManager, err = vsphereip.VCSIMAddressManager(bootstrapClusterProxy.GetClient(), ipClaimLabels, skipCleanup)
 		Expect(err).ToNot(HaveOccurred())
 	}
+
+	go watchCPIAndCSILogs(ctx, bootstrapClusterProxy, artifactFolder)
 })
 
 // Using a SynchronizedAfterSuite for controlling how to delete resources shared across ParallelNodes (~ginkgo threads).
@@ -381,17 +383,11 @@ func setupSpecNamespace(specName string, postNamespaceCreatedFunc func(managemen
 		LogFolder: filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
 	})
 
-	watchCtx, cancelWatch := context.WithCancel(ctx)
-	namespaces[namespace] = func() {
-		cancelWatch()
-		cancelWatches()
-	}
+	namespaces[namespace] = cancelWatches
 
 	if postNamespaceCreatedFunc != nil {
 		postNamespaceCreatedFunc(bootstrapClusterProxy, namespace.Name)
 	}
-
-	go watchCPIAndCSILogs(watchCtx, bootstrapClusterProxy, namespace.Name, artifactFolder)
 
 	return namespace
 }

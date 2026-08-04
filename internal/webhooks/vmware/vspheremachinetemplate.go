@@ -19,6 +19,7 @@ package vmware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,10 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api/util/topology"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware/conversion"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -39,8 +42,10 @@ import (
 
 // VSphereMachineTemplate implements a validation webhook for VSphereMachineTemplate.
 type VSphereMachineTemplate struct {
-	// NetworkProvider is the network provider used by Supervisor based clusters
-	NetworkProvider string
+	// Client is used by NetworkProviderFactory.ForObject to resolve the owning Cluster / VSphereCluster.
+	Client client.Client
+	// NetworkProviderFactory resolves the network provider for the owning cluster.
+	NetworkProviderFactory manager.NetworkProviderFactory
 }
 
 var _ admission.Defaulter[*vmwarev1.VSphereMachineTemplate] = &VSphereMachineTemplate{}
@@ -107,8 +112,22 @@ func (webhook *VSphereMachineTemplate) ValidateUpdate(ctx context.Context, oldOb
 	return webhook.validate(ctx, nil, newObj)
 }
 
-func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphereMachineTemplate *vmwarev1.VSphereMachineTemplate) (admission.Warnings, error) {
-	allErrs := validateNetwork(webhook.NetworkProvider, newVSphereMachineTemplate.Spec.Template.Spec.Network, field.NewPath("spec", "template", "spec", "network"))
+func (webhook *VSphereMachineTemplate) validate(ctx context.Context, _, newVSphereMachineTemplate *vmwarev1.VSphereMachineTemplate) (admission.Warnings, error) {
+	var allErrs field.ErrorList
+
+	// Provider-specific network validation requires an owning Cluster. ClusterClass
+	// templates are not bound to a Cluster yet, so skip validateNetwork when the
+	// cluster-name label is missing. Other validations still run.
+	np, err := webhook.NetworkProviderFactory.ForObject(ctx, webhook.Client, newVSphereMachineTemplate)
+	switch {
+	case errors.Is(err, manager.ErrNoOwningCluster):
+		// Skip validateNetwork.
+	case err != nil:
+		return nil, err
+	default:
+		allErrs = append(allErrs, validateNetwork(np.Name(), newVSphereMachineTemplate.Spec.Template.Spec.Network, field.NewPath("spec", "template", "spec", "network"))...)
+	}
+
 	allErrs = append(allErrs, validatePolicies(newVSphereMachineTemplate.Spec.Template.Spec.Policies, field.NewPath("spec", "template", "spec", "policies"))...)
 
 	// Validate namingStrategy

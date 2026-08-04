@@ -18,6 +18,7 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -73,7 +74,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			webhook := &VSphereMachine{}
+			webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -180,7 +181,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "primary interface can not be set when network provider is vsphere-network",
+			wantErrMsg: fmt.Sprintf("primary interface can not be set when network provider is %s", manager.VDSNetworkProvider),
 		},
 		{
 			name:            "secondary interface with wrong type for VDS provider",
@@ -328,7 +329,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, tc.featureGate)
-			webhook := &VSphereMachine{NetworkProvider: tc.networkProvider}
+			webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, tc.networkProvider)}
 			obj := &vmwarev1.VSphereMachine{Spec: vmwarev1.VSphereMachineSpec{Network: tc.network}}
 			_, err := webhook.ValidateCreate(context.Background(), obj)
 			if tc.wantErr {
@@ -378,7 +379,7 @@ func TestVSphereMachine_ValidateUpdate_MultiNetwork(t *testing.T) {
 		},
 	})
 
-	webhook := &VSphereMachine{NetworkProvider: manager.NSXVPCNetworkProvider}
+	webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.NSXVPCNetworkProvider)}
 	_, err := webhook.ValidateUpdate(context.Background(), oldVSphereMachine, newVSphereMachine)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("cannot be modified"))
@@ -406,7 +407,7 @@ func TestVSphereMachine_ValidateCreate_InfrastructurePolicies(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.InfrastructurePolicies, tc.featureGate)
-			webhook := &VSphereMachine{}
+			webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 			obj := &vmwarev1.VSphereMachine{
 				Spec: vmwarev1.VSphereMachineSpec{
 					Policies: []vmwarev1.PolicyRef{
@@ -674,7 +675,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "vlans can only be set when network provider is NSX-VPC",
+			wantErrMsg: fmt.Sprintf("vlans can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
 		},
 		{
 			name:            "vlans name duplicate with primary interface name",
@@ -750,7 +751,7 @@ func TestVSphereMachine_ValidateCreate_VLANs(t *testing.T) {
 			g := NewWithT(t)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, true)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VLANSubinterface, tc.featureGate)
-			webhook := &VSphereMachine{NetworkProvider: tc.networkProvider}
+			webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, tc.networkProvider)}
 			vm := &vmwarev1.VSphereMachine{
 				Spec: vmwarev1.VSphereMachineSpec{Network: tc.networkSpec},
 			}
@@ -811,7 +812,7 @@ func TestVSphereMachine_ValidateUpdate_VLANs(t *testing.T) {
 		},
 	}
 
-	webhook := &VSphereMachine{NetworkProvider: manager.NSXVPCNetworkProvider}
+	webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.NSXVPCNetworkProvider)}
 	_, err := webhook.ValidateUpdate(context.Background(), oldVSphereMachine, newVSphereMachine)
 	g.Expect(err).NotTo(HaveOccurred())
 }

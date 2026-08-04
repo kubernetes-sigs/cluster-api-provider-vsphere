@@ -37,6 +37,10 @@ func DummyNetworkProvider() services.NetworkProvider {
 	return &dummyNetworkProvider{}
 }
 
+func (np *dummyNetworkProvider) Name() string {
+	return DummyNetworkProviderName
+}
+
 func (np *dummyNetworkProvider) SupportsIPv6DualStack() bool {
 	return false
 }
@@ -81,6 +85,10 @@ type dummyLBNetworkProvider struct {
 // DummyLBNetworkProvider returns an instance of dummy network provider that has a LB.
 func DummyLBNetworkProvider() services.NetworkProvider {
 	return &dummyLBNetworkProvider{}
+}
+
+func (np *dummyLBNetworkProvider) Name() string {
+	return DummyLBNetworkProviderName
 }
 
 func (np *dummyLBNetworkProvider) HasLoadBalancer() bool {

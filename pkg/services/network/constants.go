@@ -24,6 +24,17 @@ import (
 )
 
 const (
+	// VPCNetworkProviderName is the canonical name for the NSX VPC network provider.
+	VPCNetworkProviderName = "VPC"
+	// NSXTier1NetworkProviderName is the canonical name for the NSX Tier-1 network provider.
+	NSXTier1NetworkProviderName = "NSXTier1"
+	// VSphereDistributedNetworkProviderName is the canonical name for the VDS network provider.
+	VSphereDistributedNetworkProviderName = "VSphereDistributed"
+	// DummyLBNetworkProviderName is the canonical name for the Dummy LB network provider.
+	DummyLBNetworkProviderName = "DummyLBNetworkProvider"
+	// DummyNetworkProviderName is the canonical name for the Dummy network provider.
+	DummyNetworkProviderName = "DummyNetworkProvider"
+
 	// NSXTVNetSelectorKey is also defined in VM Operator.
 	NSXTVNetSelectorKey = "ncp.vmware.com/virtual-network-name"
 

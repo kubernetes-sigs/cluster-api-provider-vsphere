@@ -19,10 +19,12 @@ package vmware
 
 import (
 	"context"
+	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/cluster-api/util/topology"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -36,8 +38,8 @@ import (
 
 // VSphereCluster implements a validation and defaulting webhook for VSphereCluster.
 type VSphereCluster struct {
-	// NetworkProvider is the network provider used by Supervisor based clusters
-	NetworkProvider string
+	// NetworkProviderFactory resolves the network provider for the cluster.
+	NetworkProviderFactory manager.NetworkProviderFactory
 }
 
 var _ admission.Validator[*vmwarev1.VSphereCluster] = &VSphereCluster{}
@@ -50,13 +52,13 @@ func (webhook *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereCluster) ValidateCreate(_ context.Context, obj *vmwarev1.VSphereCluster) (admission.Warnings, error) {
-	return webhook.validate(obj)
+func (webhook *VSphereCluster) ValidateCreate(ctx context.Context, obj *vmwarev1.VSphereCluster) (admission.Warnings, error) {
+	return webhook.validate(ctx, obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereCluster) ValidateUpdate(_ context.Context, _, newTyped *vmwarev1.VSphereCluster) (admission.Warnings, error) {
-	return webhook.validate(newTyped)
+func (webhook *VSphereCluster) ValidateUpdate(ctx context.Context, _, newTyped *vmwarev1.VSphereCluster) (admission.Warnings, error) {
+	return webhook.validate(ctx, newTyped)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -65,7 +67,7 @@ func (webhook *VSphereCluster) ValidateDelete(_ context.Context, _ *vmwarev1.VSp
 }
 
 // validateClusterNetwork validates the network configuration of the VSphereCluster.
-func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereCluster) field.ErrorList {
+func (webhook *VSphereCluster) validateClusterNetwork(ctx context.Context, cluster *vmwarev1.VSphereCluster, skipEmptyProvider bool) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if !feature.Gates.Enabled(feature.MultiNetworks) && cluster.Spec.Network.NSXVPC.CreateSubnetSet != nil {
@@ -74,10 +76,44 @@ func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereC
 			"createSubnetSet can only be set when MultiNetworks feature gate is enabled",
 		))
 	}
-	if cluster.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
+
+	// When the ClusterNetworkProvider gate is enabled, the provider to validate against is
+	// resolved from the cluster itself; otherwise it is the static flag-based provider.
+	if feature.Gates.Enabled(feature.ClusterNetworkProvider) {
+		if cluster.Spec.Network.Provider == "" {
+			// Topology SSA dry-runs the original object (still without provider) before the
+			// Runtime Extension's write is applied. Allow empty only for those dry-run requests.
+			if skipEmptyProvider {
+				return allErrs
+			}
+			allErrs = append(allErrs, field.Required(
+				field.NewPath("spec", "network", "provider"),
+				"spec.network.provider must be set",
+			))
+			return allErrs
+		}
+	} else if cluster.Spec.Network.Provider != "" {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "network", "provider"),
+			"provider can only be set when ClusterNetworkProvider feature gate is enabled",
+		))
+		return allErrs
+	}
+
+	np, err := webhook.NetworkProviderFactory.ForCluster(ctx, cluster)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("spec", "network", "provider"),
+			cluster.Spec.Network.Provider,
+			err.Error(),
+		))
+		return allErrs
+	}
+
+	if cluster.Spec.Network.NSXVPC.IsDefined() && np.Name() != manager.NSXVPCNetworkProvider {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("spec", "network", "nsxVPC"),
-			"nsxVPC can only be set when network provider is NSX-VPC",
+			fmt.Sprintf("nsxVPC can only be set when network provider is %s", manager.NSXVPCNetworkProvider),
 		))
 	}
 
@@ -85,8 +121,13 @@ func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereC
 }
 
 // validate aggregates all shared validations for the VSphereCluster.
-func (webhook *VSphereCluster) validate(cluster *vmwarev1.VSphereCluster) (admission.Warnings, error) {
-	allErrs := webhook.validateClusterNetwork(cluster)
+func (webhook *VSphereCluster) validate(ctx context.Context, cluster *vmwarev1.VSphereCluster) (admission.Warnings, error) {
+	skipEmptyProvider := false
+	if req, err := admission.RequestFromContext(ctx); err == nil {
+		skipEmptyProvider = topology.IsDryRunRequest(req, cluster)
+	}
+
+	allErrs := webhook.validateClusterNetwork(ctx, cluster, skipEmptyProvider)
 	allErrs = append(allErrs, validateFailureDomainsControlPlaneSelector(
 		cluster.Spec.FailureDomains.ControlPlane.Selector,
 		field.NewPath("spec", "failureDomains", "controlPlane", "selector"),

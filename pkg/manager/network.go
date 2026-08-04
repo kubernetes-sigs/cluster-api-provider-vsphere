@@ -27,18 +27,43 @@ import (
 )
 
 const (
-	// NSXVPCNetworkProvider identifies the nsx-vpc network provider.
-	NSXVPCNetworkProvider = "NSX-VPC"
-	// NSXNetworkProvider identifies the NSX network provider.
-	NSXNetworkProvider = "NSX"
-	// VDSNetworkProvider identifies the VDS network provider.
-	VDSNetworkProvider = "vsphere-network"
-	// DummyLBNetworkProvider identifies the Dummy network provider.
-	DummyLBNetworkProvider = "DummyLBNetworkProvider"
+	// NSXVPCNetworkProvider identifies the NSX VPC network provider.
+	NSXVPCNetworkProvider = network.VPCNetworkProviderName
+	// NSXNetworkProvider identifies the NSX Tier-1 network provider.
+	NSXNetworkProvider = network.NSXTier1NetworkProviderName
+	// VDSNetworkProvider identifies the vSphere Distributed Switch network provider.
+	VDSNetworkProvider = network.VSphereDistributedNetworkProviderName
+	// DummyLBNetworkProvider identifies the Dummy LB network provider.
+	DummyLBNetworkProvider = network.DummyLBNetworkProviderName
+
+	// Legacy global network provider names (pre-rename values of --network-provider).
+	// The current flag values reuse NSXNetworkProvider / NSXVPCNetworkProvider / VDSNetworkProvider
+	// (NSXTier1 / VPC / VSphereDistributed), matching VSphereCluster.spec.network.provider.
+	legacyNSXNetworkProvider    = "NSX"
+	legacyNSXVPCNetworkProvider = "NSX-VPC"
+	legacyVDSNetworkProvider    = "vsphere-network"
 )
+
+var legacyToNetworkProviderName = map[string]string{
+	legacyNSXNetworkProvider:    NSXNetworkProvider,
+	legacyNSXVPCNetworkProvider: NSXVPCNetworkProvider,
+	legacyVDSNetworkProvider:    VDSNetworkProvider,
+}
+
+// ConvertNetworkProviderName converts a legacy --network-provider flag value to the
+// canonical PascalCase name used by CAPV. It is intended for CLI / startup boundary
+// use only (e.g. main.go), not for runtime resolution of spec.network.provider or
+// other internal APIs. Unknown names are returned unchanged.
+func ConvertNetworkProviderName(name string) string {
+	if converted, ok := legacyToNetworkProviderName[name]; ok {
+		return converted
+	}
+	return name
+}
 
 // GetNetworkProvider will return a network provider instance based on the environment
 // the cfg is used to initialize a client that talks directly to api-server without using the cache.
+// networkProvider must be a canonical PascalCase name; legacy flag values are not accepted here.
 func GetNetworkProvider(ctx context.Context, client client.Client, networkProvider string) (services.NetworkProvider, error) {
 	log := ctrl.LoggerFrom(ctx)
 

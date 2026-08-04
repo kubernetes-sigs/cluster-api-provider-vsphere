@@ -55,6 +55,10 @@ func NsxtNetworkProvider(client client.Client, disableFW string) services.Networ
 	}
 }
 
+func (np *nsxtNetworkProvider) Name() string {
+	return NSXTier1NetworkProviderName
+}
+
 func (np *nsxtNetworkProvider) SupportsIPv6DualStack() bool {
 	return false
 }

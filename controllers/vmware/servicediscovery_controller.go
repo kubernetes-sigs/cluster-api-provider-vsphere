@@ -18,6 +18,7 @@ package vmware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -76,17 +77,12 @@ const (
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get
 
 // AddServiceDiscoveryControllerToManager adds the ServiceDiscovery controller to the provided manager.
-func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterCache clustercache.ClusterCache, options controller.Options) error {
-	networkProvider, err := inframanager.GetNetworkProvider(ctx, controllerManagerCtx.Client, controllerManagerCtx.NetworkProvider)
-	if err != nil {
-		return pkgerrors.Wrap(err, "failed to create network provider")
-	}
-
+func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterCache clustercache.ClusterCache, options controller.Options, networkProviderFactory inframanager.NetworkProviderFactory) error {
 	r := &serviceDiscoveryReconciler{
-		Client:          controllerManagerCtx.Client,
-		Recorder:        mgr.GetEventRecorderFor("servicediscovery/vspherecluster-controller"),
-		NetworkProvider: networkProvider,
-		clusterCache:    clusterCache,
+		Client:                 controllerManagerCtx.Client,
+		Recorder:               mgr.GetEventRecorderFor("servicediscovery/vspherecluster-controller"),
+		NetworkProviderFactory: networkProviderFactory,
+		clusterCache:           clusterCache,
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "servicediscovery/vspherecluster")
 
@@ -138,9 +134,9 @@ func clusterToSupervisorVSphereClusterFunc(ctrlclient client.Client) func(ctx co
 }
 
 type serviceDiscoveryReconciler struct {
-	Client          client.Client
-	Recorder        record.EventRecorder
-	NetworkProvider services.NetworkProvider
+	Client                 client.Client
+	Recorder               record.EventRecorder
+	NetworkProviderFactory inframanager.NetworkProviderFactory
 
 	clusterCache clustercache.ClusterCache
 }
@@ -206,11 +202,23 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 		return reconcile.Result{}, nil
 	}
 
+	// Resolve the network provider for the VSphereCluster.
+	np, err := r.NetworkProviderFactory.ForCluster(ctx, vsphereCluster)
+	if err != nil {
+		if errors.Is(err, inframanager.ErrNetworkProviderEmpty) {
+			log.Info("Network Provider is empty, wait for a valid value")
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, pkgerrors.Wrapf(err,
+			"failed to resolve network provider for VSphereCluster %s",
+			klog.KObj(vsphereCluster))
+	}
+
 	// We cannot proceed until we are able to access the target cluster. Until
 	// then just return a no-op and wait for the next sync.
 	guestClient, err := r.clusterCache.GetClient(ctx, client.ObjectKeyFromObject(cluster))
 	if err != nil {
-		if pkgerrors.Is(err, clustercache.ErrClusterNotConnected) {
+		if errors.Is(err, clustercache.ErrClusterNotConnected) {
 			log.V(5).Info("Requeuing because connection to the workload cluster is down")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
@@ -222,7 +230,7 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	return reconcile.Result{}, r.reconcileNormal(ctx, &vmwarecontext.GuestClusterContext{
 		ClusterContext: clusterContext,
 		GuestClient:    guestClient,
-	})
+	}, np)
 }
 
 func (r *serviceDiscoveryReconciler) patch(ctx context.Context, clusterCtx *vmwarecontext.ClusterContext) error {
@@ -237,8 +245,8 @@ func (r *serviceDiscoveryReconciler) patch(ctx context.Context, clusterCtx *vmwa
 	)
 }
 
-func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) error {
-	if err := r.reconcileSupervisorHeadlessService(ctx, guestClusterCtx); err != nil {
+func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext, np services.NetworkProvider) error {
+	if err := r.reconcileSupervisorHeadlessService(ctx, guestClusterCtx, np); err != nil {
 		deprecatedv1beta1conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyV1Beta1Condition, vmwarev1.SupervisorHeadlessServiceSetupFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityWarning, "%v", err)
 		conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
@@ -256,7 +264,7 @@ func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestC
 // reconcileSupervisorHeadlessService sets up a local k8s service in the workload cluster that
 // proxies to the Supervisor Cluster API Server. The add-ons are depend on this local service
 // to connect to the Supervisor Cluster.
-func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) error {
+func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext, np services.NetworkProvider) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create the headless service to the supervisor api server on the target cluster.
@@ -281,7 +289,7 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 
 	var supervisorHosts []string
 	var err error
-	supervisorHosts, err = r.getSupervisorAPIServerAddresses(ctx, guestClusterCtx.Cluster)
+	supervisorHosts, err = r.getSupervisorAPIServerAddresses(ctx, guestClusterCtx.Cluster, np)
 	if err != nil {
 		// Note: We have watches on the LB Svc (VIP) & the cluster-info configmap (FIP).
 		// There is no need to return an error to keep re-trying.
@@ -363,8 +371,8 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 	return nil
 }
 
-func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddresses(ctx context.Context, cluster *clusterv1.Cluster) ([]string, error) {
-	if r.NetworkProvider.SupportsIPv6DualStack() {
+func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddresses(ctx context.Context, cluster *clusterv1.Cluster, np services.NetworkProvider) ([]string, error) {
+	if np.SupportsIPv6DualStack() {
 		// 1. If dual stack IS supported, we determine the intended IP family from the cluster configuration.
 		ipFamily, err := util.DetermineClusterIPFamily(cluster)
 		if err != nil {

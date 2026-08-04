@@ -102,6 +102,9 @@ type ResourcePolicyService interface {
 
 // NetworkProvider provision network resources and configures VM based on network type.
 type NetworkProvider interface {
+	// Name returns the canonical provider name (e.g. VSphereDistributed, NSXTier1, VPC).
+	Name() string
+
 	// SupportsIPv6DualStack indicates whether this provider supports IPv6 and dual-stack.
 	SupportsIPv6DualStack() bool
 

@@ -57,6 +57,10 @@ func NSXTVpcNetworkProvider(client client.Client) services.NetworkProvider {
 	}
 }
 
+func (vp *nsxtVPCNetworkProvider) Name() string {
+	return VPCNetworkProviderName
+}
+
 func (vp *nsxtVPCNetworkProvider) SupportsIPv6DualStack() bool {
 	return feature.Gates.Enabled(feature.IPv6DualStack)
 }

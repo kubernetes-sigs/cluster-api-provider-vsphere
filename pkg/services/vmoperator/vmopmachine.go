@@ -1030,9 +1030,8 @@ func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprv
 	result := make([]vmoprvhub.PolicySpec, 0, len(refs))
 	for _, ref := range refs {
 		result = append(result, vmoprvhub.PolicySpec{
-			Name:       ref.Name,
-			Kind:       ref.Kind,
-			APIVersion: ref.APIVersion,
+			Name: ref.Name,
+			Kind: ref.Kind,
 		})
 	}
 	return result

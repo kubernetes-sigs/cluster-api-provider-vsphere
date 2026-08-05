@@ -41,6 +41,7 @@ import (
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/template"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/template/replicator"
 )
 
 const (
@@ -83,7 +84,25 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 			return err
 		}
 	}
-	tpl, err := template.FindTemplate(ctx, vmCtx.GetSession(), vmCtx.VSphereVM.Spec.Template)
+	pool, err := vmCtx.Session.Finder.ResourcePoolOrDefault(ctx, vmCtx.VSphereVM.Spec.ResourcePool)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "unable to get resource pool for %q", vmCtx)
+	}
+
+	// Resolved before FindTemplate so locality can be judged against the exact datastore this clone will land on.
+	datastoreRef, err := resolveDatastore(ctx, vmCtx, pool)
+	if err != nil {
+		return err
+	}
+	targetDatastore := object.NewDatastore(vmCtx.Session.Client.Client, *datastoreRef)
+
+	// vmCtx.Namespace, not vmCtx.VSphereVM.Namespace: workload clusters live
+	// in separate namespaces but must contend on the same lock.
+	replicaRequester := &replicator.Replicator{
+		Client:    vmCtx.Client,
+		Namespace: vmCtx.Namespace,
+	}
+	tpl, err := template.FindTemplate(ctx, vmCtx.GetSession(), vmCtx.VSphereVM.Spec.Template, pool, targetDatastore, replicaRequester)
 	if err != nil {
 		return err
 	}
@@ -130,11 +149,6 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 	folder, err := vmCtx.Session.Finder.FolderOrDefault(ctx, vmCtx.VSphereVM.Spec.Folder)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "unable to get folder for %q", vmCtx)
-	}
-
-	pool, err := vmCtx.Session.Finder.ResourcePoolOrDefault(ctx, vmCtx.VSphereVM.Spec.ResourcePool)
-	if err != nil {
-		return pkgerrors.Wrapf(err, "unable to get resource pool for %q", vmCtx)
 	}
 
 	devices, err := tpl.Device(ctx)
@@ -262,103 +276,6 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		spec.Config.MemoryReservationLockedToMax = ptr.To(true)
 	}
 
-	var datastoreRef *types.ManagedObjectReference
-	if vmCtx.VSphereVM.Spec.Datastore != "" {
-		datastore, err := vmCtx.Session.Finder.Datastore(ctx, vmCtx.VSphereVM.Spec.Datastore)
-		if err != nil {
-			return pkgerrors.Wrapf(err, "unable to get datastore %s for %q", vmCtx.VSphereVM.Spec.Datastore, vmCtx)
-		}
-		datastoreRef = types.NewReference(datastore.Reference())
-		spec.Location.Datastore = datastoreRef
-	}
-
-	var storageProfileID string
-	if vmCtx.VSphereVM.Spec.StoragePolicyName != "" {
-		pbmClient, err := pbm.NewClient(ctx, vmCtx.Session.Client.Client)
-		if err != nil {
-			return pkgerrors.Wrapf(err, "unable to create pbm client for %q", vmCtx)
-		}
-
-		storageProfileID, err = pbmClient.ProfileIDByName(ctx, vmCtx.VSphereVM.Spec.StoragePolicyName)
-		if err != nil {
-			return pkgerrors.Wrapf(err, "unable to get storageProfileID from name %s for %q", vmCtx.VSphereVM.Spec.StoragePolicyName, vmCtx)
-		}
-
-		var hubs []pbmTypes.PbmPlacementHub
-
-		// If there's a Datastore configured, it should be the only one for which we check if it matches the requirements of the Storage Policy
-		if datastoreRef != nil {
-			hubs = append(hubs, pbmTypes.PbmPlacementHub{
-				HubType: datastoreRef.Type,
-				HubId:   datastoreRef.Value,
-			})
-		} else {
-			// Otherwise we should get just the Datastores connected to our pool
-			cluster, err := pool.Owner(ctx)
-			if err != nil {
-				return pkgerrors.Wrapf(err, "failed to get owning cluster of resourcepool %q to calculate datastore based on storage policy", pool)
-			}
-
-			dsList, err := object.NewComputeResource(vmCtx.Session.Client.Client, cluster.Reference()).Datastores(ctx)
-			if err != nil {
-				return pkgerrors.Wrapf(err, "unable to list datastores from owning cluster of requested resourcepool")
-			}
-
-			var refs []types.ManagedObjectReference
-			for i := range dsList {
-				refs = append(refs, dsList[i].Reference())
-			}
-
-			var datastores []mo.Datastore
-			if err := property.DefaultCollector(vmCtx.Session.Client.Client).Retrieve(ctx, refs, []string{"summary"}, &datastores); err != nil {
-				return pkgerrors.Wrapf(err, "unable to collect datastore properties to validate maintenance mode")
-			}
-
-			for _, ds := range datastores {
-				if ds.Summary.MaintenanceMode != string(types.DatastoreSummaryMaintenanceModeStateNormal) {
-					log.V(4).Info("datastore is in maintenance mode, skipping", "datastore", ds.Summary.Name)
-					continue
-				}
-
-				hubs = append(hubs, pbmTypes.PbmPlacementHub{
-					HubType: ds.Reference().Type,
-					HubId:   ds.Reference().Value,
-				})
-			}
-		}
-
-		var constraints []pbmTypes.BasePbmPlacementRequirement //nolint:prealloc
-		constraints = append(constraints, &pbmTypes.PbmPlacementCapabilityProfileRequirement{ProfileId: pbmTypes.PbmProfileId{UniqueId: storageProfileID}})
-		result, err := pbmClient.CheckRequirements(ctx, hubs, nil, constraints)
-		if err != nil {
-			return pkgerrors.Wrapf(err, "unable to check requirements for storage policy")
-		}
-
-		if len(result.CompatibleDatastores()) == 0 {
-			return fmt.Errorf("no compatible datastores found for storage policy: %s", vmCtx.VSphereVM.Spec.StoragePolicyName)
-		}
-
-		// If datastoreRef is nil here it means that the user didn't specify a Datastore. So we should
-		// select one of the datastores of the owning cluster of the resource pool that matched the
-		// requirements of the storage policy.
-		if datastoreRef == nil {
-			r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // We won't need cryptographically secure randomness here.
-			ds := result.CompatibleDatastores()[r.Intn(len(result.CompatibleDatastores()))]
-			datastoreRef = &types.ManagedObjectReference{Type: ds.HubType, Value: ds.HubId}
-		}
-	}
-
-	// if datastoreRef is nil here, means that user didn't specified a datastore NOR a
-	// storagepolicy, so we should select the default
-	if datastoreRef == nil {
-		// if no datastore defined through VM spec or storage policy, use default
-		datastore, err := vmCtx.Session.Finder.DefaultDatastore(ctx)
-		if err != nil {
-			return pkgerrors.Wrapf(err, "unable to get default datastore for %q", vmCtx)
-		}
-		datastoreRef = types.NewReference(datastore.Reference())
-	}
-
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
 	isLinkedClone := snapshotRef != nil
 	spec.Location.Disk = getDiskLocators(disks, *datastoreRef, isLinkedClone)
@@ -418,6 +335,111 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		log.Error(err, "Failed to patch VSphereVM (best-effort)")
 	}
 	return nil
+}
+
+// resolveDatastore determines the datastore a clone into pool should land
+// on: explicit Spec.Datastore, else one compatible with
+// Spec.StoragePolicyName, else the default. Resolved ahead of the clone
+// spec so FindTemplate can use the same datastore for locality.
+func resolveDatastore(ctx context.Context, vmCtx *capvcontext.VMContext, pool *object.ResourcePool) (*types.ManagedObjectReference, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	var datastoreRef *types.ManagedObjectReference
+	if vmCtx.VSphereVM.Spec.Datastore != "" {
+		datastore, err := vmCtx.Session.Finder.Datastore(ctx, vmCtx.VSphereVM.Spec.Datastore)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "unable to get datastore %s for %q", vmCtx.VSphereVM.Spec.Datastore, vmCtx)
+		}
+		datastoreRef = types.NewReference(datastore.Reference())
+	}
+
+	if vmCtx.VSphereVM.Spec.StoragePolicyName != "" {
+		pbmClient, err := pbm.NewClient(ctx, vmCtx.Session.Client.Client)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "unable to create pbm client for %q", vmCtx)
+		}
+
+		storageProfileID, err := pbmClient.ProfileIDByName(ctx, vmCtx.VSphereVM.Spec.StoragePolicyName)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "unable to get storageProfileID from name %s for %q", vmCtx.VSphereVM.Spec.StoragePolicyName, vmCtx)
+		}
+
+		var hubs []pbmTypes.PbmPlacementHub
+
+		// If there's a Datastore configured, it should be the only one for which we check if it matches the requirements of the Storage Policy
+		if datastoreRef != nil {
+			hubs = append(hubs, pbmTypes.PbmPlacementHub{
+				HubType: datastoreRef.Type,
+				HubId:   datastoreRef.Value,
+			})
+		} else {
+			// Otherwise we should get just the Datastores connected to our pool
+			cluster, err := pool.Owner(ctx)
+			if err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to get owning cluster of resourcepool %q to calculate datastore based on storage policy", pool)
+			}
+
+			dsList, err := object.NewComputeResource(vmCtx.Session.Client.Client, cluster.Reference()).Datastores(ctx)
+			if err != nil {
+				return nil, pkgerrors.Wrapf(err, "unable to list datastores from owning cluster of requested resourcepool")
+			}
+
+			var refs []types.ManagedObjectReference
+			for i := range dsList {
+				refs = append(refs, dsList[i].Reference())
+			}
+
+			var datastores []mo.Datastore
+			if err := property.DefaultCollector(vmCtx.Session.Client.Client).Retrieve(ctx, refs, []string{"summary"}, &datastores); err != nil {
+				return nil, pkgerrors.Wrapf(err, "unable to collect datastore properties to validate maintenance mode")
+			}
+
+			for _, ds := range datastores {
+				if ds.Summary.MaintenanceMode != string(types.DatastoreSummaryMaintenanceModeStateNormal) {
+					log.V(4).Info("datastore is in maintenance mode, skipping", "datastore", ds.Summary.Name)
+					continue
+				}
+
+				hubs = append(hubs, pbmTypes.PbmPlacementHub{
+					HubType: ds.Reference().Type,
+					HubId:   ds.Reference().Value,
+				})
+			}
+		}
+
+		var constraints []pbmTypes.BasePbmPlacementRequirement //nolint:prealloc
+		constraints = append(constraints, &pbmTypes.PbmPlacementCapabilityProfileRequirement{ProfileId: pbmTypes.PbmProfileId{UniqueId: storageProfileID}})
+		result, err := pbmClient.CheckRequirements(ctx, hubs, nil, constraints)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "unable to check requirements for storage policy")
+		}
+
+		if len(result.CompatibleDatastores()) == 0 {
+			return nil, fmt.Errorf("no compatible datastores found for storage policy: %s", vmCtx.VSphereVM.Spec.StoragePolicyName)
+		}
+
+		// If datastoreRef is nil here it means that the user didn't specify a Datastore. So we should
+		// select one of the datastores of the owning cluster of the resource pool that matched the
+		// requirements of the storage policy.
+		if datastoreRef == nil {
+			r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // We won't need cryptographically secure randomness here.
+			ds := result.CompatibleDatastores()[r.Intn(len(result.CompatibleDatastores()))]
+			datastoreRef = &types.ManagedObjectReference{Type: ds.HubType, Value: ds.HubId}
+		}
+	}
+
+	// if datastoreRef is nil here, means that user didn't specified a datastore NOR a
+	// storagepolicy, so we should select the default
+	if datastoreRef == nil {
+		// if no datastore defined through VM spec or storage policy, use default
+		datastore, err := vmCtx.Session.Finder.DefaultDatastore(ctx)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "unable to get default datastore for %q", vmCtx)
+		}
+		datastoreRef = types.NewReference(datastore.Reference())
+	}
+
+	return datastoreRef, nil
 }
 
 func newVMFlagInfo() *types.VirtualMachineFlagInfo {

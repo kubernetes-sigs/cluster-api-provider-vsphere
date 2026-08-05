@@ -87,6 +87,14 @@ const (
 	//
 	// alpha: v1.17
 	VLANSubinterface featuregate.Feature = "VLANSubinterface"
+
+	// TemplateAutoReplicate is a feature gate for automatically replicating a
+	// VM template into a failure domain's local datastore when no local copy
+	// already exists, avoiding a slow cross-datastore clone. Disabled,
+	// template resolution is unchanged.
+	//
+	// alpha: v1.17
+	TemplateAutoReplicate featuregate.Feature = "TemplateAutoReplicate"
 )
 
 var (
@@ -96,7 +104,8 @@ var (
 	}
 
 	govmomiGates = map[featuregate.Feature]featuregate.FeatureSpec{
-		NodeAntiAffinity: {Default: false, PreRelease: featuregate.Alpha},
+		NodeAntiAffinity:      {Default: false, PreRelease: featuregate.Alpha},
+		TemplateAutoReplicate: {Default: false, PreRelease: featuregate.Alpha},
 	}
 
 	supervisorGates = map[featuregate.Feature]featuregate.FeatureSpec{

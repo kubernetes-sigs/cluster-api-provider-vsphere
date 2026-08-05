@@ -3,9 +3,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 go 1.26.0
 
 replace (
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-rc.0
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.14.0-rc.1
 	sigs.k8s.io/cluster-api-provider-vsphere/api => ./api
-	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-rc.0
+	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.14.0-rc.1
 )
 
 require (

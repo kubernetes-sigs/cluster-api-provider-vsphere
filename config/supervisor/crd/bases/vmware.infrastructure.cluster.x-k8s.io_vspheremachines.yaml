@@ -413,6 +413,13 @@ spec:
                 items:
                   description: VSphereMachineVolume defines a PVC attachment.
                   properties:
+                    applicationType:
+                      description: applicationType describes the type of application
+                        the volume is intended for
+                      enum:
+                      - OracleRAC
+                      - MicrosoftWSFC
+                      type: string
                     capacity:
                       additionalProperties:
                         anyOf:
@@ -422,13 +429,54 @@ spec:
                         x-kubernetes-int-or-string: true
                       description: capacity is the PVC capacity
                       type: object
+                    controllerBusNumber:
+                      description: controllerBusNumber is the bus number of the controller
+                      format: int32
+                      type: integer
+                    controllerType:
+                      description: controllerType is the type of controller the volume
+                        should be attached to
+                      enum:
+                      - IDE
+                      - NVME
+                      - SCSI
+                      - SATA
+                      type: string
+                    diskMode:
+                      description: diskMode is the mode to use when attaching the
+                        volume
+                      enum:
+                      - IndependentNonPersistent
+                      - IndependentPersistent
+                      - NonPersistent
+                      - Persistent
+                      type: string
                     name:
                       description: 'name is suffix used to name this PVC as: VSphereMachine.Name
                         + "-" + Name'
                       type: string
+                    readOnly:
+                      description: readOnly attaches the volume read-only
+                      type: boolean
+                    removable:
+                      description: removable describes whether the volume may be removed
+                        from spec.volumes
+                      type: boolean
+                    sharingMode:
+                      description: sharingMode is the volume's sharing mode
+                      enum:
+                      - MultiWriter
+                      - None
+                      type: string
                     storageClass:
                       description: storageClass defaults to VSphereMachineSpec.StorageClass
                       type: string
+                    unitNumber:
+                      description: unitNumber is the unit number for attaching the
+                        volume to the storage controller; must be unique per controller;
+                        7 invalid for SCSI
+                      format: int32
+                      type: integer
                   required:
                   - capacity
                   - name
@@ -1350,6 +1398,13 @@ spec:
                 items:
                   description: VSphereMachineVolume defines a PVC attachment.
                   properties:
+                    applicationType:
+                      description: applicationType describes the type of application
+                        the volume is intended for
+                      enum:
+                      - OracleRAC
+                      - MicrosoftWSFC
+                      type: string
                     capacity:
                       additionalProperties:
                         anyOf:
@@ -1359,6 +1414,28 @@ spec:
                         x-kubernetes-int-or-string: true
                       description: capacity is the PVC capacity
                       type: object
+                    controllerBusNumber:
+                      description: controllerBusNumber is the bus number of the controller
+                      format: int32
+                      type: integer
+                    controllerType:
+                      description: controllerType is the type of controller the volume
+                        should be attached to
+                      enum:
+                      - IDE
+                      - NVME
+                      - SCSI
+                      - SATA
+                      type: string
+                    diskMode:
+                      description: diskMode is the mode to use when attaching the
+                        volume
+                      enum:
+                      - IndependentNonPersistent
+                      - IndependentPersistent
+                      - NonPersistent
+                      - Persistent
+                      type: string
                     name:
                       description: |-
                         name is the suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
@@ -1366,11 +1443,30 @@ spec:
                       maxLength: 253
                       minLength: 1
                       type: string
+                    readOnly:
+                      description: readOnly attaches the volume read-only
+                      type: boolean
+                    removable:
+                      description: removable describes whether the volume may be removed
+                        from spec.volumes
+                      type: boolean
+                    sharingMode:
+                      description: sharingMode is the volume's sharing mode
+                      enum:
+                      - MultiWriter
+                      - None
+                      type: string
                     storageClass:
                       description: storageClass defaults to VSphereMachineSpec.StorageClass
                       maxLength: 253
                       minLength: 1
                       type: string
+                    unitNumber:
+                      description: |-
+                        unitNumber is the unit number for attaching the volume to the storage
+                        controller; must be unique per controller; 7 is invalid for SCSI
+                      format: int32
+                      type: integer
                   required:
                   - capacity
                   - name

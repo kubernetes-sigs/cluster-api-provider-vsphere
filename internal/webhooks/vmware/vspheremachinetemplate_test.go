@@ -642,6 +642,55 @@ func TestVSphereMachineTemplate_ValidatePoliciesFeatureGate(t *testing.T) {
 	}
 }
 
+func TestVSphereMachineTemplate_ValidateVolumeControllerParametersFeatureGate(t *testing.T) {
+	tests := []struct {
+		name        string
+		featureGate bool
+		wantErr     bool
+	}{
+		{
+			name:        "controller parameters set when feature gate disabled",
+			featureGate: false,
+			wantErr:     true,
+		},
+		{
+			name:        "controller parameters set when feature gate enabled",
+			featureGate: true,
+			wantErr:     false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, tc.featureGate)
+			webhook := &VSphereMachineTemplate{}
+			obj := &vmwarev1.VSphereMachineTemplate{
+				Spec: vmwarev1.VSphereMachineTemplateSpec{
+					Template: vmwarev1.VSphereMachineTemplateResource{
+						Spec: vmwarev1.VSphereMachineSpec{
+							Volumes: []vmwarev1.VSphereMachineVolume{
+								{
+									Name:                "etcd",
+									ControllerBusNumber: ptr.To(int32(0)),
+								},
+							},
+						},
+					},
+				},
+			}
+
+			_, err := webhook.validate(context.Background(), nil, obj)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring("can only be set when feature gate VolumeControllerParameters is enabled"))
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
 func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 	tests := []struct {
 		name            string

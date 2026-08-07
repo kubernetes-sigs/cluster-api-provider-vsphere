@@ -35,6 +35,34 @@ type VSphereMachineVolume struct {
 	// storageClass defaults to VSphereMachineSpec.StorageClass
 	// +optional
 	StorageClass string `json:"storageClass,omitempty"`
+	// applicationType describes the type of application the volume is intended for
+	// +optional
+	// +kubebuilder:validation:Enum=OracleRAC;MicrosoftWSFC
+	ApplicationType string `json:"applicationType,omitempty"`
+	// controllerType is the type of controller the volume should be attached to
+	// +optional
+	// +kubebuilder:validation:Enum=IDE;NVME;SCSI;SATA
+	ControllerType string `json:"controllerType,omitempty"`
+	// controllerBusNumber is the bus number of the controller
+	// +optional
+	ControllerBusNumber *int32 `json:"controllerBusNumber,omitempty"`
+	// diskMode is the mode to use when attaching the volume
+	// +optional
+	// +kubebuilder:validation:Enum=IndependentNonPersistent;IndependentPersistent;NonPersistent;Persistent
+	DiskMode string `json:"diskMode,omitempty"`
+	// sharingMode is the volume's sharing mode
+	// +optional
+	// +kubebuilder:validation:Enum=MultiWriter;None
+	SharingMode string `json:"sharingMode,omitempty"`
+	// unitNumber is the unit number for attaching the volume to the storage controller; must be unique per controller; 7 invalid for SCSI
+	// +optional
+	UnitNumber *int32 `json:"unitNumber,omitempty"`
+	// removable describes whether the volume may be removed from spec.volumes
+	// +optional
+	Removable *bool `json:"removable,omitempty"`
+	// readOnly attaches the volume read-only
+	// +optional
+	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.

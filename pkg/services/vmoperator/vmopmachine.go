@@ -853,26 +853,56 @@ func volumeName(machine *vmwarev1.VSphereMachine, volume vmwarev1.VSphereMachine
 	return machine.Name + "-" + volume.Name
 }
 
-// addVolume ensures volume is included in vm.Spec.Volumes.
-func addVolume(vm *vmoprvhub.VirtualMachine, name string) {
-	for _, volume := range vm.Spec.Volumes {
-		claim := volume.PersistentVolumeClaim
-		if claim != nil && claim.ClaimName == name {
-			return // volume already present in the spec
-		}
-	}
-
-	vm.Spec.Volumes = append(vm.Spec.Volumes, vmoprvhub.VirtualMachineVolume{
+// addVolume ensures a volume with the given ClaimName is included in
+// vm.Spec.Volumes with the parameters derived from the VSphereMachineVolume.
+// If a volume with the same ClaimName already exists, its parameters are
+// updated in place so that spec changes propagate on reconcile.
+func addVolume(vm *vmoprvhub.VirtualMachine, name string, source vmwarev1.VSphereMachineVolume) {
+	desired := vmoprvhub.VirtualMachineVolume{
 		Name: name,
 		VirtualMachineVolumeSource: vmoprvhub.VirtualMachineVolumeSource{
 			PersistentVolumeClaim: &vmoprvhub.PersistentVolumeClaimVolumeSource{
 				PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 					ClaimName: name,
-					ReadOnly:  false,
+					ReadOnly:  source.ReadOnly,
 				},
 			},
 		},
-	})
+		ControllerBusNumber: source.ControllerBusNumber,
+		UnitNumber:          source.UnitNumber,
+		Removable:           source.Removable,
+	}
+
+	// Only set string enum fields when non-empty so vm-operator defaults apply
+	// for the zero value.
+	if source.ApplicationType != "" {
+		desired.ApplicationType = vmoprvhub.VolumeApplicationType(source.ApplicationType)
+	}
+	if source.ControllerType != "" {
+		desired.ControllerType = vmoprvhub.VirtualControllerType(source.ControllerType)
+	}
+	if source.DiskMode != "" {
+		desired.DiskMode = vmoprvhub.VolumeDiskMode(source.DiskMode)
+	}
+	if source.SharingMode != "" {
+		desired.SharingMode = vmoprvhub.VolumeSharingMode(source.SharingMode)
+	}
+
+	for i, volume := range vm.Spec.Volumes {
+		claim := volume.PersistentVolumeClaim
+		if claim != nil && claim.ClaimName == name {
+			// Preserve any fields set by other sources on the existing volume
+			// source (for example InstanceVolumeClaim), then update the
+			// parameters we manage in place.
+			if existing := vm.Spec.Volumes[i].PersistentVolumeClaim; existing != nil {
+				desired.PersistentVolumeClaim.InstanceVolumeClaim = existing.InstanceVolumeClaim
+			}
+			vm.Spec.Volumes[i] = desired
+			return
+		}
+	}
+
+	vm.Spec.Volumes = append(vm.Spec.Volumes, desired)
 }
 
 func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprvhub.VirtualMachine) error {
@@ -950,7 +980,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 				pvc.Name)
 		}
 
-		addVolume(vm, pvc.Name)
+		addVolume(vm, pvc.Name, volume)
 	}
 
 	return nil

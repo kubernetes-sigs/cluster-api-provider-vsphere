@@ -704,6 +704,12 @@ var _ = Describe("VirtualMachine tests", func() {
 					Capacity: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("1Gi"),
 					},
+					DiskMode:            "Persistent",
+					ControllerType:      "SCSI",
+					ControllerBusNumber: ptr.To(int32(0)),
+					UnitNumber:          ptr.To(int32(1)),
+					Removable:           ptr.To(true),
+					ReadOnly:            true,
 				},
 				{
 					Name: "containerd",
@@ -730,14 +736,38 @@ var _ = Describe("VirtualMachine tests", func() {
 						PersistentVolumeClaim: &vmoprv1alpha5.PersistentVolumeClaimVolumeSource{
 							PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 								ClaimName: name,
-								ReadOnly:  false,
+								ReadOnly:  volume.ReadOnly,
 							},
 						},
 					},
+					ControllerBusNumber: volume.ControllerBusNumber,
+					UnitNumber:          volume.UnitNumber,
+					Removable:           volume.Removable,
+				}
+				if volume.ApplicationType != "" {
+					vmVolume.ApplicationType = vmoprv1alpha5.VolumeApplicationType(volume.ApplicationType)
+				}
+				if volume.ControllerType != "" {
+					vmVolume.ControllerType = vmoprv1alpha5.VirtualControllerType(volume.ControllerType)
+				}
+				if volume.DiskMode != "" {
+					vmVolume.DiskMode = vmoprv1alpha5.VolumeDiskMode(volume.DiskMode)
+				}
+				if volume.SharingMode != "" {
+					vmVolume.SharingMode = vmoprv1alpha5.VolumeSharingMode(volume.SharingMode)
 				}
 
 				Expect(vmopVM.Spec.Volumes[i]).To(BeEquivalentTo(vmVolume))
 			}
+
+			By("Checking that the parameterized volume carries the new fields")
+			Expect(vmopVM.Spec.Volumes[0].DiskMode).To(Equal(vmoprv1alpha5.VolumeDiskMode("Persistent")))
+			Expect(vmopVM.Spec.Volumes[0].ControllerType).To(Equal(vmoprv1alpha5.VirtualControllerType("SCSI")))
+			Expect(vmopVM.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
+			Expect(vmopVM.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
+			Expect(vmopVM.Spec.Volumes[0].ApplicationType).To(BeEmpty())
+			Expect(vmopVM.Spec.Volumes[0].Removable).To(Equal(ptr.To(true)))
+			Expect(vmopVM.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeTrue())
 		})
 
 		Context("With InfrastructurePolicies feature gate enabled", func() {

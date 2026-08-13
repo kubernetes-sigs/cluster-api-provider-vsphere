@@ -633,7 +633,7 @@ var _ = Describe("Reconciliation tests", func() {
 			})
 			err = k8sClient.Update(ctx, machineTemplate)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("policies are immutable after creation"))
+			Expect(err.Error()).To(ContainSubstring("VSphereMachineTemplate spec.template.spec field is immutable"))
 		},
 		Entry("With no load balancer", dontUseLoadBalancer),
 		Entry("With load balancer", useLoadBalancer),

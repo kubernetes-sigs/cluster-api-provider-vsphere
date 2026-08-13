@@ -435,10 +435,6 @@ spec:
                     - className
                     - imageName
                     type: object
-                    x-kubernetes-validations:
-                    - message: policies are immutable after creation
-                      rule: has(self.policies) == has(oldSelf.policies) && (!has(self.policies)
-                        || self.policies == oldSelf.policies)
                 required:
                 - spec
                 type: object
@@ -934,10 +930,6 @@ spec:
                     - className
                     - imageName
                     type: object
-                    x-kubernetes-validations:
-                    - message: policies are immutable after creation
-                      rule: has(self.policies) == has(oldSelf.policies) && (!has(self.policies)
-                        || self.policies == oldSelf.policies)
                 type: object
             required:
             - template

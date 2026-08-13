@@ -438,10 +438,6 @@ spec:
             - className
             - imageName
             type: object
-            x-kubernetes-validations:
-            - message: policies are immutable after creation
-              rule: has(self.policies) == has(oldSelf.policies) && (!has(self.policies)
-                || self.policies == oldSelf.policies)
           status:
             description: status is the observed state of VSphereMachine.
             properties:
@@ -914,6 +910,10 @@ spec:
                 type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: policies are immutable after creation
+          rule: has(self.spec.policies) == has(oldSelf.spec.policies) && (!has(self.spec.policies)
+            || self.spec.policies == oldSelf.spec.policies)
     served: true
     storage: false
     subresources:
@@ -1382,10 +1382,6 @@ spec:
             - className
             - imageName
             type: object
-            x-kubernetes-validations:
-            - message: policies are immutable after creation
-              rule: has(self.policies) == has(oldSelf.policies) && (!has(self.policies)
-                || self.policies == oldSelf.policies)
           status:
             description: status is the observed state of VSphereMachine.
             minProperties: 1
@@ -1906,6 +1902,10 @@ spec:
         required:
         - spec
         type: object
+        x-kubernetes-validations:
+        - message: policies are immutable after creation
+          rule: has(self.spec.policies) == has(oldSelf.spec.policies) && (!has(self.spec.policies)
+            || self.spec.policies == oldSelf.spec.policies)
     served: true
     storage: true
     subresources:

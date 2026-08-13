@@ -38,7 +38,6 @@ type VSphereMachineVolume struct {
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
-// +kubebuilder:validation:XValidation:rule="has(self.policies) == has(oldSelf.policies) && (!has(self.policies) || self.policies == oldSelf.policies)",message="policies are immutable after creation"
 type VSphereMachineSpec struct {
 	// providerID is the virtual machine's BIOS UUID formatted as
 	// vsphere://12345678-1234-1234-1234-123456789abc.
@@ -435,6 +434,7 @@ type VSphereMachineV1Beta2Status struct {
 // +kubebuilder:printcolumn:name="Zone",type="string",JSONPath=".spec.failureDomain",description="Zone"
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
 // +kubebuilder:printcolumn:name="IPAddr",type="string",JSONPath=".status.vmIp",description="IP address"
+// +kubebuilder:validation:XValidation:rule="has(self.spec.policies) == has(oldSelf.spec.policies) && (!has(self.spec.policies) || self.spec.policies == oldSelf.spec.policies)",message="policies are immutable after creation"
 type VSphereMachine struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

@@ -69,6 +69,7 @@ func (p ClusterUpgradePlugin) Exec(ctx context.Context, c client.Client, objects
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// TODO: check if the Cluster is already fully upgraded so we can still wait for the operation to complete when necessary.
 	currentVersion := cluster.Spec.Topology.Version
 	if currentVersion == config.Version {
 		log.Info(fmt.Sprintf("Upgrade Cluster action skipped, Cluster already have version %s", config.Version))
@@ -100,7 +101,11 @@ func (p ClusterUpgradePlugin) Exec(ctx context.Context, c client.Client, objects
 		return err
 	}
 	var retryErr error
-	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+	timeout := 5 * time.Minute
+	if runConfig.Timeout != nil {
+		timeout = runConfig.Timeout.Duration
+	}
+	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, false, func(ctx context.Context) (done bool, err error) {
 		retryErr = nil
 		done, err, retryErr = waitForControlPlaneMachines(ctx, c, cluster, controlPlane, ptr.Deref(controlPlane.Spec.Replicas, 0), cluster.Spec.Topology.Version)
 		if err != nil {

@@ -49,8 +49,10 @@ run:
     run:
       - plugin: scale.controlPlane.topology.cluster.testctl
         replicas: 3
+    runConfig:
+      concurrency: 2
 runConfig:
-  concurrency: 2
+  dryRun: false
 ```
 
 Every entry in a `run` (or `runOnError`/`runAfter`, see below) list is a map with:
@@ -73,17 +75,20 @@ Every entry in a `run` (or `runOnError`/`runAfter`, see below) list is a map wit
 `runConfig` can be set at the top level and/or on any individual `run`/`runOnError`/`runAfter`
 entry. Fields:
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `limit` | int | unlimited | Max number of selected objects to consider for a selector plugin, or objects to create for `create.machineDeployment.topology.cluster.testctl`. |
-| `concurrency` | int | `1` | Number of objects to process in parallel when a selector plugin returns more than one object. |
-| `failFast` | bool | `false` | If `true`, stop scheduling new work as soon as one parallel action fails (already in-flight actions are still allowed to complete). |
-| `dryRun` | bool | `false` | Run in dry-run mode: plugins log what they would do but don't mutate the cluster. Inherited from the top-level `runConfig` if not set locally. |
-| `skipWait` | bool | `false` | Don't wait for an action to converge (e.g. for a scale-up to complete) before moving on. |
-| `debug` | bool | `false` | Prompt for confirmation before running each plugin. Inherited from the top-level `runConfig` if not set locally. |
-| `debugOnError` | bool | `false` | Prompt for confirmation after a plugin fails. Inherited from the top-level `runConfig` if not set locally. |
-| `timeout` | duration | none | Timeout applied to the plugin call (e.g. `5m`). |
-| `intervals` | map of duration lists | none | Reserved for future use — merged with the top-level `runConfig`'s map, but not currently read by any of the shipped plugins. |
+| Field | Type | Default     | Description |
+|---|---|-------------|---|
+| `limit` | int | unlimited   | Max number of selected objects to consider for a selector plugin, or objects to create for `create.machineDeployment.topology.cluster.testctl`. |
+| `concurrency` | int | `1`         | Number of objects to process in parallel when a selector plugin returns more than one object. |
+| `failFast` | bool | `false`     | If `true`, stop scheduling new work as soon as one parallel action fails (already in-flight actions are still allowed to complete). |
+| `dryRun` | bool | `false` (*) | Run in dry-run mode: plugins log what they would do but don't mutate the cluster. Inherited from the top-level `runConfig` if not set locally. |
+| `skipWait` | bool | `false`     | Don't wait for an action to converge (e.g. for a scale-up to complete) before moving on. |
+| `debug` | bool | `false` (*)     | Prompt for confirmation before running each plugin. Inherited from the top-level `runConfig` if not set locally. |
+| `debugOnError` | bool | `false` (*)     | Prompt for confirmation after a plugin fails. Inherited from the top-level `runConfig` if not set locally. |
+| `timeout` | duration | none        | Timeout applied to the plugin call (e.g. `5m`). |
+| `intervals` | map of duration lists | none        | Reserved for future use — merged with the top-level `runConfig`'s map, but not currently read by any of the shipped plugins. |
+
+(*): if a value for `dryRun`, `debug`, `debugOnError` is provided in the top level `runConfig`, it is used as a default for the `runConfig`
+of the plugins calls at lower levels.
 
 ### Importing another config file
 
@@ -283,7 +288,6 @@ on failure, then upgrading:
 
 ```yaml
 runConfig:
-  concurrency: 2
   dryRun: false
 
 run:
@@ -309,6 +313,9 @@ run:
 
       - plugin: upgrade.cluster.testctl
         version: v1.31.0
+    
+    runConfig:
+      concurrency: 2
 ```
 
 ## Writing a new plugin

@@ -52,14 +52,15 @@ func getClusters(ctx context.Context, c client.Client, nameRegEx string, limit *
 		}
 
 		clusters = append(clusters, &cluster)
-		if limit != nil && len(clusters) >= int(ptr.Deref(limit, 0)) {
-			break
-		}
 	}
 
 	sort.Slice(clusters, func(i, j int) bool {
 		return klog.KObj(clusters[i]).String() < klog.KObj(clusters[j]).String()
 	})
+
+	if limit != nil && len(clusters) >= int(ptr.Deref(limit, 0)) {
+		return clusters[:int(ptr.Deref(limit, 0))], nil
+	}
 	return clusters, nil
 }
 
@@ -147,14 +148,15 @@ func getMachineDeployments(ctx context.Context, c client.Client, cluster *cluste
 		}
 
 		machineDeployments = append(machineDeployments, &machineDeployment)
-		if limit != nil && len(machineDeployments) >= int(ptr.Deref(limit, 0)) {
-			break
-		}
 	}
 
 	sort.Slice(machineDeployments, func(i, j int) bool {
 		return klog.KObj(machineDeployments[i]).String() < klog.KObj(machineDeployments[j]).String()
 	})
+
+	if limit != nil && len(machineDeployments) >= int(ptr.Deref(limit, 0)) {
+		return machineDeployments[:int(ptr.Deref(limit, 0))], nil
+	}
 	return machineDeployments, nil
 }
 

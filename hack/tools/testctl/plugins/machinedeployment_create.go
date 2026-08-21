@@ -65,7 +65,7 @@ func init() {
 
 // Exec executes the plugin for the given TestObjects.
 func (p MachineDeploymentCreatePlugin) Exec(ctx context.Context, c client.Client, objects core.TestObjects, pluginConfigUntyped any, runConfig core.RunConfig) error {
-	config, cluster, err := p.getInfo(objects, pluginConfigUntyped)
+	config, cluster, err := p.unwrapConfigAndTestObjects(objects, pluginConfigUntyped)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (p MachineDeploymentCreatePlugin) ParseConfig(_ context.Context, rawPluginC
 
 // GenerateMessage generates a message text for the plugin call.
 func (p MachineDeploymentCreatePlugin) GenerateMessage(objects core.TestObjects, pluginConfigUntyped any) (string, error) {
-	config, cluster, err := p.getInfo(objects, pluginConfigUntyped)
+	config, cluster, err := p.unwrapConfigAndTestObjects(objects, pluginConfigUntyped)
 	if err != nil {
 		return "", err
 	}
@@ -123,7 +123,7 @@ func (p MachineDeploymentCreatePlugin) ValidateCallStack(_ context.Context, call
 	return nil
 }
 
-func (p MachineDeploymentCreatePlugin) getInfo(objects core.TestObjects, pluginConfigUntyped any) (*MachineDeploymentCreatePluginConfig, *clusterv1.Cluster, error) {
+func (p MachineDeploymentCreatePlugin) unwrapConfigAndTestObjects(objects core.TestObjects, pluginConfigUntyped any) (*MachineDeploymentCreatePluginConfig, *clusterv1.Cluster, error) {
 	config := &MachineDeploymentCreatePluginConfig{}
 	if pluginConfigUntyped != nil {
 		config = pluginConfigUntyped.(*MachineDeploymentCreatePluginConfig)
@@ -149,6 +149,7 @@ func (p *MachineDeploymentCreatePlugin) create(ctx context.Context, c client.Cli
 
 	mdTopologyIndex := getMachineDeploymentTopologyIndex(cluster, machineDeploymentTopology.Name)
 
+	// TODO: check if the MachineDeployment is already fully created, so we can still wait for the operation to complete when necessary.
 	if mdTopologyIndex >= 0 {
 		log.Info("Creating MachineDeployment action skipped, MachineDeployment already exists")
 		return nil
@@ -166,7 +167,11 @@ func (p *MachineDeploymentCreatePlugin) create(ctx context.Context, c client.Cli
 
 	log.Info("Waiting for MachineDeployments to be created")
 	var retryErr error
-	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+	timeout := 5 * time.Minute
+	if runConfig.Timeout != nil {
+		timeout = runConfig.Timeout.Duration
+	}
+	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, false, func(ctx context.Context) (done bool, err error) {
 		retryErr = nil
 		md, err := getMachineDeployment(ctx, c, cluster, machineDeploymentTopology.Name)
 		if err != nil {

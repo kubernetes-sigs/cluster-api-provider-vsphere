@@ -662,9 +662,9 @@ func TestRun(t *testing.T) {
 				"exec a=vA, foo=123, k1=v0",
 			},
 			wantPrompts: []string{
-				"Debug:  Test selector, press enter to continue",
-				"Debug:  Test executor a=vA, foo=123, k1=v0, press enter to continue",
-				"Debug:  Test executor a=vA, foo=456, k1=v0, press enter to continue",
+				"Debug on Test selector, press enter to continue",
+				"Debug on Test executor a=vA, foo=123, k1=v0, press enter to continue",
+				"Debug on Test executor a=vA, foo=456, k1=v0, press enter to continue",
 			},
 			wantErr: false,
 		},
@@ -695,7 +695,7 @@ func TestRun(t *testing.T) {
 				"exec a=vA, foo=123, k1=v0",
 			},
 			wantPrompts: []string{
-				"Debug:  Test executor a=vA, foo=456, k1=v0, press enter to continue",
+				"Debug on Test executor a=vA, foo=456, k1=v0, press enter to continue",
 			},
 			wantErr: false,
 		},
@@ -713,7 +713,7 @@ func TestRun(t *testing.T) {
 				"exec a=vA, foo=123",
 			},
 			wantPrompts: []string{
-				"Error runningTest executor a=vA, foo=123, press enter to continue",
+				"Debug error on Test executor a=vA, foo=123, press enter to continue",
 			},
 			wantErr: true,
 		},
@@ -748,11 +748,9 @@ func TestRun(t *testing.T) {
 			rawConfig, err := yaml.Marshal(tt.config)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			// TODO: check error message
 			err = r.parseConfig(t.Context(), rootPath, plugin, nil, rawConfig)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			// TODO: check error message
 			err = r.runOne(t.Context(), nil, rootPath, plugin, TestObjects{"a": "vA"})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

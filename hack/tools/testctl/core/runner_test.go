@@ -748,11 +748,9 @@ func TestRun(t *testing.T) {
 			rawConfig, err := yaml.Marshal(tt.config)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			// TODO: check error message
 			err = r.parseConfig(t.Context(), rootPath, plugin, nil, rawConfig)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			// TODO: check error message
 			err = r.runOne(t.Context(), nil, rootPath, plugin, TestObjects{"a": "vA"})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

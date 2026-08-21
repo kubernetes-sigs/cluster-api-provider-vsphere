@@ -33,8 +33,8 @@ import (
 const (
 	machineDeploymentSelectorPluginKey = "select.machineDeployment.testctl"
 
-	// machineDeploymentSelectorObjectKey is the key used to identify the MachineDeployment object in TestObjects.
-	machineDeploymentSelectorObjectKey = "MachineDeployment"
+	// MachineDeploymentSelectorObjectKey is the key used to identify the MachineDeployment object in TestObjects.
+	MachineDeploymentSelectorObjectKey = "MachineDeployment"
 )
 
 // MachineDeploymentSelectorPlugin can be used to select MachineDeployments for a Cluster.
@@ -72,7 +72,7 @@ func (p *MachineDeploymentSelectorPlugin) Select(ctx context.Context, c client.C
 	for i := range machineDeployments {
 		ret[i] = map[string]any{
 			ClusterObjectKey:                   cluster.DeepCopy(),
-			machineDeploymentSelectorObjectKey: machineDeployments[i],
+			MachineDeploymentSelectorObjectKey: machineDeployments[i],
 		}
 	}
 
@@ -124,14 +124,14 @@ func (p *MachineDeploymentSelectorPlugin) unwrapConfigAndTestObjects(objects cor
 
 // UnwrapMachineDeploymentTestObject extracts the MachineDeployment from TestObjects.
 func UnwrapMachineDeploymentTestObject(objects core.TestObjects) (*clusterv1.MachineDeployment, error) {
-	c, ok := objects[machineDeploymentSelectorObjectKey]
+	c, ok := objects[MachineDeploymentSelectorObjectKey]
 	if !ok {
-		return nil, pkgerrors.Errorf("failed to get the %s object from test objects. You must run the %s plugin before invoking this plugin", machineDeploymentSelectorObjectKey, machineDeploymentSelectorPluginKey)
+		return nil, pkgerrors.Errorf("failed to get the %s object from test objects. You must run the %s plugin before invoking this plugin", MachineDeploymentSelectorObjectKey, machineDeploymentSelectorPluginKey)
 	}
 
 	machineDeployment, ok := c.(*clusterv1.MachineDeployment)
 	if !ok {
-		return nil, pkgerrors.Errorf("failed to cast the %s object to the target type", machineDeploymentSelectorObjectKey)
+		return nil, pkgerrors.Errorf("failed to cast the %s object to the target type", MachineDeploymentSelectorObjectKey)
 	}
 	return machineDeployment, nil
 }

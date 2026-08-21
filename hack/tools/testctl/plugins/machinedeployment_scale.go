@@ -68,8 +68,8 @@ func (p MachineDeploymentScalePlugin) Exec(ctx context.Context, c client.Client,
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(cluster), "MachineDeployment", klog.KObj(machineDeployment))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// TODO: check if the replicas are already fully provisioned, so we can still wait for the operation to complete when necessary.
 	replicas := targetMachineDeploymentReplicas(cluster, mdTopologyIndex, config)
-
 	currentReplicas := ptr.Deref(machineDeployment.Status.Replicas, 0)
 	if currentReplicas == replicas && ptr.Deref(cluster.Spec.Topology.Workers.MachineDeployments[mdTopologyIndex].Replicas, 0) == replicas {
 		log.Info(fmt.Sprintf("Scaling MachineDeployment action skipped, MachineDeployment already have %d replicas", replicas))
@@ -81,10 +81,12 @@ func (p MachineDeploymentScalePlugin) Exec(ctx context.Context, c client.Client,
 		return nil
 	}
 
-	original := cluster.DeepCopy()
-	cluster.Spec.Topology.Workers.MachineDeployments[mdTopologyIndex].Replicas = ptr.To(replicas)
-	if err := c.Patch(ctx, cluster, client.MergeFrom(original)); err != nil {
-		return pkgerrors.Wrapf(err, "failed to patch Cluster %s", klog.KObj(cluster))
+	if ptr.Deref(cluster.Spec.Topology.Workers.MachineDeployments[mdTopologyIndex].Replicas, 0) != replicas {
+		original := cluster.DeepCopy()
+		cluster.Spec.Topology.Workers.MachineDeployments[mdTopologyIndex].Replicas = ptr.To(replicas)
+		if err := c.Patch(ctx, cluster, client.MergeFrom(original)); err != nil {
+			return pkgerrors.Wrapf(err, "failed to patch Cluster %s", klog.KObj(cluster))
+		}
 	}
 
 	if ptr.Deref(runConfig.SkipWait, false) {
@@ -93,7 +95,11 @@ func (p MachineDeploymentScalePlugin) Exec(ctx context.Context, c client.Client,
 
 	log.Info(fmt.Sprintf("Waiting for MachineDeployment to have %d replicas", replicas))
 	var retryErr error
-	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+	timeout := 5 * time.Minute
+	if runConfig.Timeout != nil {
+		timeout = runConfig.Timeout.Duration
+	}
+	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, false, func(ctx context.Context) (done bool, err error) {
 		retryErr = nil
 		done, err, retryErr = waitForMachineDeploymentMachines(ctx, c, cluster, machineDeployment, replicas, cluster.Spec.Topology.Version)
 		return done, err
@@ -123,7 +129,7 @@ func (p MachineDeploymentScalePlugin) GenerateMessage(objects core.TestObjects, 
 	}
 
 	replicas := targetMachineDeploymentReplicas(cluster, mdTopologyIndex, config)
-	return fmt.Sprintf("Scale MachineDeployments %s to %d replicas in Cluster %s", klog.KObj(machineDeployment), replicas, klog.KObj(cluster)), nil
+	return fmt.Sprintf("Scale MachineDeployment %s to %d replicas in Cluster %s", klog.KObj(machineDeployment), replicas, klog.KObj(cluster)), nil
 }
 
 // ValidateCallStack validates the call stack for the plugin.
@@ -146,7 +152,7 @@ func (p MachineDeploymentScalePlugin) unwrapConfigAndTestObjects(objects core.Te
 	}
 
 	if !cluster.Spec.Topology.IsDefined() {
-		return config, nil, nil, 0, pkgerrors.Errorf("unable to scale MachineDeployments for Cluster %s. support for clusters without spec.topology not implemented yet", klog.KObj(cluster))
+		return config, nil, nil, 0, pkgerrors.Errorf("unable to scale MachineDeployment for Cluster %s. support for clusters without spec.topology not implemented yet", klog.KObj(cluster))
 	}
 
 	machineDeployment, err := UnwrapMachineDeploymentTestObject(objects)

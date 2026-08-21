@@ -125,8 +125,8 @@ func runTest(_ *cobra.Command, _ []string) error {
 		return pkgerrors.Wrapf(err, "failed to create rest config from %q", configLoadingRules.GetExplicitFile())
 	}
 	restConfig.UserAgent = "testctl"
-	restConfig.QPS = 20
-	restConfig.Burst = 100
+	restConfig.QPS = 1000
+	restConfig.Burst = 2000
 
 	c, err := client.New(restConfig, client.Options{Scheme: scheme})
 	if err != nil {

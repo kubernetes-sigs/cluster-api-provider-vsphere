@@ -53,10 +53,7 @@ func (p ClusterDeletePlugin) Exec(ctx context.Context, c client.Client, objects 
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if !cluster.DeletionTimestamp.IsZero() {
-		log.Info("Upgrade Cluster action skipped, Cluster already is deleting")
-		return nil
-	}
+	// NOTE: if the plugin is processing a Cluster, it is not fully deleted yet.
 
 	log.Info("Deleting Cluster")
 	if ptr.Deref(runConfig.DryRun, false) {
@@ -64,6 +61,11 @@ func (p ClusterDeletePlugin) Exec(ctx context.Context, c client.Client, objects 
 	}
 
 	if err := c.Delete(ctx, cluster); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("Deleted Cluster")
+
+			return nil
+		}
 		return pkgerrors.Wrapf(err, "failed to delete Cluster %s", klog.KObj(cluster))
 	}
 
@@ -72,7 +74,11 @@ func (p ClusterDeletePlugin) Exec(ctx context.Context, c client.Client, objects 
 	}
 
 	log.Info("Waiting for Cluster to be deleted")
-	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+	timeout := 5 * time.Minute
+	if runConfig.Timeout != nil {
+		timeout = runConfig.Timeout.Duration
+	}
+	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, false, func(ctx context.Context) (done bool, err error) {
 		tmpCluster := &clusterv1.Cluster{}
 		if err := c.Get(ctx, client.ObjectKeyFromObject(cluster), tmpCluster); err != nil {
 			if apierrors.IsNotFound(err) {
@@ -108,6 +114,7 @@ func (p ClusterDeletePlugin) ValidateCallStack(_ context.Context, callStack []st
 	if !slices.Contains(callStack, clusterSelectorPluginKey) {
 		return pkgerrors.Errorf("this plugin can only be called as a child of %s", clusterSelectorPluginKey)
 	}
+	// TODO: Think about adding a check that ensures that no other actions are run on a cluster after delete
 	return nil
 }
 

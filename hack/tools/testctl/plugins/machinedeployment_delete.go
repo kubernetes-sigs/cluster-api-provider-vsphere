@@ -55,8 +55,8 @@ func (p MachineDeploymentDeletePlugin) Exec(ctx context.Context, c client.Client
 		return err
 	}
 
+	// TODO: check if the MD is already fully deleted, so we can still wait for the operation to complete when necessary.
 	if mdTopologyIndex == -1 {
-		// TODO: Log? MD CR still exists, but it has been already removed from the cluster.
 		return nil
 	}
 
@@ -83,7 +83,11 @@ func (p MachineDeploymentDeletePlugin) Exec(ctx context.Context, c client.Client
 
 	log.Info("Waiting for MachineDeployment to be deleted")
 	var retryErr error
-	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+	timeout := 5 * time.Minute
+	if runConfig.Timeout != nil {
+		timeout = runConfig.Timeout.Duration
+	}
+	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, false, func(ctx context.Context) (done bool, err error) {
 		retryErr = nil
 		md := &clusterv1.MachineDeployment{}
 		if err := c.Get(ctx, client.ObjectKeyFromObject(machineDeployment), md); err != nil {
@@ -109,7 +113,7 @@ func (p MachineDeploymentDeletePlugin) GenerateMessage(objects core.TestObjects,
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("Delete MachineDeployments %s in Cluster %s", klog.KObj(machineDeployment), klog.KObj(cluster)), nil
+	return fmt.Sprintf("Delete MachineDeployment %s in Cluster %s", klog.KObj(machineDeployment), klog.KObj(cluster)), nil
 }
 
 // ValidateCallStack validates the call stack for the plugin.
@@ -117,6 +121,8 @@ func (p MachineDeploymentDeletePlugin) ValidateCallStack(_ context.Context, call
 	if !slices.Contains(callStack, machineDeploymentSelectorPluginKey) {
 		return pkgerrors.Errorf("this plugin can only be called as a child of %s", machineDeploymentSelectorPluginKey)
 	}
+	// TODO: fail if this plugin is run in parallel
+	// TODO: Think about adding a check that ensures that no other actions are run on a cluster after delete
 	return nil
 }
 
@@ -127,7 +133,7 @@ func (p MachineDeploymentDeletePlugin) unwrapTestObjects(objects core.TestObject
 	}
 
 	if !cluster.Spec.Topology.IsDefined() {
-		return nil, nil, 0, pkgerrors.Errorf("unable to delete MachineDeployments for Cluster %s. support for clusters without spec.topology not implemented yet", klog.KObj(cluster))
+		return nil, nil, 0, pkgerrors.Errorf("unable to delete MachineDeployment for Cluster %s. support for clusters without spec.topology not implemented yet", klog.KObj(cluster))
 	}
 
 	machineDeployment, err := UnwrapMachineDeploymentTestObject(objects)

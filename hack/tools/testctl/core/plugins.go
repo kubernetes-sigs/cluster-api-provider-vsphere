@@ -95,7 +95,7 @@ func (p importerPlugin) ParseConfig(_ context.Context, rawPluginConfig []byte) (
 
 	path, err := filepath.Abs(config.Path)
 	if err != nil {
-		return nil, pkgerrors.Errorf("failed to convert %s to an absolute path", config.Path)
+		return nil, pkgerrors.Wrapf(err, "failed to convert %s to an absolute path", config.Path)
 	}
 
 	if _, err := os.Stat(path); pkgerrors.Is(err, os.ErrNotExist) {

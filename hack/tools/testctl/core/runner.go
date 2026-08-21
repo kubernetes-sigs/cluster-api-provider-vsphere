@@ -62,35 +62,49 @@ type RunConfig struct {
 	FailFast *bool `json:"failFast,omitempty"`
 
 	// dryRun instructs plugins to run in dry run mode (no change applied).
+	// If not set, it defaults to false or to the value set in the top level RunConfig.
 	// Note: SelectorPlugins are expected to return TestObjects no matter of the value of this field.
 	DryRun *bool `json:"dryRun,omitempty"`
 
 	// skipWait instructs plugins to not wait for an action to complete before returning.
+	// If not set, it defaults to false.
 	SkipWait *bool `json:"skipWait,omitempty"`
 
 	// debug instructs runner to prompt a message before running a plugin.
+	// If not set, it defaults to false or to the value set in the top level RunConfig.
 	Debug *bool `json:"debug,omitempty"`
 
 	// debugOnError instructs runner to prompt a message after a plugin fails.
+	// If not set, it defaults to false or to the value set in the top level RunConfig.
 	DebugOnError *bool `json:"debugOnError,omitempty"`
 
 	// timeout for the plugin call.
+	// If not set, the runner will wait for the plugin call to complete (no timeout).
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
-	// Intervals for the plugin call.
+	// Intervals for the plugin call, if any.
+	// Note: Intervals in the top level RunConfig are always available; in case the same
+	// interval is defined both in the top level RunConfig and in a lower level RunConfig, the latter is used.
 	Intervals map[string][]metav1.Duration `json:"intervals,omitempty"`
 }
 
 // Run the tests defined in the config using the given plugins.
 func Run(ctx context.Context, c client.Client, config []byte, plugins map[string]any) error {
 	for k, plugin := range plugins {
+		isSelector := false
 		if _, ok := plugin.(SelectorPlugin); ok {
-			continue
+			isSelector = true
 		}
+		isExecutor := false
 		if _, ok := plugin.(ExecutorPlugin); ok {
-			continue
+			isExecutor = true
 		}
-		return pkgerrors.Errorf("plugin %s must implement one of SelectorPlugin, ExecutorPlugin", k)
+		if !isSelector && !isExecutor {
+			return pkgerrors.Errorf("plugin %s must implement one of SelectorPlugin, ExecutorPlugin", k)
+		}
+		if isSelector && isExecutor {
+			return pkgerrors.Errorf("plugin %s cannot implement both SelectorPlugin and ExecutorPlugin", k)
+		}
 	}
 
 	// Adds core plugins.
@@ -140,7 +154,6 @@ func newRunner(plugins map[string]any) *runner {
 func (r *runner) parseConfig(ctx context.Context, path *field.Path, plugin any, callStack []string, rawConfig []byte) error {
 	// TODO: in future we might want to injecting env variables / use templating
 
-	var err error
 	var config map[string]any
 	if err := yaml.Unmarshal(rawConfig, &config); err != nil {
 		return pkgerrors.Wrapf(err, "failed to unmarshal config for %s", path.String())
@@ -156,12 +169,13 @@ func (r *runner) parseConfig(ctx context.Context, path *field.Path, plugin any, 
 	// If this is a configurable plugin, read the custom plugin config.
 	// Note: When invoking plugin's ParseConfig method, drop all the fields that are managed from the runner itself,
 	// so the plugin authors can use Unmarshal strict.
-	if configurable, ok := plugin.(ConfigurablePlugin); ok {
-		pluginConfig := maps.Clone(config)
-		maps.DeleteFunc(pluginConfig, func(k string, _ any) bool {
-			return k == "run" || k == "runAfter" || k == "runOnError" || k == "runConfig" || k == "plugin"
-		})
+	pluginConfig := maps.Clone(config)
+	maps.DeleteFunc(pluginConfig, func(k string, _ any) bool {
+		return k == "run" || k == "runAfter" || k == "runOnError" || k == "runConfig" || k == "plugin"
+	})
 
+	if configurable, ok := plugin.(ConfigurablePlugin); ok {
+		var err error
 		var rawPluginConfig []byte
 		if rawPluginConfig, err = yaml.Marshal(pluginConfig); err != nil {
 			return pkgerrors.Wrapf(err, "failed to marshal plugin config for %s", path.String())
@@ -175,11 +189,15 @@ func (r *runner) parseConfig(ctx context.Context, path *field.Path, plugin any, 
 		// Store the configuration for this plugin using <path> as key, so it can be retrieved later.
 		key := path.String()
 		r.configs[key] = c
+	} else if len(pluginConfig) > 0 {
+		return pkgerrors.Errorf("plugin %s has a custom config, but the plugin cannot parse it", path.String())
 	}
 
 	// If this is an imported plugin, merge the config with the imported one.
 	if importer, ok := plugin.(*importerPlugin); ok {
 		key := path.String()
+
+		var err error
 		config, err = importer.MergeConfig(ctx, config, r.configs[key])
 		if err != nil {
 			return pkgerrors.Errorf("failed to import config for field %s", path.String())
@@ -227,7 +245,7 @@ func (r *runner) parseRunList(ctx context.Context, field string, path *field.Pat
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to parse %s", path.String())
 	}
-	// Store the run using <path>.<field> as key, so it can be retrieved later.
+	// Store the run list using <path>.<field> as key, so it can be retrieved later.
 	key := path.Child(field).String()
 	r.configs[key] = runList
 
@@ -260,7 +278,7 @@ func (r *runner) runOne(ctx context.Context, c client.Client, path *field.Path, 
 
 	// If running in debug mode, prompt before running the plugin.
 	if ptr.Deref(runConfig.Debug, false) {
-		r.prompt(ctx, "Debug: ", ", press enter to continue", path, plugin, objects, pluginConfig)
+		r.prompt(ctx, "Debug on", ", press enter to continue", path, plugin, objects, pluginConfig)
 	}
 
 	// If a timeout applies to the plugin call, set the context accordingly.
@@ -311,7 +329,7 @@ func (r *runner) runOne(ctx context.Context, c client.Client, path *field.Path, 
 		if err != nil {
 			// If running in debugOnError mode, prompt after the plugin returned an error
 			if ptr.Deref(runConfig.DebugOnError, false) {
-				r.prompt(ctx, "Error running", ", press enter to continue", path, plugin, objects, pluginConfig)
+				r.prompt(ctx, "Debug error on", ", press enter to continue", path, plugin, objects, pluginConfig)
 			}
 			return pkgerrors.Wrapf(err, "failed to select objects for %s", path.String())
 		}
@@ -334,7 +352,7 @@ func (r *runner) runOne(ctx context.Context, c client.Client, path *field.Path, 
 		if err := executor.Exec(ctx, c, objects, pluginConfig, *runConfig); err != nil {
 			// If running in debugOnError mode, prompt after the plugin returned an error
 			if ptr.Deref(runConfig.DebugOnError, false) {
-				r.prompt(ctx, "Error running", ", press enter to continue", path, plugin, objects, pluginConfig)
+				r.prompt(ctx, "Debug error on", ", press enter to continue", path, plugin, objects, pluginConfig)
 			}
 			return pkgerrors.Wrapf(err, "failed to exec %s", path.String())
 		}
@@ -441,20 +459,13 @@ func (r *runner) prompt(ctx context.Context, msgPrefix, msgSuffix string, path *
 		return
 	}
 
-	if strings.HasSuffix(msgPrefix, " ") {
-		msgPrefix += " "
-	}
-	if strings.HasPrefix(msgSuffix, " ") {
-		msgSuffix = " " + msgSuffix
-	}
-
-	msg := fmt.Sprintf("running %s", path.String())
+	msg := path.String()
 	if generator, ok := plugin.(MessageGeneratorPlugin); ok {
 		if generatedMessage, err := generator.GenerateMessage(objects, pluginConfig); err == nil {
 			msg = generatedMessage
 		}
 	}
-	r.prompter(ctx, fmt.Sprintf("%s%s%s", msgPrefix, msg, msgSuffix))
+	r.prompter(ctx, fmt.Sprintf("%s %s%s", msgPrefix, msg, msgSuffix))
 }
 
 // getRunConfig parses a runConfig field if defined, otherwise returns a default RunConfig.

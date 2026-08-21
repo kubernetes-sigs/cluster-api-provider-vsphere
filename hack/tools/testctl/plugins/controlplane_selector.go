@@ -33,8 +33,8 @@ import (
 const (
 	controlPlaneSelectorPluginKey = "select.controlPlane.testctl"
 
-	// controlPlaneObjectKey is the key used to identify the ControlPlane object in TestObjects.
-	controlPlaneObjectKey = "ControlPlane"
+	// ControlPlaneObjectKey is the key used to identify the ControlPlane object in TestObjects.
+	ControlPlaneObjectKey = "ControlPlane"
 )
 
 // ControlPlaneSelectorPlugin can be used to select the Cluster's ControlPlane.
@@ -63,7 +63,7 @@ func (p *ControlPlaneSelectorPlugin) Select(ctx context.Context, c client.Client
 	return []core.TestObjects{
 		{
 			ClusterObjectKey:      cluster.DeepCopy(),
-			controlPlaneObjectKey: controlPlane,
+			ControlPlaneObjectKey: controlPlane,
 		},
 	}, nil
 }
@@ -100,14 +100,14 @@ func (p *ControlPlaneSelectorPlugin) unwrapTestObjects(objects core.TestObjects)
 
 // UnwrapControlPlaneTestObject extracts the ControlPlane from TestObjects.
 func UnwrapControlPlaneTestObject(objects core.TestObjects) (*controlplanev1.KubeadmControlPlane, error) {
-	c, ok := objects[controlPlaneObjectKey]
+	c, ok := objects[ControlPlaneObjectKey]
 	if !ok {
-		return nil, pkgerrors.Errorf("failed to get the %s object from test objects. You must run the %s plugin before invoking this plugin", controlPlaneObjectKey, controlPlaneSelectorPluginKey)
+		return nil, pkgerrors.Errorf("failed to get the %s object from test objects. You must run the %s plugin before invoking this plugin", ControlPlaneObjectKey, controlPlaneSelectorPluginKey)
 	}
 
 	controlPlane, ok := c.(*controlplanev1.KubeadmControlPlane)
 	if !ok {
-		return nil, pkgerrors.Errorf("failed to cast the %s object to the target type", controlPlaneObjectKey)
+		return nil, pkgerrors.Errorf("failed to cast the %s object to the target type", ControlPlaneObjectKey)
 	}
 	return controlPlane, nil
 }

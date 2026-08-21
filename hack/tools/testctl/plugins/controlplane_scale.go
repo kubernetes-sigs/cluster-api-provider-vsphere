@@ -65,6 +65,7 @@ func (p ControlPlaneScalePlugin) Exec(ctx context.Context, c client.Client, obje
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(cluster), "KubeadmControlPlane", klog.KObj(controlPlane))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// TODO: check if the replicas are already fully provisioned so we can still wait for the operation to complete when necessary.
 	replicas := config.Replicas
 	currentReplicas := ptr.Deref(controlPlane.Status.Replicas, 0)
 	if currentReplicas == config.Replicas && ptr.Deref(cluster.Spec.Topology.ControlPlane.Replicas, 0) == replicas {
@@ -77,10 +78,12 @@ func (p ControlPlaneScalePlugin) Exec(ctx context.Context, c client.Client, obje
 		return nil
 	}
 
-	original := cluster.DeepCopy()
-	cluster.Spec.Topology.ControlPlane.Replicas = ptr.To(replicas)
-	if err := c.Patch(ctx, cluster, client.MergeFrom(original)); err != nil {
-		return pkgerrors.Wrapf(err, "failed to patch Cluster %s", klog.KObj(cluster))
+	if ptr.Deref(cluster.Spec.Topology.ControlPlane.Replicas, 0) != replicas {
+		original := cluster.DeepCopy()
+		cluster.Spec.Topology.ControlPlane.Replicas = ptr.To(replicas)
+		if err := c.Patch(ctx, cluster, client.MergeFrom(original)); err != nil {
+			return pkgerrors.Wrapf(err, "failed to patch Cluster %s", klog.KObj(cluster))
+		}
 	}
 
 	if ptr.Deref(runConfig.SkipWait, false) {
@@ -89,7 +92,11 @@ func (p ControlPlaneScalePlugin) Exec(ctx context.Context, c client.Client, obje
 
 	log.Info(fmt.Sprintf("Waiting for KubeadmControlPlane to have %d replicas", replicas))
 	var retryErr error
-	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+	timeout := 5 * time.Minute
+	if runConfig.Timeout != nil {
+		timeout = runConfig.Timeout.Duration
+	}
+	if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, false, func(ctx context.Context) (done bool, err error) {
 		retryErr = nil
 		done, err, retryErr = waitForControlPlaneMachines(ctx, c, cluster, controlPlane, replicas, cluster.Spec.Topology.Version)
 		return done, err

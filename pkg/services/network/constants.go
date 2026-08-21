@@ -30,6 +30,8 @@ const (
 	NSXTier1NetworkProviderName = "NSXTier1"
 	// VSphereDistributedNetworkProviderName is the canonical name for the VDS network provider.
 	VSphereDistributedNetworkProviderName = "VSphereDistributed"
+	// ExternallyManagedNetworkProviderName is the canonical name for the ExternallyManaged network provider.
+	ExternallyManagedNetworkProviderName = "ExternallyManaged"
 	// DummyLBNetworkProviderName is the canonical name for the Dummy LB network provider.
 	DummyLBNetworkProviderName = "DummyLBNetworkProvider"
 	// DummyNetworkProviderName is the canonical name for the Dummy network provider.

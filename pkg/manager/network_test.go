@@ -17,9 +17,11 @@ limitations under the License.
 package manager
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestConvertNetworkProviderName(t *testing.T) {
@@ -76,4 +78,17 @@ func TestConvertNetworkProviderName(t *testing.T) {
 			g.Expect(ConvertNetworkProviderName(tt.input)).To(Equal(tt.expected))
 		})
 	}
+}
+
+func TestGetNetworkProviderExternallyManaged(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	c := fake.NewClientBuilder().Build()
+
+	np, err := GetNetworkProvider(ctx, c, ExternallyManagedNetworkProvider)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(np).ToNot(BeNil())
+	g.Expect(np.HasLoadBalancer()).To(BeFalse())
+	g.Expect(np.SupportsVMReadinessProbe()).To(BeFalse())
+	g.Expect(np.SupportsSupervisorService()).To(BeFalse())
 }

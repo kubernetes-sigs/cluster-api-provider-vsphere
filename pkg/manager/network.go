@@ -33,6 +33,9 @@ const (
 	NSXNetworkProvider = network.NSXTier1NetworkProviderName
 	// VDSNetworkProvider identifies the vSphere Distributed Switch network provider.
 	VDSNetworkProvider = network.VSphereDistributedNetworkProviderName
+	// ExternallyManagedNetworkProvider identifies the ExternallyManaged network provider.
+	// Used when network objects are provisioned and managed externally and CAPV only attaches VMs.
+	ExternallyManagedNetworkProvider = network.ExternallyManagedNetworkProviderName
 	// DummyLBNetworkProvider identifies the Dummy LB network provider.
 	DummyLBNetworkProvider = network.DummyLBNetworkProviderName
 
@@ -78,6 +81,9 @@ func GetNetworkProvider(ctx context.Context, client client.Client, networkProvid
 	case VDSNetworkProvider:
 		log.Info("Pick NetOp (VDS) network provider")
 		return network.NetOpNetworkProvider(client), nil
+	case ExternallyManagedNetworkProvider:
+		log.Info("Pick ExternallyManaged network provider")
+		return network.ExternallyManagedNetworkProvider(client), nil
 	case DummyLBNetworkProvider:
 		log.Info("Pick Dummy network provider")
 		return network.DummyLBNetworkProvider(), nil

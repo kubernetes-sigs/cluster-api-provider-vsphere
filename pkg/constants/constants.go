@@ -50,6 +50,13 @@ const (
 	// cluster are in maintenance mode.
 	MaintenanceAnnotationLabel = "capv." + infrav1.GroupName + "/maintenance"
 
+	// PausedForHostMMTrackingAnnotation is the tracking annotation applied by CAPV on
+	// a CAPI Machine when paused due to host maintenance mode.
+	PausedForHostMMTrackingAnnotation = "capv." + infrav1.GroupName + "/paused-for-host-mmode"
+
+	// HostInMaintenanceReason is the reason set on conditions when host maintenance is active.
+	HostInMaintenanceReason = "HostInMaintenance"
+
 	// NodeLabelPrefix is the prefix for node labels.
 	NodeLabelPrefix = "node.cluster.x-k8s.io"
 

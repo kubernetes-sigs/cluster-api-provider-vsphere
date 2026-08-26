@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -42,6 +44,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
@@ -144,6 +147,13 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 	// Next, check to see if it's in the process of being deleted
 	if vmOperatorVM.GetDeletionTimestamp() != nil {
 		supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseDeleting
+		return nil
+	}
+
+	// When HostMaintenanceMode feature gate is enabled, skip VM deletion if the VM is in host maintenance mode.
+	if feature.Gates.Enabled(feature.HostMaintenanceMode) && isInfraInMaintenance(vmOperatorVM) {
+		log.Info("VirtualMachine is in host maintenance mode (InfraInMaintenance), skipping deletion to protect VM state",
+		"virtualMachine", klog.KObj(vmOperatorVM), "vsphereMachine", klog.KObj(supervisorMachineCtx.VSphereMachine))
 		return nil
 	}
 
@@ -355,6 +365,13 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		})
 		// TODO: what to do if AlreadyExists error
 		return false, err
+	}
+
+	// Evaluate Host Maintenance Mode pausing and unpausing if feature gate is enabled.
+	if vmOperatorVM.ResourceVersion != "" {
+		if isPaused, err := v.reconcileHostMaintenanceMode(ctx, supervisorMachineCtx, vmOperatorVM); err != nil || isPaused {
+			return isPaused, err
+		}
 	}
 
 	// Update the VM's state to Pending
@@ -1054,4 +1071,127 @@ func (v *VmopMachineService) checkVirtualMachineGroupMembership(vmOperatorVMGrou
 		}
 	}
 	return false
+}
+
+const (
+	// UnpauseTimeoutForHostMM is the maximum boot grace period (5 minutes) after VM power-on before forcing unpause.
+	UnpauseTimeoutForHostMM = 5 * time.Minute
+)
+
+// isInfraInMaintenance returns true if the VirtualMachine's PowerStateSynced condition
+// is False with Reason "InfraInMaintenance".
+func isInfraInMaintenance(vm *vmoprvhub.VirtualMachine) bool {
+	if vm == nil {
+		return false
+	}
+	c := meta.FindStatusCondition(vm.Status.Conditions, vmoprvhub.VirtualMachinePowerStateSynced)
+	return c != nil && c.Status == metav1.ConditionFalse && c.Reason == "InfraInMaintenance"
+}
+
+// reconcileHostMaintenanceMode evaluates whether the VirtualMachine is in host maintenance mode
+// and manages pausing or unpausing the parent CAPI Machine. Returns (isPaused, error).
+func (v *VmopMachineService) reconcileHostMaintenanceMode(
+	ctx context.Context,
+	supervisorMachineCtx *vmware.SupervisorMachineContext,
+	vm *vmoprvhub.VirtualMachine,
+) (bool, error) {
+	if !feature.Gates.Enabled(feature.HostMaintenanceMode) || supervisorMachineCtx.Machine == nil {
+		return false, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+	machine := supervisorMachineCtx.Machine
+
+	inMaintenance := isInfraInMaintenance(vm)
+
+	// Case 1: VirtualMachine is currently in host maintenance mode.
+	if inMaintenance {
+		log.Info("VirtualMachine is in host maintenance mode (InfraInMaintenance), ensuring CAPI Machine is paused",
+			"virtualMachine", klog.KObj(vm), "machine", klog.KObj(machine))
+
+		patchHelper, err := patch.NewHelper(machine, v.Client)
+		if err != nil {
+			return false, pkgerrors.Wrap(err, "failed to create patch helper for CAPI Machine")
+		}
+
+		if machine.Annotations == nil {
+			machine.Annotations = map[string]string{}
+		}
+
+		machine.Annotations[constants.PausedForHostMMTrackingAnnotation] = "true"
+		machine.Annotations[clusterv1.PausedAnnotation] = "true"
+
+		if err := patchHelper.Patch(ctx, machine); err != nil {
+			return false, pkgerrors.Wrap(err, "failed to pause CAPI Machine for host maintenance mode")
+		}
+
+		conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
+			Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  constants.HostInMaintenanceReason,
+			Message: "VirtualMachine is in host maintenance mode (InfraInMaintenance)",
+		})
+		supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhasePending
+
+		return true, nil
+	}
+
+	// Case 2: VirtualMachine recovered from host maintenance mode, but CAPI Machine is still paused by CAPV tracking annotation.
+	if machine.Annotations != nil && machine.Annotations[constants.PausedForHostMMTrackingAnnotation] == "true" {
+		shouldUnpause, reason := v.shouldUnpauseMachineForHostMM(ctx, supervisorMachineCtx, vm)
+		if !shouldUnpause {
+			log.Info("VirtualMachine recovered from maintenance mode, waiting for Node reconnection or 5-minute boot grace period before unpausing",
+				"machine", klog.KObj(machine))
+			return true, nil
+		}
+
+		log.Info("Unpausing CAPI Machine post host maintenance recovery",
+			"machine", klog.KObj(machine), "reason", reason)
+
+		patchHelper, err := patch.NewHelper(machine, v.Client)
+		if err != nil {
+			return false, pkgerrors.Wrap(err, "failed to create patch helper for CAPI Machine")
+		}
+
+		delete(machine.Annotations, constants.PausedForHostMMTrackingAnnotation)
+		delete(machine.Annotations, clusterv1.PausedAnnotation)
+
+		if err := patchHelper.Patch(ctx, machine); err != nil {
+			return false, pkgerrors.Wrap(err, "failed to unpause CAPI Machine post host maintenance mode")
+		}
+	}
+
+	return false, nil
+}
+
+// shouldUnpauseMachineForHostMM implements the Dual-Trigger Unpause Safeguard.
+func (v *VmopMachineService) shouldUnpauseMachineForHostMM(
+	ctx context.Context,
+	supervisorMachineCtx *vmware.SupervisorMachineContext,
+	vm *vmoprvhub.VirtualMachine,
+) (bool, string) {
+	// Fast Path (Node Reconnection Guard):
+	// Check if Kubelet/Node has reconnected and reported Ready=True.
+	if nodeName := supervisorMachineCtx.Machine.Status.NodeRef.Name; nodeName != "" {
+		node := &corev1.Node{}
+		nodeKey := client.ObjectKey{Name: nodeName}
+		if err := v.Client.Get(ctx, nodeKey, node); err == nil {
+			for _, cond := range node.Status.Conditions {
+				if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
+					return true, "Node reconnected and reported Ready=True (Fast Path)"
+				}
+			}
+		}
+	}
+
+	// Fallback Path (Boot Grace Period / 5-min timeout):
+	// Check PowerStateSynced condition transition time when VM powered back on.
+	c := meta.FindStatusCondition(vm.Status.Conditions, vmoprvhub.VirtualMachinePowerStateSynced)
+	if c != nil && c.Status == metav1.ConditionTrue {
+		if time.Since(c.LastTransitionTime.Time) >= UnpauseTimeoutForHostMM {
+			return true, "5-minute Post-Power-On Boot Grace Period elapsed (Fallback Path)"
+		}
+	}
+
+	return false, ""
 }

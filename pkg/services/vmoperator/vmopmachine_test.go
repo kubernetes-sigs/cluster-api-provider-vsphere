@@ -39,10 +39,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
@@ -1462,4 +1464,212 @@ func Test_getPolicies_FeatureGateDisabled(t *testing.T) {
 	}
 	got := getPolicies(sm)
 	NewWithT(t).Expect(got).To(BeNil())
+}
+
+func Test_HostMaintenanceMode(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+
+	t.Run("isInfraInMaintenance returns true when condition PowerStateSynced is False with Reason InfraInMaintenance", func(t *testing.T) {
+		vm := &vmoprvhub.VirtualMachine{
+			Status: vmoprvhub.VirtualMachineStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:   vmoprvhub.VirtualMachinePowerStateSynced,
+						Status: metav1.ConditionFalse,
+						Reason: "InfraInMaintenance",
+					},
+				},
+			},
+		}
+		g.Expect(isInfraInMaintenance(vm)).To(BeTrue())
+	})
+
+	t.Run("isInfraInMaintenance returns false when condition PowerStateSynced is True", func(t *testing.T) {
+		vm := &vmoprvhub.VirtualMachine{
+			Status: vmoprvhub.VirtualMachineStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:   vmoprvhub.VirtualMachinePowerStateSynced,
+						Status: metav1.ConditionTrue,
+						Reason: "Synced",
+					},
+				},
+			},
+		}
+		g.Expect(isInfraInMaintenance(vm)).To(BeFalse())
+	})
+
+	t.Run("reconcileHostMaintenanceMode pauses machine when InfraInMaintenance and FeatureGate is enabled", func(t *testing.T) {
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.HostMaintenanceMode, true)
+
+		scheme := runtime.NewScheme()
+		_ = corev1.AddToScheme(scheme)
+		_ = vmwarev1.AddToScheme(scheme)
+		_ = clusterv1.AddToScheme(scheme)
+
+		machine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-machine",
+				Namespace: "default",
+			},
+		}
+		vsphereMachine := &vmwarev1.VSphereMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-machine",
+				Namespace: "default",
+			},
+		}
+
+		fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(machine, vsphereMachine).Build()
+		vmService := VmopMachineService{Client: fakeClient}
+
+		smCtx := &vmware.SupervisorMachineContext{
+			BaseMachineContext: &capvcontext.BaseMachineContext{
+				Machine: machine,
+			},
+			VSphereMachine: vsphereMachine,
+		}
+
+		vm := &vmoprvhub.VirtualMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "test-machine",
+				Namespace:       "default",
+				ResourceVersion: "1",
+			},
+			Status: vmoprvhub.VirtualMachineStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:   vmoprvhub.VirtualMachinePowerStateSynced,
+						Status: metav1.ConditionFalse,
+						Reason: "InfraInMaintenance",
+					},
+				},
+			},
+		}
+
+		isPaused, err := vmService.reconcileHostMaintenanceMode(ctx, smCtx, vm)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(isPaused).To(BeTrue())
+
+		// Verify Machine has tracking annotation and paused annotation.
+		updatedMachine := &clusterv1.Machine{}
+		err = fakeClient.Get(ctx, types.NamespacedName{Name: "test-machine", Namespace: "default"}, updatedMachine)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(updatedMachine.Annotations).To(HaveKeyWithValue("capv.infrastructure.cluster.x-k8s.io/paused-for-host-mmode", "true"))
+		g.Expect(updatedMachine.Annotations).To(HaveKeyWithValue("cluster.x-k8s.io/paused", "true"))
+	})
+
+	t.Run("reconcileHostMaintenanceMode unpauses machine when Node is Ready (Fast Path)", func(t *testing.T) {
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.HostMaintenanceMode, true)
+
+		scheme := runtime.NewScheme()
+		_ = corev1.AddToScheme(scheme)
+		_ = vmwarev1.AddToScheme(scheme)
+		_ = clusterv1.AddToScheme(scheme)
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-node"},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				},
+			},
+		}
+		machine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-machine",
+				Namespace: "default",
+				Annotations: map[string]string{
+					"capv.infrastructure.cluster.x-k8s.io/paused-for-host-mmode": "true",
+					"cluster.x-k8s.io/paused":                                     "true",
+				},
+			},
+			Status: clusterv1.MachineStatus{
+				NodeRef: clusterv1.MachineNodeReference{Name: "test-node"},
+			},
+		}
+		vsphereMachine := &vmwarev1.VSphereMachine{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-machine", Namespace: "default"},
+		}
+
+		fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(node, machine, vsphereMachine).Build()
+		vmService := VmopMachineService{Client: fakeClient}
+
+		smCtx := &vmware.SupervisorMachineContext{
+			BaseMachineContext: &capvcontext.BaseMachineContext{Machine: machine},
+			VSphereMachine:     vsphereMachine,
+		}
+
+		vm := &vmoprvhub.VirtualMachine{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-machine", Namespace: "default", ResourceVersion: "2"},
+			Status: vmoprvhub.VirtualMachineStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               vmoprvhub.VirtualMachinePowerStateSynced,
+						Status:             metav1.ConditionTrue,
+						Reason:             "Synced",
+						LastTransitionTime: metav1.Now(),
+					},
+				},
+			},
+		}
+
+		isPaused, err := vmService.reconcileHostMaintenanceMode(ctx, smCtx, vm)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(isPaused).To(BeFalse())
+
+		// Verify annotations were removed.
+		updatedMachine := &clusterv1.Machine{}
+		err = fakeClient.Get(ctx, types.NamespacedName{Name: "test-machine", Namespace: "default"}, updatedMachine)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(updatedMachine.Annotations).ToNot(HaveKey("capv.infrastructure.cluster.x-k8s.io/paused-for-host-mmode"))
+		g.Expect(updatedMachine.Annotations).ToNot(HaveKey("cluster.x-k8s.io/paused"))
+	})
+
+	t.Run("ReconcileDelete skips deletion when InfraInMaintenance and FeatureGate is enabled", func(t *testing.T) {
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.HostMaintenanceMode, true)
+
+		scheme := runtime.NewScheme()
+		_ = corev1.AddToScheme(scheme)
+		_ = vmwarev1.AddToScheme(scheme)
+		_ = clusterv1.AddToScheme(scheme)
+		_ = vmoprvhub.AddToScheme(scheme)
+
+		vsphereMachine := &vmwarev1.VSphereMachine{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-machine", Namespace: "default"},
+			Spec:       vmwarev1.VSphereMachineSpec{},
+		}
+		machine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-machine", Namespace: "default"},
+		}
+		vm := &vmoprvhub.VirtualMachine{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-machine", Namespace: "default"},
+			Status: vmoprvhub.VirtualMachineStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:   vmoprvhub.VirtualMachinePowerStateSynced,
+						Status: metav1.ConditionFalse,
+						Reason: "InfraInMaintenance",
+					},
+				},
+			},
+		}
+
+		fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(machine, vsphereMachine, vm).Build()
+		vmService := VmopMachineService{Client: fakeClient}
+
+		smCtx := &vmware.SupervisorMachineContext{
+			BaseMachineContext: &capvcontext.BaseMachineContext{Machine: machine},
+			VSphereMachine:     vsphereMachine,
+		}
+
+		err := vmService.ReconcileDelete(ctx, smCtx)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Verify VirtualMachine was NOT deleted from client.
+		existingVM := &vmoprvhub.VirtualMachine{}
+		err = fakeClient.Get(ctx, types.NamespacedName{Name: "test-machine", Namespace: "default"}, existingVM)
+		g.Expect(err).ToNot(HaveOccurred())
+	})
 }

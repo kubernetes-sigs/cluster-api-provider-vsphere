@@ -87,6 +87,12 @@ const (
 	//
 	// alpha: v1.17
 	VLANSubinterface featuregate.Feature = "VLANSubinterface"
+
+	// HostMaintenanceMode is a feature gate for host maintenance mode handling in CAPV.
+	// When enabled, CAPV pauses CAPI Machines during host maintenance and handles recovery upon power-on.
+	//
+	// alpha: v1.17
+	HostMaintenanceMode featuregate.Feature = "HostMaintenanceMode"
 )
 
 var (
@@ -104,6 +110,7 @@ var (
 		NodeAutoPlacement:      {Default: false, PreRelease: featuregate.Alpha},
 		ClusterNetworkProvider: {Default: false, PreRelease: featuregate.Alpha},
 		MultiNetworks:          {Default: false, PreRelease: featuregate.Alpha},
+		HostMaintenanceMode:    {Default: false, PreRelease: featuregate.Alpha},
 	}
 
 	supervisorVersionedGates = map[featuregate.Feature]featuregate.VersionedSpecs{

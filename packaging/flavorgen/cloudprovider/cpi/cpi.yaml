@@ -85,6 +85,14 @@ rules:
       - watch
       - update
   - apiGroups:
+      - "discovery.k8s.io"
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - ""
     resources:
       - secrets
@@ -159,7 +167,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
       - name: vsphere-cpi
-        image: registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:v1.37.0-rc.0
+        image: registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:v1.37.0
         imagePullPolicy: IfNotPresent
         args:
           - --cloud-provider=vsphere

@@ -35,8 +35,6 @@ var (
 		// NOTE: this list must be kept in sync with templates we are using in cluster classes.
 		// IMPORTANT: keep this list sorted from oldest to newest.
 		// TODO: consider if we want to make this extensible via the vCenterSimulator CR.
-		"ubuntu-2204-kube-v1.28.0",
-		"ubuntu-2204-kube-v1.29.0",
 		"ubuntu-2204-kube-v1.30.0",
 		"ubuntu-2404-kube-v1.31.0",
 		"ubuntu-2404-kube-v1.32.0",
@@ -44,6 +42,7 @@ var (
 		"ubuntu-2404-kube-v1.34.0",
 		"ubuntu-2404-kube-v1.35.0",
 		"ubuntu-2404-kube-v1.36.0",
+		"ubuntu-2404-kube-v1.37.0",
 	}
 )
 

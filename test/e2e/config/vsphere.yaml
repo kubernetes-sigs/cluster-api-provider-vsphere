@@ -306,7 +306,7 @@ variables:
   KUBERNETES_VERSION_CHAINED_UPGRADE_FROM: "v1.33.0" # Should always be KUBERNETES_VERSION_UPGRADE_TO - 4 minor
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.36.0"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.37.0"
-  KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.37"
+  KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.38"
   CPI_IMAGE_K8S_VERSION: "v1.37.0"
   CNI: "./data/cni/calico/calico.yaml"
   AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-management-workload.yaml"

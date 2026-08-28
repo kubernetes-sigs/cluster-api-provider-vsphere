@@ -131,20 +131,16 @@ production-like environments, it is highly recommended to build and use your own
 
 | Kubernetes | Ubuntu 18.04 | Ubuntu 20.04 | Ubuntu 22.04 | Ubuntu 24.04 | Photon 3 | Photon 5 | Flatcar Stable |
 |:-----------|:------------:|:------------:|:------------:|:------------:|:--------:|:--------:|:--------------:|
-| [v1.36.0]  |              |              |      ✓       |      ✓       |          |          |       ✓        |
-| [v1.35.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
-| [v1.34.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
-| [v1.33.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
-| [v1.32.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
-| [v1.31.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
-| [v1.30.0]  |              |              |      ✓       |              |          |    ✓     |       ✓        |
-| [v1.29.0]  |              |              |      ✓       |              |    ✓     |    ✓     |       ✓        |
-| [v1.28.0]  |      ✓       |      ✓       |      ✓       |              |    ✓     |          |       ✓        |
-| [v1.27.3]  |      ✓       |      ✓       |      ✓       |              |    ✓     |          |       ✓        |
-| [v1.26.2]  |      ✓       |      ✓       |              |              |    ✓     |          |       ✓        |
-| [v1.25.7]  |      ✓       |      ✓       |              |              |    ✓     |          |       ✓        |
-| [v1.24.11] |      ✓       |      ✓       |              |              |    ✓     |          |       ✓        |
+| [v1.37.0]  |              |              |      x       |      x       |          |          |       x        |
+| [v1.36.0]  |              |              |      x       |      x       |          |          |       x        |
+| [v1.35.0]  |              |              |      x       |      x       |          |    x     |       x        |
+| [v1.34.0]  |              |              |      x       |      x       |          |    x     |       x        |
+| [v1.33.0]  |              |              |      x       |      x       |          |    x     |       x        |
+| [v1.32.0]  |              |              |      x       |      x       |          |    x     |       x        |
+| [v1.31.0]  |              |              |      x       |      x       |          |    x     |       x        |
+| [v1.30.0]  |              |              |      x       |              |          |    x     |       x        |
 
+[v1.37.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.37.0
 [v1.36.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.36.0
 [v1.35.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.35.0
 [v1.34.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.34.0
@@ -152,12 +148,6 @@ production-like environments, it is highly recommended to build and use your own
 [v1.32.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.32.0
 [v1.31.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.31.0
 [v1.30.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.30.0
-[v1.29.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.29.0
-[v1.28.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.28.0
-[v1.27.3]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.27.3
-[v1.26.2]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.26.2
-[v1.25.7]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.25.7
-[v1.24.11]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.24.11
 
 A full list of the published machine images for CAPV can be found by [searching for releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases?q=templates%2F&expanded=true)
 on the repository having the prefix `templates/` and taking a look at the available assets.

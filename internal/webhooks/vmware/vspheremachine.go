@@ -160,6 +160,29 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 							fmt.Sprintf("only supports %s", pkgnetwork.NetworkGVKNetOperator)))
 					}
 				}
+			case manager.ExternallyManagedNetworkProvider:
+				// ExternallyManaged skips provider-specific reference-kind and
+				// secondary placement validation. Schema-level checks
+				// (name uniqueness, CRD markers) still apply below.
+				// Primary is required: it carries the workload network on eth0.
+				if !network.Interfaces.Primary.IsDefined() {
+					allErrs = append(allErrs, field.Required(
+						fldPath.Child("interfaces", "primary"),
+						"primary interface must be defined"))
+				}
+				// Routes are not propagated onto VirtualMachine interfaces.
+				if len(network.Interfaces.Primary.Routes) > 0 {
+					allErrs = append(allErrs, field.Forbidden(
+						fldPath.Child("interfaces", "primary", "routes"),
+						"routes cannot be set when network provider is ExternallyManaged"))
+				}
+				for i, secondaryInterface := range network.Interfaces.Secondary {
+					if len(secondaryInterface.Routes) > 0 {
+						allErrs = append(allErrs, field.Forbidden(
+							fldPath.Child("interfaces", "secondary").Index(i).Child("routes"),
+							"routes cannot be set when network provider is ExternallyManaged"))
+					}
+				}
 			default:
 				allErrs = append(allErrs, field.Forbidden(fldPath.Child("interfaces"), fmt.Sprintf("interfaces can not be set when network provider is %s", networkProvider)))
 			}
@@ -195,11 +218,11 @@ func validateVLANs(networkProvider string, network vmwarev1.VSphereMachineNetwor
 			"vlans can only be set when feature gate VLANSubinterface is enabled"))
 		return allErrs
 	}
-	// vlan sub-interfaces feature only supports NSX-VPC Provider
-	if networkProvider != manager.NSXVPCNetworkProvider {
+	// vlan sub-interfaces are supported by NSX-VPC and ExternallyManaged providers
+	if networkProvider != manager.NSXVPCNetworkProvider && networkProvider != manager.ExternallyManagedNetworkProvider {
 		allErrs = append(allErrs, field.Forbidden(
 			fldPath.Child("vlans"),
-			fmt.Sprintf("vlans can only be set when network provider is %s", manager.NSXVPCNetworkProvider)))
+			fmt.Sprintf("vlans can only be set when network provider is %s or %s", manager.NSXVPCNetworkProvider, manager.ExternallyManagedNetworkProvider)))
 		return allErrs
 	}
 	// vlan sub-interfaces only can link to a secondary interface

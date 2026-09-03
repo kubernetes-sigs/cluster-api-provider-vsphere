@@ -88,27 +88,12 @@ spec:
       value: ${CONTROL_PLANE_ENDPOINT_IP}
     - name: controlPlanePort
       value: ${CONTROL_PLANE_ENDPOINT_PORT:=6443}
-    - name: infraServer
-      value:
-        thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
-        url: '${VSPHERE_SERVER}'
-    - name: credsSecretName
-      value: '${CLUSTER_NAME}'
     version: '${KUBERNETES_VERSION}'
     workers:
       machineDeployments:
       - class: ${CLUSTER_CLASS_NAME}-worker
         name: md-0
         replicas: ${WORKER_MACHINE_COUNT}
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: '${CLUSTER_NAME}'
-  namespace: '${NAMESPACE}'
-stringData:
-  password: "${VSPHERE_PASSWORD}"
-  username: "${VSPHERE_USERNAME}"
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta2
 kind: ClusterResourceSet
@@ -173,6 +158,7 @@ data:
       name: csi.vsphere.vmware.com
     spec:
       attachRequired: true
+      podInfoOnMount: false
     ---
     apiVersion: v1
     kind: ServiceAccount
@@ -492,6 +478,7 @@ data:
           app: vsphere-csi-controller
       strategy:
         rollingUpdate:
+          maxSurge: 0
           maxUnavailable: 1
         type: RollingUpdate
       template:
@@ -647,7 +634,7 @@ data:
             name: vsphere-syncer
             ports:
             - containerPort: 2113
-              name: prometheus
+              name: prometheus-sync
               protocol: TCP
             securityContext:
               runAsGroup: 65532
@@ -1118,6 +1105,14 @@ data:
           - list
           - watch
           - update
+      - apiGroups:
+          - "discovery.k8s.io"
+        resources:
+          - endpointslices
+        verbs:
+          - get
+          - list
+          - watch
       - apiGroups:
           - ""
         resources:

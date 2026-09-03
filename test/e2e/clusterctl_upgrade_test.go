@@ -45,14 +45,14 @@ var (
 )
 
 // Note: This test should be changed during "prepare main branch", it should test CAPV n-1 => current (and then corresponding CAPI versions if already available).
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16=>current, CAPI 1.13=>1.14) on K8S latest ci mgmt cluster [vcsim] [supervisor] [ClusterClass]", func() {
-	const specName = "clusterctl-upgrade-1.16-current-latest-ci" // prefix (clusterctl-upgrade) copied from CAPI
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.17=>current, CAPI 1.14=>1.15) on K8S latest ci mgmt cluster [vcsim] [supervisor] [ClusterClass]", func() {
+	const specName = "clusterctl-upgrade-1.17-current-latest-ci" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-			capiVersion := "1.13"
+			capiVersion := "1.14"
 			capiStableRelease, err := getStableReleaseOfMinor(ctx, capiReleaseMarkerPrefix, capiVersion)
 			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capiVersion)
-			capvVersion := "1.16"
+			capvVersion := "1.17"
 			capvStableRelease, err := getStableReleaseOfMinor(ctx, capvReleaseMarkerPrefix, capvVersion)
 			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capvVersion)
 			initKubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_MANAGEMENT_LATEST_CI"))
@@ -85,7 +85,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
 				InitWithKubernetesVersion: initKubernetesVersion, // Used for the kind mgmt cluster
-				WorkloadKubernetesVersion: "v1.36.0",             // Used for CAPV Machines
+				WorkloadKubernetesVersion: "v1.37.0",             // Used for CAPV Machines
 				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
 				// below otherwise there will be no VCSim instance created in the management cluster.
@@ -104,7 +104,64 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16
 })
 
 // Note: This test should be changed during "prepare main branch", it should test CAPV n-1 => current (and then corresponding CAPI versions if already available).
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16=>current, CAPI 1.13=>1.14) [vcsim] [supervisor] [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.17=>current, CAPI 1.14=>1.15) [vcsim] [supervisor] [ClusterClass]", func() {
+	const specName = "clusterctl-upgrade-1.17-current" // prefix (clusterctl-upgrade) copied from CAPI
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
+		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+			capiVersion := "1.14"
+			capiStableRelease, err := getStableReleaseOfMinor(ctx, capiReleaseMarkerPrefix, capiVersion)
+			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capiVersion)
+			capvVersion := "1.17"
+			capvStableRelease, err := getStableReleaseOfMinor(ctx, capvReleaseMarkerPrefix, capvVersion)
+			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capvVersion)
+			return capi_e2e.ClusterctlUpgradeSpecInput{
+				E2EConfig:                         e2eConfig,
+				ClusterctlConfigPath:              testSpecificSettingsGetter().ClusterctlConfigPath,
+				BootstrapClusterProxy:             bootstrapClusterProxy,
+				ArtifactFolder:                    artifactFolder,
+				SkipCleanup:                       skipCleanup,
+				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("topology"),
+				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
+				InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
+				InitWithCoreProvider:              fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
+				InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+				InitWithControlPlaneProviders:     []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
+				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
+				InitWithIPAMProviders:             []string{},
+				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
+					{ // Upgrade to latest version of this contract.
+						Contract: clusterv1.GroupVersion.Version,
+						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+						},
+					},
+				},
+				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
+				// This is to guarantee that both, the old and new CAPI version, support the defined version.
+				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
+				InitWithKubernetesVersion: "v1.37.0", // Used for the kind mgmt cluster
+				WorkloadKubernetesVersion: "v1.37.0", // Used for CAPV Machines
+				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
+				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
+				// below otherwise there will be no VCSim instance created in the management cluster.
+				UseKindForManagementCluster:              true,
+				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
+				PreInit: func(managementClusterProxy framework.ClusterProxy) {
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).Should(Succeed())
+				},
+			}
+		})
+	},
+		WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"),
+		// This is required because we are using a separate management cluster with kind by passing `UseKindForManagementCluster` above.
+		WithAdditionalVCSimServer(true),
+	)
+})
+
+// Note: This test should be changed during "prepare main branch", it should test CAPV n-2 => current (and then corresponding CAPI versions if already available).
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16=>current, CAPI 1.13=>1.15) [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.16-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -141,8 +198,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: "v1.36.1", // Used for the kind mgmt cluster
-				WorkloadKubernetesVersion: "v1.36.0", // Used for CAPV Machines
+				InitWithKubernetesVersion: "v1.37.0", // Used for the kind mgmt cluster
+				WorkloadKubernetesVersion: "v1.37.0", // Used for CAPV Machines
 				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
 				// below otherwise there will be no VCSim instance created in the management cluster.
@@ -160,8 +217,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16
 	)
 })
 
-// Note: This test should be changed during "prepare main branch", it should test CAPV n-2 => current (and then corresponding CAPI versions if already available).
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15=>current, CAPI 1.12=>1.14) [vcsim] [supervisor] [ClusterClass]", func() {
+// Note: This test should be changed during "prepare main branch", it should test CAPV n-3 => current (and then corresponding CAPI versions if already available).
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15=>current, CAPI 1.12=>1.15) [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.15-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -198,65 +255,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: "v1.35.0", // Used for the kind mgmt cluster
-				WorkloadKubernetesVersion: "v1.35.0", // Used for CAPV Machines
-				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
-				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
-				// below otherwise there will be no VCSim instance created in the management cluster.
-				UseKindForManagementCluster:              true,
-				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
-				PreInit: func(managementClusterProxy framework.ClusterProxy) {
-					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).Should(Succeed())
-				},
-			}
-		})
-	},
-		WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"),
-		// This is required because we are using a separate management cluster with kind by passing `UseKindForManagementCluster` above.
-		WithAdditionalVCSimServer(true),
-	)
-})
-
-// Note: This test should be changed during "prepare main branch", it should test CAPV n-3 => current (and then corresponding CAPI versions if already available).
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.14=>current, CAPI 1.11=>1.14) [vcsim] [supervisor] [ClusterClass]", func() {
-	const specName = "clusterctl-upgrade-1.12-current" // prefix (clusterctl-upgrade) copied from CAPI
-	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
-		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-			capiVersion := "1.11"
-			capiStableRelease, err := getStableReleaseOfMinor(ctx, capiReleaseMarkerPrefix, capiVersion)
-			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capiVersion)
-			capvVersion := "1.14"
-			capvStableRelease, err := getStableReleaseOfMinor(ctx, capvReleaseMarkerPrefix, capvVersion)
-			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capvVersion)
-			return capi_e2e.ClusterctlUpgradeSpecInput{
-				E2EConfig:                         e2eConfig,
-				ClusterctlConfigPath:              testSpecificSettingsGetter().ClusterctlConfigPath,
-				BootstrapClusterProxy:             bootstrapClusterProxy,
-				ArtifactFolder:                    artifactFolder,
-				SkipCleanup:                       skipCleanup,
-				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("topology"),
-				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
-				InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
-				InitWithCoreProvider:              fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
-				InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
-				InitWithControlPlaneProviders:     []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
-				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
-				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
-				InitWithIPAMProviders:             []string{},
-				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
-					{ // Upgrade to latest version of this contract.
-						Contract: clusterv1.GroupVersion.Version,
-						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
-								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
-						},
-					},
-				},
-				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
-				// This is to guarantee that both, the old and new CAPI version, support the defined version.
-				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: "v1.34.0", // Used for the kind mgmt cluster
-				WorkloadKubernetesVersion: "v1.34.0", // Used for CAPV Machines
+				InitWithKubernetesVersion: "v1.36.4", // Used for the kind mgmt cluster
+				WorkloadKubernetesVersion: "v1.36.0", // Used for CAPV Machines
 				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
 				// below otherwise there will be no VCSim instance created in the management cluster.

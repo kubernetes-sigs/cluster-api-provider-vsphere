@@ -1,11 +1,8 @@
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereClusterTemplate
 metadata:
   name: '${CLUSTER_CLASS_NAME}'
   namespace: '${NAMESPACE}'
-spec:
-  template:
-    spec: {}
 ---
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
@@ -13,9 +10,11 @@ metadata:
   name: '${CLUSTER_CLASS_NAME}'
 spec:
   controlPlane:
+    deletion:
+      nodeDeletionTimeoutSeconds: 0
     machineInfrastructure:
       templateRef:
-        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: VSphereMachineTemplate
         name: ${CLUSTER_CLASS_NAME}-template
     templateRef:
@@ -24,7 +23,7 @@ spec:
       name: ${CLUSTER_CLASS_NAME}-controlplane
   infrastructure:
     templateRef:
-      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: VSphereClusterTemplate
       name: '${CLUSTER_CLASS_NAME}'
   patches:
@@ -86,13 +85,32 @@ spec:
   - definitions:
     - jsonPatches:
       - op: add
+        path: /spec
+        value:
+          template:
+            spec: {}
+      - op: add
         path: /spec/template/spec/controlPlaneEndpoint
         valueFrom:
           template: |
             host: '{{ .controlPlaneIpAddr }}'
             port: {{ .controlPlanePort }}
+      - op: add
+        path: /spec/template/spec/identityRef
+        valueFrom:
+          template: |
+            kind: Secret
+            name: '{{ .credsSecretName }}'
+      - op: add
+        path: /spec/template/spec/server
+        valueFrom:
+          variable: infraServer.url
+      - op: add
+        path: /spec/template/spec/thumbprint
+        valueFrom:
+          variable: infraServer.thumbprint
       selector:
-        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: VSphereClusterTemplate
         matchResources:
           infrastructureCluster: true
@@ -197,6 +215,22 @@ spec:
       openAPIV3Schema:
         description: kube-vip manifest for the control plane.
         type: string
+  - name: infraServer
+    required: true
+    schema:
+      openAPIV3Schema:
+        properties:
+          thumbprint:
+            type: string
+          url:
+            type: string
+        type: object
+  - name: credsSecretName
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: Secret containing the credentials for the infra cluster.
+        type: string
   workers:
     machineDeployments:
     - bootstrap:
@@ -205,13 +239,15 @@ spec:
           kind: KubeadmConfigTemplate
           name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
       class: ${CLUSTER_CLASS_NAME}-worker
+      deletion:
+        nodeDeletionTimeoutSeconds: 0
       infrastructure:
         templateRef:
-          apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: VSphereMachineTemplate
           name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-template
@@ -219,12 +255,26 @@ metadata:
 spec:
   template:
     spec:
-      className: ${VSPHERE_MACHINE_CLASS_NAME}
-      imageName: ${VSPHERE_IMAGE_NAME}
-      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
-      storageClass: ${VSPHERE_STORAGE_CLASS}
+      cloneMode: linkedClone
+      datacenter: '${VSPHERE_DATACENTER}'
+      datastore: '${VSPHERE_DATASTORE}'
+      diskGiB: 25
+      folder: '${VSPHERE_FOLDER}'
+      memoryMiB: 8192
+      network:
+        devices:
+        - dhcp4: true
+          dhcp6: false
+          networkName: '${VSPHERE_NETWORK}'
+      numCPUs: 2
+      os: Linux
+      powerOffMode: trySoft
+      resourcePool: '${VSPHERE_RESOURCE_POOL}'
+      server: '${VSPHERE_SERVER}'
+      storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
+      template: '${VSPHERE_TEMPLATE}'
 ---
-apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
@@ -232,10 +282,24 @@ metadata:
 spec:
   template:
     spec:
-      className: ${VSPHERE_MACHINE_CLASS_NAME}
-      imageName: ${VSPHERE_IMAGE_NAME}
-      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
-      storageClass: ${VSPHERE_STORAGE_CLASS}
+      cloneMode: linkedClone
+      datacenter: '${VSPHERE_DATACENTER}'
+      datastore: '${VSPHERE_DATASTORE}'
+      diskGiB: 25
+      folder: '${VSPHERE_FOLDER}'
+      memoryMiB: 8192
+      network:
+        devices:
+        - dhcp4: true
+          dhcp6: false
+          networkName: '${VSPHERE_NETWORK}'
+      numCPUs: 2
+      os: Linux
+      powerOffMode: trySoft
+      resourcePool: '${VSPHERE_RESOURCE_POOL}'
+      server: '${VSPHERE_SERVER}'
+      storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
+      template: '${VSPHERE_TEMPLATE}'
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate
@@ -266,7 +330,6 @@ spec:
               value: external
             name: '{{ local_hostname }}'
         preKubeadmCommands:
-        - dhclient eth0
         - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
         - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
           >/etc/hosts
@@ -297,7 +360,6 @@ spec:
             value: external
           name: '{{ local_hostname }}'
       preKubeadmCommands:
-      - dhclient eth0
       - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
       - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
         >/etc/hosts

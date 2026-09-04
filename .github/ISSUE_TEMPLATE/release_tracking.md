@@ -13,24 +13,40 @@ Please see the corresponding sections in [release-tasks.md](https://github.com/k
 
 Early in the cycle:
 * [ ] [Prepare main branch for development of the new release](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#prepare-main-branch-for-development-of-the-new-release)
+  * [ ] PR main:
 * [ ] Bump to CAPI main
   * Prereq: CAPI already bumped to the next controller-runtime / k8s.io/* minor version
   * For details, see core CAPI issue: "Tasks to bump to Kubernetes v1.x" (section "Using new Kubernetes dependencies")
+  * [ ] PR main:
 * [ ] [Remove previously deprecated code](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#remove-previously-deprecated-code)
 
 Release-specific tasks:
 
 Late in the cycle:
-* [ ] [Bump dependencies](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#bump-dependencies)
 * [ ] When cutting RC.0: [Create the new release branch](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#create-a-release-branch)
-* [ ] [opt] [Cut beta/rc releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#cut-a-release)
-  * [ ] Before every release ensure we bumped to latest CPI & CAPI & Kubernetes pre-releases
+* [ ] [Cut beta/rc/GA releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#cut-a-release)
+  * [ ] Bump to CAPI beta/rc/ga
     * Bump `CAPI_HACK_TOOLS_VER`
     * Bump dependencies in go.mod
-    * Bump core CAPI provider versions in `test/e2e/config/vsphere.yaml`
-    * Bump `KUBERNETES*` and `CPI_IMAGE_K8S_VERSION` to latest pre-releases
-    * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/3424
-  * [ ] Cherry-pick if the release branch was already cut
+    * Bump core CAPI provider versions in `test/e2e/config/vsphere.yaml`  (for CAPI ga bump use `go://` for latest stable CAPI)
+    * PR main:
+    * PR release-1.xx: (n-1):
+  * [ ] After minor release: Update README.md
+    * PR main:
+* [ ] Continuously modify testing to use newer versions of the upcoming Kubernetes release (betas, rcs and GA):
+  * Bump `KUBERNETES*` and if needed `KUBERNETES_VERSION_CHAINED_UPGRADE_FROM` in vsphere.yaml
+  * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/4167
+  * PRs main:
+  * PRs release-1.xx: (n-1):
+  * PRs release-1.xx: (n-2):
+* [ ] Continuously modify testing to use newer versions of CPI (betas, rcs and GA):
+  * Bump `CPI_IMAGE_K8S_VERSION` in vsphere.yaml & regenerate `packaging/flavorgen/cloudprovider/cpi/cpi.yaml` by
+    checking out the release tag of `https://github.com/kubernetes/cloud-provider-vsphere` and running:
+    `helm template charts/vsphere-cpi --namespace kube-system > ../../sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/cloudprovider/cpi/cpi.yaml`
+  * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/4172
+  * PRs main:
+  * PRs release-1.xx: (n-1):
+  * PRs release-1.xx: (n-2):
 
 After the Kubernetes minor release:
 * [ ] Bump the Kubernetes version 
@@ -52,39 +68,37 @@ After the Kubernetes minor release:
     * [ ] Delete the temporary VM used to build the images
     * [ ] Delete `ubuntu-2204` and `photon` templates from `Workload VMs`
     * [ ] Update `README.md` accordingly
-      * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/3437
-  * [ ] Bump unit & e2e tests to use the new Kubernetes version
+      * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/4170
+      * PR main:
+  * [ ] Use new images in CI:
     * Add the new image to `internal/test/helpers/vcsim/model.go`
-    * Bump `KUBEBUILDER_ENVTEST_KUBERNETES_VERSION` in `Makefile`
-    * Bump template env variables in `test/e2e/config/vsphere.yaml` and `test/e2e/config/config-overrides-example.yaml`
-      * Bump `KUBERNETES_VERSION_*`
-      * Bump `KUBERNETES_VERSION_LATEST_CI` to the next minor version
+    * Bump template env variables in `test/e2e/config/vsphere.yaml` and `test/e2e/config/config-overrides-example.yaml`:
       * Bump `VSPHERE_CONTENT_LIBRARY_ITEMS`, `VSPHERE_IMAGE_NAME`, `VSPHERE_TEMPLATE`, `FLATCAR_VSPHERE_TEMPLATE`
-      * Bump `CPI_IMAGE_K8S_VERSION` & regenerate `packaging/flavorgen/cloudprovider/cpi/cpi.yaml` by
-        checking out the release tag of `https://github.com/kubernetes/cloud-provider-vsphere` and running:
-        `helm template charts/vsphere-cpi --namespace kube-system > ../../sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/cloudprovider/cpi/cpi.yaml`
     * Bump in:
-      * `test/extension/handlers/topologymutation/handler.go`
       * `test/e2e/data/infrastructure-vsphere-govmomi/main/clusterclass/patch-vsphere-template.yaml`
       * `test/e2e/data/infrastructure-vsphere-supervisor/main/clusterclass/patch-vsphere-template.yaml`
-    * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/3294
-    * [ ] Cherry-pick
-  * [ ] Bump CPI GA release as soon as available
-    * [ ] Cherry-pick
-  * [ ] Update ProwJobs to use the Kubernetes GA release
-    * Prior art: https://github.com/kubernetes/test-infra/pull/34688
-  * [ ] Start using next Kubernetes release on main
-    * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/3438
+      * `test/extension/handlers/topologymutation/handler.go`
+    * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/4171
+    * PR main:
+    * PR release-1.xx: (n-1):
+    * PR release-1.xx: (n-2):
+  * [ ] Bump envtest
+    * Bump `KUBEBUILDER_ENVTEST_KUBERNETES_VERSION` in `Makefile`
+    * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/4173
+    * PR main:
+    * PR release-1.xx: (n-1):
+  * [ ] Start testing with next Kubernetes release on main
+    * Bumping KUBERNETES_VERSION_LATEST_CI in vsphere.yaml
+    * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/4174
+    * PR main:
+    * PR release-1.xx: (n-1):
+  * [ ] Update ProwJobs to use the kube-kins image of the new Kubernetes GA release + add upgrade jobs for next release
+    * Prior art: https://github.com/kubernetes/test-infra/pull/37778
+    * PR:
+* [ ] Check the core CAPI Kubernetes bump issue to ensure we do everything necessary in CAPV main as well
+  * [ ] Section "Issues specific to the Kubernetes minor release":
+  * [ ] Section "Using new Kubernetes dependencies": (kubekins-e2e & envtest are already covered above)
+  * [ ] Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/4195
+  * [ ] PR main:
 
-Prepare & publish the release:
-* [ ] Bump to latest CAPI version (Kubernetes & CPI if necessary) 
-  * Bump `CAPI_HACK_TOOLS_VER`
-  * Bump dependencies in go.mod
-  * Bump core CAPI provider versions in `test/e2e/config/vsphere.yaml`
-  * Bump `KUBERNETES*` and `CPI_IMAGE_K8S_VERSION` to latest releases, if necessary
-  * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/3291
-  * [ ] Cherry-pick
-* [ ] [Cut the minor release](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#cut-a-release)
-
-Continuously:
-* [Reduce the amount of flaky tests](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#continuously-reduce-the-amount-of-flaky-tests)
+* [ ] Update the GitHub template for this issue if necessary

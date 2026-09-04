@@ -429,7 +429,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 	}
 
 	// If there is not yet an etcd member listener for this machine, add it to the server.
-	listenerName, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup)
+	listenerName, err := r.APIServerMux.GetWorkloadClusterListenerNameByResourceGroup(resourceGroup)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -538,7 +538,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 	}
 
 	// If there is not yet an API server listener for this machine.
-	listenerName, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup)
+	listenerName, err := r.APIServerMux.GetWorkloadClusterListenerNameByResourceGroup(resourceGroup)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -920,7 +920,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete etcd Pod")
 	}
 
-	listenerName, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup)
+	listenerName, err := r.APIServerMux.GetWorkloadClusterListenerNameByResourceGroup(resourceGroup)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -957,7 +957,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cl
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete apiServer Pod")
 	}
 
-	listenerName, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup)
+	listenerName, err := r.APIServerMux.GetWorkloadClusterListenerNameByResourceGroup(resourceGroup)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

@@ -86,7 +86,7 @@ func Test_Reconcile_ControlPlaneEndpoint(t *testing.T) {
 
 	// Check manager and server internal status
 	listenerName := klog.KObj(controlPlaneEndpoint).String()
-	g.Expect(workloadClustersMux.ListListeners()).To(HaveKey(listenerName))
+	g.Expect(workloadClustersMux.ListWorkloadClusterListeners()).To(HaveKey(listenerName))
 
 	// PART 2: Should delete a ControlPlaneEndpoint
 

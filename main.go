@@ -44,6 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
+	toolscache "k8s.io/client-go/tools/cache"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
@@ -419,6 +420,11 @@ func main() {
 	req, _ = labels.NewRequirement(vmoperator.ClusterSelectorKey, selection.Exists, nil)
 	virtualMachineCacheSelector := labels.NewSelector().Add(*req)
 
+	informerName, err := toolscache.NewInformerName(controllerName)
+	if err != nil {
+		panic("cache.NewInformerName was called twice with the same name, that should never happen")
+	}
+
 	managerOpts.Scheme = runtime.NewScheme()
 	managerOpts.Cache = cache.Options{
 		DefaultNamespaces: watchNamespaces,
@@ -495,7 +501,7 @@ func main() {
 			}
 			return byObject
 		}(),
-		NewInformer: capicontrollerutil.NewInformerFunc(managerOpts.Scheme, controllerName),
+		NewInformer: capicontrollerutil.NewInformerFunc(managerOpts.Scheme, informerName),
 	}
 	managerOpts.Client = func() client.Options {
 		// Optimize the cache for supervisor mode. govmomi mode might have different caching requirements

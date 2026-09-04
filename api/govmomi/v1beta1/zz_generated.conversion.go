@@ -614,8 +614,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1beta2.APIEndpoint, s conversion.Scope) error {
-	out.Host = in.Host
-	out.Port = in.Port
+	*out = *(*v1beta2.APIEndpoint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -625,8 +624,7 @@ func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1
 }
 
 func autoConvert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *v1beta2.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
-	out.Host = in.Host
-	out.Port = in.Port
+	*out = *(*APIEndpoint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -636,7 +634,7 @@ func Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *v1beta2.APIEndpoint,
 }
 
 func autoConvert_v1beta1_AllowedNamespaces_To_v1beta2_AllowedNamespaces(in *AllowedNamespaces, out *v1beta2.AllowedNamespaces, s conversion.Scope) error {
-	out.Selector = in.Selector
+	*out = *(*v1beta2.AllowedNamespaces)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -646,7 +644,7 @@ func Convert_v1beta1_AllowedNamespaces_To_v1beta2_AllowedNamespaces(in *AllowedN
 }
 
 func autoConvert_v1beta2_AllowedNamespaces_To_v1beta1_AllowedNamespaces(in *v1beta2.AllowedNamespaces, out *AllowedNamespaces, s conversion.Scope) error {
-	out.Selector = in.Selector
+	*out = *(*AllowedNamespaces)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -752,8 +750,7 @@ func Convert_v1beta2_FailureDomain_To_v1beta1_FailureDomain(in *v1beta2.FailureD
 }
 
 func autoConvert_v1beta1_FailureDomainHosts_To_v1beta2_FailureDomainHosts(in *FailureDomainHosts, out *v1beta2.FailureDomainHosts, s conversion.Scope) error {
-	out.VMGroupName = in.VMGroupName
-	out.HostGroupName = in.HostGroupName
+	*out = *(*v1beta2.FailureDomainHosts)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -763,8 +760,7 @@ func Convert_v1beta1_FailureDomainHosts_To_v1beta2_FailureDomainHosts(in *Failur
 }
 
 func autoConvert_v1beta2_FailureDomainHosts_To_v1beta1_FailureDomainHosts(in *v1beta2.FailureDomainHosts, out *FailureDomainHosts, s conversion.Scope) error {
-	out.VMGroupName = in.VMGroupName
-	out.HostGroupName = in.HostGroupName
+	*out = *(*FailureDomainHosts)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1110,10 +1106,7 @@ func Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.NetworkS
 }
 
 func autoConvert_v1beta1_PCIDeviceSpec_To_v1beta2_PCIDeviceSpec(in *PCIDeviceSpec, out *v1beta2.PCIDeviceSpec, s conversion.Scope) error {
-	out.DeviceID = (*int32)(unsafe.Pointer(in.DeviceID))
-	out.VendorID = (*int32)(unsafe.Pointer(in.VendorID))
-	out.VGPUProfile = in.VGPUProfile
-	out.CustomLabel = in.CustomLabel
+	*out = *(*v1beta2.PCIDeviceSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1123,10 +1116,7 @@ func Convert_v1beta1_PCIDeviceSpec_To_v1beta2_PCIDeviceSpec(in *PCIDeviceSpec, o
 }
 
 func autoConvert_v1beta2_PCIDeviceSpec_To_v1beta1_PCIDeviceSpec(in *v1beta2.PCIDeviceSpec, out *PCIDeviceSpec, s conversion.Scope) error {
-	out.DeviceID = (*int32)(unsafe.Pointer(in.DeviceID))
-	out.VendorID = (*int32)(unsafe.Pointer(in.VendorID))
-	out.VGPUProfile = in.VGPUProfile
-	out.CustomLabel = in.CustomLabel
+	*out = *(*PCIDeviceSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1136,8 +1126,7 @@ func Convert_v1beta2_PCIDeviceSpec_To_v1beta1_PCIDeviceSpec(in *v1beta2.PCIDevic
 }
 
 func autoConvert_v1beta1_PlacementConstraint_To_v1beta2_PlacementConstraint(in *PlacementConstraint, out *v1beta2.PlacementConstraint, s conversion.Scope) error {
-	out.ResourcePool = in.ResourcePool
-	out.Folder = in.Folder
+	*out = *(*v1beta2.PlacementConstraint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1147,8 +1136,7 @@ func Convert_v1beta1_PlacementConstraint_To_v1beta2_PlacementConstraint(in *Plac
 }
 
 func autoConvert_v1beta2_PlacementConstraint_To_v1beta1_PlacementConstraint(in *v1beta2.PlacementConstraint, out *PlacementConstraint, s conversion.Scope) error {
-	out.ResourcePool = in.ResourcePool
-	out.Folder = in.Folder
+	*out = *(*PlacementConstraint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1158,8 +1146,7 @@ func Convert_v1beta2_PlacementConstraint_To_v1beta1_PlacementConstraint(in *v1be
 }
 
 func autoConvert_v1beta1_SSHUser_To_v1beta2_SSHUser(in *SSHUser, out *v1beta2.SSHUser, s conversion.Scope) error {
-	out.Name = in.Name
-	out.AuthorizedKeys = *(*[]string)(unsafe.Pointer(&in.AuthorizedKeys))
+	*out = *(*v1beta2.SSHUser)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1169,8 +1156,7 @@ func Convert_v1beta1_SSHUser_To_v1beta2_SSHUser(in *SSHUser, out *v1beta2.SSHUse
 }
 
 func autoConvert_v1beta2_SSHUser_To_v1beta1_SSHUser(in *v1beta2.SSHUser, out *SSHUser, s conversion.Scope) error {
-	out.Name = in.Name
-	out.AuthorizedKeys = *(*[]string)(unsafe.Pointer(&in.AuthorizedKeys))
+	*out = *(*SSHUser)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1330,8 +1316,7 @@ func Convert_v1beta2_VSphereClusterIdentityList_To_v1beta1_VSphereClusterIdentit
 }
 
 func autoConvert_v1beta1_VSphereClusterIdentitySpec_To_v1beta2_VSphereClusterIdentitySpec(in *VSphereClusterIdentitySpec, out *v1beta2.VSphereClusterIdentitySpec, s conversion.Scope) error {
-	out.SecretName = in.SecretName
-	out.AllowedNamespaces = (*v1beta2.AllowedNamespaces)(unsafe.Pointer(in.AllowedNamespaces))
+	*out = *(*v1beta2.VSphereClusterIdentitySpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1341,8 +1326,7 @@ func Convert_v1beta1_VSphereClusterIdentitySpec_To_v1beta2_VSphereClusterIdentit
 }
 
 func autoConvert_v1beta2_VSphereClusterIdentitySpec_To_v1beta1_VSphereClusterIdentitySpec(in *v1beta2.VSphereClusterIdentitySpec, out *VSphereClusterIdentitySpec, s conversion.Scope) error {
-	out.SecretName = in.SecretName
-	out.AllowedNamespaces = (*AllowedNamespaces)(unsafe.Pointer(in.AllowedNamespaces))
+	*out = *(*VSphereClusterIdentitySpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1632,7 +1616,7 @@ func Convert_v1beta2_VSphereClusterTemplateSpec_To_v1beta1_VSphereClusterTemplat
 }
 
 func autoConvert_v1beta1_VSphereClusterV1Beta2Status_To_v1beta2_VSphereClusterV1Beta2Status(in *VSphereClusterV1Beta2Status, out *v1beta2.VSphereClusterV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*v1beta2.VSphereClusterV1Beta2Status)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1642,7 +1626,7 @@ func Convert_v1beta1_VSphereClusterV1Beta2Status_To_v1beta2_VSphereClusterV1Beta
 }
 
 func autoConvert_v1beta2_VSphereClusterV1Beta2Status_To_v1beta1_VSphereClusterV1Beta2Status(in *v1beta2.VSphereClusterV1Beta2Status, out *VSphereClusterV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*VSphereClusterV1Beta2Status)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1726,12 +1710,7 @@ func Convert_v1beta2_VSphereDeploymentZoneList_To_v1beta1_VSphereDeploymentZoneL
 }
 
 func autoConvert_v1beta1_VSphereDeploymentZoneSpec_To_v1beta2_VSphereDeploymentZoneSpec(in *VSphereDeploymentZoneSpec, out *v1beta2.VSphereDeploymentZoneSpec, s conversion.Scope) error {
-	out.Server = in.Server
-	out.FailureDomain = in.FailureDomain
-	out.ControlPlane = (*bool)(unsafe.Pointer(in.ControlPlane))
-	if err := Convert_v1beta1_PlacementConstraint_To_v1beta2_PlacementConstraint(&in.PlacementConstraint, &out.PlacementConstraint, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.VSphereDeploymentZoneSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1741,12 +1720,7 @@ func Convert_v1beta1_VSphereDeploymentZoneSpec_To_v1beta2_VSphereDeploymentZoneS
 }
 
 func autoConvert_v1beta2_VSphereDeploymentZoneSpec_To_v1beta1_VSphereDeploymentZoneSpec(in *v1beta2.VSphereDeploymentZoneSpec, out *VSphereDeploymentZoneSpec, s conversion.Scope) error {
-	out.Server = in.Server
-	out.FailureDomain = in.FailureDomain
-	out.ControlPlane = (*bool)(unsafe.Pointer(in.ControlPlane))
-	if err := Convert_v1beta2_PlacementConstraint_To_v1beta1_PlacementConstraint(&in.PlacementConstraint, &out.PlacementConstraint, s); err != nil {
-		return err
-	}
+	*out = *(*VSphereDeploymentZoneSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1790,9 +1764,7 @@ func autoConvert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymen
 }
 
 func autoConvert_v1beta1_VSphereDisk_To_v1beta2_VSphereDisk(in *VSphereDisk, out *v1beta2.VSphereDisk, s conversion.Scope) error {
-	out.Name = in.Name
-	out.SizeGiB = in.SizeGiB
-	out.ProvisioningMode = v1beta2.ProvisioningMode(in.ProvisioningMode)
+	*out = *(*v1beta2.VSphereDisk)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1802,9 +1774,7 @@ func Convert_v1beta1_VSphereDisk_To_v1beta2_VSphereDisk(in *VSphereDisk, out *v1
 }
 
 func autoConvert_v1beta2_VSphereDisk_To_v1beta1_VSphereDisk(in *v1beta2.VSphereDisk, out *VSphereDisk, s conversion.Scope) error {
-	out.Name = in.Name
-	out.SizeGiB = in.SizeGiB
-	out.ProvisioningMode = ProvisioningMode(in.ProvisioningMode)
+	*out = *(*VSphereDisk)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1918,8 +1888,7 @@ func Convert_v1beta2_VSphereFailureDomainSpec_To_v1beta1_VSphereFailureDomainSpe
 }
 
 func autoConvert_v1beta1_VSphereIdentityReference_To_v1beta2_VSphereIdentityReference(in *VSphereIdentityReference, out *v1beta2.VSphereIdentityReference, s conversion.Scope) error {
-	out.Kind = v1beta2.VSphereIdentityKind(in.Kind)
-	out.Name = in.Name
+	*out = *(*v1beta2.VSphereIdentityReference)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1929,8 +1898,7 @@ func Convert_v1beta1_VSphereIdentityReference_To_v1beta2_VSphereIdentityReferenc
 }
 
 func autoConvert_v1beta2_VSphereIdentityReference_To_v1beta1_VSphereIdentityReference(in *v1beta2.VSphereIdentityReference, out *VSphereIdentityReference, s conversion.Scope) error {
-	out.Kind = VSphereIdentityKind(in.Kind)
-	out.Name = in.Name
+	*out = *(*VSphereIdentityReference)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2503,8 +2471,7 @@ func Convert_v1beta2_VirtualMachineCloneSpec_To_v1beta1_VirtualMachineCloneSpec(
 }
 
 func autoConvert_v1beta1_VirtualMachineResourceShares_To_v1beta2_VirtualMachineResourceShares(in *VirtualMachineResourceShares, out *v1beta2.VirtualMachineResourceShares, s conversion.Scope) error {
-	out.CPU = in.CPU
-	out.Memory = in.Memory
+	*out = *(*v1beta2.VirtualMachineResourceShares)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2514,8 +2481,7 @@ func Convert_v1beta1_VirtualMachineResourceShares_To_v1beta2_VirtualMachineResou
 }
 
 func autoConvert_v1beta2_VirtualMachineResourceShares_To_v1beta1_VirtualMachineResourceShares(in *v1beta2.VirtualMachineResourceShares, out *VirtualMachineResourceShares, s conversion.Scope) error {
-	out.CPU = in.CPU
-	out.Memory = in.Memory
+	*out = *(*VirtualMachineResourceShares)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2525,8 +2491,7 @@ func Convert_v1beta2_VirtualMachineResourceShares_To_v1beta1_VirtualMachineResou
 }
 
 func autoConvert_v1beta1_VirtualMachineResourceSpec_To_v1beta2_VirtualMachineResourceSpec(in *VirtualMachineResourceSpec, out *v1beta2.VirtualMachineResourceSpec, s conversion.Scope) error {
-	out.CPU = in.CPU
-	out.Memory = in.Memory
+	*out = *(*v1beta2.VirtualMachineResourceSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2536,8 +2501,7 @@ func Convert_v1beta1_VirtualMachineResourceSpec_To_v1beta2_VirtualMachineResourc
 }
 
 func autoConvert_v1beta2_VirtualMachineResourceSpec_To_v1beta1_VirtualMachineResourceSpec(in *v1beta2.VirtualMachineResourceSpec, out *VirtualMachineResourceSpec, s conversion.Scope) error {
-	out.CPU = in.CPU
-	out.Memory = in.Memory
+	*out = *(*VirtualMachineResourceSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2547,15 +2511,7 @@ func Convert_v1beta2_VirtualMachineResourceSpec_To_v1beta1_VirtualMachineResourc
 }
 
 func autoConvert_v1beta1_VirtualMachineResources_To_v1beta2_VirtualMachineResources(in *VirtualMachineResources, out *v1beta2.VirtualMachineResources, s conversion.Scope) error {
-	if err := Convert_v1beta1_VirtualMachineResourceSpec_To_v1beta2_VirtualMachineResourceSpec(&in.Requests, &out.Requests, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_VirtualMachineResourceSpec_To_v1beta2_VirtualMachineResourceSpec(&in.Limits, &out.Limits, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_VirtualMachineResourceShares_To_v1beta2_VirtualMachineResourceShares(&in.Shares, &out.Shares, s); err != nil {
-		return err
-	}
+	*out = *(*v1beta2.VirtualMachineResources)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2565,15 +2521,7 @@ func Convert_v1beta1_VirtualMachineResources_To_v1beta2_VirtualMachineResources(
 }
 
 func autoConvert_v1beta2_VirtualMachineResources_To_v1beta1_VirtualMachineResources(in *v1beta2.VirtualMachineResources, out *VirtualMachineResources, s conversion.Scope) error {
-	if err := Convert_v1beta2_VirtualMachineResourceSpec_To_v1beta1_VirtualMachineResourceSpec(&in.Requests, &out.Requests, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_VirtualMachineResourceSpec_To_v1beta1_VirtualMachineResourceSpec(&in.Limits, &out.Limits, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_VirtualMachineResourceShares_To_v1beta1_VirtualMachineResourceShares(&in.Shares, &out.Shares, s); err != nil {
-		return err
-	}
+	*out = *(*VirtualMachineResources)(unsafe.Pointer(in))
 	return nil
 }
 

@@ -177,7 +177,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	if _, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup); err != nil {
+	if _, err := r.APIServerMux.GetWorkloadClusterListenerNameByResourceGroup(resourceGroup); err != nil {
 		l := &vcsimv1.ControlPlaneEndpointList{}
 		if err := r.Client.List(ctx, l); err != nil {
 			return ctrl.Result{}, err

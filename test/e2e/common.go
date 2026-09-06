@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,12 +81,10 @@ func watchCPIAndCSILogs(ctx context.Context, managementClusterProxy framework.Cl
 	defer ginkgo.GinkgoRecover()
 
 	watchedClusters := make(map[string]bool)
-	_ = wait.PollUntilContextTimeout(ctx, 5*time.Second, 24*time.Hour, false, func(ctx context.Context) (bool, error) {
-		if managementClusterProxy == nil || managementClusterProxy.GetClient() == nil {
-			return false, nil
-		}
-		clusters := &clusterv1beta1.ClusterList{}
-		if err := managementClusterProxy.GetClient().List(ctx, clusters); err != nil {
+	managementClusterClient := managementClusterProxy.GetClient()
+	_ = wait.PollUntilContextCancel(ctx, 5*time.Second, false, func(ctx context.Context) (bool, error) {
+		clusters := &clusterv1.ClusterList{}
+		if err := managementClusterClient.List(ctx, clusters); err != nil {
 			return false, nil //nolint:nilerr
 		}
 		for _, c := range clusters.Items {
@@ -105,7 +103,7 @@ func watchCPIAndCSILogsForCluster(ctx context.Context, managementClusterProxy fr
 
 	// Wait for the kubeconfig secret to be available
 	secretName := fmt.Sprintf("%s-kubeconfig", clusterName)
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextCancel(ctx, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 		secret := &corev1.Secret{}
 		if err := managementClusterProxy.GetClient().Get(ctx, types.NamespacedName{Namespace: namespace, Name: secretName}, secret); err != nil {
 			return false, nil //nolint:nilerr
@@ -113,7 +111,7 @@ func watchCPIAndCSILogsForCluster(ctx context.Context, managementClusterProxy fr
 		return true, nil
 	})
 	if err != nil {
-		// Kubeconfig never became available
+		// The context was canceled before the kubeconfig became available.
 		return
 	}
 
@@ -121,7 +119,7 @@ func watchCPIAndCSILogsForCluster(ctx context.Context, managementClusterProxy fr
 	workloadProxy := managementClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 
 	waitForDaemonSet := func(labels map[string]string) bool {
-		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		err := wait.PollUntilContextCancel(ctx, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 			dsList := &appsv1.DaemonSetList{}
 			if err := workloadProxy.GetClient().List(ctx, dsList, client.MatchingLabels(labels)); err != nil {
 				return false, nil //nolint:nilerr
@@ -132,7 +130,7 @@ func watchCPIAndCSILogsForCluster(ctx context.Context, managementClusterProxy fr
 	}
 
 	waitForDeployment := func(labels map[string]string) bool {
-		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		err := wait.PollUntilContextCancel(ctx, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 			dpList := &appsv1.DeploymentList{}
 			if err := workloadProxy.GetClient().List(ctx, dpList, client.MatchingLabels(labels)); err != nil {
 				return false, nil //nolint:nilerr

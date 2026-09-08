@@ -27,7 +27,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/vmware-tanzu/vm-operator/external/infra v0.0.0-20260603231928-46d6f2c0092e
 	github.com/vmware-tanzu/vm-operator/external/storage-policy-quota v0.0.0-20260603231928-46d6f2c0092e
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	gomodules.xyz/jsonpatch/v2 v2.5.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.37.0

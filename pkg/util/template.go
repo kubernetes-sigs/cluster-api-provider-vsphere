@@ -19,6 +19,7 @@ package util
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"text/template"
 
 	sprig "github.com/go-task/slim-sprig/v3"
@@ -34,11 +35,24 @@ var nameTemplateFuncs = map[string]any{
 	"trunc":      sprig.GenericFuncMap()["trunc"],
 }
 
+type limitedWriter struct {
+	w         io.Writer
+	remaining int
+}
+
+func (l *limitedWriter) Write(p []byte) (int, error) {
+	if len(p) > l.remaining {
+		return l.w.Write(p[:l.remaining])
+	}
+	l.remaining -= len(p)
+	return l.w.Write(p)
+}
+
 // GenerateMachineNameFromTemplate generate a name from machine name and a naming strategy template.
 // the template supports only `trimSuffix` and `trunc` functions.
 func GenerateMachineNameFromTemplate(machineName string, nameTemplate string) (string, error) {
 	if machineName == "" {
-		return "", fmt.Errorf("machine name can not be emmpty")
+		return "", fmt.Errorf("machine name can not be empty")
 	}
 
 	if nameTemplate == "" {
@@ -58,7 +72,7 @@ func GenerateMachineNameFromTemplate(machineName string, nameTemplate string) (s
 	}
 
 	var buf bytes.Buffer
-	if err := tpl.Execute(&buf, data); err != nil {
+	if err := tpl.Execute(&limitedWriter{w: &buf, remaining: maxNameLength}, data); err != nil {
 		return "", err
 	}
 

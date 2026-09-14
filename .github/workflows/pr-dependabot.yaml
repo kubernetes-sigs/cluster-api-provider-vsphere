@@ -13,10 +13,18 @@ on:
 permissions:
   contents: write # Allow to update the PR.
 
+# prevent race in case of overlapping pull_request/push runs on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # limit who can run this job to dependabot only (this job should not run accidentally in forks with branches matching the dependabot/** filter above).
+    if: github.actor == 'dependabot[bot]'
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # tag=v7.0.1

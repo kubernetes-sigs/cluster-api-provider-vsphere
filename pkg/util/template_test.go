@@ -48,6 +48,14 @@ func Test_GenerateMachineNameFromTemplate(t *testing.T) {
 			},
 		},
 		{
+			name:        "template which doesn't respect max length: trim to max length",
+			machineName: "quick-start-d34gt4-md-0-wqc85-8nxwc-gfd5v", // 41 characters
+			template:    `{{printf "%999999s" ""}}`,
+			want: []gomegatypes.GomegaMatcher{
+				Equal("                                                               "), // 63 characters
+			},
+		},
+		{
 			name:        "template for 20 characters: keep machine name if name has 20 characters",
 			machineName: "quick-md-8nxwc-gfd5v", // 20 characters
 			template:    "{{ if le (len .machine.name) 20 }}{{ .machine.name }}{{else}}{{ trimSuffix \"-\" (trunc 14 .machine.name) }}-{{ trunc -5 .machine.name }}{{end}}",

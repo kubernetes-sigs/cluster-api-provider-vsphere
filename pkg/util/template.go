@@ -34,8 +34,6 @@ var nameTemplateFuncs = map[string]any{
 	"trunc":      sprig.GenericFuncMap()["trunc"],
 }
 
-var nameTpl = template.New("name generator").Funcs(nameTemplateFuncs).Option("missingkey=error")
-
 // GenerateMachineNameFromTemplate generate a name from machine name and a naming strategy template.
 // the template supports only `trimSuffix` and `trunc` functions.
 func GenerateMachineNameFromTemplate(machineName string, nameTemplate string) (string, error) {
@@ -53,6 +51,7 @@ func GenerateMachineNameFromTemplate(machineName string, nameTemplate string) (s
 		},
 	}
 
+	nameTpl := template.New("name generator").Funcs(nameTemplateFuncs).Option("missingkey=error")
 	tpl, err := nameTpl.Parse(nameTemplate)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to parse template %q", nameTemplate)

@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -309,7 +310,7 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 	// Reconcile cluster modules.
 	err = r.reconcileVCenterVersion(clusterCtx, vcenterSession)
 	if err != nil || clusterCtx.VSphereCluster.Status.VCenterVersion == "" {
-		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition, infrav1.MissingVCenterVersionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition, infrav1.MissingVCenterVersionV1Beta1Reason, clusterv1.ConditionSeverityWarning,[...]
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterClusterModulesReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -321,7 +322,7 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 
 	affinityReconcileResult, err := r.reconcileClusterModules(ctx, clusterCtx)
 	if err != nil {
-		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition, infrav1.ClusterModuleSetupFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
+		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableV1Beta1Condition, infrav1.ClusterModuleSetupFailedV1Beta1Reason, clusterv1.ConditionSeverityWarni[...]
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterClusterModulesReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -463,7 +464,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 	clusterCtx.VSphereCluster.Status.FailureDomains = failureDomains
 	if readyNotReported > 0 {
 		log.Info("Waiting for failure domains to be reconciled")
-		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableV1Beta1Condition, infrav1.WaitingForFailureDomainStatusV1Beta1Reason, clusterv1.ConditionSeverityInfo, "waiting for failure domains to report ready status")
+		deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableV1Beta1Condition, infrav1.WaitingForFailureDomainStatusV1Beta1Reason, clusterv1.ConditionSeverity[...]
 		conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterFailureDomainsReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -475,7 +476,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 
 	if len(failureDomains) > 0 {
 		if notReady > 0 {
-			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableV1Beta1Condition, infrav1.FailureDomainsSkippedV1Beta1Reason, clusterv1.ConditionSeverityInfo, "one or more failure domains are not ready")
+			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableV1Beta1Condition, infrav1.FailureDomainsSkippedV1Beta1Reason, clusterv1.ConditionSeverityInfo, "[...]
 			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:    infrav1.VSphereClusterFailureDomainsReadyCondition,
 				Status:  metav1.ConditionFalse,
@@ -586,6 +587,10 @@ func (r *clusterReconciler) controlPlaneMachineToCluster(ctx context.Context, o 
 	}}
 }
 
+// deploymentZoneToCluster is a handler.ToRequestsFunc to be used to enqueue requests
+// for reconciliation for VSphereCluster when a VSphereDeploymentZone is changed.
+// Only clusters that match both the deployment zone's server and have a failure domain selector
+// that matches the deployment zone's labels will be enqueued.
 func (r *clusterReconciler) deploymentZoneToCluster(ctx context.Context, o client.Object) []ctrl.Request {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -604,15 +609,45 @@ func (r *clusterReconciler) deploymentZoneToCluster(ctx context.Context, o clien
 	}
 
 	for _, cluster := range clusterList.Items {
-		if obj.Spec.Server == cluster.Spec.Server {
-			r := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      cluster.Name,
-					Namespace: cluster.Namespace,
-				},
-			}
-			requests = append(requests, r)
+		// Skip if server doesn't match
+		if obj.Spec.Server != cluster.Spec.Server {
+			continue
 		}
+
+		// Skip if cluster has no failure domain selector
+		if cluster.Spec.FailureDomainSelector == nil {
+			log.V(4).Info("Skipping VSphereCluster as it has no failure domain selector",
+				"VSphereCluster", klog.KRef(cluster.Namespace, cluster.Name),
+				"VSphereDeploymentZone", klog.KObj(obj))
+			continue
+		}
+
+		// Check if cluster's failure domain selector matches the deployment zone's labels
+		selector, err := metav1.LabelSelectorAsSelector(cluster.Spec.FailureDomainSelector)
+		if err != nil {
+			log.V(4).Error(err, "Failed to convert failure domain selector",
+				"VSphereCluster", klog.KRef(cluster.Namespace, cluster.Name))
+			continue
+		}
+
+		// Only enqueue the cluster if its failure domain selector matches the zone's labels
+		if !selector.Matches(labels.Set(obj.Labels)) {
+			log.V(5).Info("Deployment zone labels do not match cluster's failure domain selector",
+				"VSphereCluster", klog.KRef(cluster.Namespace, cluster.Name),
+				"VSphereDeploymentZone", klog.KObj(obj))
+			continue
+		}
+
+		r := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
+			},
+		}
+		log.V(4).Info("Enqueuing VSphereCluster for reconciliation",
+			"VSphereCluster", klog.KRef(cluster.Namespace, cluster.Name),
+			"VSphereDeploymentZone", klog.KObj(obj))
+		requests = append(requests, r)
 	}
 	return requests
 }

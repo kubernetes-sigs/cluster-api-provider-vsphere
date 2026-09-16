@@ -60,11 +60,22 @@ trap cleanup EXIT
 
 SHELLCHECK="./$(dirname "$0")/tools/bin/shellcheck/${VERSION}/shellcheck"
 
+# The shellcheck project does not publish checksums alongside its releases, so
+# the expected sha256 for each pinned version/OS combination is tracked here.
+# shellcheck disable=SC2034 # read via indirect expansion below
+SHELLCHECK_SHA256_linux="700324c6dd0ebea0117591c6cc9d7350d9c7c5c287acbad7630fa17b1d4d9e2f"
+# shellcheck disable=SC2034 # read via indirect expansion below
+SHELLCHECK_SHA256_darwin="7d3730694707605d6e60cec4efcb79a0632d61babc035aa16cda1b897536acf5"
+
 if [ ! -f "$SHELLCHECK" ]; then
   # install buildifier
   cd "${TMP_DIR}" || exit
-  DOWNLOAD_FILE="shellcheck-${VERSION}.${OS}.x86_64.tar.xz"
-  curl -L "https://github.com/koalaman/shellcheck/releases/download/${VERSION}/${DOWNLOAD_FILE}" -o "${TMP_DIR}/shellcheck.tar.xz"
+  SHELLCHECK_FILE_NAME="shellcheck-${VERSION}.${OS}.x86_64.tar.xz"
+
+  SHELLCHECK_SHA256_VAR="SHELLCHECK_SHA256_${OS}"
+  SHELLCHECK_SHA256="${!SHELLCHECK_SHA256_VAR:?no known sha256 for shellcheck ${VERSION} on ${OS}, add it to $0}"
+
+  download_and_verify "https://github.com/koalaman/shellcheck/releases/download/${VERSION}/${SHELLCHECK_FILE_NAME}" "${SHELLCHECK_SHA256}" "${TMP_DIR}/shellcheck.tar.xz"
   tar xf "${TMP_DIR}/shellcheck.tar.xz"
   cd "${ROOT_PATH}"
   mkdir -p "$(dirname "$0")/tools/bin/shellcheck/${VERSION}"
@@ -73,7 +84,9 @@ fi
 
 echo "Running shellcheck..."
 cd "${ROOT_PATH}" || exit
-FILES=$(find . -name "*.sh")
+# Only scan files git tracks, so gitignored checkouts (e.g. vm-operator.tmp)
+# and other third-party/generated scripts aren't linted.
+FILES=$(git ls-files '*.sh')
 while read -r file; do
     "$SHELLCHECK" -x "$file" >> "${OUT}" 2>&1
 done <<< "$FILES"

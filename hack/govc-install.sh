@@ -42,6 +42,22 @@ if [ "$(go env GOOS)" == "darwin" ]; then
   GOVC_OS="Darwin"
 fi
 
+# shellcheck source=./hack/utils.sh
+source "$(dirname "$0")/utils.sh"
+
+# Expected sha256 for each pinned version/OS/ARCH combination. GOVC_VER
+# tracks the govmomi version in go.mod, so update these from the release's
+# checksums.txt whenever that dependency is bumped.
+# Read via indirect expansion below, so shellcheck can't see the usage.
+# shellcheck disable=SC2034
+GOVC_SHA256_Darwin_arm64="559430d7691c98172b6b137337cb99c8e0c822512e0ddd170f19bea63cc95e15"
+# shellcheck disable=SC2034
+GOVC_SHA256_Darwin_x86_64="0c0b1bace57542574584d4e76d097fb81d003c07380469d96bacc1f8eb640042"
+# shellcheck disable=SC2034
+GOVC_SHA256_Linux_arm64="d813c8bff6f4410332fac97b368235504ecabfcc2baa1aae38bcc868280850e0"
+# shellcheck disable=SC2034
+GOVC_SHA256_Linux_x86_64="beabfa250fb91f1a9687586448a24c24fd4f95324fa905d157241d0c9efcfeb0"
+
 rm -f "${GOBIN}/${1}"* || true
 
 ORIGINAL_WORKDIR="$(pwd)"
@@ -53,9 +69,13 @@ mkdir -p "${TMP_DIR}"
 cd "${TMP_DIR}"
 
 # Download govc
+GOVC_FILE_NAME="govc_${GOVC_OS}_${GOVC_ARCH}.tar.gz"
 
-curl --retry 5 --retry-all-errors -sLo "govc_${GOVC_OS}_${GOVC_ARCH}.tar.gz" "https://github.com/vmware/govmomi/releases/download/${2}/govc_${GOVC_OS}_${GOVC_ARCH}.tar.gz"
-tar -xvzf "govc_${GOVC_OS}_${GOVC_ARCH}.tar.gz" govc
+GOVC_SHA256_VAR="GOVC_SHA256_${GOVC_OS}_${GOVC_ARCH}"
+GOVC_SHA256="${!GOVC_SHA256_VAR:?no known sha256 for govc ${2} on ${GOVC_OS}/${GOVC_ARCH}, add it to $0}"
+
+download_and_verify "https://github.com/vmware/govmomi/releases/download/${2}/${GOVC_FILE_NAME}" "${GOVC_SHA256}" "${GOVC_FILE_NAME}"
+tar -xvzf "${GOVC_FILE_NAME}" govc
 mv govc "${GOBIN}/${1}-${2}"
 
 # Get back to the original directory and cleanup the temporary directory.

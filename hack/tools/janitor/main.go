@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -34,15 +35,19 @@ import (
 )
 
 var (
-	dryRun        bool
-	boskosHost    string
-	resourceOwner string
-	resourceTypes []string
+	dryRun                    bool
+	boskosHost                string
+	allowedFolderPrefix       string
+	allowedResourcePoolPrefix string
+	resourceOwner             string
+	resourceTypes             []string
 )
 
 func initFlags(fs *pflag.FlagSet) {
 	// Note: Intentionally not adding a fallback value, so it is still possible to not use Boskos.
 	fs.StringVar(&boskosHost, "boskos-host", os.Getenv("BOSKOS_HOST"), "Boskos server URL. Boskos is only used to retrieve resources if this flag is set.")
+	fs.StringVar(&allowedFolderPrefix, "allowed-folder-prefix", "/Datacenter/vm/prow/k8s-infra-e2e-gcp-gcve-project-", "Inventory path prefix the Boskos-supplied \"folder\" user data must be under. Acquire or cleanup is refused for resources whose folder is outside this prefix.")
+	fs.StringVar(&allowedResourcePoolPrefix, "allowed-resource-pool-prefix", "/Datacenter/host/k8s-gcve-cluster/Resources/prow/k8s-infra-e2e-gcp-gcve-project-", "Inventory path prefix the Boskos-supplied \"resourcePool\" user data must be under. Acquire or cleanup is refused for resources whose resource pool is outside this prefix.")
 	fs.StringVar(&resourceOwner, "resource-owner", "gcve-janitor", "Owner for the resource during cleanup.")
 	fs.StringArrayVar(&resourceTypes, "resource-type", []string{"gcve-vsphere-project"}, "Types of the resources")
 	fs.BoolVar(&dryRun, "dry-run", false, "dry-run results in not deleting anything but printing the actions.")
@@ -144,9 +149,17 @@ func run(ctx context.Context) error {
 				allErrs = append(allErrs, pkgerrors.Errorf("failed to get user data, resource %q is missing \"folder\" key", res.Name))
 				continue
 			}
+			if !strings.HasPrefix(folder.(string), allowedFolderPrefix) {
+				allErrs = append(allErrs, pkgerrors.Errorf("failed to get user data, resource %q refers to folder %q which is outside the allowed prefix %q", res.Name, folder, allowedFolderPrefix))
+				continue
+			}
 			resourcePool, hasResourcePool := res.UserData.Load("resourcePool")
 			if !hasResourcePool {
 				allErrs = append(allErrs, pkgerrors.Errorf("failed to get user data, resource %q is missing \"resourcePool\" key", res.Name))
+				continue
+			}
+			if !strings.HasPrefix(resourcePool.(string), allowedResourcePoolPrefix) {
+				allErrs = append(allErrs, pkgerrors.Errorf("failed to get user data, resource %q refers to resourcePool %q which is outside the allowed prefix %q", res.Name, resourcePool, allowedResourcePoolPrefix))
 				continue
 			}
 

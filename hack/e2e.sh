@@ -60,7 +60,7 @@ on_exit() {
 
     # If Boskos is being used then release the vsphere project.
     if [[ "${BOSKOS_HOST:-}" != "" && "${BOSKOS_RESOURCE_NAME:-}" != "" ]]; then
-      docker run -e VSPHERE_USERNAME -e VSPHERE_PASSWORD gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest release --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" --vsphere-server="${VSPHERE_SERVER}" --vsphere-tls-thumbprint="${VSPHERE_TLS_THUMBPRINT}" --vsphere-folder="${BOSKOS_RESOURCE_FOLDER}" --vsphere-resource-pool="${BOSKOS_RESOURCE_POOL}"
+      docker run -e VSPHERE_USERNAME -e VSPHERE_PASSWORD gcr.io/k8s-staging-capi-vsphere/extra/boskosctl@sha256:48225b740b9555994eb12e39130030794f4fb31a032202adf38ad06efe67f34c release --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" --vsphere-server="${VSPHERE_SERVER}" --vsphere-tls-thumbprint="${VSPHERE_TLS_THUMBPRINT}" --vsphere-folder="${BOSKOS_RESOURCE_FOLDER}" --vsphere-resource-pool="${BOSKOS_RESOURCE_POOL}"
     fi
   fi
 
@@ -193,7 +193,7 @@ if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
     # Check out the account from Boskos and store the produced environment
     # variables in a temporary file.
     account_env_var_file="$(mktemp)"
-    docker run gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest acquire --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-type="${BOSKOS_RESOURCE_TYPE}" 1>"${account_env_var_file}"
+    docker run gcr.io/k8s-staging-capi-vsphere/extra/boskosctl@sha256:48225b740b9555994eb12e39130030794f4fb31a032202adf38ad06efe67f34c acquire --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-type="${BOSKOS_RESOURCE_TYPE}" 1>"${account_env_var_file}"
     checkout_account_status="${?}"
 
     # If the checkout process was a success then load the account's
@@ -216,7 +216,7 @@ if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
 
     # Run the heartbeat to tell boskos periodically that we are still
     # using the checked out account.
-    docker run gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest heartbeat --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" >>"${ARTIFACTS}/boskos-heartbeat.log" 2>&1 &
+    docker run gcr.io/k8s-staging-capi-vsphere/extra/boskosctl@sha256:48225b740b9555994eb12e39130030794f4fb31a032202adf38ad06efe67f34c heartbeat --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" >>"${ARTIFACTS}/boskos-heartbeat.log" 2>&1 &
     HEART_BEAT_PID=$!
   fi
 fi

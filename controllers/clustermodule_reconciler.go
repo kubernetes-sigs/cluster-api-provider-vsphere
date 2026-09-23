@@ -108,7 +108,10 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 		if obj, ok := objectMap[curr]; !ok {
 			// Delete the cluster module as the object is marked for deletion or already deleted.
 			if err := r.ClusterModuleService.Remove(ctx, clusterCtx, mod.ModuleUUID); err != nil {
+				modErrs = append(modErrs, clusterModError{mod.TargetObjectName, pkgerrors.Wrapf(err, "failed to delete cluster module %q", mod.ModuleUUID)})
 				log.Error(err, "Failed to delete cluster module for object")
+				// Keep the module to retry deletion on the next reconcile.
+				clusterModuleSpecs = append(clusterModuleSpecs, mod)
 			}
 			delete(objectMap, curr)
 		} else {

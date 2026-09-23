@@ -218,9 +218,9 @@ func acquire(ctx context.Context, client *boskos.Client, resourceType string) er
 	ipPool, hasIPPool := res.UserData.Load("ipPool")
 
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_NAME=%s\n", res.Name)
-	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_FOLDER=%s\n", folder)
-	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_POOL=%s\n", resourcePool)
+	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_NAME=%s\n", shellQuote(res.Name))
+	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_FOLDER=%s\n", shellQuote(fmt.Sprintf("%s", folder)))
+	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_POOL=%s\n", shellQuote(fmt.Sprintf("%s", resourcePool)))
 
 	if hasIPPool {
 		envVars, err := getIPPoolEnvVars(ipPool.(string))
@@ -228,7 +228,7 @@ func acquire(ctx context.Context, client *boskos.Client, resourceType string) er
 			return pkgerrors.Wrapf(err, "failed to calculate IP pool env vars")
 		}
 		for k, v := range envVars {
-			fmt.Fprintf(&sb, "export %s=%s\n", k, v)
+			fmt.Fprintf(&sb, "export %s=%s\n", k, shellQuote(v))
 		}
 	}
 
@@ -268,8 +268,7 @@ func getIPPoolEnvVars(ipPool string) (map[string]string, error) {
 	}
 
 	envVars := map[string]string{
-		// We need surrounding '' so the JSON string is preserved correctly.
-		"BOSKOS_RESOURCE_IP_POOL":         fmt.Sprintf("'%s'", ipPool),
+		"BOSKOS_RESOURCE_IP_POOL":         ipPool,
 		"BOSKOS_RESOURCE_IP_POOL_PREFIX":  strconv.Itoa(ipPoolSpec.Prefix),
 		"BOSKOS_RESOURCE_IP_POOL_GATEWAY": ipPoolSpec.Gateway,
 	}
@@ -392,4 +391,8 @@ func release(ctx context.Context, client *boskos.Client, resourceName, vSphereUs
 	log.Info("Releasing resource as free succeeded")
 
 	return nil
+}
+
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }

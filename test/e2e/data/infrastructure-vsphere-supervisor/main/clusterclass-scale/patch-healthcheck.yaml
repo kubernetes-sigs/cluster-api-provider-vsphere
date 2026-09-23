@@ -1,0 +1,30 @@
+- op: add
+  path: /spec/controlPlane/healthCheck
+  value:
+    checks:
+      nodeStartupTimeoutSeconds: 3600
+      unhealthyNodeConditions:
+        - status: Unknown
+          timeoutSeconds: 900
+          type: TestCondition
+        - status: "False"
+          timeoutSeconds: 900
+          type: TestCondition
+    remediation:
+      triggerIf:
+        unhealthyLessThanOrEqualTo: 100%
+- op: add
+  path: /spec/workers/machineDeployments/0/healthCheck
+  value:
+    checks:
+      nodeStartupTimeoutSeconds: 3600
+      unhealthyNodeConditions:
+        - status: Unknown
+          timeoutSeconds: 900
+          type: TestCondition
+        - status: "False"
+          timeoutSeconds: 900
+          type: TestCondition
+    remediation:
+      triggerIf:
+        unhealthyLessThanOrEqualTo: 100%

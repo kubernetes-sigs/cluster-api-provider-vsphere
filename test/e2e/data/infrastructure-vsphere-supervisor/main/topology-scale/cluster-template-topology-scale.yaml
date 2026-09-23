@@ -15,19 +15,6 @@ spec:
       name: ${CLUSTER_CLASS_NAME}-scale
       namespace: ${CLUSTER_CLASS_NAMESPACE:-${NAMESPACE}}
     controlPlane:
-      healthCheck:
-        checks:
-          nodeStartupTimeoutSeconds: 3600
-          unhealthyNodeConditions:
-          - status: Unknown
-            timeoutSeconds: 900
-            type: TestCondition
-          - status: "False"
-            timeoutSeconds: 900
-            type: TestCondition
-        remediation:
-          triggerIf:
-            unhealthyLessThanOrEqualTo: 100%
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     variables:
     - name: sshKey
@@ -40,18 +27,5 @@ spec:
     workers:
       machineDeployments:
       - class: ${CLUSTER_CLASS_NAME}-worker
-        healthCheck:
-          checks:
-            nodeStartupTimeoutSeconds: 3600
-            unhealthyNodeConditions:
-            - status: Unknown
-              timeoutSeconds: 900
-              type: TestCondition
-            - status: "False"
-              timeoutSeconds: 900
-              type: TestCondition
-          remediation:
-            triggerIf:
-              unhealthyLessThanOrEqualTo: 100%
         name: md-0
         replicas: ${WORKER_MACHINE_COUNT}

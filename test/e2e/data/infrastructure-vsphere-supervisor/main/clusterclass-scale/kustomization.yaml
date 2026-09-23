@@ -8,4 +8,7 @@ patches:
     path: ./patch-test-extension.yaml
   - target:
       kind: ClusterClass
+    path: ./patch-healthcheck.yaml
+  - target:
+      kind: ClusterClass
     path: ./name.yaml

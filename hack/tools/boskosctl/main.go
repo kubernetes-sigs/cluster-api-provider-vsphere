@@ -39,16 +39,18 @@ import (
 )
 
 var (
-	boskosHost           string
-	resourceOwner        string
-	resourceType         string
-	resourceName         string
-	vSphereUsername      string
-	vSpherePassword      string
-	vSphereServer        string
-	vSphereTLSThumbprint string
-	vSphereFolder        string
-	vSphereResourcePool  string
+	boskosHost                string
+	resourceOwner             string
+	allowedFolderPrefix       string
+	allowedResourcePoolPrefix string
+	resourceType              string
+	resourceName              string
+	vSphereUsername           string
+	vSpherePassword           string
+	vSphereServer             string
+	vSphereTLSThumbprint      string
+	vSphereFolder             string
+	vSphereResourcePool       string
 )
 
 func main() {
@@ -75,6 +77,8 @@ func setupCommands(ctx context.Context) *cobra.Command {
 	// Note: http://boskos.test-pods.svc.cluster.local is the URL of the service usually used in k8s.io clusters.
 	rootCmd.PersistentFlags().StringVar(&boskosHost, "boskos-host", getOrDefault(os.Getenv("BOSKOS_HOST"), "http://boskos.test-pods.svc.cluster.local"), "Boskos server URL. (can also be set via BOSKOS_HOST env var)")
 	rootCmd.PersistentFlags().StringVar(&resourceOwner, "resource-owner", "", "Owner for the resource.")
+	rootCmd.PersistentFlags().StringVar(&allowedFolderPrefix, "allowed-folder-prefix", "/Datacenter/vm/prow/k8s-infra-e2e-gcp-gcve-project-", "Inventory path prefix the Boskos-supplied \"folder\" user data must be under. Acquire or cleanup is refused for resources whose folder is outside this prefix.")
+	rootCmd.PersistentFlags().StringVar(&allowedResourcePoolPrefix, "allowed-resource-pool-prefix", "/Datacenter/host/k8s-gcve-cluster/Resources/prow/k8s-infra-e2e-gcp-gcve-project-", "Inventory path prefix the Boskos-supplied \"resourcePool\" user data must be under. Acquire or cleanup is refused for resources whose resource pool is outside this prefix.")
 
 	// acquire command
 	acquireCmd := &cobra.Command{
@@ -217,6 +221,15 @@ func acquire(ctx context.Context, client *boskos.Client, resourceType string) er
 	}
 	ipPool, hasIPPool := res.UserData.Load("ipPool")
 
+	// Bind the Boskos-server-supplied cleanup roots to the configured
+	// inventory prefixes.
+	if !strings.HasPrefix(folder.(string), allowedFolderPrefix) {
+		return fmt.Errorf("refusing to acquire resource %q: folder %q is outside the allowed prefix %q", res.Name, folder, allowedFolderPrefix)
+	}
+	if !strings.HasPrefix(resourcePool.(string), allowedResourcePoolPrefix) {
+		return fmt.Errorf("refusing to acquire resource %q: resourcePool %q is outside the allowed prefix %q", res.Name, resourcePool, allowedResourcePoolPrefix)
+	}
+
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_NAME=%s\n", shellQuote(res.Name))
 	fmt.Fprintf(&sb, "export BOSKOS_RESOURCE_FOLDER=%s\n", shellQuote(fmt.Sprintf("%s", folder)))
@@ -347,6 +360,13 @@ func heartbeat(ctx context.Context, client *boskos.Client, resourceName string) 
 func release(ctx context.Context, client *boskos.Client, resourceName, vSphereUsername, vSpherePassword, vSphereServer, vSphereTLSThumbprint, vSphereFolder, vSphereResourcePool string) error {
 	log := ctrl.LoggerFrom(ctx)
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	if !strings.HasPrefix(vSphereFolder, allowedFolderPrefix) {
+		return fmt.Errorf("refusing to release resource %q: folder %q is outside the allowed prefix %q", resourceName, vSphereFolder, allowedFolderPrefix)
+	}
+	if !strings.HasPrefix(vSphereResourcePool, allowedResourcePoolPrefix) {
+		return fmt.Errorf("refusing to release resource %q: resourcePool %q is outside the allowed prefix %q", resourceName, vSphereResourcePool, allowedResourcePoolPrefix)
+	}
 
 	log.Info("Releasing resource")
 

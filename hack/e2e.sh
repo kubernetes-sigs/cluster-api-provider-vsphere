@@ -84,16 +84,19 @@ on_exit() {
     done || true
     # Replace secret and base64 secret in all files.
     if [ -n "$VSPHERE_PASSWORD" ]; then
-      grep -I -r -l -e "${VSPHERE_PASSWORD}" "${ARTIFACTS}" | while IFS= read -r file
-      do
-        echo "Cleaning up VSPHERE_PASSWORD from file ${file}"
-        sed -i "s/${VSPHERE_PASSWORD}/REDACTED/g" "${file}"
-      done || true
       VSPHERE_PASSWORD_B64=$(echo -n "${VSPHERE_PASSWORD}" | base64 --wrap=0)
-      grep -I -r -l -e "${VSPHERE_PASSWORD_B64}" "${ARTIFACTS}" | while IFS= read -r file
+      for secret in "${VSPHERE_PASSWORD}" "${VSPHERE_PASSWORD_B64}"; do
+        grep -I -r -l -F -e "${secret}" "${ARTIFACTS}" | while IFS= read -r file
+        do
+          echo "Cleaning up a secret from file ${file}"
+          SECRET_TO_REDACT="${secret}" python3 -c 'import os,sys; path=sys.argv[1]; secret=os.environb[b"SECRET_TO_REDACT"]; data=open(path,"rb").read(); open(path,"wb").write(data.replace(secret,b"REDACTED"))' "${file}"
+        done || true
+      done
+      # Delete any file where a fixed-string match still remains so we are not accidentally leaking sensitive info.
+      grep -I -r -l -F -e "${VSPHERE_PASSWORD}" -e "${VSPHERE_PASSWORD_B64}" "${ARTIFACTS}" | while IFS= read -r file
       do
-        echo "Cleaning up VSPHERE_PASSWORD_B64 from file ${file}"
-        sed -i "s/${VSPHERE_PASSWORD_B64}/REDACTED/g" "${file}"
+        echo "ERROR: secret still present after redaction, deleting ${file}" 1>&2
+        rm -f "${file}"
       done || true
     fi
     # re-packing pod-logs.tar.gz-unpacked

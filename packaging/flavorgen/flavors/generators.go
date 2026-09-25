@@ -69,7 +69,7 @@ systemd:
       RemainAfterExit=yes
       Environment=OUTPUT=/run/metadata/coreos
       ExecStart=/usr/bin/mkdir --parent /run/metadata
-      ExecStart=/usr/bin/bash -cv 'echo "COREOS_CUSTOM_HOSTNAME=$("$(find /usr/bin /usr/share/oem -name vmtoolsd -type f -executable 2>/dev/null | head -n 1)" --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}'
+      ExecStart=/usr/bin/bash -cv 'set -euo pipefail; echo "COREOS_CUSTOM_HOSTNAME=$("$(find /usr/bin /usr/share/oem -name vmtoolsd -type f -executable 2>/dev/null | head -n 1)" --cmd "info-get guestinfo.metadata" | base64 -d | grep -m1 "^local-hostname:" | awk -F": " {\'print $2\'} | tr -d \'"\' | tr -cd \'A-Za-z0-9.-\')" > $${OUTPUT}'
   - name: set-hostname.service
     enabled: true
     contents: |

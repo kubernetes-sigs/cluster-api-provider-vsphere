@@ -81,11 +81,15 @@ func run(ctx context.Context) error {
 	}
 
 	// Create clients for vSphere.
+	vSphereTLSThumbprint := os.Getenv("VSPHERE_TLS_THUMBPRINT")
+	if vSphereTLSThumbprint == "" {
+		return fmt.Errorf("env var VSPHERE_TLS_THUMBPRINT must be set")
+	}
 	vSphereClients, err := janitor.NewVSphereClients(ctx, janitor.NewVSphereClientsInput{
 		Username:   os.Getenv("GOVC_USERNAME"),
 		Password:   os.Getenv("GOVC_PASSWORD"),
 		Server:     os.Getenv("GOVC_URL"),
-		Thumbprint: os.Getenv("VSPHERE_TLS_THUMBPRINT"),
+		Thumbprint: vSphereTLSThumbprint,
 		UserAgent:  "capv-janitor",
 	})
 	if err != nil {

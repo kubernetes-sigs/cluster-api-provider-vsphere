@@ -79,6 +79,7 @@ func NewVSphereClients(ctx context.Context, input NewVSphereClientsInput) (*VSph
 	serverURL.User = urlCredentials
 	var soapClient *soap.Client
 	if input.Thumbprint == "" {
+		// Note: This code path is only used in unit tests. boskosctl & janitor check that the thumbprint is not empty.
 		soapClient = soap.NewClient(serverURL, true)
 	} else {
 		soapClient = soap.NewClient(serverURL, false)

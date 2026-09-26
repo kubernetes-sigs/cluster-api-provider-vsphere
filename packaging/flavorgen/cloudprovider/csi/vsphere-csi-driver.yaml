@@ -180,6 +180,8 @@ apiVersion: apps/v1
 metadata:
   name: vsphere-csi-controller
   namespace: vmware-system-csi
+  labels:
+    app: vsphere-csi-controller
 spec:
   replicas: 3
   strategy:
@@ -425,6 +427,8 @@ apiVersion: apps/v1
 metadata:
   name: vsphere-csi-node
   namespace: vmware-system-csi
+  labels:
+    app: vsphere-csi-node
 spec:
   selector:
     matchLabels:

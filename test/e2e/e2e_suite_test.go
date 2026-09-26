@@ -216,6 +216,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	if testTarget == VCSimTestTarget {
 		createVCSimServer(bootstrapClusterProxy)
 	}
+	if testTarget == VCenterTestTarget {
+		watchCtx, cancelWatch := context.WithCancel(ctx)
+		DeferCleanup(cancelWatch)
+		go watchCPIAndCSILogs(watchCtx, bootstrapClusterProxy, artifactFolder)
+	}
 
 	By("Getting AddressClaim labels")
 	ipClaimLabels := vsphereip.GetIPAddressClaimLabels()

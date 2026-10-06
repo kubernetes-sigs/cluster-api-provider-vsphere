@@ -693,6 +693,8 @@ var _ = Describe("VirtualMachine tests", func() {
 		})
 
 		Specify("Create and attach volumes", func() {
+			featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.VolumeControllerParameters, true)
+
 			expectReconcileError = false
 			expectVMOpVM = true
 			expectedImageName = imageName
@@ -1492,4 +1494,121 @@ func Test_getPolicies_FeatureGateDisabled(t *testing.T) {
 	}
 	got := getPolicies(sm)
 	NewWithT(t).Expect(got).To(BeNil())
+}
+
+func Test_addVolume(t *testing.T) {
+	// existingVM returns a VirtualMachine with a single volume named
+	// "test-pvc" whose controller parameters simulate values vm-operator's
+	// own mutating webhook may have already assigned (e.g. an auto-selected
+	// ControllerBusNumber/UnitNumber, or a Removable value changed directly
+	// on the object) rather than values set by CAPV.
+	existingVM := func() *vmoprvhub.VirtualMachine {
+		return &vmoprvhub.VirtualMachine{
+			Spec: vmoprvhub.VirtualMachineSpec{
+				Volumes: []vmoprvhub.VirtualMachineVolume{
+					{
+						Name: "test-pvc",
+						VirtualMachineVolumeSource: vmoprvhub.VirtualMachineVolumeSource{
+							PersistentVolumeClaim: &vmoprvhub.PersistentVolumeClaimVolumeSource{
+								PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "test-pvc",
+									ReadOnly:  false,
+								},
+							},
+						},
+						ControllerBusNumber: ptr.To(int32(0)),
+						UnitNumber:          ptr.To(int32(1)),
+						Removable:           ptr.To(false),
+						ControllerType:      vmoprvhub.VirtualControllerTypeSCSI,
+					},
+				},
+			},
+		}
+	}
+
+	t.Run("preserves vm-operator-assigned controller parameters when the VSphereMachine volume leaves them unset", func(t *testing.T) {
+		g := NewWithT(t)
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, true)
+
+		vm := existingVM()
+		source := vmwarev1.VSphereMachineVolume{Name: "etcd"}
+
+		addVolume(vm, "test-pvc", source)
+
+		g.Expect(vm.Spec.Volumes).To(HaveLen(1))
+		g.Expect(vm.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
+		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
+		g.Expect(vm.Spec.Volumes[0].Removable).To(Equal(ptr.To(false)))
+		g.Expect(vm.Spec.Volumes[0].ControllerType).To(Equal(vmoprvhub.VirtualControllerTypeSCSI))
+	})
+
+	t.Run("overrides existing controller parameters when the VSphereMachine volume sets them explicitly", func(t *testing.T) {
+		g := NewWithT(t)
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, true)
+
+		vm := existingVM()
+		source := vmwarev1.VSphereMachineVolume{
+			Name:                "etcd",
+			ControllerBusNumber: ptr.To(int32(1)),
+			UnitNumber:          ptr.To(int32(5)),
+			Removable:           ptr.To(true),
+			ControllerType:      "NVME",
+			ReadOnly:            true,
+		}
+
+		addVolume(vm, "test-pvc", source)
+
+		g.Expect(vm.Spec.Volumes).To(HaveLen(1))
+		g.Expect(vm.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(1))))
+		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(5))))
+		g.Expect(vm.Spec.Volumes[0].Removable).To(Equal(ptr.To(true)))
+		g.Expect(vm.Spec.Volumes[0].ControllerType).To(Equal(vmoprvhub.VirtualControllerType("NVME")))
+		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeTrue())
+	})
+
+	t.Run("leaves existing controller parameters untouched when the feature gate is disabled", func(t *testing.T) {
+		g := NewWithT(t)
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, false)
+
+		vm := existingVM()
+		// Even though the VSphereMachine volume requests different values,
+		// they must not be applied while the feature gate is disabled, and
+		// the pre-existing values on the VirtualMachine must be preserved.
+		source := vmwarev1.VSphereMachineVolume{
+			Name:                "etcd",
+			ControllerBusNumber: ptr.To(int32(9)),
+			UnitNumber:          ptr.To(int32(9)),
+			Removable:           ptr.To(true),
+		}
+
+		addVolume(vm, "test-pvc", source)
+
+		g.Expect(vm.Spec.Volumes).To(HaveLen(1))
+		g.Expect(vm.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
+		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
+		g.Expect(vm.Spec.Volumes[0].Removable).To(Equal(ptr.To(false)))
+	})
+
+	t.Run("appends a new volume when no existing entry matches the claim name", func(t *testing.T) {
+		g := NewWithT(t)
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, true)
+
+		vm := existingVM()
+		source := vmwarev1.VSphereMachineVolume{
+			Name:                "containerd",
+			ControllerBusNumber: ptr.To(int32(0)),
+			UnitNumber:          ptr.To(int32(2)),
+		}
+
+		addVolume(vm, "other-pvc", source)
+
+		g.Expect(vm.Spec.Volumes).To(HaveLen(2))
+		g.Expect(vm.Spec.Volumes[1].Name).To(Equal("other-pvc"))
+		g.Expect(vm.Spec.Volumes[1].PersistentVolumeClaim.ClaimName).To(Equal("other-pvc"))
+		g.Expect(vm.Spec.Volumes[1].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
+		g.Expect(vm.Spec.Volumes[1].UnitNumber).To(Equal(ptr.To(int32(2))))
+		// The pre-existing volume must be unaffected.
+		g.Expect(vm.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
+		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
+	})
 }

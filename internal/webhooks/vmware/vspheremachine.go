@@ -63,6 +63,7 @@ func (webhook *VSphereMachine) ValidateCreate(ctx context.Context, objTyped *vmw
 
 	allErrs := validateNetwork(np.Name(), objTyped.Spec.Network, field.NewPath("spec", "network"))
 	allErrs = append(allErrs, validatePolicies(objTyped.Spec.Policies, field.NewPath("spec", "policies"))...)
+	allErrs = append(allErrs, validateVolumes(objTyped.Spec.Volumes, field.NewPath("spec", "volumes"))...)
 
 	return nil, webhooks.AggregateObjErrors(objTyped.GroupVersionKind().GroupKind(), objTyped.Name, allErrs)
 }
@@ -105,6 +106,7 @@ func (webhook *VSphereMachine) ValidateUpdate(ctx context.Context, oldTyped, new
 
 	allErrs = append(allErrs, validateNetwork(np.Name(), newSpec.Network, field.NewPath("spec", "network"))...)
 	allErrs = append(allErrs, validatePolicies(newSpec.Policies, field.NewPath("spec", "policies"))...)
+	allErrs = append(allErrs, validateVolumes(newSpec.Volumes, field.NewPath("spec", "volumes"))...)
 
 	return nil, webhooks.AggregateObjErrors(newTyped.GroupVersionKind().GroupKind(), newTyped.Name, allErrs)
 }
@@ -303,4 +305,21 @@ func validatePolicies(policies []vmwarev1.PolicyRef, fldPath *field.Path) field.
 	return field.ErrorList{
 		field.Forbidden(fldPath, "policies can only be set when feature gate InfrastructurePolicies is enabled"),
 	}
+}
+
+// validateVolumes validates that volume controller parameters may only be set when the
+// feature gate VolumeControllerParameters is enabled.
+func validateVolumes(volumes []vmwarev1.VSphereMachineVolume, fldPath *field.Path) field.ErrorList {
+	if feature.Gates.Enabled(feature.VolumeControllerParameters) {
+		return nil
+	}
+	var allErrs field.ErrorList
+	for i, volume := range volumes {
+		if volume.ApplicationType != "" || volume.ControllerType != "" || volume.ControllerBusNumber != nil ||
+			volume.DiskMode != "" || volume.SharingMode != "" || volume.UnitNumber != nil || volume.Removable != nil {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i),
+				"applicationType, controllerType, controllerBusNumber, diskMode, sharingMode, unitNumber and removable can only be set when feature gate VolumeControllerParameters is enabled"))
+		}
+	}
+	return allErrs
 }

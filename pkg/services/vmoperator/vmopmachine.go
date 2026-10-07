@@ -853,26 +853,94 @@ func volumeName(machine *vmwarev1.VSphereMachine, volume vmwarev1.VSphereMachine
 	return machine.Name + "-" + volume.Name
 }
 
-// addVolume ensures volume is included in vm.Spec.Volumes.
-func addVolume(vm *vmoprvhub.VirtualMachine, name string) {
-	for _, volume := range vm.Spec.Volumes {
+// addVolume ensures a volume with the given ClaimName is included in
+// vm.Spec.Volumes with the parameters derived from the VSphereMachineVolume.
+//
+// If a volume with the same ClaimName already exists, the fields CAPV
+// manages are updated in place so that spec changes propagate on reconcile,
+// while fields left unset on the VSphereMachine volume are preserved rather than cleared.
+func addVolume(vm *vmoprvhub.VirtualMachine, name string, source vmwarev1.VSphereMachineVolume) {
+	volumeControllerParametersEnabled := feature.Gates.Enabled(feature.VolumeControllerParameters)
+
+	for i, volume := range vm.Spec.Volumes {
 		claim := volume.PersistentVolumeClaim
-		if claim != nil && claim.ClaimName == name {
-			return // volume already present in the spec
+		if claim == nil || claim.ClaimName != name {
+			continue
 		}
+
+		// Update the fields CAPV manages in place. InstanceVolumeClaim and any
+		// controller parameter left unset on the VSphereMachine volume are
+		// preserved as-is.
+		claim.ReadOnly = source.ReadOnly
+
+		if volumeControllerParametersEnabled {
+			if source.ControllerBusNumber != nil {
+				vm.Spec.Volumes[i].ControllerBusNumber = source.ControllerBusNumber
+			}
+			if source.UnitNumber != nil {
+				vm.Spec.Volumes[i].UnitNumber = source.UnitNumber
+			}
+			if source.Removable != nil {
+				vm.Spec.Volumes[i].Removable = source.Removable
+			}
+
+			// Only set string enum fields when non-empty so vm-operator defaults
+			// apply for the zero value, and so an already-set value is not
+			// cleared when the VSphereMachine volume leaves the field unset.
+			if source.ApplicationType != "" {
+				vm.Spec.Volumes[i].ApplicationType = vmoprvhub.VolumeApplicationType(source.ApplicationType)
+			}
+			if source.ControllerType != "" {
+				vm.Spec.Volumes[i].ControllerType = vmoprvhub.VirtualControllerType(source.ControllerType)
+			}
+			if source.DiskMode != "" {
+				vm.Spec.Volumes[i].DiskMode = vmoprvhub.VolumeDiskMode(source.DiskMode)
+			}
+			if source.SharingMode != "" {
+				vm.Spec.Volumes[i].SharingMode = vmoprvhub.VolumeSharingMode(source.SharingMode)
+			}
+		}
+		return
 	}
 
-	vm.Spec.Volumes = append(vm.Spec.Volumes, vmoprvhub.VirtualMachineVolume{
+	// No existing volume found: build and append a new entry from scratch.
+	desired := vmoprvhub.VirtualMachineVolume{
 		Name: name,
 		VirtualMachineVolumeSource: vmoprvhub.VirtualMachineVolumeSource{
 			PersistentVolumeClaim: &vmoprvhub.PersistentVolumeClaimVolumeSource{
 				PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 					ClaimName: name,
-					ReadOnly:  false,
+					ReadOnly:  source.ReadOnly,
 				},
 			},
 		},
-	})
+	}
+
+	// The volume controller parameters below are only understood by
+	// vm-operator v1alpha5+ and are only handled when the VolumeControllerParameters
+	// feature gate is enabled.
+	if volumeControllerParametersEnabled {
+		desired.ControllerBusNumber = source.ControllerBusNumber
+		desired.UnitNumber = source.UnitNumber
+		desired.Removable = source.Removable
+
+		// Only set string enum fields when non-empty so vm-operator defaults apply
+		// for the zero value.
+		if source.ApplicationType != "" {
+			desired.ApplicationType = vmoprvhub.VolumeApplicationType(source.ApplicationType)
+		}
+		if source.ControllerType != "" {
+			desired.ControllerType = vmoprvhub.VirtualControllerType(source.ControllerType)
+		}
+		if source.DiskMode != "" {
+			desired.DiskMode = vmoprvhub.VolumeDiskMode(source.DiskMode)
+		}
+		if source.SharingMode != "" {
+			desired.SharingMode = vmoprvhub.VolumeSharingMode(source.SharingMode)
+		}
+	}
+
+	vm.Spec.Volumes = append(vm.Spec.Volumes, desired)
 }
 
 func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprvhub.VirtualMachine) error {
@@ -950,7 +1018,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 				pvc.Name)
 		}
 
-		addVolume(vm, pvc.Name)
+		addVolume(vm, pvc.Name, volume)
 	}
 
 	return nil

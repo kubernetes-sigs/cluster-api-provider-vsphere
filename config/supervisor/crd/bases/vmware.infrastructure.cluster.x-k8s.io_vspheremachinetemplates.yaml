@@ -50,6 +50,258 @@ spec:
                     description: spec is the specification of the desired behavior
                       of the machine.
                     properties:
+                      affinity:
+                        description: |-
+                          affinity describes the VSphereMachine's scheduling constraints and placement rules (e.g. anti-affinity
+                          with other VSphereMachines).
+                          Set on the VSphereMachineTemplate machine spec for the MachineDeployment, propagated
+                          to each VSphereMachine.
+                        properties:
+                          vmAntiAffinity:
+                            description: |-
+                              vmAntiAffinity describes anti-affinity scheduling rules related to other
+                              VSphereMachines.
+                            properties:
+                              preferredDuringSchedulingPreferredDuringExecution:
+                                description: |-
+                                  preferredDuringSchedulingPreferredDuringExecution describes anti-affinity
+                                  requirements that should be met, but the VSphereMachine can still be scheduled if
+                                  the requirement cannot be satisfied. The scheduler will prefer to
+                                  schedule VSphereMachines that satisfy the anti-affinity expressions specified by
+                                  this field, but it may choose to violate one or more of the expressions.
+                                  Additionally, it also describes the anti-affinity requirements that
+                                  should be met during run-time, but the VSphereMachine can still be run if the
+                                  requirements cannot be satisfied.
+
+                                  When there are multiple elements, the lists of nodes corresponding to
+                                  each term are intersected, i.e. all terms must be satisfied.
+
+                                  Note: Any update to this field will replace the entire list rather than
+                                  merging with the existing elements.
+                                items:
+                                  description: VMAntiAffinityTerm defines the VSphereMachine
+                                    anti-affinity term.
+                                  properties:
+                                    labelSelector:
+                                      description: labelSelector is a label query
+                                        over a set of VSphereMachines that this VSphereMachine
+                                        should not be co-located with.
+                                      properties:
+                                        matchExpressions:
+                                          description: matchExpressions is a list
+                                            of label selector requirements. The requirements
+                                            are ANDed.
+                                          items:
+                                            description: |-
+                                              A label selector requirement is a selector that contains values, a key, and an operator that
+                                              relates the key and values.
+                                            properties:
+                                              key:
+                                                description: key is the label key
+                                                  that the selector applies to.
+                                                type: string
+                                              operator:
+                                                description: |-
+                                                  operator represents a key's relationship to a set of values.
+                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                type: string
+                                              values:
+                                                description: |-
+                                                  values is an array of string values. If the operator is In or NotIn,
+                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                  the values array must be empty. This array is replaced during a strategic
+                                                  merge patch.
+                                                items:
+                                                  type: string
+                                                type: array
+                                                x-kubernetes-list-type: atomic
+                                            required:
+                                            - key
+                                            - operator
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                        matchLabels:
+                                          additionalProperties:
+                                            type: string
+                                          description: |-
+                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                          type: object
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    topologyKey:
+                                      description: |-
+                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
+                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+
+                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - labelSelector
+                                  - topologyKey
+                                  type: object
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              requiredDuringSchedulingPreferredDuringExecution:
+                                description: |-
+                                  requiredDuringSchedulingPreferredDuringExecution describes anti-affinity
+                                  requirements that must be met or the VSphereMachine will not be scheduled.
+
+                                  When there are multiple elements, the lists of nodes corresponding to
+                                  each term are intersected, i.e. all terms must be satisfied.
+
+                                  Note: Any update to this field will replace the entire list rather than
+                                  merging with the existing elements.
+                                items:
+                                  description: VMAntiAffinityTerm defines the VSphereMachine
+                                    anti-affinity term.
+                                  properties:
+                                    labelSelector:
+                                      description: labelSelector is a label query
+                                        over a set of VSphereMachines that this VSphereMachine
+                                        should not be co-located with.
+                                      properties:
+                                        matchExpressions:
+                                          description: matchExpressions is a list
+                                            of label selector requirements. The requirements
+                                            are ANDed.
+                                          items:
+                                            description: |-
+                                              A label selector requirement is a selector that contains values, a key, and an operator that
+                                              relates the key and values.
+                                            properties:
+                                              key:
+                                                description: key is the label key
+                                                  that the selector applies to.
+                                                type: string
+                                              operator:
+                                                description: |-
+                                                  operator represents a key's relationship to a set of values.
+                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                type: string
+                                              values:
+                                                description: |-
+                                                  values is an array of string values. If the operator is In or NotIn,
+                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                  the values array must be empty. This array is replaced during a strategic
+                                                  merge patch.
+                                                items:
+                                                  type: string
+                                                type: array
+                                                x-kubernetes-list-type: atomic
+                                            required:
+                                            - key
+                                            - operator
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                        matchLabels:
+                                          additionalProperties:
+                                            type: string
+                                          description: |-
+                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                          type: object
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    topologyKey:
+                                      description: |-
+                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
+                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+
+                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - labelSelector
+                                  - topologyKey
+                                  type: object
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              requiredDuringSchedulingRequiredDuringExecution:
+                                description: |-
+                                  requiredDuringSchedulingRequiredDuringExecution describes anti-affinity
+                                  requirements that must be met or the VSphereMachine will not be scheduled and
+                                  that must continue to be met.
+
+                                  When there are multiple elements, the lists of nodes corresponding to
+                                  each term are intersected, i.e. all terms must be satisfied.
+
+                                  Note: Any update to this field will replace the entire list rather than
+                                  merging with the existing elements.
+                                items:
+                                  description: VMAntiAffinityTerm defines the VSphereMachine
+                                    anti-affinity term.
+                                  properties:
+                                    labelSelector:
+                                      description: labelSelector is a label query
+                                        over a set of VSphereMachines that this VSphereMachine
+                                        should not be co-located with.
+                                      properties:
+                                        matchExpressions:
+                                          description: matchExpressions is a list
+                                            of label selector requirements. The requirements
+                                            are ANDed.
+                                          items:
+                                            description: |-
+                                              A label selector requirement is a selector that contains values, a key, and an operator that
+                                              relates the key and values.
+                                            properties:
+                                              key:
+                                                description: key is the label key
+                                                  that the selector applies to.
+                                                type: string
+                                              operator:
+                                                description: |-
+                                                  operator represents a key's relationship to a set of values.
+                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                type: string
+                                              values:
+                                                description: |-
+                                                  values is an array of string values. If the operator is In or NotIn,
+                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                  the values array must be empty. This array is replaced during a strategic
+                                                  merge patch.
+                                                items:
+                                                  type: string
+                                                type: array
+                                                x-kubernetes-list-type: atomic
+                                            required:
+                                            - key
+                                            - operator
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                        matchLabels:
+                                          additionalProperties:
+                                            type: string
+                                          description: |-
+                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                          type: object
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    topologyKey:
+                                      description: |-
+                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
+                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+
+                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - labelSelector
+                                  - topologyKey
+                                  type: object
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                        type: object
                       className:
                         description: |-
                           className is the name of the class used when specifying the underlying
@@ -534,6 +786,264 @@ spec:
                     description: spec is the specification of the desired behavior
                       of the machine.
                     properties:
+                      affinity:
+                        description: |-
+                          affinity describes the VSphereMachine's scheduling constraints and placement rules (e.g. anti-affinity
+                          with other VSphereMachines).
+                          Set on the VSphereMachineTemplate machine spec for the MachineDeployment, propagated
+                          to each VSphereMachine.
+                        properties:
+                          vmAntiAffinity:
+                            description: |-
+                              vmAntiAffinity describes anti-affinity scheduling rules related to other
+                              VSphereMachines.
+                            properties:
+                              preferredDuringSchedulingPreferredDuringExecution:
+                                description: |-
+                                  preferredDuringSchedulingPreferredDuringExecution describes anti-affinity
+                                  requirements that should be met, but the VSphereMachine can still be scheduled if
+                                  the requirement cannot be satisfied. The scheduler will prefer to
+                                  schedule VSphereMachines that satisfy the anti-affinity expressions specified by
+                                  this field, but it may choose to violate one or more of the expressions.
+                                  Additionally, it also describes the anti-affinity requirements that
+                                  should be met during run-time, but the VSphereMachine can still be run if the
+                                  requirements cannot be satisfied.
+
+                                  When there are multiple elements, the lists of nodes corresponding to
+                                  each term are intersected, i.e. all terms must be satisfied.
+
+                                  Note: Any update to this field will replace the entire list rather than
+                                  merging with the existing elements.
+                                items:
+                                  description: VMAntiAffinityTerm defines the VSphereMachine
+                                    anti-affinity term.
+                                  properties:
+                                    labelSelector:
+                                      description: labelSelector is a label query
+                                        over a set of VSphereMachines that this VSphereMachine
+                                        should not be co-located with.
+                                      properties:
+                                        matchExpressions:
+                                          description: matchExpressions is a list
+                                            of label selector requirements. The requirements
+                                            are ANDed.
+                                          items:
+                                            description: |-
+                                              A label selector requirement is a selector that contains values, a key, and an operator that
+                                              relates the key and values.
+                                            properties:
+                                              key:
+                                                description: key is the label key
+                                                  that the selector applies to.
+                                                type: string
+                                              operator:
+                                                description: |-
+                                                  operator represents a key's relationship to a set of values.
+                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                type: string
+                                              values:
+                                                description: |-
+                                                  values is an array of string values. If the operator is In or NotIn,
+                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                  the values array must be empty. This array is replaced during a strategic
+                                                  merge patch.
+                                                items:
+                                                  type: string
+                                                type: array
+                                                x-kubernetes-list-type: atomic
+                                            required:
+                                            - key
+                                            - operator
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                        matchLabels:
+                                          additionalProperties:
+                                            type: string
+                                          description: |-
+                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                          type: object
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    topologyKey:
+                                      description: |-
+                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
+                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+
+                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
+                                      maxLength: 32
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - labelSelector
+                                  - topologyKey
+                                  type: object
+                                maxItems: 32
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              requiredDuringSchedulingPreferredDuringExecution:
+                                description: |-
+                                  requiredDuringSchedulingPreferredDuringExecution describes anti-affinity
+                                  requirements that must be met or the VSphereMachine will not be scheduled.
+
+                                  When there are multiple elements, the lists of nodes corresponding to
+                                  each term are intersected, i.e. all terms must be satisfied.
+
+                                  Note: Any update to this field will replace the entire list rather than
+                                  merging with the existing elements.
+                                items:
+                                  description: VMAntiAffinityTerm defines the VSphereMachine
+                                    anti-affinity term.
+                                  properties:
+                                    labelSelector:
+                                      description: labelSelector is a label query
+                                        over a set of VSphereMachines that this VSphereMachine
+                                        should not be co-located with.
+                                      properties:
+                                        matchExpressions:
+                                          description: matchExpressions is a list
+                                            of label selector requirements. The requirements
+                                            are ANDed.
+                                          items:
+                                            description: |-
+                                              A label selector requirement is a selector that contains values, a key, and an operator that
+                                              relates the key and values.
+                                            properties:
+                                              key:
+                                                description: key is the label key
+                                                  that the selector applies to.
+                                                type: string
+                                              operator:
+                                                description: |-
+                                                  operator represents a key's relationship to a set of values.
+                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                type: string
+                                              values:
+                                                description: |-
+                                                  values is an array of string values. If the operator is In or NotIn,
+                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                  the values array must be empty. This array is replaced during a strategic
+                                                  merge patch.
+                                                items:
+                                                  type: string
+                                                type: array
+                                                x-kubernetes-list-type: atomic
+                                            required:
+                                            - key
+                                            - operator
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                        matchLabels:
+                                          additionalProperties:
+                                            type: string
+                                          description: |-
+                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                          type: object
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    topologyKey:
+                                      description: |-
+                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
+                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+
+                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
+                                      maxLength: 32
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - labelSelector
+                                  - topologyKey
+                                  type: object
+                                maxItems: 32
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              requiredDuringSchedulingRequiredDuringExecution:
+                                description: |-
+                                  requiredDuringSchedulingRequiredDuringExecution describes anti-affinity
+                                  requirements that must be met or the VSphereMachine will not be scheduled and
+                                  that must continue to be met.
+
+                                  When there are multiple elements, the lists of nodes corresponding to
+                                  each term are intersected, i.e. all terms must be satisfied.
+
+                                  Note: Any update to this field will replace the entire list rather than
+                                  merging with the existing elements.
+                                items:
+                                  description: VMAntiAffinityTerm defines the VSphereMachine
+                                    anti-affinity term.
+                                  properties:
+                                    labelSelector:
+                                      description: labelSelector is a label query
+                                        over a set of VSphereMachines that this VSphereMachine
+                                        should not be co-located with.
+                                      properties:
+                                        matchExpressions:
+                                          description: matchExpressions is a list
+                                            of label selector requirements. The requirements
+                                            are ANDed.
+                                          items:
+                                            description: |-
+                                              A label selector requirement is a selector that contains values, a key, and an operator that
+                                              relates the key and values.
+                                            properties:
+                                              key:
+                                                description: key is the label key
+                                                  that the selector applies to.
+                                                type: string
+                                              operator:
+                                                description: |-
+                                                  operator represents a key's relationship to a set of values.
+                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                type: string
+                                              values:
+                                                description: |-
+                                                  values is an array of string values. If the operator is In or NotIn,
+                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                  the values array must be empty. This array is replaced during a strategic
+                                                  merge patch.
+                                                items:
+                                                  type: string
+                                                type: array
+                                                x-kubernetes-list-type: atomic
+                                            required:
+                                            - key
+                                            - operator
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                        matchLabels:
+                                          additionalProperties:
+                                            type: string
+                                          description: |-
+                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                          type: object
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    topologyKey:
+                                      description: |-
+                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
+                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+
+                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
+                                      maxLength: 32
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - labelSelector
+                                  - topologyKey
+                                  type: object
+                                maxItems: 32
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                        type: object
                       className:
                         description: |-
                           className is the name of the class used when specifying the underlying

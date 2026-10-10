@@ -105,6 +105,83 @@ type VSphereMachineSpec struct {
 	// namingStrategy allows configuring the naming strategy used when calculating the name of the VirtualMachine.
 	// +optional
 	NamingStrategy *VirtualMachineNamingStrategy `json:"namingStrategy,omitempty"`
+
+	// affinity describes the VSphereMachine's scheduling constraints and placement rules (e.g. anti-affinity
+	// with other VSphereMachines).
+	// Set on the VSphereMachineTemplate machine spec for the MachineDeployment, propagated
+	// to each VSphereMachine.
+	// +optional
+	Affinity *Affinity `json:"affinity,omitempty"`
+}
+
+// Affinity defines the group of affinity scheduling rules.
+type Affinity struct {
+	// vmAntiAffinity describes anti-affinity scheduling rules related to other
+	// VSphereMachines.
+	// +optional
+	VMAntiAffinity *VMAntiAffinity `json:"vmAntiAffinity,omitempty"`
+}
+
+// VMAntiAffinity defines the anti-affinity requirements for scheduling
+// rules related to other VSphereMachines.
+type VMAntiAffinity struct {
+	// requiredDuringSchedulingRequiredDuringExecution describes anti-affinity
+	// requirements that must be met or the VSphereMachine will not be scheduled and
+	// that must continue to be met.
+	//
+	// When there are multiple elements, the lists of nodes corresponding to
+	// each term are intersected, i.e. all terms must be satisfied.
+	//
+	// Note: Any update to this field will replace the entire list rather than
+	// merging with the existing elements.
+	// +optional
+	// +listType=atomic
+	RequiredDuringSchedulingRequiredDuringExecution []VMAntiAffinityTerm `json:"requiredDuringSchedulingRequiredDuringExecution,omitempty"`
+
+	// requiredDuringSchedulingPreferredDuringExecution describes anti-affinity
+	// requirements that must be met or the VSphereMachine will not be scheduled.
+	//
+	// When there are multiple elements, the lists of nodes corresponding to
+	// each term are intersected, i.e. all terms must be satisfied.
+	//
+	// Note: Any update to this field will replace the entire list rather than
+	// merging with the existing elements.
+	// +optional
+	// +listType=atomic
+	RequiredDuringSchedulingPreferredDuringExecution []VMAntiAffinityTerm `json:"requiredDuringSchedulingPreferredDuringExecution,omitempty"`
+
+	// preferredDuringSchedulingPreferredDuringExecution describes anti-affinity
+	// requirements that should be met, but the VSphereMachine can still be scheduled if
+	// the requirement cannot be satisfied. The scheduler will prefer to
+	// schedule VSphereMachines that satisfy the anti-affinity expressions specified by
+	// this field, but it may choose to violate one or more of the expressions.
+	// Additionally, it also describes the anti-affinity requirements that
+	// should be met during run-time, but the VSphereMachine can still be run if the
+	// requirements cannot be satisfied.
+	//
+	// When there are multiple elements, the lists of nodes corresponding to
+	// each term are intersected, i.e. all terms must be satisfied.
+	//
+	// Note: Any update to this field will replace the entire list rather than
+	// merging with the existing elements.
+	// +optional
+	// +listType=atomic
+	PreferredDuringSchedulingPreferredDuringExecution []VMAntiAffinityTerm `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"`
+}
+
+// VMAntiAffinityTerm defines the VSphereMachine anti-affinity term.
+type VMAntiAffinityTerm struct {
+	// labelSelector is a label query over a set of VSphereMachines that this VSphereMachine should not be co-located with.
+	// +required
+	LabelSelector metav1.LabelSelector `json:"labelSelector"`
+
+	// topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
+	// `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+	//
+	// In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	TopologyKey string `json:"topologyKey"`
 }
 
 // PolicyRef identifies an optional infrastructure policy to specify for the virtual machine by name and kind.

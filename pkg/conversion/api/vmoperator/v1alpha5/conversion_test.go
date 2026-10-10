@@ -55,6 +55,9 @@ func TestFuzzyConversion(t *testing.T) {
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineGroup{},
 		Spoke:     &vmoprv1alpha5.VirtualMachineGroup{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{
+			virtualMachineGroupFuncs,
+		},
 	}))
 	t.Run("for VirtualMachineImage", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
@@ -85,6 +88,19 @@ func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVirtualMachineNetworkSpec,
 		hubVirtualMachineNetworkInterfaceSpec,
+		hubVirtualMachineAffinitySpec,
+	}
+}
+
+func hubVirtualMachineAffinitySpec(in *vmoprvhub.AffinitySpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// RequiredDuringSchedulingRequiredDuringExecution exists in hub and v1alpha6 but not in v1alpha5; zero it so the
+	// hub-spoke-hub round-trip test does not report spurious data loss.
+	if in.VMAffinity != nil {
+		in.VMAffinity.RequiredDuringSchedulingRequiredDuringExecution = nil
+	}
+	if in.VMAntiAffinity != nil {
+		in.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = nil
 	}
 }
 
@@ -115,4 +131,15 @@ func hubVirtualMachineNetworkSpec(in *vmoprvhub.VirtualMachineNetworkSpec, c ran
 	// VLANs exists in hub and v1alpha6 but not in v1alpha5; zero it so the
 	// hub-spoke-hub round-trip test does not report spurious data loss.
 	in.VLANs = nil
+}
+
+func virtualMachineGroupFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVirtualMachineGroupBootOrderGroup,
+	}
+}
+
+func hubVirtualMachineGroupBootOrderGroup(in *vmoprvhub.VirtualMachineGroupBootOrderGroup, c randfill.Continue) {
+	c.FillNoCustom(in)
+	in.PowerOffDelay = nil
 }

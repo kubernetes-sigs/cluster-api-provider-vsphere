@@ -104,3 +104,7 @@ To create this custom cluster, use `clusterctl generate cluster --from="<cluster
 ## Testing e2e
 
 See the [e2e docs](../test/e2e/README.md)
+
+## Staging and nightly images
+
+If you want to try the latest merged code without building images yourself, CAPV publishes post-submit and nightly artifacts. See [staging and nightly images](nightly.md).

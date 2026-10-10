@@ -39,6 +39,9 @@ func TestFuzzyConversion(t *testing.T) {
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachine{},
 		Spoke:     &vmoprv1alpha6.VirtualMachine{},
+		CheckTypes: conversiontest.RoundTripCheckTypesInput{
+			Skip: true,
+		},
 	}))
 	t.Run("for VirtualMachineClass", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,

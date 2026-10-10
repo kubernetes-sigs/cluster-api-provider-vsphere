@@ -50,6 +50,11 @@ const (
 	// alpha: v1.15
 	NodeAutoPlacement featuregate.Feature = "NodeAutoPlacement"
 
+	// WorkerStrictAntiAffinity is a feature gate for the WorkerStrictAntiAffinity functionality for supervisor.
+	//
+	// alpha: v1.18
+	WorkerStrictAntiAffinity featuregate.Feature = "WorkerStrictAntiAffinity"
+
 	// ClusterNetworkProvider is a feature gate for the per-cluster network provider functionality
 	// for supervisor. When enabled, the network provider is resolved per-cluster from
 	// VSphereCluster.spec.network.provider instead of the static --network-provider flag.
@@ -143,6 +148,9 @@ var (
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 		// Features depending on vm-operator v1alpha6.
+		WorkerStrictAntiAffinity: {
+			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
 		IPv6DualStack: {
 			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},

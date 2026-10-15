@@ -62,7 +62,7 @@ type VSphereMachineVolume struct {
 	Removable *bool `json:"removable,omitempty"`
 	// readOnly attaches the volume read-only
 	// +optional
-	ReadOnly bool `json:"readOnly,omitempty"`
+	ReadOnly *bool `json:"readOnly,omitempty"`
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.

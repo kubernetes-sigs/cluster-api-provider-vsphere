@@ -664,7 +664,7 @@ func TestVSphereMachineTemplate_ValidateVolumeControllerParametersFeatureGate(t 
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, tc.featureGate)
-			webhook := &VSphereMachineTemplate{}
+			webhook := &VSphereMachineTemplate{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 			obj := &vmwarev1.VSphereMachineTemplate{
 				Spec: vmwarev1.VSphereMachineTemplateSpec{
 					Template: vmwarev1.VSphereMachineTemplateResource{

@@ -129,17 +129,19 @@ var (
 		// FeatureDependingOnV1alpha6: {
 		// 	{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		// },
+		// Features depending on vm-operator v1alpha5.
 		InfrastructurePolicies: {
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
+		VolumeControllerParameters: {
+			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
+		// Features depending on vm-operator v1alpha6.
 		IPv6DualStack: {
 			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 		VLANSubinterface: {
 			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
-		},
-		VolumeControllerParameters: {
-			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 	}
 )

@@ -26,6 +26,50 @@ import (
 	"sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
+// VolumeApplicationType describes the type of application the volume is intended for
+// +kubebuilder:validation:Enum=OracleRAC;MicrosoftWSFC
+type VolumeApplicationType string
+
+// Supported values for VolumeApplicationType.
+const (
+	VolumeApplicationTypeOracleRAC     VolumeApplicationType = "OracleRAC"
+	VolumeApplicationTypeMicrosoftWSFC VolumeApplicationType = "MicrosoftWSFC"
+)
+
+// VirtualControllerType describe the type of controller the volume will be attached to
+// +kubebuilder:validation:Enum=IDE;NVME;SCSI;SATA
+type VirtualControllerType string
+
+// Supported values for VirtualControllerType.
+const (
+	VirtualControllerTypeIDE  VirtualControllerType = "IDE"
+	VirtualControllerTypeNVME VirtualControllerType = "NVME"
+	VirtualControllerTypeSCSI VirtualControllerType = "SCSI"
+	VirtualControllerTypeSATA VirtualControllerType = "SATA"
+)
+
+// VolumeDiskMode describes whether the disk is persistent/independent
+// +kubebuilder:validation:Enum=IndependentNonPersistent;IndependentPersistent;NonPersistent;Persistent
+type VolumeDiskMode string
+
+// Supported values for VolumeDiskMode.
+const (
+	VolumeDiskModeIndependentNonPersistent VolumeDiskMode = "IndependentNonPersistent"
+	VolumeDiskModeIndependentPersistent    VolumeDiskMode = "IndependentPersistent"
+	VolumeDiskModeNonPersistent            VolumeDiskMode = "NonPersistent"
+	VolumeDiskModePersistent               VolumeDiskMode = "Persistent"
+)
+
+// VolumeSharingMode describes whether the volume is shared with multiple writers or is not shared
+// +kubebuilder:validation:Enum=MultiWriter;None
+type VolumeSharingMode string
+
+// Supported values for VolumeSharingMode.
+const (
+	VolumeSharingModeMultiWriter VolumeSharingMode = "MultiWriter"
+	VolumeSharingModeNone        VolumeSharingMode = "None"
+)
+
 // VSphereMachineVolume defines a PVC attachment.
 type VSphereMachineVolume struct {
 	// name is the suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
@@ -44,6 +88,42 @@ type VSphereMachineVolume struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	StorageClass string `json:"storageClass,omitempty"`
+
+	// applicationType describes the type of application the volume is intended for
+	// +optional
+	ApplicationType VolumeApplicationType `json:"applicationType,omitempty"`
+
+	// controllerType is the type of controller the volume should be attached to
+	// +optional
+	ControllerType VirtualControllerType `json:"controllerType,omitempty"`
+
+	// controllerBusNumber is the bus number of the controller (min and max vary
+	// depending on bus type)
+	// +optional
+	ControllerBusNumber *int32 `json:"controllerBusNumber,omitempty"`
+
+	// diskMode is the mode to use when attaching the volume
+	// +optional
+	DiskMode VolumeDiskMode `json:"diskMode,omitempty"`
+
+	// sharingMode is the volume's sharing mode
+	// +optional
+	SharingMode VolumeSharingMode `json:"sharingMode,omitempty"`
+
+	// unitNumber is the unit number for attaching the volume to the storage
+	// controller; must be unique per controller; 7 is invalid for SCSI
+	// +optional
+	UnitNumber *int32 `json:"unitNumber,omitempty"`
+
+	// removable describes whether the volume may be removed from spec.volumes
+	// Defaults to true
+	// +optional
+	Removable *bool `json:"removable,omitempty"`
+
+	// readOnly attaches the volume read-only
+	// Defaults to false
+	// +optional
+	ReadOnly *bool `json:"readOnly,omitempty"`
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.

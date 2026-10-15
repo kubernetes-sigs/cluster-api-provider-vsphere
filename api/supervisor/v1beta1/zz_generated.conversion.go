@@ -1305,7 +1305,17 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1beta2_VSphereMachineSpec(in *VS
 	out.ImageName = in.ImageName
 	out.ClassName = in.ClassName
 	out.StorageClass = in.StorageClass
-	out.Volumes = *(*[]v1beta2.VSphereMachineVolume)(unsafe.Pointer(&in.Volumes))
+	if in.Volumes != nil {
+		in, out := &in.Volumes, &out.Volumes
+		*out = make([]v1beta2.VSphereMachineVolume, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_VSphereMachineVolume_To_v1beta2_VSphereMachineVolume(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Volumes = nil
+	}
 	out.Policies = *(*[]v1beta2.PolicyRef)(unsafe.Pointer(&in.Policies))
 	if err := Convert_v1beta1_VSphereMachineNetworkSpec_To_v1beta2_VSphereMachineNetworkSpec(&in.Network, &out.Network, s); err != nil {
 		return err
@@ -1323,7 +1333,17 @@ func autoConvert_v1beta2_VSphereMachineSpec_To_v1beta1_VSphereMachineSpec(in *v1
 	out.ImageName = in.ImageName
 	out.ClassName = in.ClassName
 	out.StorageClass = in.StorageClass
-	out.Volumes = *(*[]VSphereMachineVolume)(unsafe.Pointer(&in.Volumes))
+	if in.Volumes != nil {
+		in, out := &in.Volumes, &out.Volumes
+		*out = make([]VSphereMachineVolume, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_VSphereMachineVolume_To_v1beta1_VSphereMachineVolume(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Volumes = nil
+	}
 	if err := Convert_v1beta2_VSphereMachineNetworkSpec_To_v1beta1_VSphereMachineNetworkSpec(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
@@ -1519,7 +1539,19 @@ func autoConvert_v1beta2_VSphereMachineTemplateStatus_To_v1beta1_VSphereMachineT
 }
 
 func autoConvert_v1beta1_VSphereMachineVolume_To_v1beta2_VSphereMachineVolume(in *VSphereMachineVolume, out *v1beta2.VSphereMachineVolume, s conversion.Scope) error {
-	*out = *(*v1beta2.VSphereMachineVolume)(unsafe.Pointer(in))
+	out.Name = in.Name
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.StorageClass = in.StorageClass
+	out.ApplicationType = v1beta2.VolumeApplicationType(in.ApplicationType)
+	out.ControllerType = v1beta2.VirtualControllerType(in.ControllerType)
+	out.ControllerBusNumber = (*int32)(unsafe.Pointer(in.ControllerBusNumber))
+	out.DiskMode = v1beta2.VolumeDiskMode(in.DiskMode)
+	out.SharingMode = in.SharingMode
+	out.UnitNumber = (*int32)(unsafe.Pointer(in.UnitNumber))
+	out.Removable = (*bool)(unsafe.Pointer(in.Removable))
+	if err := v1.Convert_bool_To_Pointer_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1529,7 +1561,19 @@ func Convert_v1beta1_VSphereMachineVolume_To_v1beta2_VSphereMachineVolume(in *VS
 }
 
 func autoConvert_v1beta2_VSphereMachineVolume_To_v1beta1_VSphereMachineVolume(in *v1beta2.VSphereMachineVolume, out *VSphereMachineVolume, s conversion.Scope) error {
-	*out = *(*VSphereMachineVolume)(unsafe.Pointer(in))
+	out.Name = in.Name
+	out.Capacity = *(*corev1.ResourceList)(unsafe.Pointer(&in.Capacity))
+	out.StorageClass = in.StorageClass
+	out.ApplicationType = string(in.ApplicationType)
+	out.ControllerType = string(in.ControllerType)
+	out.ControllerBusNumber = (*int32)(unsafe.Pointer(in.ControllerBusNumber))
+	out.DiskMode = string(in.DiskMode)
+	out.SharingMode = in.SharingMode
+	out.UnitNumber = (*int32)(unsafe.Pointer(in.UnitNumber))
+	out.Removable = (*bool)(unsafe.Pointer(in.Removable))
+	if err := v1.Convert_Pointer_bool_To_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
+		return err
+	}
 	return nil
 }
 

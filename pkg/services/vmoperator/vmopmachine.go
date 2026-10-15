@@ -871,7 +871,7 @@ func addVolume(vm *vmoprvhub.VirtualMachine, name string, source vmwarev1.VSpher
 		// Update the fields CAPV manages in place. InstanceVolumeClaim and any
 		// controller parameter left unset on the VSphereMachine volume are
 		// preserved as-is.
-		claim.ReadOnly = source.ReadOnly
+		claim.ReadOnly = ptr.Deref(source.ReadOnly, false)
 
 		if volumeControllerParametersEnabled {
 			if source.ControllerBusNumber != nil {
@@ -910,7 +910,7 @@ func addVolume(vm *vmoprvhub.VirtualMachine, name string, source vmwarev1.VSpher
 			PersistentVolumeClaim: &vmoprvhub.PersistentVolumeClaimVolumeSource{
 				PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 					ClaimName: name,
-					ReadOnly:  source.ReadOnly,
+					ReadOnly:  ptr.Deref(source.ReadOnly, false),
 				},
 			},
 		},

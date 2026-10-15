@@ -70,6 +70,13 @@ const (
 	// alpha: v1.17
 	InfrastructurePolicies featuregate.Feature = "InfrastructurePolicies"
 
+	// VolumeControllerParameters is a feature gate for setting volume parameters such as
+	// controller bus number, unit number, etc. when attaching VSphereMachine volumes.
+	// Requires vm-operator v1alpha5 or later on the supervisor.
+	//
+	// alpha: v1.18
+	VolumeControllerParameters featuregate.Feature = "VolumeControllerParameters"
+
 	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
 	// instead of the default queue implementation.
 	//
@@ -93,13 +100,6 @@ const (
 	//
 	// alpha: v1.17
 	VLANSubinterface featuregate.Feature = "VLANSubinterface"
-
-	// VolumeControllerParameters is a feature gate for setting volume parameters such as
-	// controller bus number, unit number, etc. when attaching VSphereMachine volumes.
-	// Requires vm-operator v1alpha5 or later on the supervisor.
-	//
-	// alpha: v1.17
-	VolumeControllerParameters featuregate.Feature = "VolumeControllerParameters"
 )
 
 var (

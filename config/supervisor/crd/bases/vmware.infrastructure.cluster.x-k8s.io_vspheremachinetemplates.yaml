@@ -964,8 +964,9 @@ spec:
                               description: capacity is the PVC capacity
                               type: object
                             controllerBusNumber:
-                              description: controllerBusNumber is the bus number of
-                                the controller
+                              description: |-
+                                controllerBusNumber is the bus number of the controller (min and max vary
+                                depending on bus type)
                               format: int32
                               type: integer
                             controllerType:
@@ -994,11 +995,14 @@ spec:
                               minLength: 1
                               type: string
                             readOnly:
-                              description: readOnly attaches the volume read-only
+                              description: |-
+                                readOnly attaches the volume read-only
+                                Defaults to false
                               type: boolean
                             removable:
-                              description: removable describes whether the volume
-                                may be removed from spec.volumes
+                              description: |-
+                                removable describes whether the volume may be removed from spec.volumes
+                                Defaults to true
                               type: boolean
                             sharingMode:
                               description: sharingMode is the volume's sharing mode

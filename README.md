@@ -154,7 +154,7 @@ on the repository having the prefix `templates/` and taking a look at the availa
 
 ## Documentation
 
-Further documentation is available in the `/docs` directory.
+Further documentation is available in the `/docs` directory, including how to [consume staging and nightly images](./docs/nightly.md).
 
 [vSphere Custom Resource Definitions][vsphere_custom_resource_definitions]
 

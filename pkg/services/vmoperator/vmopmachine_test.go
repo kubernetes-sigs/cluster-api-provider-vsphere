@@ -711,7 +711,7 @@ var _ = Describe("VirtualMachine tests", func() {
 					ControllerBusNumber: ptr.To(int32(0)),
 					UnitNumber:          ptr.To(int32(1)),
 					Removable:           ptr.To(true),
-					ReadOnly:            true,
+					ReadOnly:            ptr.To(true),
 				},
 				{
 					Name: "containerd",
@@ -738,7 +738,7 @@ var _ = Describe("VirtualMachine tests", func() {
 						PersistentVolumeClaim: &vmoprv1alpha5.PersistentVolumeClaimVolumeSource{
 							PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 								ClaimName: name,
-								ReadOnly:  volume.ReadOnly,
+								ReadOnly:  ptr.Deref(volume.ReadOnly, false),
 							},
 						},
 					},
@@ -1553,7 +1553,7 @@ func Test_addVolume(t *testing.T) {
 			UnitNumber:          ptr.To(int32(5)),
 			Removable:           ptr.To(true),
 			ControllerType:      "NVME",
-			ReadOnly:            true,
+			ReadOnly:            ptr.To(true),
 		}
 
 		addVolume(vm, "test-pvc", source)
@@ -1579,6 +1579,7 @@ func Test_addVolume(t *testing.T) {
 			ControllerBusNumber: ptr.To(int32(9)),
 			UnitNumber:          ptr.To(int32(9)),
 			Removable:           ptr.To(true),
+			ReadOnly:            ptr.To(true),
 		}
 
 		addVolume(vm, "test-pvc", source)
@@ -1587,6 +1588,29 @@ func Test_addVolume(t *testing.T) {
 		g.Expect(vm.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
 		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
 		g.Expect(vm.Spec.Volumes[0].Removable).To(Equal(ptr.To(false)))
+		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeFalse())
+	})
+
+	t.Run("does not set ReadOnly on a new volume when the feature gate is disabled", func(t *testing.T) {
+		g := NewWithT(t)
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, false)
+
+		vm := &vmoprvhub.VirtualMachine{}
+		addVolume(vm, "new-pvc", vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: ptr.To(true)})
+
+		g.Expect(vm.Spec.Volumes).To(HaveLen(1))
+		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeFalse())
+	})
+
+	t.Run("sets ReadOnly on a new volume when the feature gate is enabled", func(t *testing.T) {
+		g := NewWithT(t)
+		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, true)
+
+		vm := &vmoprvhub.VirtualMachine{}
+		addVolume(vm, "new-pvc", vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: ptr.To(true)})
+
+		g.Expect(vm.Spec.Volumes).To(HaveLen(1))
+		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeTrue())
 	})
 
 	t.Run("appends a new volume when no existing entry matches the claim name", func(t *testing.T) {

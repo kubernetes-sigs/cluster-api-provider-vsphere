@@ -316,9 +316,10 @@ func validateVolumes(volumes []vmwarev1.VSphereMachineVolume, fldPath *field.Pat
 	var allErrs field.ErrorList
 	for i, volume := range volumes {
 		if volume.ApplicationType != "" || volume.ControllerType != "" || volume.ControllerBusNumber != nil ||
-			volume.DiskMode != "" || volume.SharingMode != "" || volume.UnitNumber != nil || volume.Removable != nil {
+			volume.DiskMode != "" || volume.SharingMode != "" || volume.UnitNumber != nil || volume.Removable != nil ||
+			volume.ReadOnly != nil {
 			allErrs = append(allErrs, field.Forbidden(fldPath.Index(i),
-				"applicationType, controllerType, controllerBusNumber, diskMode, sharingMode, unitNumber and removable can only be set when feature gate VolumeControllerParameters is enabled"))
+				"applicationType, controllerType, controllerBusNumber, diskMode, sharingMode, unitNumber, removable and readOnly can only be set when feature gate VolumeControllerParameters is enabled"))
 		}
 	}
 	return allErrs

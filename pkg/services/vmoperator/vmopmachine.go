@@ -868,12 +868,13 @@ func addVolume(vm *vmoprvhub.VirtualMachine, name string, source vmwarev1.VSpher
 			continue
 		}
 
-		// Update the fields CAPV manages in place. InstanceVolumeClaim and any
-		// controller parameter left unset on the VSphereMachine volume are
-		// preserved as-is.
-		claim.ReadOnly = ptr.Deref(source.ReadOnly, false)
-
+		// ReadOnly and the controller parameters are only handled when the
+		// VolumeControllerParameters feature gate is enabled. InstanceVolumeClaim
+		// and any controller parameter left unset on the VSphereMachine volume are
+		// preserved as-is
 		if volumeControllerParametersEnabled {
+			claim.ReadOnly = ptr.Deref(source.ReadOnly, false)
+
 			if source.ControllerBusNumber != nil {
 				vm.Spec.Volumes[i].ControllerBusNumber = source.ControllerBusNumber
 			}
@@ -910,7 +911,6 @@ func addVolume(vm *vmoprvhub.VirtualMachine, name string, source vmwarev1.VSpher
 			PersistentVolumeClaim: &vmoprvhub.PersistentVolumeClaimVolumeSource{
 				PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
 					ClaimName: name,
-					ReadOnly:  ptr.Deref(source.ReadOnly, false),
 				},
 			},
 		},
@@ -920,6 +920,7 @@ func addVolume(vm *vmoprvhub.VirtualMachine, name string, source vmwarev1.VSpher
 	// vm-operator v1alpha5+ and are only handled when the VolumeControllerParameters
 	// feature gate is enabled.
 	if volumeControllerParametersEnabled {
+		desired.PersistentVolumeClaim.ReadOnly = ptr.Deref(source.ReadOnly, false)
 		desired.ControllerBusNumber = source.ControllerBusNumber
 		desired.UnitNumber = source.UnitNumber
 		desired.Removable = source.Removable

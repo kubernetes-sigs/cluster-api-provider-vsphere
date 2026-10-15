@@ -1546,7 +1546,7 @@ func autoConvert_v1beta1_VSphereMachineVolume_To_v1beta2_VSphereMachineVolume(in
 	out.ControllerType = v1beta2.VirtualControllerType(in.ControllerType)
 	out.ControllerBusNumber = (*int32)(unsafe.Pointer(in.ControllerBusNumber))
 	out.DiskMode = v1beta2.VolumeDiskMode(in.DiskMode)
-	out.SharingMode = in.SharingMode
+	out.SharingMode = v1beta2.VolumeSharingMode(in.SharingMode)
 	out.UnitNumber = (*int32)(unsafe.Pointer(in.UnitNumber))
 	out.Removable = (*bool)(unsafe.Pointer(in.Removable))
 	if err := v1.Convert_bool_To_Pointer_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
@@ -1568,7 +1568,7 @@ func autoConvert_v1beta2_VSphereMachineVolume_To_v1beta1_VSphereMachineVolume(in
 	out.ControllerType = string(in.ControllerType)
 	out.ControllerBusNumber = (*int32)(unsafe.Pointer(in.ControllerBusNumber))
 	out.DiskMode = string(in.DiskMode)
-	out.SharingMode = in.SharingMode
+	out.SharingMode = string(in.SharingMode)
 	out.UnitNumber = (*int32)(unsafe.Pointer(in.UnitNumber))
 	out.Removable = (*bool)(unsafe.Pointer(in.Removable))
 	if err := v1.Convert_Pointer_bool_To_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {

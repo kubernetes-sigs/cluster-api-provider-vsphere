@@ -26,19 +26,21 @@ import (
 	"sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
-// volumeApplicationType describes the type of application the volume is intended for
-// +optional
+// VolumeApplicationType describes the type of application the volume is intended for
 // +kubebuilder:validation:Enum=OracleRAC;MicrosoftWSFC
 type VolumeApplicationType string
 
+// Supported values for VolumeApplicationType.
 const (
 	VolumeApplicationTypeOracleRAC     VolumeApplicationType = "OracleRAC"
 	VolumeApplicationTypeMicrosoftWSFC VolumeApplicationType = "MicrosoftWSFC"
 )
 
+// VirtualControllerType describe the type of controller the volume will be attached to
 // +kubebuilder:validation:Enum=IDE;NVME;SCSI;SATA
 type VirtualControllerType string
 
+// Supported values for VirtualControllerType.
 const (
 	VirtualControllerTypeIDE  VirtualControllerType = "IDE"
 	VirtualControllerTypeNVME VirtualControllerType = "NVME"
@@ -46,10 +48,11 @@ const (
 	VirtualControllerTypeSATA VirtualControllerType = "SATA"
 )
 
+// VolumeDiskMode describes whether the disk is persistent/independent
 // +kubebuilder:validation:Enum=IndependentNonPersistent;IndependentPersistent;NonPersistent;Persistent
-
 type VolumeDiskMode string
 
+// Supported values for VolumeDiskMode.
 const (
 	VolumeDiskModeIndependentNonPersistent VolumeDiskMode = "IndependentNonPersistent"
 	VolumeDiskModeIndependentPersistent    VolumeDiskMode = "IndependentPersistent"
@@ -57,9 +60,11 @@ const (
 	VolumeDiskModePersistent               VolumeDiskMode = "Persistent"
 )
 
+// VolumeSharingMode describes whether the volume is shared with multiple writers or is not shared
 // +kubebuilder:validation:Enum=MultiWriter;None
 type VolumeSharingMode string
 
+// Supported values for VolumeSharingMode.
 const (
 	VolumeSharingModeMultiWriter VolumeSharingMode = "MultiWriter"
 	VolumeSharingModeNone        VolumeSharingMode = "None"

@@ -13,8 +13,8 @@ replace (
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20250826165015-90a4bb21727b
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20260603231928-46d6f2c0092e
-	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20260603231928-46d6f2c0092e
+	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20261009145046-ca004a72d870
+	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20260915220631-04b255bd3809
 	github.com/vmware/govmomi v0.56.0
 )
 
@@ -151,7 +151,7 @@ require (
 	github.com/spf13/viper v1.21.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
-	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260603231928-46d6f2c0092e // indirect
+	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260915220631-04b255bd3809 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.7.1 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.7.1 // indirect

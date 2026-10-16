@@ -22,6 +22,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
@@ -998,5 +1000,218 @@ func TestVSphereMachine_ValidateUpdate_VLANs(t *testing.T) {
 
 	webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.NSXVPCNetworkProvider)}
 	_, err := webhook.ValidateUpdate(context.Background(), oldVSphereMachine, newVSphereMachine)
+	g.Expect(err).NotTo(HaveOccurred())
+}
+
+func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
+	tests := []struct {
+		name        string
+		featureGate bool
+		affinity    *vmwarev1.Affinity
+		wantErr     bool
+		errMsg      string
+	}{
+		{
+			name:        "affinity nil when feature gate disabled",
+			featureGate: false,
+			affinity:    nil,
+			wantErr:     false,
+		},
+		{
+			name:        "affinity set when feature gate disabled",
+			featureGate: false,
+			affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: corev1.LabelHostname,
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "affinity can only be set when feature gate WorkerStrictAntiAffinity is enabled",
+		},
+		{
+			name:        "affinity with valid hostname topologyKey in RequiredDuringSchedulingRequiredDuringExecution",
+			featureGate: true,
+			affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					RequiredDuringSchedulingRequiredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: corev1.LabelHostname,
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:        "affinity with valid hostname topologyKey in RequiredDuringSchedulingPreferredDuringExecution",
+			featureGate: true,
+			affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					RequiredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: corev1.LabelHostname,
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:        "affinity with valid hostname topologyKey in PreferredDuringSchedulingPreferredDuringExecution",
+			featureGate: true,
+			affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: corev1.LabelHostname,
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:        "affinity with invalid zone topologyKey in RequiredDuringSchedulingRequiredDuringExecution",
+			featureGate: true,
+			affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					RequiredDuringSchedulingRequiredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: corev1.LabelTopologyZone,
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "topologyKey must be set to kubernetes.io/hostname",
+		},
+		{
+			name:        "affinity with invalid zone topologyKey in RequiredDuringSchedulingPreferredDuringExecution",
+			featureGate: true,
+			affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					RequiredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: "topology.kubernetes.io/zone",
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "topologyKey must be set to kubernetes.io/hostname",
+		},
+		{
+			name:        "affinity with invalid zone topologyKey in PreferredDuringSchedulingPreferredDuringExecution",
+			featureGate: true,
+			affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: corev1.LabelTopologyZone,
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "topologyKey must be set to kubernetes.io/hostname",
+		},
+		{
+			name:        "affinity with non-host topologyKey",
+			featureGate: true,
+			affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: "custom-rack",
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "topologyKey must be set to kubernetes.io/hostname",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.WorkerStrictAntiAffinity, tc.featureGate)
+			webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
+			obj := &vmwarev1.VSphereMachine{
+				Spec: vmwarev1.VSphereMachineSpec{
+					Affinity: tc.affinity,
+				},
+			}
+
+			_, err := webhook.ValidateCreate(context.Background(), obj)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring(tc.errMsg))
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestVSphereMachine_ValidateUpdate_Affinity(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.WorkerStrictAntiAffinity, true)
+	g := NewWithT(t)
+
+	oldMachine := &vmwarev1.VSphereMachine{
+		Spec: vmwarev1.VSphereMachineSpec{
+			Affinity: &vmwarev1.Affinity{
+				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
+					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						{
+							TopologyKey: corev1.LabelHostname,
+							LabelSelector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	newMachine := oldMachine.DeepCopy()
+	newMachine.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution[0].TopologyKey = "different"
+
+	webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
+	_, err := webhook.ValidateUpdate(context.Background(), oldMachine, newMachine)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("cannot be modified"))
+
+	// Unchanged affinity should succeed
+	_, err = webhook.ValidateUpdate(context.Background(), oldMachine, oldMachine.DeepCopy())
 	g.Expect(err).NotTo(HaveOccurred())
 }

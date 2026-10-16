@@ -127,7 +127,7 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.22.0
+CONTROLLER_GEN_VER := v0.23.0
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -319,7 +319,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=./api/govmomi/v1beta1 \
 		paths=./api/govmomi/v1beta2 \
 		paths=./internal/webhooks \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=$(CRD_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook
@@ -336,7 +336,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/supervisor/v1beta1 \
 		paths=./api/supervisor/v1beta2 \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=$(SUPERVISOR_CRD_ROOT)
 	# net-operator is used for tests
 	$(CONTROLLER_GEN) \
@@ -352,7 +352,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	# vcsim crds are used for tests.
 	$(CONTROLLER_GEN) \
 		paths=./$(VCSIM_DIR)/api/v1alpha1 \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=$(VCSIM_CRD_ROOT)
 	$(CONTROLLER_GEN) \
 		paths=./$(VCSIM_DIR)/ \

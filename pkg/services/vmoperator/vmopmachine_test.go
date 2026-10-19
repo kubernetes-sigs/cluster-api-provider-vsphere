@@ -1526,10 +1526,13 @@ func Test_addVolume(t *testing.T) {
 								},
 							},
 						},
+						ApplicationType:     vmoprvhub.VolumeApplicationTypeOracleRAC,
+						ControllerType:      vmoprvhub.VirtualControllerTypeSCSI,
 						ControllerBusNumber: ptr.To(int32(0)),
 						UnitNumber:          ptr.To(int32(1)),
+						DiskMode:            vmoprvhub.VolumeDiskModePersistent,
+						SharingMode:         vmoprvhub.VolumeSharingModeMultiWriter,
 						Removable:           ptr.To(false),
-						ControllerType:      vmoprvhub.VirtualControllerTypeSCSI,
 					},
 				},
 			},
@@ -1550,6 +1553,9 @@ func Test_addVolume(t *testing.T) {
 		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
 		g.Expect(vm.Spec.Volumes[0].Removable).To(Equal(ptr.To(false)))
 		g.Expect(vm.Spec.Volumes[0].ControllerType).To(Equal(vmoprvhub.VirtualControllerTypeSCSI))
+		g.Expect(vm.Spec.Volumes[0].ApplicationType).To(Equal(vmoprvhub.VolumeApplicationTypeOracleRAC))
+		g.Expect(vm.Spec.Volumes[0].DiskMode).To(Equal(vmoprvhub.VolumeDiskModePersistent))
+		g.Expect(vm.Spec.Volumes[0].SharingMode).To(Equal(vmoprvhub.VolumeSharingModeMultiWriter))
 	})
 
 	t.Run("overrides existing controller parameters when the VSphereMachine volume sets them explicitly", func(t *testing.T) {
@@ -1604,6 +1610,10 @@ func Test_addVolume(t *testing.T) {
 		g.Expect(vm.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
 		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
 		g.Expect(vm.Spec.Volumes[0].Removable).To(Equal(ptr.To(false)))
+		g.Expect(vm.Spec.Volumes[0].ControllerType).To(Equal(vmoprvhub.VirtualControllerTypeSCSI))
+		g.Expect(vm.Spec.Volumes[0].ApplicationType).To(Equal(vmoprvhub.VolumeApplicationTypeOracleRAC))
+		g.Expect(vm.Spec.Volumes[0].DiskMode).To(Equal(vmoprvhub.VolumeDiskModePersistent))
+		g.Expect(vm.Spec.Volumes[0].SharingMode).To(Equal(vmoprvhub.VolumeSharingModeMultiWriter))
 		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeFalse())
 
 		// Set ReadOnly and verify that it does not get applied while the feature gate is disabled.

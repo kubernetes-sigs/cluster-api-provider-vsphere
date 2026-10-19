@@ -26,6 +26,50 @@ import (
 	"sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
+// VolumeApplicationType describes the type of application the volume is intended for
+// +kubebuilder:validation:Enum=OracleRAC;MicrosoftWSFC
+type VolumeApplicationType string
+
+// Supported values for VolumeApplicationType.
+const (
+	VolumeApplicationTypeOracleRAC     VolumeApplicationType = "OracleRAC"
+	VolumeApplicationTypeMicrosoftWSFC VolumeApplicationType = "MicrosoftWSFC"
+)
+
+// VirtualControllerType describe the type of controller the volume will be attached to
+// +kubebuilder:validation:Enum=IDE;NVME;SCSI;SATA
+type VirtualControllerType string
+
+// Supported values for VirtualControllerType.
+const (
+	VirtualControllerTypeIDE  VirtualControllerType = "IDE"
+	VirtualControllerTypeNVME VirtualControllerType = "NVME"
+	VirtualControllerTypeSCSI VirtualControllerType = "SCSI"
+	VirtualControllerTypeSATA VirtualControllerType = "SATA"
+)
+
+// VolumeDiskMode describes whether the disk is persistent/independent
+// +kubebuilder:validation:Enum=IndependentNonPersistent;IndependentPersistent;NonPersistent;Persistent
+type VolumeDiskMode string
+
+// Supported values for VolumeDiskMode.
+const (
+	VolumeDiskModeIndependentNonPersistent VolumeDiskMode = "IndependentNonPersistent"
+	VolumeDiskModeIndependentPersistent    VolumeDiskMode = "IndependentPersistent"
+	VolumeDiskModeNonPersistent            VolumeDiskMode = "NonPersistent"
+	VolumeDiskModePersistent               VolumeDiskMode = "Persistent"
+)
+
+// VolumeSharingMode describes whether the volume is shared with multiple writers or is not shared
+// +kubebuilder:validation:Enum=MultiWriter;None
+type VolumeSharingMode string
+
+// Supported values for VolumeSharingMode.
+const (
+	VolumeSharingModeMultiWriter VolumeSharingMode = "MultiWriter"
+	VolumeSharingModeNone        VolumeSharingMode = "None"
+)
+
 // VSphereMachineVolume defines a PVC attachment.
 type VSphereMachineVolume struct {
 	// name is suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
@@ -37,30 +81,32 @@ type VSphereMachineVolume struct {
 	StorageClass string `json:"storageClass,omitempty"`
 	// applicationType describes the type of application the volume is intended for
 	// +optional
-	// +kubebuilder:validation:Enum=OracleRAC;MicrosoftWSFC
-	ApplicationType string `json:"applicationType,omitempty"`
+	ApplicationType VolumeApplicationType `json:"applicationType,omitempty"`
 	// controllerType is the type of controller the volume should be attached to
 	// +optional
-	// +kubebuilder:validation:Enum=IDE;NVME;SCSI;SATA
-	ControllerType string `json:"controllerType,omitempty"`
-	// controllerBusNumber is the bus number of the controller
+	ControllerType VirtualControllerType `json:"controllerType,omitempty"`
+	// controllerBusNumber is the bus number of the controller (min and max vary
+	// depending on bus type)
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	ControllerBusNumber *int32 `json:"controllerBusNumber,omitempty"`
 	// diskMode is the mode to use when attaching the volume
 	// +optional
-	// +kubebuilder:validation:Enum=IndependentNonPersistent;IndependentPersistent;NonPersistent;Persistent
-	DiskMode string `json:"diskMode,omitempty"`
+	DiskMode VolumeDiskMode `json:"diskMode,omitempty"`
 	// sharingMode is the volume's sharing mode
 	// +optional
-	// +kubebuilder:validation:Enum=MultiWriter;None
-	SharingMode string `json:"sharingMode,omitempty"`
-	// unitNumber is the unit number for attaching the volume to the storage controller; must be unique per controller; 7 invalid for SCSI
+	SharingMode VolumeSharingMode `json:"sharingMode,omitempty"`
+	// unitNumber is the unit number for attaching the volume to the storage
+	// controller; must be unique per controller; 7 is invalid for SCSI
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	UnitNumber *int32 `json:"unitNumber,omitempty"`
 	// removable describes whether the volume may be removed from spec.volumes
+	// Defaults to true
 	// +optional
 	Removable *bool `json:"removable,omitempty"`
 	// readOnly attaches the volume read-only
+	// Defaults to false
 	// +optional
 	ReadOnly *bool `json:"readOnly,omitempty"`
 }

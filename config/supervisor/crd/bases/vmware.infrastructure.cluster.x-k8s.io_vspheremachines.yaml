@@ -430,8 +430,11 @@ spec:
                       description: capacity is the PVC capacity
                       type: object
                     controllerBusNumber:
-                      description: controllerBusNumber is the bus number of the controller
+                      description: |-
+                        controllerBusNumber is the bus number of the controller (min and max vary
+                        depending on bus type)
                       format: int32
+                      minimum: 0
                       type: integer
                     controllerType:
                       description: controllerType is the type of controller the volume
@@ -456,11 +459,14 @@ spec:
                         + "-" + Name'
                       type: string
                     readOnly:
-                      description: readOnly attaches the volume read-only
+                      description: |-
+                        readOnly attaches the volume read-only
+                        Defaults to false
                       type: boolean
                     removable:
-                      description: removable describes whether the volume may be removed
-                        from spec.volumes
+                      description: |-
+                        removable describes whether the volume may be removed from spec.volumes
+                        Defaults to true
                       type: boolean
                     sharingMode:
                       description: sharingMode is the volume's sharing mode
@@ -472,10 +478,11 @@ spec:
                       description: storageClass defaults to VSphereMachineSpec.StorageClass
                       type: string
                     unitNumber:
-                      description: unitNumber is the unit number for attaching the
-                        volume to the storage controller; must be unique per controller;
-                        7 invalid for SCSI
+                      description: |-
+                        unitNumber is the unit number for attaching the volume to the storage
+                        controller; must be unique per controller; 7 is invalid for SCSI
                       format: int32
+                      minimum: 0
                       type: integer
                   required:
                   - capacity

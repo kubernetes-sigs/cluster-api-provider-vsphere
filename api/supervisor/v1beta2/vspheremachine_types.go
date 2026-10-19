@@ -100,6 +100,7 @@ type VSphereMachineVolume struct {
 	// controllerBusNumber is the bus number of the controller (min and max vary
 	// depending on bus type)
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	ControllerBusNumber *int32 `json:"controllerBusNumber,omitempty"`
 
 	// diskMode is the mode to use when attaching the volume
@@ -113,6 +114,7 @@ type VSphereMachineVolume struct {
 	// unitNumber is the unit number for attaching the volume to the storage
 	// controller; must be unique per controller; 7 is invalid for SCSI
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	UnitNumber *int32 `json:"unitNumber,omitempty"`
 
 	// removable describes whether the volume may be removed from spec.volumes

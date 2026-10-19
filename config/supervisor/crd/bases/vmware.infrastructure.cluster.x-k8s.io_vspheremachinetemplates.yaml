@@ -968,6 +968,7 @@ spec:
                                 controllerBusNumber is the bus number of the controller (min and max vary
                                 depending on bus type)
                               format: int32
+                              minimum: 0
                               type: integer
                             controllerType:
                               description: controllerType is the type of controller
@@ -1020,6 +1021,7 @@ spec:
                                 unitNumber is the unit number for attaching the volume to the storage
                                 controller; must be unique per controller; 7 is invalid for SCSI
                               format: int32
+                              minimum: 0
                               type: integer
                           required:
                           - capacity

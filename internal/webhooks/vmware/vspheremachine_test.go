@@ -579,17 +579,35 @@ func TestVSphereMachine_ValidateCreate_VolumeControllerParameters(t *testing.T) 
 	tests := []struct {
 		name        string
 		featureGate bool
-		wantErr     bool
+		volume      vmwarev1.VSphereMachineVolume
+		wantErrMsg  string
 	}{
 		{
 			name:        "controller parameters set when feature gate disabled",
 			featureGate: false,
-			wantErr:     true,
+			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ControllerBusNumber: ptr.To(int32(0))},
+			wantErrMsg:  "can only be set when feature gate VolumeControllerParameters is enabled",
 		},
 		{
 			name:        "controller parameters set when feature gate enabled",
 			featureGate: true,
-			wantErr:     false,
+			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ControllerBusNumber: ptr.To(int32(0))},
+		},
+		{
+			name:        "readOnly set when feature gate disabled",
+			featureGate: false,
+			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: ptr.To(false)},
+			wantErrMsg:  "readOnly can only be set when feature gate VolumeControllerParameters is enabled",
+		},
+		{
+			name:        "readOnly set when feature gate enabled",
+			featureGate: true,
+			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: ptr.To(false)},
+		},
+		{
+			name:        "no gated fields set when feature gate disabled",
+			featureGate: false,
+			volume:      vmwarev1.VSphereMachineVolume{Name: "containerd"},
 		},
 	}
 
@@ -600,65 +618,19 @@ func TestVSphereMachine_ValidateCreate_VolumeControllerParameters(t *testing.T) 
 			webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 			obj := &vmwarev1.VSphereMachine{
 				Spec: vmwarev1.VSphereMachineSpec{
-					Volumes: []vmwarev1.VSphereMachineVolume{
-						{
-							Name:                "etcd",
-							ControllerBusNumber: ptr.To(int32(0)),
-						},
-					},
+					Volumes: []vmwarev1.VSphereMachineVolume{tc.volume},
 				},
 			}
 
 			_, err := webhook.ValidateCreate(context.Background(), obj)
-			if tc.wantErr {
+			if tc.wantErrMsg != "" {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).To(ContainSubstring("can only be set when feature gate VolumeControllerParameters is enabled"))
+				g.Expect(err.Error()).To(ContainSubstring(tc.wantErrMsg))
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
-}
-
-func TestVSphereMachine_ValidateCreate_VolumeControllerParameters_ReadOnly(t *testing.T) {
-	for _, gate := range []bool{false, true} {
-		t.Run(fmt.Sprintf("readOnly set with feature gate %t", gate), func(t *testing.T) {
-			g := NewWithT(t)
-			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, gate)
-			webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
-			obj := &vmwarev1.VSphereMachine{
-				Spec: vmwarev1.VSphereMachineSpec{
-					Volumes: []vmwarev1.VSphereMachineVolume{
-						{Name: "etcd", ReadOnly: ptr.To(false)},
-					},
-				},
-			}
-
-			_, err := webhook.ValidateCreate(context.Background(), obj)
-			if gate {
-				g.Expect(err).NotTo(HaveOccurred())
-			} else {
-				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).To(ContainSubstring("readOnly can only be set when feature gate VolumeControllerParameters is enabled"))
-			}
-		})
-	}
-}
-
-func TestVSphereMachine_ValidateCreate_VolumeControllerParameters_NoGatedFields(t *testing.T) {
-	g := NewWithT(t)
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, false)
-	webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
-	obj := &vmwarev1.VSphereMachine{
-		Spec: vmwarev1.VSphereMachineSpec{
-			Volumes: []vmwarev1.VSphereMachineVolume{
-				{Name: "containerd"},
-			},
-		},
-	}
-
-	_, err := webhook.ValidateCreate(context.Background(), obj)
-	g.Expect(err).NotTo(HaveOccurred())
 }
 
 func TestVSphereMachine_ValidateUpdate_VolumeControllerParameters(t *testing.T) {

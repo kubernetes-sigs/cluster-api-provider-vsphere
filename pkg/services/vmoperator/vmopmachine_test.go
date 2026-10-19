@@ -706,12 +706,26 @@ var _ = Describe("VirtualMachine tests", func() {
 					Capacity: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("1Gi"),
 					},
-					DiskMode:            "Persistent",
-					ControllerType:      "SCSI",
+					DiskMode:            vmwarev1.VolumeDiskModePersistent,
+					ControllerType:      vmwarev1.VirtualControllerTypeSCSI,
 					ControllerBusNumber: ptr.To(int32(0)),
 					UnitNumber:          ptr.To(int32(1)),
 					Removable:           ptr.To(true),
 					ReadOnly:            ptr.To(true),
+				},
+				{
+					Name: "oracle-rac-data",
+					Capacity: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("2Gi"),
+					},
+					ApplicationType:     vmwarev1.VolumeApplicationTypeOracleRAC,
+					DiskMode:            vmwarev1.VolumeDiskModeIndependentPersistent,
+					ControllerType:      vmwarev1.VirtualControllerTypeSCSI,
+					ControllerBusNumber: ptr.To(int32(1)),
+					UnitNumber:          ptr.To(int32(2)),
+					SharingMode:         vmwarev1.VolumeSharingModeMultiWriter,
+					Removable:           ptr.To(false),
+					ReadOnly:            ptr.To(false),
 				},
 				{
 					Name: "containerd",
@@ -728,7 +742,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("Checking that the Volumes field is set after the reconcile")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 
-			Expect(vmopVM.Spec.Volumes).To(HaveLen(2))
+			Expect(vmopVM.Spec.Volumes).To(HaveLen(3))
 
 			for i, volume := range vsphereMachine.Spec.Volumes {
 				name := volumeName(vsphereMachine, volume)
@@ -742,21 +756,13 @@ var _ = Describe("VirtualMachine tests", func() {
 							},
 						},
 					},
+					ApplicationType:     vmoprv1alpha5.VolumeApplicationType(volume.ApplicationType),
+					ControllerType:      vmoprv1alpha5.VirtualControllerType(volume.ControllerType),
 					ControllerBusNumber: volume.ControllerBusNumber,
 					UnitNumber:          volume.UnitNumber,
+					DiskMode:            vmoprv1alpha5.VolumeDiskMode(volume.DiskMode),
+					SharingMode:         vmoprv1alpha5.VolumeSharingMode(volume.SharingMode),
 					Removable:           volume.Removable,
-				}
-				if volume.ApplicationType != "" {
-					vmVolume.ApplicationType = vmoprv1alpha5.VolumeApplicationType(volume.ApplicationType)
-				}
-				if volume.ControllerType != "" {
-					vmVolume.ControllerType = vmoprv1alpha5.VirtualControllerType(volume.ControllerType)
-				}
-				if volume.DiskMode != "" {
-					vmVolume.DiskMode = vmoprv1alpha5.VolumeDiskMode(volume.DiskMode)
-				}
-				if volume.SharingMode != "" {
-					vmVolume.SharingMode = vmoprv1alpha5.VolumeSharingMode(volume.SharingMode)
 				}
 
 				Expect(vmopVM.Spec.Volumes[i]).To(BeEquivalentTo(vmVolume))
@@ -767,9 +773,13 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(vmopVM.Spec.Volumes[0].ControllerType).To(Equal(vmoprv1alpha5.VirtualControllerType("SCSI")))
 			Expect(vmopVM.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
 			Expect(vmopVM.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
-			Expect(vmopVM.Spec.Volumes[0].ApplicationType).To(BeEmpty())
 			Expect(vmopVM.Spec.Volumes[0].Removable).To(Equal(ptr.To(true)))
 			Expect(vmopVM.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeTrue())
+
+			By("Checking that the application volume carries the application type and sharing mode")
+			Expect(vmopVM.Spec.Volumes[1].ApplicationType).To(Equal(vmoprv1alpha5.VolumeApplicationType("OracleRAC")))
+			Expect(vmopVM.Spec.Volumes[1].SharingMode).To(Equal(vmoprv1alpha5.VolumeSharingMode("MultiWriter")))
+			Expect(vmopVM.Spec.Volumes[1].DiskMode).To(Equal(vmoprv1alpha5.VolumeDiskMode("IndependentPersistent")))
 		})
 
 		Context("With InfrastructurePolicies feature gate enabled", func() {
@@ -1548,11 +1558,14 @@ func Test_addVolume(t *testing.T) {
 
 		vm := existingVM()
 		source := vmwarev1.VSphereMachineVolume{
-			Name:                "etcd",
+			Name:                "shared-data",
+			ApplicationType:     vmwarev1.VolumeApplicationTypeMicrosoftWSFC,
+			ControllerType:      vmwarev1.VirtualControllerTypeNVME,
 			ControllerBusNumber: ptr.To(int32(1)),
 			UnitNumber:          ptr.To(int32(5)),
+			DiskMode:            vmwarev1.VolumeDiskModeIndependentPersistent,
+			SharingMode:         vmwarev1.VolumeSharingModeMultiWriter,
 			Removable:           ptr.To(true),
-			ControllerType:      "NVME",
 			ReadOnly:            ptr.To(true),
 		}
 
@@ -1563,6 +1576,9 @@ func Test_addVolume(t *testing.T) {
 		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(5))))
 		g.Expect(vm.Spec.Volumes[0].Removable).To(Equal(ptr.To(true)))
 		g.Expect(vm.Spec.Volumes[0].ControllerType).To(Equal(vmoprvhub.VirtualControllerType("NVME")))
+		g.Expect(vm.Spec.Volumes[0].ApplicationType).To(Equal(vmoprvhub.VolumeApplicationType("MicrosoftWSFC")))
+		g.Expect(vm.Spec.Volumes[0].DiskMode).To(Equal(vmoprvhub.VolumeDiskMode("IndependentPersistent")))
+		g.Expect(vm.Spec.Volumes[0].SharingMode).To(Equal(vmoprvhub.VolumeSharingMode("MultiWriter")))
 		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeTrue())
 	})
 
@@ -1589,28 +1605,12 @@ func Test_addVolume(t *testing.T) {
 		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))
 		g.Expect(vm.Spec.Volumes[0].Removable).To(Equal(ptr.To(false)))
 		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeFalse())
-	})
 
-	t.Run("does not set ReadOnly on a new volume when the feature gate is disabled", func(t *testing.T) {
-		g := NewWithT(t)
-		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, false)
+		// Set ReadOnly and verify that it does not get applied while the feature gate is disabled.
+		addVolume(vm, "new-pvc", vmwarev1.VSphereMachineVolume{Name: "containerd", ReadOnly: ptr.To(true)})
 
-		vm := &vmoprvhub.VirtualMachine{}
-		addVolume(vm, "new-pvc", vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: ptr.To(true)})
-
-		g.Expect(vm.Spec.Volumes).To(HaveLen(1))
-		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeFalse())
-	})
-
-	t.Run("sets ReadOnly on a new volume when the feature gate is enabled", func(t *testing.T) {
-		g := NewWithT(t)
-		featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.VolumeControllerParameters, true)
-
-		vm := &vmoprvhub.VirtualMachine{}
-		addVolume(vm, "new-pvc", vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: ptr.To(true)})
-
-		g.Expect(vm.Spec.Volumes).To(HaveLen(1))
-		g.Expect(vm.Spec.Volumes[0].PersistentVolumeClaim.ReadOnly).To(BeTrue())
+		g.Expect(vm.Spec.Volumes).To(HaveLen(2))
+		g.Expect(vm.Spec.Volumes[1].PersistentVolumeClaim.ReadOnly).To(BeFalse())
 	})
 
 	t.Run("appends a new volume when no existing entry matches the claim name", func(t *testing.T) {
@@ -1622,6 +1622,7 @@ func Test_addVolume(t *testing.T) {
 			Name:                "containerd",
 			ControllerBusNumber: ptr.To(int32(0)),
 			UnitNumber:          ptr.To(int32(2)),
+			ReadOnly:            ptr.To(true),
 		}
 
 		addVolume(vm, "other-pvc", source)
@@ -1631,6 +1632,7 @@ func Test_addVolume(t *testing.T) {
 		g.Expect(vm.Spec.Volumes[1].PersistentVolumeClaim.ClaimName).To(Equal("other-pvc"))
 		g.Expect(vm.Spec.Volumes[1].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
 		g.Expect(vm.Spec.Volumes[1].UnitNumber).To(Equal(ptr.To(int32(2))))
+		g.Expect(vm.Spec.Volumes[1].PersistentVolumeClaim.ReadOnly).To(BeTrue())
 		// The pre-existing volume must be unaffected.
 		g.Expect(vm.Spec.Volumes[0].ControllerBusNumber).To(Equal(ptr.To(int32(0))))
 		g.Expect(vm.Spec.Volumes[0].UnitNumber).To(Equal(ptr.To(int32(1))))

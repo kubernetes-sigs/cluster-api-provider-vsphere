@@ -34,6 +34,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
@@ -194,6 +195,78 @@ func Test_ReconcileStoragePolicy(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			return nil
 		}, model)
+	})
+}
+
+func Test_DestroyVM(t *testing.T) {
+	// A VM whose datastore is inaccessible is not returned by the BIOS UUID lookup,
+	// this is simulated by using a BIOS UUID that does not match any VM.
+	const unknownBiosUUID = "00000000-0000-0000-0000-000000000000"
+
+	// vmRefFunc returns the VSphereVM's status.vmRef for the given simulator.
+	destroyVM := func(t *testing.T, vmRefFunc func(ctx context.Context, model *simulator.Model, c *vim25.Client) string) (services.VirtualMachine, error) {
+		t.Helper()
+		g := NewWithT(t)
+		model := simulator.VPX()
+		g.Expect(model.Create()).To(Succeed())
+		defer model.Remove()
+
+		var vm services.VirtualMachine
+		var destroyErr error
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
+			authSession, err := getAuthSession(ctx, model.Service.Listen.Host)
+			g.Expect(err).ToNot(HaveOccurred())
+			vmCtx := &capvcontext.VMContext{
+				Session: authSession,
+				VSphereVM: &infrav1.VSphereVM{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "vsphereVM1",
+						Namespace: "my-namespace",
+					},
+					Spec: infrav1.VSphereVMSpec{
+						BiosUUID: unknownBiosUUID,
+					},
+					Status: infrav1.VSphereVMStatus{
+						VMRef: vmRefFunc(ctx, model, c),
+					},
+				},
+			}
+			_, vm, destroyErr = (&VMService{}).DestroyVM(ctx, vmCtx)
+			return nil
+		}, model)
+		return vm, destroyErr
+	}
+
+	t.Run("when VM is not found by bios uuid but still exists by vmRef should not report it as not found", func(t *testing.T) {
+		g := NewWithT(t)
+		vm, err := destroyVM(t, func(ctx context.Context, model *simulator.Model, c *vim25.Client) string {
+			vm, err := find.NewFinder(c).VirtualMachine(ctx, "DC0_H0_VM0")
+			g.Expect(err).ToNot(HaveOccurred())
+			simVM := model.Map().Get(vm.Reference()).(*simulator.VirtualMachine)
+			simVM.Summary.Runtime.ConnectionState = types.VirtualMachineConnectionStateInaccessible
+			return vm.Reference().String()
+		})
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("inaccessible"))
+		g.Expect(vm.State).ToNot(Equal(services.VirtualMachineStateNotFound))
+	})
+
+	t.Run("when VM is not found by bios uuid nor by vmRef should report it as not found", func(t *testing.T) {
+		g := NewWithT(t)
+		vm, err := destroyVM(t, func(context.Context, *simulator.Model, *vim25.Client) string {
+			return "VirtualMachine:vm-does-not-exist"
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(vm.State).To(Equal(services.VirtualMachineStateNotFound))
+	})
+
+	t.Run("when VM is not found by bios uuid and has no vmRef should report it as not found", func(t *testing.T) {
+		g := NewWithT(t)
+		vm, err := destroyVM(t, func(context.Context, *simulator.Model, *vim25.Client) string {
+			return ""
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(vm.State).To(Equal(services.VirtualMachineStateNotFound))
 	})
 }
 

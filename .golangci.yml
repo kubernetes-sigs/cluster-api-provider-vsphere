@@ -370,6 +370,115 @@ linters:
       - linters:
           - goconst
         path: (.+)_test\.go
+      # Existing repeated API kinds, platform names, and template literals.
+      # Keep these exceptions scoped to the affected paths and values.
+      - linters:
+          - goconst
+        path: ^controllers/.*\.go$
+        text: 'string `(Role|ServiceAccount|Cluster|VirtualMachine|AlreadyPlaced|linux|windows|amd64|arm64|s390x|ppc64le|VSphereCluster|VSphereDeploymentZone|VSphereVM)` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^hack/tools/pkg/janitor/janitor\.go$
+        text: 'string `(Folder|ResourcePool)` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^internal/clusterclass/variables\.go$
+        text: 'string `string` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^internal/kubevip/files\.go$
+        text: 'string `root:root` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^pkg/clustermodule/types\.go$
+        text: 'string `spec` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^pkg/(identity/identity|services/vmoperator/control_plane_endpoint)\.go$
+        text: 'string `(VSphereCluster|VSphereClusterIdentity)` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^pkg/services/govmomi/extra/config\.go$
+        text: 'string `base64` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^pkg/services/network/(netop|nsxt)_provider\.go$
+        text: 'string `(true|Ready|True)` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^test/extension/handlers/topologymutation/handler\.go$
+        text: 'string `(root:root|integer)` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^test/infrastructure/vcsim/controllers/.*\.go$
+        text: 'string `(-k=true|k8s-region|k8s-zone|VMOperatorSim|VSphereMachine|component|control-plane|tier|kubeadm:get-nodes|kube-proxy|coredns|ad\.domain|Machine)` has [0-9]+ occurrences, make it a constant'
+      - linters:
+          - goconst
+        path: ^packaging/flavorgen/flavors/.*\.go$
+        text: 'string `(ALL=\(ALL\) NOPASSWD:ALL|ConfigMap|Secret|dhclient eth0|cloud-provider|add|spec)` has [0-9]+ occurrences, make it a constant'
+      # Preserve existing slice construction where preallocation is only an optimization.
+      - linters:
+          - prealloc
+        path: ^controllers/.*\.go$
+        text: '^Consider preallocating (names|moduleUUIDs|pSvcAccountNames|initObjects|fds|objs)( with capacity .*)?$'
+      - linters:
+          - prealloc
+        path: ^hack/tools/pkg/boskos/storage\.go$
+        text: '^Consider preallocating resources with capacity len\(im\.resources\)$'
+      - linters:
+          - prealloc
+        path: ^pkg/services/govmomi/pci/device\.go$
+        text: '^Consider preallocating pciDevices with capacity len\(pciDeviceSpecs\)$'
+      - linters:
+          - prealloc
+        path: ^pkg/services/govmomi/vcenter/clone\.go$
+        text: '^Consider preallocating constraints with capacity 1$'
+      - linters:
+          - prealloc
+        path: ^pkg/services/vmoperator/vmopmachine\.go$
+        text: '^Consider preallocating interfaces with capacity len\(vm\.Status\.Network\.Interfaces\)$'
+      - linters:
+          - prealloc
+        path: ^test/e2e/(e2e_suite|ownerrefs_finalizers)_test\.go$
+        text: '^Consider preallocating (ipClaimLabelsRaw|wantFailureDomains|newOwners) with capacity '
+      - linters:
+          - prealloc
+        path: ^test/framework/ip/(incluster|vcsim)\.go$
+        text: '^Consider preallocating ipAddressClaims with capacity '
+      - linters:
+          - prealloc
+        path: ^packaging/flavorgen/flavors/(crs/cpi|flavors|util/helpers)\.go$
+        text: '^Consider preallocating (cpiObjects|MultiNodeTemplate|bytes) with capacity '
+      # The test helper runs a fixed go list command with a module supplied by the test suite.
+      - linters:
+          - gosec
+        path: ^controllers/vmware/test/controllers_suite_test\.go$
+        text: '^G204: Subprocess launched with variable$'
+      # The Boskos heartbeat command runs until the process exits.
+      - linters:
+          - gosec
+        path: ^hack/tools/boskosctl/main\.go$
+        text: '^G118: Long-running loop performs calls without a ctx.Done\(\) cancellation guard$'
+      # IP address discovery intentionally outlives the current reconciliation.
+      - linters:
+          - gosec
+        path: ^pkg/services/govmomi/util\.go$
+        text: '^G118: Goroutine uses context.Background/TODO while request-scoped context is available$'
+      # Keep the existing reflection spelling in conversion and packaging helpers.
+      - linters:
+          - govet
+        path: ^(pkg/conversion/test/roundtrip|packaging/flavorgen/flavors/(crs/types/cloudprovider_encoding|util/helpers))\.go$
+        text: '^inline: Constant reflect.Ptr should be inlined$'
+      # Keep existing diagnostic and shell export string construction.
+      - linters:
+          - staticcheck
+        path: ^(controllers/clustermodule_reconciler|hack/tools/boskosctl/main|test/e2e/node_drain_test)\.go$
+        text: '^QF1012: Use fmt.Fprintf\(\.\.\.\) instead of WriteString\(fmt.Sprintf\(\.\.\.\)\)$'
+      # Preserve the existing package naming suppression across revive versions.
+      - linters:
+          - nolintlint
+        path: ^pkg/conversion/api/converter\.go$
+        text: '^directive `//nolint:revive` is unused for linter "revive"$'
         # It's clearer to see that a field gets accessed or func gets called on the embedded objects 
       - linters:
           - staticcheck

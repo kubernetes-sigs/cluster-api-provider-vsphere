@@ -89,36 +89,110 @@ type VSphereMachineVolume struct {
 	// +kubebuilder:validation:MaxLength=253
 	StorageClass string `json:"storageClass,omitempty"`
 
-	// applicationType describes the type of application the volume is intended for
+	// applicationType describes the type of application for which this volume
+	// is intended to be used.
+	//
+	//   - OracleRAC      -- The volume is configured with
+	//                       diskMode=IndependentPersistent and
+	//                       sharingMode=MultiWriter and attached to the first
+	//                       SCSI controller with an available slot and
+	//                       sharingMode=None. If no such controller exists,
+	//                       a new ParaVirtual SCSI controller will be created
+	//                       with sharingMode=None long as there are currently
+	//                       three or fewer SCSI controllers.
+	//   - MicrosoftWSFC  -- The volume is configured with
+	//                       diskMode=IndependentPersistent and attached to a
+	//                       SCSI controller with sharingMode=Physical.
+	//                       If no such controller exists, a new ParaVirtual
+	//                       SCSI controller will be created with
+	//                       sharingMode=Physical as long as there are currently
+	//                       three or fewer SCSI controllers.
 	// +optional
 	ApplicationType VolumeApplicationType `json:"applicationType,omitempty"`
 
-	// controllerType is the type of controller the volume should be attached to
+	// controllerType is the type of the controller to which this volume
+	// should be attached.
+	//
+	// Please keep in mind the number of volumes supported by the different
+	// types of controllers:
+	//
+	//   - IDE                -- 4 total (2 per controller)
+	//   - NVME               -- 256 total (64 per controller)
+	//   - SATA               -- 120 total (30 per controller)
+	//   - SCSI (ParaVirtual) -- 256 total (64 per controller)
+	//   - SCSI (BusLogic)    -- 60 total (15 per controller)
+	//   - SCSI (LsiLogic)    -- 60 total (15 per controller)
+	//   - SCSI (LsiLogicSAS) -- 60 total (15 per controller)
+	//
+	// Please note, the number of supported volumes per SCSI controller may seem
+	// off, but remember that a SCSI controller occupies a slot on its own bus.
+	// Thus even though a ParaVirtual SCSI controller supports 65 targets and
+	// the other types of SCSI controllers support 16 targets, one of the
+	// targets is occupied by the controller itself.
+	//
+	// Defaults to SCSI when controllerBusNumber is also omitted; otherwise the
+	// default value is determined by the logic outlined in the description of
+	// the controllerBusNumber field.
 	// +optional
 	ControllerType VirtualControllerType `json:"controllerType,omitempty"`
 
-	// controllerBusNumber is the bus number of the controller (min and max vary
-	// depending on bus type)
+	// controllerBusNumber is the bus number of the controller to which this
+	// volume should be attached. The bus number identifies a controller of the
+	// type given by controllerType (min and max vary depending on bus type).
+	//
+	// If this and controllerType are both omitted, the volume will be attached
+	// to the first available SCSI controller. If there is no SCSI controller
+	// with an available slot, a new ParaVirtual SCSI controller will be added
+	// as long as there are currently three or fewer SCSI controllers.
+	//
+	// If the specified controller has no available slots, the request will be
+	// denied.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	ControllerBusNumber *int32 `json:"controllerBusNumber,omitempty"`
 
-	// diskMode is the mode to use when attaching the volume
+	// diskMode is the desired mode to use when attaching the volume.
+	//
+	// Please note, volumes attached as IndependentNonPersistent or
+	// IndependentPersistent are not included in a VM's snapshots or backups.
+	//
+	// Also, any data written to volumes attached as IndependentNonPersistent or
+	// NonPersistent will be discarded when the VM is powered off.
+	//
+	// When applicationType=OracleRAC or applicationType=MicrosoftWSFC, this
+	// field defaults to IndependentPersistent.
+	// Otherwise, defaults to Persistent.
 	// +optional
 	DiskMode VolumeDiskMode `json:"diskMode,omitempty"`
 
-	// sharingMode is the volume's sharing mode
+	// sharingMode is the volume's desired sharing mode.
+	//
+	// When applicationType=OracleRAC, this field defaults to MultiWriter.
+	// Otherwise, defaults to None.
 	// +optional
 	SharingMode VolumeSharingMode `json:"sharingMode,omitempty"`
 
-	// unitNumber is the unit number for attaching the volume to the storage
-	// controller; must be unique per controller; 7 is invalid for SCSI
+	// unitNumber is the desired unit number for attaching the volume to a
+	// storage controller.
+	//
+	// When omitted, the next available unit number of the selected controller
+	// is used.
+	//
+	// This value must be unique for the controller referenced by the
+	// controllerBusNumber and controllerType properties. If the value is
+	// already used by another device, this volume will not be attached.
+	//
+	// Please note the value 7 is invalid if controllerType=SCSI as 7 is the
+	// unit number of the SCSI controller on its own bus.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	UnitNumber *int32 `json:"unitNumber,omitempty"`
 
-	// removable describes whether the volume may be removed from spec.volumes
-	// Defaults to true
+	// removable describes whether or not this volume may be removed from
+	// spec.volumes. This is a safety measure that allows users to prevent the
+	// accidental removal of disks from a VM that should not be removed.
+	//
+	// Defaults to true.
 	// +optional
 	Removable *bool `json:"removable,omitempty"`
 

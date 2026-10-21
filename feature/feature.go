@@ -75,12 +75,18 @@ const (
 	//
 	// alpha: v1.13
 	// beta: v1.16
+	// GA: v1.18
+	//
+	// Deprecated: PriorityQueue feature is now GA and the corresponding feature flag will be removed in the v1.20 release.
 	PriorityQueue featuregate.Feature = "PriorityQueue"
 
 	// ReconcilerRateLimiting is a feature gate that controls if reconcilers are rate-limited.
 	// Note: Currently the feature gate is rate-limiting to 1 request / 1 second.
 	//
 	// beta: v1.16
+	// GA: v1.18
+	//
+	// Deprecated: ReconcilerRateLimiting feature is now GA and the corresponding feature flag will be removed in the v1.20 release.
 	ReconcilerRateLimiting featuregate.Feature = "ReconcilerRateLimiting"
 
 	// IPv6DualStack enables IPv6 and dualstack support for clusters with NSX-VPC network provider.
@@ -97,8 +103,8 @@ const (
 
 var (
 	commonGates = map[featuregate.Feature]featuregate.FeatureSpec{
-		PriorityQueue:          {Default: true, PreRelease: featuregate.Beta},
-		ReconcilerRateLimiting: {Default: true, PreRelease: featuregate.Beta},
+		PriorityQueue:          {Default: true, PreRelease: featuregate.GA},
+		ReconcilerRateLimiting: {Default: true, PreRelease: featuregate.GA},
 	}
 
 	govmomiGates = map[featuregate.Feature]featuregate.FeatureSpec{

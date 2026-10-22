@@ -70,6 +70,13 @@ const (
 	// alpha: v1.17
 	InfrastructurePolicies featuregate.Feature = "InfrastructurePolicies"
 
+	// VolumeControllerParameters is a feature gate for setting volume parameters such as
+	// controller bus number, unit number, etc. when attaching VSphereMachine volumes.
+	// Requires vm-operator v1alpha5 or later on the supervisor.
+	//
+	// alpha: v1.18
+	VolumeControllerParameters featuregate.Feature = "VolumeControllerParameters"
+
 	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
 	// instead of the default queue implementation.
 	//
@@ -128,9 +135,14 @@ var (
 		// FeatureDependingOnV1alpha6: {
 		// 	{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		// },
+		// Features depending on vm-operator v1alpha5.
 		InfrastructurePolicies: {
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
+		VolumeControllerParameters: {
+			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
+		// Features depending on vm-operator v1alpha6.
 		IPv6DualStack: {
 			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},

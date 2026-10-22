@@ -253,6 +253,11 @@ linters:
     # Specific exclude rules for deprecated fields that are still part of the codebase. These
     # should be removed as the referenced deprecated item is removed from the project.
     rules:
+      # TODO: Excludes that can be removed as part of the CAPV v1.20 release.
+      - linters:
+          - staticcheck
+        text: 'SA1019: feature.(PriorityQueue|ReconcilerRateLimiting) is deprecated'
+
       # Specific exclude rules for deprecated types that are still part of the codebase. These
       # should be removed as the referenced deprecated types are removed from the project.
       # ProviderServiceAccount

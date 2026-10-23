@@ -94,11 +94,8 @@ func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 
 func hubVirtualMachineAffinitySpec(in *vmoprvhub.AffinitySpec, c randfill.Continue) {
 	c.FillNoCustom(in)
-	// RequiredDuringSchedulingRequiredDuringExecution exists in hub and v1alpha6 but not in v1alpha5; zero it so the
+	// Anti-affinity RequiredDuringSchedulingRequiredDuringExecution exists in hub and v1alpha6 but not in v1alpha5; zero it so the
 	// hub-spoke-hub round-trip test does not report spurious data loss.
-	if in.VMAffinity != nil {
-		in.VMAffinity.RequiredDuringSchedulingRequiredDuringExecution = nil
-	}
 	if in.VMAntiAffinity != nil {
 		in.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = nil
 	}

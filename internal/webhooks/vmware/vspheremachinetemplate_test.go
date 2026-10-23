@@ -1079,25 +1079,25 @@ func TestVSphereMachineTemplate_Validate_Affinity(t *testing.T) {
 	tests := []struct {
 		name        string
 		featureGate bool
-		affinity    *vmwarev1.Affinity
+		affinity    vmwarev1.AffinitySpec
 		wantErr     bool
 		errMsg      string
 	}{
 		{
-			name:        "affinity nil when feature gate disabled",
+			name:        "affinity zero when feature gate disabled",
 			featureGate: false,
-			affinity:    nil,
+			affinity:    vmwarev1.AffinitySpec{},
 			wantErr:     false,
 		},
 		{
 			name:        "affinity set when feature gate disabled",
 			featureGate: false,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelHostname,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1110,12 +1110,12 @@ func TestVSphereMachineTemplate_Validate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with valid hostname topologyKey when feature gate enabled",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelHostname,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1127,12 +1127,12 @@ func TestVSphereMachineTemplate_Validate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with invalid zone topologyKey when feature gate enabled",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelTopologyZone,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},

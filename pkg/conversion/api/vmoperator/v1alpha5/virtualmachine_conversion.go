@@ -49,19 +49,6 @@ func convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 				}
 				dst.Spec.Affinity.VMAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
 			}
-			if src.Spec.Affinity.VMAffinity.PreferredDuringSchedulingPreferredDuringExecution != nil {
-				terms := []vmoprvhub.VMAffinityTerm{}
-				for _, term := range src.Spec.Affinity.VMAffinity.PreferredDuringSchedulingPreferredDuringExecution {
-					t := vmoprvhub.VMAffinityTerm{
-						TopologyKey: term.TopologyKey,
-					}
-					if term.LabelSelector != nil {
-						t.LabelSelector = term.LabelSelector.DeepCopy()
-					}
-					terms = append(terms, t)
-				}
-				dst.Spec.Affinity.VMAffinity.PreferredDuringSchedulingPreferredDuringExecution = terms
-			}
 		}
 		if src.Spec.Affinity.VMAntiAffinity != nil {
 			dst.Spec.Affinity.VMAntiAffinity = &vmoprvhub.VMAntiAffinitySpec{}
@@ -336,19 +323,6 @@ func convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(_ context.Context, sr
 					terms = append(terms, t)
 				}
 				dst.Spec.Affinity.VMAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
-			}
-			if src.Spec.Affinity.VMAffinity.PreferredDuringSchedulingPreferredDuringExecution != nil {
-				terms := []vmoprv1alpha5.VMAffinityTerm{}
-				for _, term := range src.Spec.Affinity.VMAffinity.PreferredDuringSchedulingPreferredDuringExecution {
-					t := vmoprv1alpha5.VMAffinityTerm{
-						TopologyKey: term.TopologyKey,
-					}
-					if term.LabelSelector != nil {
-						t.LabelSelector = term.LabelSelector.DeepCopy()
-					}
-					terms = append(terms, t)
-				}
-				dst.Spec.Affinity.VMAffinity.PreferredDuringSchedulingPreferredDuringExecution = terms
 			}
 		}
 		if src.Spec.Affinity.VMAntiAffinity != nil {

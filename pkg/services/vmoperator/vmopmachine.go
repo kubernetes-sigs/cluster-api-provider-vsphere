@@ -317,14 +317,13 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 		var userConfiguredAntiAffinity bool
 		if feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) &&
-			supervisorMachineCtx.VSphereMachine.Spec.Affinity != nil &&
-			supervisorMachineCtx.VSphereMachine.Spec.Affinity.VMAntiAffinity != nil {
+			supervisorMachineCtx.VSphereMachine.Spec.Affinity.IsDefined() {
 			userConfiguredAntiAffinity = true
 			antiAff := supervisorMachineCtx.VSphereMachine.Spec.Affinity.VMAntiAffinity
 
-			if len(antiAff.RequiredDuringSchedulingRequiredDuringExecution) > 0 {
-				terms := make([]vmoprvhub.VMAffinityTerm, 0, len(antiAff.RequiredDuringSchedulingRequiredDuringExecution))
-				for _, term := range antiAff.RequiredDuringSchedulingRequiredDuringExecution {
+			if antiAff.RequiredDuringSchedulingRequiredDuringExecution != nil {
+				terms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAff.RequiredDuringSchedulingRequiredDuringExecution))
+				for _, term := range *antiAff.RequiredDuringSchedulingRequiredDuringExecution {
 					terms = append(terms, vmoprvhub.VMAffinityTerm{
 						LabelSelector: term.LabelSelector.DeepCopy(),
 						TopologyKey:   term.TopologyKey,
@@ -333,9 +332,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				affInfo.affinitySpec.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = terms
 			}
 
-			if len(antiAff.RequiredDuringSchedulingPreferredDuringExecution) > 0 {
-				terms := make([]vmoprvhub.VMAffinityTerm, 0, len(antiAff.RequiredDuringSchedulingPreferredDuringExecution))
-				for _, term := range antiAff.RequiredDuringSchedulingPreferredDuringExecution {
+			if antiAff.RequiredDuringSchedulingPreferredDuringExecution != nil {
+				terms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAff.RequiredDuringSchedulingPreferredDuringExecution))
+				for _, term := range *antiAff.RequiredDuringSchedulingPreferredDuringExecution {
 					terms = append(terms, vmoprvhub.VMAffinityTerm{
 						LabelSelector: term.LabelSelector.DeepCopy(),
 						TopologyKey:   term.TopologyKey,
@@ -344,9 +343,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				affInfo.affinitySpec.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
 			}
 
-			if len(antiAff.PreferredDuringSchedulingPreferredDuringExecution) > 0 {
-				prefTerms := make([]vmoprvhub.VMAffinityTerm, 0, len(antiAff.PreferredDuringSchedulingPreferredDuringExecution))
-				for _, term := range antiAff.PreferredDuringSchedulingPreferredDuringExecution {
+			if antiAff.PreferredDuringSchedulingPreferredDuringExecution != nil {
+				prefTerms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAff.PreferredDuringSchedulingPreferredDuringExecution))
+				for _, term := range *antiAff.PreferredDuringSchedulingPreferredDuringExecution {
 					prefTerms = append(prefTerms, vmoprvhub.VMAffinityTerm{
 						LabelSelector: term.LabelSelector.DeepCopy(),
 						TopologyKey:   term.TopologyKey,

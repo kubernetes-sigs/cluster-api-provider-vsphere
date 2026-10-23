@@ -148,13 +148,13 @@ var (
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 		// Features depending on vm-operator v1alpha6.
-		WorkerStrictAntiAffinity: {
-			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
-		},
 		IPv6DualStack: {
 			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 		VLANSubinterface: {
+			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
+		WorkerStrictAntiAffinity: {
 			{Version: toFeatureVersion(vmoprv1alpha6.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 	}

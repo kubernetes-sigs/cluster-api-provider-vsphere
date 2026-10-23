@@ -334,8 +334,8 @@ func validateVolumes(volumes []vmwarev1.VSphereMachineVolume, fldPath *field.Pat
 
 // validateAffinity validates that affinity is only set when the feature gate WorkerStrictAntiAffinity is enabled,
 // and strictly enforces that the topologyKey for all anti-affinity terms must be set to kubernetes.io/hostname.
-func validateAffinity(affinity *vmwarev1.Affinity, fldPath *field.Path) field.ErrorList {
-	if affinity == nil {
+func validateAffinity(affinity vmwarev1.AffinitySpec, fldPath *field.Path) field.ErrorList {
+	if !affinity.IsDefined() {
 		return nil
 	}
 
@@ -346,19 +346,20 @@ func validateAffinity(affinity *vmwarev1.Affinity, fldPath *field.Path) field.Er
 		return allErrs
 	}
 
-	if affinity.VMAntiAffinity != nil {
-		antiAffPath := fldPath.Child("vmAntiAffinity")
-		allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution, antiAffPath.Child("requiredDuringSchedulingRequiredDuringExecution"))...)
-		allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution, antiAffPath.Child("requiredDuringSchedulingPreferredDuringExecution"))...)
-		allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution, antiAffPath.Child("preferredDuringSchedulingPreferredDuringExecution"))...)
-	}
+	antiAffPath := fldPath.Child("vmAntiAffinity")
+	allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution, antiAffPath.Child("requiredDuringSchedulingRequiredDuringExecution"))...)
+	allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution, antiAffPath.Child("requiredDuringSchedulingPreferredDuringExecution"))...)
+	allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution, antiAffPath.Child("preferredDuringSchedulingPreferredDuringExecution"))...)
 
 	return allErrs
 }
 
-func validateAntiAffinityTerms(terms []vmwarev1.VMAntiAffinityTerm, fldPath *field.Path) field.ErrorList {
+func validateAntiAffinityTerms(terms *[]vmwarev1.VMAntiAffinityTerm, fldPath *field.Path) field.ErrorList {
+	if terms == nil {
+		return nil
+	}
 	var allErrs field.ErrorList
-	for i, term := range terms {
+	for i, term := range *terms {
 		termPath := fldPath.Index(i)
 		if term.TopologyKey != corev1.LabelHostname {
 			allErrs = append(allErrs, field.Invalid(

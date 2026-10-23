@@ -81,9 +81,9 @@ spec:
                                     anti-affinity term.
                                   properties:
                                     labelSelector:
-                                      description: labelSelector is a label query
-                                        over a set of VSphereMachines that this VSphereMachine
-                                        should not be co-located with.
+                                      description: |-
+                                        labelSelector is a label query over a set of VSphereMachines.
+                                        An empty selector matches all VSphereMachines in the applicable scope.
                                       properties:
                                         matchExpressions:
                                           description: matchExpressions is a list
@@ -131,11 +131,12 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     topologyKey:
                                       description: |-
-                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
-                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
-
-                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
-                                      minLength: 1
+                                        topologyKey describes where this VSphereMachine should not be co-located
+                                        with the selected VSphereMachines.
+                                        Only `kubernetes.io/hostname` is currently supported.
+                                        The rule is executed in the context of hosts.
+                                      enum:
+                                      - kubernetes.io/hostname
                                       type: string
                                   required:
                                   - labelSelector
@@ -158,9 +159,9 @@ spec:
                                     anti-affinity term.
                                   properties:
                                     labelSelector:
-                                      description: labelSelector is a label query
-                                        over a set of VSphereMachines that this VSphereMachine
-                                        should not be co-located with.
+                                      description: |-
+                                        labelSelector is a label query over a set of VSphereMachines.
+                                        An empty selector matches all VSphereMachines in the applicable scope.
                                       properties:
                                         matchExpressions:
                                           description: matchExpressions is a list
@@ -208,11 +209,12 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     topologyKey:
                                       description: |-
-                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
-                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
-
-                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
-                                      minLength: 1
+                                        topologyKey describes where this VSphereMachine should not be co-located
+                                        with the selected VSphereMachines.
+                                        Only `kubernetes.io/hostname` is currently supported.
+                                        The rule is executed in the context of hosts.
+                                      enum:
+                                      - kubernetes.io/hostname
                                       type: string
                                   required:
                                   - labelSelector
@@ -236,9 +238,9 @@ spec:
                                     anti-affinity term.
                                   properties:
                                     labelSelector:
-                                      description: labelSelector is a label query
-                                        over a set of VSphereMachines that this VSphereMachine
-                                        should not be co-located with.
+                                      description: |-
+                                        labelSelector is a label query over a set of VSphereMachines.
+                                        An empty selector matches all VSphereMachines in the applicable scope.
                                       properties:
                                         matchExpressions:
                                           description: matchExpressions is a list
@@ -286,11 +288,12 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     topologyKey:
                                       description: |-
-                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
-                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
-
-                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
-                                      minLength: 1
+                                        topologyKey describes where this VSphereMachine should not be co-located
+                                        with the selected VSphereMachines.
+                                        Only `kubernetes.io/hostname` is currently supported.
+                                        The rule is executed in the context of hosts.
+                                      enum:
+                                      - kubernetes.io/hostname
                                       type: string
                                   required:
                                   - labelSelector
@@ -947,9 +950,9 @@ spec:
                                     anti-affinity term.
                                   properties:
                                     labelSelector:
-                                      description: labelSelector is a label query
-                                        over a set of VSphereMachines that this VSphereMachine
-                                        should not be co-located with.
+                                      description: |-
+                                        labelSelector is a label query over a set of VSphereMachines.
+                                        An empty selector matches all VSphereMachines in the applicable scope.
                                       properties:
                                         matchExpressions:
                                           description: matchExpressions is a list
@@ -997,12 +1000,12 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     topologyKey:
                                       description: |-
-                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
-                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
-
-                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
-                                      maxLength: 32
-                                      minLength: 1
+                                        topologyKey describes where this VSphereMachine should not be co-located
+                                        with the selected VSphereMachines.
+                                        Only `kubernetes.io/hostname` is currently supported.
+                                        The rule is executed in the context of hosts.
+                                      enum:
+                                      - kubernetes.io/hostname
                                       type: string
                                   required:
                                   - labelSelector
@@ -1026,9 +1029,9 @@ spec:
                                     anti-affinity term.
                                   properties:
                                     labelSelector:
-                                      description: labelSelector is a label query
-                                        over a set of VSphereMachines that this VSphereMachine
-                                        should not be co-located with.
+                                      description: |-
+                                        labelSelector is a label query over a set of VSphereMachines.
+                                        An empty selector matches all VSphereMachines in the applicable scope.
                                       properties:
                                         matchExpressions:
                                           description: matchExpressions is a list
@@ -1076,12 +1079,12 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     topologyKey:
                                       description: |-
-                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
-                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
-
-                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
-                                      maxLength: 32
-                                      minLength: 1
+                                        topologyKey describes where this VSphereMachine should not be co-located
+                                        with the selected VSphereMachines.
+                                        Only `kubernetes.io/hostname` is currently supported.
+                                        The rule is executed in the context of hosts.
+                                      enum:
+                                      - kubernetes.io/hostname
                                       type: string
                                   required:
                                   - labelSelector
@@ -1106,9 +1109,9 @@ spec:
                                     anti-affinity term.
                                   properties:
                                     labelSelector:
-                                      description: labelSelector is a label query
-                                        over a set of VSphereMachines that this VSphereMachine
-                                        should not be co-located with.
+                                      description: |-
+                                        labelSelector is a label query over a set of VSphereMachines.
+                                        An empty selector matches all VSphereMachines in the applicable scope.
                                       properties:
                                         matchExpressions:
                                           description: matchExpressions is a list
@@ -1156,12 +1159,12 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     topologyKey:
                                       description: |-
-                                        topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
-                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
-
-                                        In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
-                                      maxLength: 32
-                                      minLength: 1
+                                        topologyKey describes where this VSphereMachine should not be co-located
+                                        with the selected VSphereMachines.
+                                        Only `kubernetes.io/hostname` is currently supported.
+                                        The rule is executed in the context of hosts.
+                                      enum:
+                                      - kubernetes.io/hostname
                                       type: string
                                   required:
                                   - labelSelector

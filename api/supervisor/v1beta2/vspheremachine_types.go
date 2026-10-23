@@ -283,47 +283,25 @@ type VSphereMachineSpec struct {
 	// Set on the VSphereMachineTemplate machine spec for the MachineDeployment, propagated
 	// to each VSphereMachine.
 	// +optional
-	Affinity *Affinity `json:"affinity,omitempty"`
+	Affinity AffinitySpec `json:"affinity,omitempty,omitzero"` //nolint:kubeapilinter // Empty and omitted configuration are equivalent; retain a value field with omitzero.
 }
 
-// Affinity defines the group of affinity scheduling rules.
-type Affinity struct {
+// AffinitySpec defines the group of affinity scheduling rules.
+type AffinitySpec struct {
 	// vmAntiAffinity describes anti-affinity scheduling rules related to other
 	// VSphereMachines.
 	// +optional
-	VMAntiAffinity *VMAntiAffinity `json:"vmAntiAffinity,omitempty"`
+	VMAntiAffinity VMAntiAffinitySpec `json:"vmAntiAffinity,omitempty,omitzero"` //nolint:kubeapilinter // Empty and omitted configuration are equivalent; retain a value field with omitzero.
 }
 
-// VMAntiAffinity defines the anti-affinity requirements for scheduling
+// IsDefined returns true if the AffinitySpec is defined.
+func (r *AffinitySpec) IsDefined() bool {
+	return !reflect.DeepEqual(r, &AffinitySpec{})
+}
+
+// VMAntiAffinitySpec defines the anti-affinity requirements for scheduling
 // rules related to other VSphereMachines.
-type VMAntiAffinity struct {
-	// requiredDuringSchedulingRequiredDuringExecution describes anti-affinity
-	// requirements that must be met or the VSphereMachine will not be scheduled and
-	// that must continue to be met.
-	//
-	// When there are multiple elements, the lists of nodes corresponding to
-	// each term are intersected, i.e. all terms must be satisfied.
-	//
-	// Note: Any update to this field will replace the entire list rather than
-	// merging with the existing elements.
-	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MaxItems=32
-	RequiredDuringSchedulingRequiredDuringExecution []VMAntiAffinityTerm `json:"requiredDuringSchedulingRequiredDuringExecution,omitempty"`
-
-	// requiredDuringSchedulingPreferredDuringExecution describes anti-affinity
-	// requirements that must be met or the VSphereMachine will not be scheduled.
-	//
-	// When there are multiple elements, the lists of nodes corresponding to
-	// each term are intersected, i.e. all terms must be satisfied.
-	//
-	// Note: Any update to this field will replace the entire list rather than
-	// merging with the existing elements.
-	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MaxItems=32
-	RequiredDuringSchedulingPreferredDuringExecution []VMAntiAffinityTerm `json:"requiredDuringSchedulingPreferredDuringExecution,omitempty"`
-
+type VMAntiAffinitySpec struct {
 	// preferredDuringSchedulingPreferredDuringExecution describes anti-affinity
 	// requirements that should be met, but the VSphereMachine can still be scheduled if
 	// the requirement cannot be satisfied. The scheduler will prefer to
@@ -341,22 +319,49 @@ type VMAntiAffinity struct {
 	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=32
-	PreferredDuringSchedulingPreferredDuringExecution []VMAntiAffinityTerm `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"`
+	PreferredDuringSchedulingPreferredDuringExecution *[]VMAntiAffinityTerm `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"` //nolint:kubeapilinter // Preserve list presence for future explicit-empty semantics.
+
+	// requiredDuringSchedulingPreferredDuringExecution describes anti-affinity
+	// requirements that must be met or the VSphereMachine will not be scheduled.
+	//
+	// When there are multiple elements, the lists of nodes corresponding to
+	// each term are intersected, i.e. all terms must be satisfied.
+	//
+	// Note: Any update to this field will replace the entire list rather than
+	// merging with the existing elements.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=32
+	RequiredDuringSchedulingPreferredDuringExecution *[]VMAntiAffinityTerm `json:"requiredDuringSchedulingPreferredDuringExecution,omitempty"` //nolint:kubeapilinter // Preserve list presence for future explicit-empty semantics.
+
+	// requiredDuringSchedulingRequiredDuringExecution describes anti-affinity
+	// requirements that must be met or the VSphereMachine will not be scheduled and
+	// that must continue to be met.
+	//
+	// When there are multiple elements, the lists of nodes corresponding to
+	// each term are intersected, i.e. all terms must be satisfied.
+	//
+	// Note: Any update to this field will replace the entire list rather than
+	// merging with the existing elements.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=32
+	RequiredDuringSchedulingRequiredDuringExecution *[]VMAntiAffinityTerm `json:"requiredDuringSchedulingRequiredDuringExecution,omitempty"` //nolint:kubeapilinter // Preserve list presence for future explicit-empty semantics.
 }
 
 // VMAntiAffinityTerm defines the VSphereMachine anti-affinity term.
 type VMAntiAffinityTerm struct {
-	// labelSelector is a label query over a set of VSphereMachines that this VSphereMachine should not be co-located with.
+	// labelSelector is a label query over a set of VSphereMachines.
+	// An empty selector matches all VSphereMachines in the applicable scope.
 	// +required
-	LabelSelector metav1.LabelSelector `json:"labelSelector,omitempty"`
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 
-	// topologyKey describes where this VSphereMachine should not be co-located (anti-affinity).
-	// `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
-	//
-	// In Supervisor mode, only `kubernetes.io/hostname` is currently supported.
+	// topologyKey describes where this VSphereMachine should not be co-located
+	// with the selected VSphereMachines.
+	// Only `kubernetes.io/hostname` is currently supported.
+	// The rule is executed in the context of hosts.
 	// +required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=32
+	// +kubebuilder:validation:Enum=kubernetes.io/hostname
 	TopologyKey string `json:"topologyKey,omitempty"`
 }
 

@@ -1088,25 +1088,25 @@ func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
 	tests := []struct {
 		name        string
 		featureGate bool
-		affinity    *vmwarev1.Affinity
+		affinity    vmwarev1.AffinitySpec
 		wantErr     bool
 		errMsg      string
 	}{
 		{
-			name:        "affinity nil when feature gate disabled",
+			name:        "affinity zero when feature gate disabled",
 			featureGate: false,
-			affinity:    nil,
+			affinity:    vmwarev1.AffinitySpec{},
 			wantErr:     false,
 		},
 		{
 			name:        "affinity set when feature gate disabled",
 			featureGate: false,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelHostname,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1119,12 +1119,12 @@ func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with valid hostname topologyKey in RequiredDuringSchedulingRequiredDuringExecution",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					RequiredDuringSchedulingRequiredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelHostname,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1136,12 +1136,12 @@ func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with valid hostname topologyKey in RequiredDuringSchedulingPreferredDuringExecution",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					RequiredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					RequiredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelHostname,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1153,12 +1153,12 @@ func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with valid hostname topologyKey in PreferredDuringSchedulingPreferredDuringExecution",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelHostname,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1170,12 +1170,12 @@ func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with invalid zone topologyKey in RequiredDuringSchedulingRequiredDuringExecution",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					RequiredDuringSchedulingRequiredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelTopologyZone,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1188,12 +1188,12 @@ func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with invalid zone topologyKey in RequiredDuringSchedulingPreferredDuringExecution",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					RequiredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					RequiredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: "topology.kubernetes.io/zone",
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1206,12 +1206,12 @@ func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with invalid zone topologyKey in PreferredDuringSchedulingPreferredDuringExecution",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelTopologyZone,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1224,12 +1224,12 @@ func TestVSphereMachine_ValidateCreate_Affinity(t *testing.T) {
 		{
 			name:        "affinity with non-host topologyKey",
 			featureGate: true,
-			affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: "custom-rack",
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1269,12 +1269,12 @@ func TestVSphereMachine_ValidateUpdate_Affinity(t *testing.T) {
 
 	oldMachine := &vmwarev1.VSphereMachine{
 		Spec: vmwarev1.VSphereMachineSpec{
-			Affinity: &vmwarev1.Affinity{
-				VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-					PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+			Affinity: vmwarev1.AffinitySpec{
+				VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+					PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 						{
 							TopologyKey: corev1.LabelHostname,
-							LabelSelector: metav1.LabelSelector{
+							LabelSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
@@ -1285,7 +1285,7 @@ func TestVSphereMachine_ValidateUpdate_Affinity(t *testing.T) {
 	}
 
 	newMachine := oldMachine.DeepCopy()
-	newMachine.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution[0].TopologyKey = "different"
+	(*newMachine.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution)[0].TopologyKey = "different"
 
 	webhook := &VSphereMachine{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
 	_, err := webhook.ValidateUpdate(context.Background(), oldMachine, newMachine)

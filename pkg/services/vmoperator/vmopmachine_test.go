@@ -1680,12 +1680,42 @@ var _ = Describe("VirtualMachine tests", func() {
 						Expect(vmService.Client.Create(ctx, vmSetRP)).To(Succeed())
 					})
 
+					DescribeTable("keeps default host anti-affinity when no user terms are configured", func(affinity vmwarev1.AffinitySpec) {
+						vsphereMachine.Spec.Affinity = affinity
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(requeue).To(BeTrue())
+						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM6.Spec.Affinity).NotTo(BeNil())
+						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity).NotTo(BeNil())
+						terms := vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution
+						Expect(terms).To(HaveLen(1))
+						Expect(terms[0].TopologyKey).To(Equal(corev1.LabelHostname))
+						Expect(terms[0].LabelSelector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, machineDeploymentName))
+					},
+						Entry("zero affinity", vmwarev1.AffinitySpec{}),
+						Entry("empty anti-affinity", vmwarev1.AffinitySpec{VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{}}),
+					)
+
+					Specify("preserves an empty label selector as a non-nil VM Operator selector", func() {
+						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+							RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname}},
+						}}
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(requeue).To(BeTrue())
+						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
+						terms := vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution
+						Expect(terms).To(HaveLen(1))
+						Expect(terms[0].LabelSelector).To(Equal(&metav1.LabelSelector{}))
+					})
+
 					Specify("maps user-configured PreferredDuringSchedulingPreferredDuringExecution anti-affinity into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = &vmwarev1.Affinity{
-							VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-								PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
+							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+								PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 									{
-										LabelSelector: metav1.LabelSelector{
+										LabelSelector: &metav1.LabelSelector{
 											MatchLabels: map[string]string{
 												"custom-key": "custom-val",
 											},
@@ -1713,11 +1743,11 @@ var _ = Describe("VirtualMachine tests", func() {
 					})
 
 					Specify("maps user-configured RequiredDuringSchedulingPreferredDuringExecution anti-affinity into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = &vmwarev1.Affinity{
-							VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-								RequiredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
+							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+								RequiredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 									{
-										LabelSelector: metav1.LabelSelector{
+										LabelSelector: &metav1.LabelSelector{
 											MatchLabels: map[string]string{
 												"strict-key": "strict-val",
 											},
@@ -1746,11 +1776,11 @@ var _ = Describe("VirtualMachine tests", func() {
 					})
 
 					Specify("maps user-configured RequiredDuringSchedulingRequiredDuringExecution anti-affinity into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = &vmwarev1.Affinity{
-							VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-								RequiredDuringSchedulingRequiredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
+							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+								RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 									{
-										LabelSelector: metav1.LabelSelector{
+										LabelSelector: &metav1.LabelSelector{
 											MatchLabels: map[string]string{
 												"hard-key": "hard-val",
 											},
@@ -1779,11 +1809,11 @@ var _ = Describe("VirtualMachine tests", func() {
 					})
 
 					Specify("maps both Required and Preferred anti-affinity types together into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = &vmwarev1.Affinity{
-							VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-								RequiredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
+							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+								RequiredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 									{
-										LabelSelector: metav1.LabelSelector{
+										LabelSelector: &metav1.LabelSelector{
 											MatchLabels: map[string]string{
 												"req-key": "req-val",
 											},
@@ -1791,9 +1821,9 @@ var _ = Describe("VirtualMachine tests", func() {
 										TopologyKey: corev1.LabelHostname,
 									},
 								},
-								PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+								PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 									{
-										LabelSelector: metav1.LabelSelector{
+										LabelSelector: &metav1.LabelSelector{
 											MatchLabels: map[string]string{
 												"pref-key": "pref-val",
 											},
@@ -1824,11 +1854,11 @@ var _ = Describe("VirtualMachine tests", func() {
 					})
 
 					Specify("maps all three anti-affinity types together into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = &vmwarev1.Affinity{
-							VMAntiAffinity: &vmwarev1.VMAntiAffinity{
-								RequiredDuringSchedulingRequiredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
+							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+								RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 									{
-										LabelSelector: metav1.LabelSelector{
+										LabelSelector: &metav1.LabelSelector{
 											MatchLabels: map[string]string{
 												"hard-key": "hard-val",
 											},
@@ -1836,9 +1866,9 @@ var _ = Describe("VirtualMachine tests", func() {
 										TopologyKey: corev1.LabelHostname,
 									},
 								},
-								RequiredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+								RequiredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 									{
-										LabelSelector: metav1.LabelSelector{
+										LabelSelector: &metav1.LabelSelector{
 											MatchLabels: map[string]string{
 												"req-key": "req-val",
 											},
@@ -1846,9 +1876,9 @@ var _ = Describe("VirtualMachine tests", func() {
 										TopologyKey: corev1.LabelHostname,
 									},
 								},
-								PreferredDuringSchedulingPreferredDuringExecution: []vmwarev1.VMAntiAffinityTerm{
+								PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAntiAffinityTerm{
 									{
-										LabelSelector: metav1.LabelSelector{
+										LabelSelector: &metav1.LabelSelector{
 											MatchLabels: map[string]string{
 												"pref-key": "pref-val",
 											},

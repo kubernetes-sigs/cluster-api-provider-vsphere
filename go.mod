@@ -13,8 +13,8 @@ require (
 	github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20260605071046-a0f2f0b41aad
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20261009145046-ca004a72d870
-	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20260915220631-04b255bd3809
-	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20260915220631-04b255bd3809
+	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20261009145046-ca004a72d870
+	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20261009145046-ca004a72d870
 	github.com/vmware/govmomi v0.56.0
 )
 

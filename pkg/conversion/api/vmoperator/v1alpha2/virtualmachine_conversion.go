@@ -52,6 +52,19 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 		}
 		if src.Spec.Affinity.VMAntiAffinity != nil {
 			dst.Spec.Affinity.VMAntiAffinity = &vmoprvhub.VMAntiAffinitySpec{}
+			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
+				terms := []vmoprvhub.VMAffinityTerm{}
+				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
+					t := vmoprvhub.VMAffinityTerm{
+						TopologyKey: term.TopologyKey,
+					}
+					if term.LabelSelector != nil {
+						t.LabelSelector = term.LabelSelector.DeepCopy()
+					}
+					terms = append(terms, t)
+				}
+				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
+			}
 			if src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution != nil {
 				terms := []vmoprvhub.VMAffinityTerm{}
 				for _, term := range src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution {
@@ -289,6 +302,19 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 		}
 		if src.Spec.Affinity.VMAntiAffinity != nil {
 			dst.Spec.Affinity.VMAntiAffinity = &vmoprv1alpha2.VMAntiAffinitySpec{}
+			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
+				terms := []vmoprv1alpha2.VMAffinityTerm{}
+				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
+					t := vmoprv1alpha2.VMAffinityTerm{
+						TopologyKey: term.TopologyKey,
+					}
+					if term.LabelSelector != nil {
+						t.LabelSelector = term.LabelSelector.DeepCopy()
+					}
+					terms = append(terms, t)
+				}
+				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
+			}
 			if src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution != nil {
 				terms := []vmoprv1alpha2.VMAffinityTerm{}
 				for _, term := range src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution {

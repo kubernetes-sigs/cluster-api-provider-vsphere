@@ -24,6 +24,7 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	"github.com/vmware/govmomi/fault"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
@@ -240,6 +241,21 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 		// If the VM's MoRef could not be found then the VM no longer exists. This
 		// is the desired state.
 		if isNotFound(err) || isFolderNotFound(err) {
+			// A VM whose datastore is inaccessible is not found by its BIOS UUID even
+			// though it still exists. Do not report it as not found, and so leak it,
+			// while its managed object reference still exists.
+			var vmRef types.ManagedObjectReference
+			if vmRef.FromString(vmCtx.VSphereVM.Status.VMRef) && isNotFound(err) {
+				var o mo.VirtualMachine
+				err := property.DefaultCollector(vmCtx.Session.Client.Client).RetrieveOne(ctx, vmRef, []string{"summary.runtime.connectionState"}, &o)
+				if err == nil {
+					return reconcile.Result{}, vm, pkgerrors.Errorf("VM %s not found by bios uuid %s but still exists with connection state %q, waiting for it to be found by bios uuid",
+						vmRef.Value, vmCtx.VSphereVM.Spec.BiosUUID, o.Summary.Runtime.ConnectionState)
+				}
+				if !fault.Is(err, &types.ManagedObjectNotFound{}) {
+					return reconcile.Result{}, vm, err
+				}
+			}
 			vm.State = services.VirtualMachineStateNotFound
 			return reconcile.Result{}, vm, nil
 		}

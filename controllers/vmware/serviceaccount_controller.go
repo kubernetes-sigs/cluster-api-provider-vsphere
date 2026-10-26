@@ -398,7 +398,7 @@ func (r *ServiceAccountReconciler) ensureRole(ctx context.Context, pSvcAccount v
 	log = log.WithValues("Role", klog.KObj(role))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	log.Info("Creating or patching Role")
+	log.V(5).Info("Creating or patching Role")
 	_, err := controllerutil.CreateOrPatch(ctx, r.Client, role, func() error {
 		if err := util.SetControllerReferenceWithOverride(&pSvcAccount, role, r.Client.Scheme()); err != nil {
 			return err
@@ -441,7 +441,7 @@ func (r *ServiceAccountReconciler) ensureRoleBinding(ctx context.Context, pSvcAc
 		}
 	}
 
-	log.Info("Creating or patching RoleBinding")
+	log.V(5).Info("Creating or patching RoleBinding")
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, roleBinding, func() error {
 		if err := util.SetControllerReferenceWithOverride(&pSvcAccount, roleBinding, r.Client.Scheme()); err != nil {
 			return err
@@ -513,7 +513,7 @@ func (r *ServiceAccountReconciler) syncServiceAccountSecret(ctx context.Context,
 			Namespace: pSvcAccount.Spec.TargetNamespace,
 		},
 	}
-	log.Info("Creating or patching Secret in workload cluster", "TargetSecret", klog.KObj(targetSecret))
+	log.V(5).Info("Creating or patching Secret in workload cluster", "TargetSecret", klog.KObj(targetSecret))
 	_, err = controllerutil.CreateOrPatch(ctx, guestClusterCtx.GuestClient, targetSecret, func() error {
 		targetSecret.Data = svcAccountTokenSecret.Data
 		return nil

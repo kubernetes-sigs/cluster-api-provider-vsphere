@@ -94,9 +94,13 @@ func (e *Config) encode(data []byte) string {
 	if len(data) == 0 {
 		return ""
 	}
-	for {
+	// Bound the normalization loop: DecodeString ignores \r/\n and returns a
+	// nil error for the empty string, so any input that decodes down to ""
+	// (e.g. "\n") would otherwise spin this loop forever. Stop when the
+	// decoded value is empty, and cap the number of passes to 5.
+	for range 5 {
 		decoded, err := base64.StdEncoding.DecodeString(string(data))
-		if err != nil {
+		if err != nil || len(decoded) == 0 {
 			break
 		}
 		data = decoded

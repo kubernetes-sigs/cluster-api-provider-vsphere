@@ -24,6 +24,7 @@ import (
 	"net/netip"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/blang/semver"
 	pkgerrors "github.com/pkg/errors"
@@ -44,10 +45,15 @@ var (
 	// global Session map against sessionKeys in map[sessionKey]Session.
 	sessionCache sync.Map
 
-	// mutex to control access to the GetOrCreate function to avoid duplicate
-	// session creations on startup.
-	sessionMU sync.Mutex
+	// sessionKeyLocks contains per-sessionKey mutexes to avoid duplicate session creations for the
+	// same key. This also ensures we don't serialize unrelated keys on one global lock.
+	sessionKeyLocks sync.Map
 )
+
+// sessionNetworkTimeout bounds the network round-trips performed while the
+// per-key lock is held, so an unresponsive spec-supplied server cannot hold
+// the lock indefinitely.
+const sessionNetworkTimeout = 2 * time.Minute
 
 // Session is a vSphere session with a configured Finder.
 type Session struct {
@@ -120,15 +126,25 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 		"username", params.userinfo.Username())
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	sessionMU.Lock()
-	defer sessionMU.Unlock()
-
 	userPassword, _ := params.userinfo.Password()
 	h := sha256.New()
 	h.Write([]byte(userPassword))
 	hashedUserPassword := h.Sum(nil)
 	sessionKey := fmt.Sprintf("%s#%s#%s#%x", params.server, params.datacenter, params.userinfo.Username(),
 		hashedUserPassword)
+
+	// Lock per sessionKey so duplicate session creations for the same key are
+	// still prevented while unrelated keys (other servers) proceed
+	// concurrently instead of blocking on a single global mutex.
+	keyLock, _ := sessionKeyLocks.LoadOrStore(sessionKey, &sync.Mutex{})
+	mu := keyLock.(*sync.Mutex)
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Bound all network round-trips below so a server that accepts the dial
+	// but never responds cannot hold the per-key lock indefinitely.
+	ctx, cancel := context.WithTimeout(ctx, sessionNetworkTimeout)
+	defer cancel()
 	if cachedSession, ok := sessionCache.Load(sessionKey); ok {
 		s := cachedSession.(*Session)
 

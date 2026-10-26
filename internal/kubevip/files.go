@@ -35,6 +35,8 @@ var (
 
 	// kubeVipPodRaw yaml is generated via:
 	//   docker run --network host --rm ghcr.io/kube-vip/kube-vip:${TAG} manifest pod --controlplane --address '${CONTROL_PLANE_ENDPOINT_IP}' --interface '${VIP_NETWORK_INTERFACE:=""}' --arp --leaderElection --leaseDuration 15 --leaseRenewDuration 10 --leaseRetry 2 --services --servicesElection > packaging/flavorgen/flavors/kubevip/kube-vip.yaml
+	// Then manually update the image to pin the sha:
+	//   docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/kube-vip/kube-vip:${TAG}
 	//go:embed kube-vip.yaml
 	kubeVipPodRaw string
 )

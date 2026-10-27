@@ -558,7 +558,7 @@ type NetworkDeviceSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=128
 	// +kubebuilder:validation:items:MinLength=1
-	// +kubebuilder:validation:items:MaxLength=39
+	// +kubebuilder:validation:items:MaxLength=43
 	IPAddrs []string `json:"ipAddrs,omitempty"`
 
 	// mtu is the device’s Maximum Transmission Unit size in bytes.
@@ -724,7 +724,7 @@ type NetworkRouteSpec struct {
 	// to is an IPv4 or IPv6 address.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=39
+	// +kubebuilder:validation:MaxLength=43
 	To string `json:"to,omitempty"`
 
 	// via is an IPv4 or IPv6 address.

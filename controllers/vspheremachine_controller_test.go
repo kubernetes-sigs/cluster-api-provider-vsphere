@@ -397,3 +397,41 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 		}, timeout).Should(Succeed())
 	})
 }
+
+func TestVSphereMachine_AcceptsFullLengthIPv6CIDRs(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := testEnv.CreateNamespace(ctx, "vsphere-machine-ipv6-cidr")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// A fully expanded IPv6 address with a prefix length is up to 43 characters long.
+	vSphereMachine := &infrav1.VSphereMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vsphere-machine-ipv6-cidr",
+			Namespace: ns.Name,
+		},
+		Spec: infrav1.VSphereMachineSpec{
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Template: "ubuntu-k9s-1.19",
+				Network: infrav1.NetworkSpec{
+					Devices: []infrav1.NetworkDeviceSpec{
+						{
+							NetworkName: "network-1",
+							IPAddrs:     []string{"2001:0db8:1234:5678:9abc:def0:1234:5678/128"},
+							Gateway6:    "2001:db8:1234:5678::1",
+						},
+					},
+					Routes: []infrav1.NetworkRouteSpec{
+						{
+							To:     "2001:0db8:1234:5678:9abc:def0:1234:0000/112",
+							Via:    "2001:db8:1234:5678::1",
+							Metric: ptr.To[int32](100),
+						},
+					},
+				},
+			},
+		},
+	}
+	g.Expect(testEnv.Create(ctx, vSphereMachine)).To(Succeed())
+	g.Expect(testEnv.Cleanup(ctx, vSphereMachine, ns)).To(Succeed())
+}

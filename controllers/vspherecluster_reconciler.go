@@ -236,6 +236,12 @@ func (r *clusterReconciler) reconcileDelete(ctx context.Context, clusterCtx *cap
 			return reconcile.Result{}, err
 		}
 
+		// If the VSphereCluster does not own the Secret return an error.
+		// This ensures that it's not possible to delete arbitrary secrets through VSphereCluster deletion.
+		if !clusterutilv1.IsOwnedByObject(secret, clusterCtx.VSphereCluster, infrav1.GroupVersion.WithKind("VSphereCluster").GroupKind()) {
+			return reconcile.Result{}, fmt.Errorf("failed to delete Secret %s: VSphereCluster %s does not own the secret", klog.KObj(secret), klog.KObj(clusterCtx.VSphereCluster))
+		}
+
 		if ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
 			log.Info(fmt.Sprintf("Removing finalizer %s", infrav1.SecretIdentitySetFinalizer), "Secret", klog.KObj(secret))
 			if err := r.Client.Update(ctx, secret); err != nil {

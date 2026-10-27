@@ -37,6 +37,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 )
@@ -480,6 +481,88 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 		})
 	})
 })
+
+func TestClusterReconciler_ReconcileDelete_SecretOwnership(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		owner     *metav1.OwnerReference
+		wantError bool
+	}{
+		{
+			name:      "secret has no owner",
+			wantError: true,
+		},
+		{
+			name: "secret is owned by another VSphereCluster",
+			owner: &metav1.OwnerReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "VSphereCluster",
+				Name:       "another-cluster",
+				UID:        "another-cluster-uid",
+			},
+			wantError: true,
+		},
+		{
+			name: "secret is owned by the VSphereCluster",
+			owner: &metav1.OwnerReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "VSphereCluster",
+				Name:       "cluster",
+				UID:        "cluster-uid",
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "credentials",
+					Namespace:  "default",
+					Finalizers: []string{infrav1.SecretIdentitySetFinalizer},
+				},
+			}
+			if tt.owner != nil {
+				secret.OwnerReferences = []metav1.OwnerReference{*tt.owner}
+			}
+			controllerManagerContext := fake.NewControllerManagerContext(secret)
+			clusterCtx := &capvcontext.ClusterContext{
+				VSphereCluster: &infrav1.VSphereCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "cluster",
+						Namespace:  secret.Namespace,
+						UID:        "cluster-uid",
+						Finalizers: []string{infrav1.ClusterFinalizer},
+					},
+					Spec: infrav1.VSphereClusterSpec{
+						DisableClusterModule: ptr.To(true),
+						IdentityRef: infrav1.VSphereIdentityReference{
+							Kind: infrav1.SecretKind,
+							Name: secret.Name,
+						},
+					},
+				},
+			}
+			r := clusterReconciler{Client: controllerManagerContext.Client}
+			secretKey := client.ObjectKeyFromObject(secret)
+			g.Expect(r.Client.Get(ctx, secretKey, secret)).To(Succeed())
+			originalSecret := secret.DeepCopy()
+
+			result, err := r.reconcileDelete(ctx, clusterCtx)
+			g.Expect(result).To(BeZero())
+			if tt.wantError {
+				g.Expect(err).To(MatchError("failed to delete Secret default/credentials: VSphereCluster default/cluster does not own the secret"))
+				g.Expect(r.Client.Get(ctx, secretKey, secret)).To(Succeed())
+				g.Expect(secret).To(Equal(originalSecret))
+				g.Expect(ctrlutil.ContainsFinalizer(clusterCtx.VSphereCluster, infrav1.ClusterFinalizer)).To(BeTrue())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(apierrors.IsNotFound(r.Client.Get(ctx, secretKey, secret))).To(BeTrue())
+				g.Expect(ctrlutil.ContainsFinalizer(clusterCtx.VSphereCluster, infrav1.ClusterFinalizer)).To(BeFalse())
+			}
+		})
+	}
+}
 
 func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 	server := "vcenter123.foo.com"

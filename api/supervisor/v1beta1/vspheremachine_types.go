@@ -256,13 +256,14 @@ type VSphereMachineSpec struct {
 
 	// affinity describes the VSphereMachine's scheduling constraints and placement rules (e.g. anti-affinity
 	// with other VSphereMachines).
-	// Set on the VSphereMachineTemplate machine spec for the MachineDeployment, propagated
+	// Set on the VSphereMachineTemplate for the MachineDeployment, propagated
 	// to each VSphereMachine.
 	// +optional
 	Affinity AffinitySpec `json:"affinity,omitempty,omitzero"`
 }
 
 // AffinitySpec defines the group of affinity scheduling rules.
+// +kubebuilder:validation:MinProperties=1
 type AffinitySpec struct {
 	// vmAntiAffinity describes anti-affinity scheduling rules related to other
 	// VSphereMachines.
@@ -277,7 +278,20 @@ func (r *AffinitySpec) IsDefined() bool {
 
 // VMAntiAffinitySpec defines the anti-affinity requirements for scheduling
 // rules related to other VSphereMachines.
+// +kubebuilder:validation:MinProperties=1
 type VMAntiAffinitySpec struct {
+	// requiredDuringSchedulingPreferredDuringExecution describes anti-affinity
+	// requirements that must be met or the VSphereMachine will not be scheduled.
+	//
+	// When there are multiple elements, the lists of nodes corresponding to
+	// each term are intersected, i.e. all terms must be satisfied.
+	//
+	// Note: Any update to this field will replace the entire list rather than
+	// merging with the existing elements.
+	// +optional
+	// +listType=atomic
+	RequiredDuringSchedulingPreferredDuringExecution *[]VMAffinityTerm `json:"requiredDuringSchedulingPreferredDuringExecution,omitempty"`
+
 	// preferredDuringSchedulingPreferredDuringExecution describes anti-affinity
 	// requirements that should be met, but the VSphereMachine can still be scheduled if
 	// the requirement cannot be satisfied. The scheduler will prefer to
@@ -294,19 +308,7 @@ type VMAntiAffinitySpec struct {
 	// merging with the existing elements.
 	// +optional
 	// +listType=atomic
-	PreferredDuringSchedulingPreferredDuringExecution *[]VMAntiAffinityTerm `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"`
-
-	// requiredDuringSchedulingPreferredDuringExecution describes anti-affinity
-	// requirements that must be met or the VSphereMachine will not be scheduled.
-	//
-	// When there are multiple elements, the lists of nodes corresponding to
-	// each term are intersected, i.e. all terms must be satisfied.
-	//
-	// Note: Any update to this field will replace the entire list rather than
-	// merging with the existing elements.
-	// +optional
-	// +listType=atomic
-	RequiredDuringSchedulingPreferredDuringExecution *[]VMAntiAffinityTerm `json:"requiredDuringSchedulingPreferredDuringExecution,omitempty"`
+	PreferredDuringSchedulingPreferredDuringExecution *[]VMAffinityTerm `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"`
 
 	// requiredDuringSchedulingRequiredDuringExecution describes anti-affinity
 	// requirements that must be met or the VSphereMachine will not be scheduled and
@@ -319,11 +321,11 @@ type VMAntiAffinitySpec struct {
 	// merging with the existing elements.
 	// +optional
 	// +listType=atomic
-	RequiredDuringSchedulingRequiredDuringExecution *[]VMAntiAffinityTerm `json:"requiredDuringSchedulingRequiredDuringExecution,omitempty"`
+	RequiredDuringSchedulingRequiredDuringExecution *[]VMAffinityTerm `json:"requiredDuringSchedulingRequiredDuringExecution,omitempty"`
 }
 
-// VMAntiAffinityTerm defines the VSphereMachine anti-affinity term.
-type VMAntiAffinityTerm struct {
+// VMAffinityTerm defines the VSphereMachine affinity/anti-affinity term.
+type VMAffinityTerm struct {
 	// labelSelector is a label query over a set of VSphereMachines.
 	// An empty selector matches all VSphereMachines in the applicable scope.
 	// +required

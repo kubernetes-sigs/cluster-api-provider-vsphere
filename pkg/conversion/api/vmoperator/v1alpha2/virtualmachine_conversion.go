@@ -52,19 +52,6 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 		}
 		if src.Spec.Affinity.VMAntiAffinity != nil {
 			dst.Spec.Affinity.VMAntiAffinity = &vmoprvhub.VMAntiAffinitySpec{}
-			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
-				terms := []vmoprvhub.VMAffinityTerm{}
-				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
-					t := vmoprvhub.VMAffinityTerm{
-						TopologyKey: term.TopologyKey,
-					}
-					if term.LabelSelector != nil {
-						t.LabelSelector = term.LabelSelector.DeepCopy()
-					}
-					terms = append(terms, t)
-				}
-				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
-			}
 			if src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution != nil {
 				terms := []vmoprvhub.VMAffinityTerm{}
 				for _, term := range src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution {
@@ -77,6 +64,19 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 					terms = append(terms, t)
 				}
 				dst.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = terms
+			}
+			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
+				terms := []vmoprvhub.VMAffinityTerm{}
+				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
+					t := vmoprvhub.VMAffinityTerm{
+						TopologyKey: term.TopologyKey,
+					}
+					if term.LabelSelector != nil {
+						t.LabelSelector = term.LabelSelector.DeepCopy()
+					}
+					terms = append(terms, t)
+				}
+				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
 			}
 		}
 	}
@@ -104,8 +104,13 @@ func convert_v1alpha2_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 				d := vmoprvhub.VirtualMachineNetworkInterfaceSpec{}
 				d.Addresses = iface.Addresses
 				// AdvancedProperties existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
-				d.DHCP4 = iface.DHCP4
-				d.DHCP6 = iface.DHCP6
+				// Legacy false means unset, so keep nil to defer to the network provider.
+				if iface.DHCP4 {
+					d.DHCP4 = ptr.To(true)
+				}
+				if iface.DHCP6 {
+					d.DHCP6 = ptr.To(true)
+				}
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
 				d.GuestDeviceName = iface.GuestDeviceName
@@ -302,19 +307,6 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 		}
 		if src.Spec.Affinity.VMAntiAffinity != nil {
 			dst.Spec.Affinity.VMAntiAffinity = &vmoprv1alpha2.VMAntiAffinitySpec{}
-			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
-				terms := []vmoprv1alpha2.VMAffinityTerm{}
-				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
-					t := vmoprv1alpha2.VMAffinityTerm{
-						TopologyKey: term.TopologyKey,
-					}
-					if term.LabelSelector != nil {
-						t.LabelSelector = term.LabelSelector.DeepCopy()
-					}
-					terms = append(terms, t)
-				}
-				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
-			}
 			if src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution != nil {
 				terms := []vmoprv1alpha2.VMAffinityTerm{}
 				for _, term := range src.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution {
@@ -327,6 +319,19 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 					terms = append(terms, t)
 				}
 				dst.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = terms
+			}
+			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
+				terms := []vmoprv1alpha2.VMAffinityTerm{}
+				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
+					t := vmoprv1alpha2.VMAffinityTerm{
+						TopologyKey: term.TopologyKey,
+					}
+					if term.LabelSelector != nil {
+						t.LabelSelector = term.LabelSelector.DeepCopy()
+					}
+					terms = append(terms, t)
+				}
+				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
 			}
 		}
 	}
@@ -354,8 +359,9 @@ func convert_hub_VirtualMachine_To_v1alpha2_VirtualMachine(_ context.Context, sr
 				d := vmoprv1alpha2.VirtualMachineNetworkInterfaceSpec{}
 				d.Addresses = iface.Addresses
 				// AdvancedProperties existing in hub but not in v1alpha2.VirtualMachineNetworkInterfaceSpec
-				d.DHCP4 = iface.DHCP4
-				d.DHCP6 = iface.DHCP6
+				// Legacy APIs cannot distinguish unset DHCP from explicitly disabled DHCP.
+				d.DHCP4 = ptr.Deref(iface.DHCP4, false)
+				d.DHCP6 = ptr.Deref(iface.DHCP6, false)
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
 				d.GuestDeviceName = iface.GuestDeviceName

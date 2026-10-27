@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"reflect"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -332,42 +331,12 @@ func validateVolumes(volumes []vmwarev1.VSphereMachineVolume, fldPath *field.Pat
 	return allErrs
 }
 
-// validateAffinity validates that affinity is only set when the feature gate WorkerStrictAntiAffinity is enabled,
-// and strictly enforces that the topologyKey for all anti-affinity terms must be set to kubernetes.io/hostname.
+// validateAffinity validates that affinity is only set when the feature gate WorkerStrictAntiAffinity is enabled.
 func validateAffinity(affinity vmwarev1.AffinitySpec, fldPath *field.Path) field.ErrorList {
-	if !affinity.IsDefined() {
+	if !affinity.IsDefined() || feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) {
 		return nil
 	}
-
-	var allErrs field.ErrorList
-
-	if !feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) {
-		allErrs = append(allErrs, field.Forbidden(fldPath, "affinity can only be set when feature gate WorkerStrictAntiAffinity is enabled"))
-		return allErrs
+	return field.ErrorList{
+		field.Forbidden(fldPath, "affinity can only be set when feature gate WorkerStrictAntiAffinity is enabled"),
 	}
-
-	antiAffPath := fldPath.Child("vmAntiAffinity")
-	allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution, antiAffPath.Child("requiredDuringSchedulingRequiredDuringExecution"))...)
-	allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution, antiAffPath.Child("requiredDuringSchedulingPreferredDuringExecution"))...)
-	allErrs = append(allErrs, validateAntiAffinityTerms(affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution, antiAffPath.Child("preferredDuringSchedulingPreferredDuringExecution"))...)
-
-	return allErrs
-}
-
-func validateAntiAffinityTerms(terms *[]vmwarev1.VMAntiAffinityTerm, fldPath *field.Path) field.ErrorList {
-	if terms == nil {
-		return nil
-	}
-	var allErrs field.ErrorList
-	for i, term := range *terms {
-		termPath := fldPath.Index(i)
-		if term.TopologyKey != corev1.LabelHostname {
-			allErrs = append(allErrs, field.Invalid(
-				termPath.Child("topologyKey"),
-				term.TopologyKey,
-				fmt.Sprintf("topologyKey must be set to %s", corev1.LabelHostname),
-			))
-		}
-	}
-	return allErrs
 }

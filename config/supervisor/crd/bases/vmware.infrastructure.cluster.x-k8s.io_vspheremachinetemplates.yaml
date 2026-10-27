@@ -52,13 +52,15 @@ spec:
                         description: |-
                           affinity describes the VSphereMachine's scheduling constraints and placement rules (e.g. anti-affinity
                           with other VSphereMachines).
-                          Set on the VSphereMachineTemplate machine spec for the MachineDeployment, propagated
+                          Set on the VSphereMachineTemplate for the MachineDeployment, propagated
                           to each VSphereMachine.
+                        minProperties: 1
                         properties:
                           vmAntiAffinity:
                             description: |-
                               vmAntiAffinity describes anti-affinity scheduling rules related to other
                               VSphereMachines.
+                            minProperties: 1
                             properties:
                               preferredDuringSchedulingPreferredDuringExecution:
                                 description: |-
@@ -77,8 +79,8 @@ spec:
                                   Note: Any update to this field will replace the entire list rather than
                                   merging with the existing elements.
                                 items:
-                                  description: VMAntiAffinityTerm defines the VSphereMachine
-                                    anti-affinity term.
+                                  description: VMAffinityTerm defines the VSphereMachine
+                                    affinity/anti-affinity term.
                                   properties:
                                     labelSelector:
                                       description: |-
@@ -155,8 +157,8 @@ spec:
                                   Note: Any update to this field will replace the entire list rather than
                                   merging with the existing elements.
                                 items:
-                                  description: VMAntiAffinityTerm defines the VSphereMachine
-                                    anti-affinity term.
+                                  description: VMAffinityTerm defines the VSphereMachine
+                                    affinity/anti-affinity term.
                                   properties:
                                     labelSelector:
                                       description: |-
@@ -234,8 +236,8 @@ spec:
                                   Note: Any update to this field will replace the entire list rather than
                                   merging with the existing elements.
                                 items:
-                                  description: VMAntiAffinityTerm defines the VSphereMachine
-                                    anti-affinity term.
+                                  description: VMAffinityTerm defines the VSphereMachine
+                                    affinity/anti-affinity term.
                                   properties:
                                     labelSelector:
                                       description: |-
@@ -921,13 +923,15 @@ spec:
                         description: |-
                           affinity describes the VSphereMachine's scheduling constraints and placement rules (e.g. anti-affinity
                           with other VSphereMachines).
-                          Set on the VSphereMachineTemplate machine spec for the MachineDeployment, propagated
+                          Set on the VSphereMachineTemplate for the MachineDeployment, propagated
                           to each VSphereMachine.
+                        minProperties: 1
                         properties:
                           vmAntiAffinity:
                             description: |-
                               vmAntiAffinity describes anti-affinity scheduling rules related to other
                               VSphereMachines.
+                            minProperties: 1
                             properties:
                               preferredDuringSchedulingPreferredDuringExecution:
                                 description: |-
@@ -946,8 +950,8 @@ spec:
                                   Note: Any update to this field will replace the entire list rather than
                                   merging with the existing elements.
                                 items:
-                                  description: VMAntiAffinityTerm defines the VSphereMachine
-                                    anti-affinity term.
+                                  description: VMAffinityTerm defines the VSphereMachine
+                                    affinity/anti-affinity term.
                                   properties:
                                     labelSelector:
                                       description: |-
@@ -1025,8 +1029,8 @@ spec:
                                   Note: Any update to this field will replace the entire list rather than
                                   merging with the existing elements.
                                 items:
-                                  description: VMAntiAffinityTerm defines the VSphereMachine
-                                    anti-affinity term.
+                                  description: VMAffinityTerm defines the VSphereMachine
+                                    affinity/anti-affinity term.
                                   properties:
                                     labelSelector:
                                       description: |-
@@ -1105,8 +1109,8 @@ spec:
                                   Note: Any update to this field will replace the entire list rather than
                                   merging with the existing elements.
                                 items:
-                                  description: VMAntiAffinityTerm defines the VSphereMachine
-                                    anti-affinity term.
+                                  description: VMAffinityTerm defines the VSphereMachine
+                                    affinity/anti-affinity term.
                                   properties:
                                     labelSelector:
                                       description: |-

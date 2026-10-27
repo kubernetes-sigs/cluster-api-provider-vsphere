@@ -19,9 +19,11 @@ package v1alpha6
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
 	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
@@ -39,9 +41,6 @@ func TestFuzzyConversion(t *testing.T) {
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachine{},
 		Spoke:     &vmoprv1alpha6.VirtualMachine{},
-		CheckTypes: conversiontest.RoundTripCheckTypesInput{
-			Skip: true,
-		},
 	}))
 	t.Run("for VirtualMachineClass", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
@@ -73,4 +72,40 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:       &vmoprvhub.ClusterVirtualMachineImage{},
 		Spoke:     &vmoprv1alpha6.ClusterVirtualMachineImage{},
 	}))
+}
+
+func TestVirtualMachineDHCPConversion(t *testing.T) {
+	states := []struct {
+		name  string
+		value *bool
+	}{
+		{name: "unset"},
+		{name: "disabled", value: ptr.To(false)},
+		{name: "enabled", value: ptr.To(true)},
+	}
+	for _, dhcp4 := range states {
+		for _, dhcp6 := range states {
+			t.Run(dhcp4.name+"/"+dhcp6.name, func(t *testing.T) {
+				g := NewWithT(t)
+				spoke := &vmoprv1alpha6.VirtualMachine{
+					Spec: vmoprv1alpha6.VirtualMachineSpec{
+						Network: &vmoprv1alpha6.VirtualMachineNetworkSpec{
+							Interfaces: []vmoprv1alpha6.VirtualMachineNetworkInterfaceSpec{
+								{Name: "eth0", DHCP4: dhcp4.value, DHCP6: dhcp6.value},
+							},
+						},
+					},
+				}
+				hub := &vmoprvhub.VirtualMachine{}
+				g.Expect(convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(t.Context(), spoke, hub)).To(Succeed())
+				g.Expect(hub.Spec.Network.Interfaces).To(HaveLen(1))
+				g.Expect(hub.Spec.Network.Interfaces[0].DHCP4).To(Equal(dhcp4.value))
+				g.Expect(hub.Spec.Network.Interfaces[0].DHCP6).To(Equal(dhcp6.value))
+
+				restored := &vmoprv1alpha6.VirtualMachine{}
+				g.Expect(convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(t.Context(), hub, restored)).To(Succeed())
+				g.Expect(restored.Spec.Network).To(Equal(spoke.Spec.Network))
+			})
+		}
+	}
 }

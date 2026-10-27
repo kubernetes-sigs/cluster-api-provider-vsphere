@@ -4,8 +4,18 @@ approvers:
   - cluster-api-maintainers
   - cluster-api-vsphere-maintainers
   - sig-cluster-lifecycle-leads
-  - sig-cluster-lifecycle-tech-leads
 
 reviewers:
   - cluster-api-vsphere-maintainers
   - cluster-api-vsphere-reviewers
+
+emeritus_approvers:
+  - akutz
+  - andrewsykim
+  - figo
+  - frapposelli
+  - gab-satchi
+  - killianmuldoon
+  - ncdc
+  - sidharthsurana
+  - yastij

@@ -3,38 +3,24 @@
 aliases:
   sig-cluster-lifecycle-leads:
     - fabriziopandini
+    - hakman
     - justinsb
     - neolit123
-  sig-cluster-lifecycle-tech-leads:
-    - CecileRobertMichon
-    - vincepri
+    - sbueringer
+
   cluster-api-maintainers:
-    - CecileRobertMichon
-    - enxebre
-    - fabriziopandini
-    - sbueringer
-    - vincepri
-  cluster-api-vsphere-maintainers:
-    - randomvariable
-    - srm09
-    - yastij
-    - fabriziopandini
-    - sbueringer
-    - gab-satchi
     - chrischdi
+    - fabriziopandini
+    - JoelSpeed
+    - sbueringer
+
+  cluster-api-vsphere-maintainers:
+    - chrischdi
+    - fabriziopandini
+    - randomvariable
+    - sbueringer
+    - srm09
+
   cluster-api-vsphere-reviewers:
-    - maxrink
-    - vrabbi
     - zhanggbj
-    - rvanderp3
-    - laozc
-  cluster-api-vsphere-emeritus-maintainers:
-    - akutz
-    - andrewsykim
-    - figo
-    - frapposelli
-    - ncdc
-    - sidharthsurana
-    - frapposelli
-    - killianmuldoon
 

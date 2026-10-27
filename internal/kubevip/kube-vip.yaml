@@ -43,7 +43,7 @@ spec:
       value: ${CONTROL_PLANE_ENDPOINT_IP}
     - name: prometheus_server
       value: :2112
-    image: ghcr.io/kube-vip/kube-vip:v0.6.4
+    image: ghcr.io/kube-vip/kube-vip@sha256:aa09234646e542dc2629c3dbd5698a77123aecb88d3b01a1d3ba5a78648c45b8 # tag=v0.6.4
     imagePullPolicy: Always
     name: kube-vip
     resources: {}

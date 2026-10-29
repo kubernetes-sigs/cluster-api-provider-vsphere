@@ -10,4 +10,4 @@ spec:
     spec:
       containers:
       - name: manager
-        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:9.2
+        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:9.1.3

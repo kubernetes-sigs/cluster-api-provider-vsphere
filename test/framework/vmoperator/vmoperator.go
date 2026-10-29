@@ -90,15 +90,15 @@ const (
 )
 
 var (
-	//go:embed vmoperator-capabilities-9.1.yaml
-	capabilities9_1 []byte
+	//go:embed vmoperator-capabilities-9.1.0.yaml
+	capabilities9_1_0 []byte
 
-	//go:embed vmoperator-capabilities-9.2.yaml
-	capabilities9_2 []byte
+	//go:embed vmoperator-capabilities-9.1.3.yaml
+	capabilities9_1_3 []byte
 )
 
 // ReconcileCapabilities reconciles the ConfigMap with the list of capabilities for the vm-operator.
-// NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.2.yaml that is
+// NOTE: Because this config map goes in kube-system, it is not possible to add it to vm-operator-9.1.3.yaml that is
 // used by clusterctl init (init requires all the objects to be in the same namespace).
 func ReconcileCapabilities(ctx context.Context, c client.Client, vmOperatorVersion string) error {
 	var retryError error
@@ -106,14 +106,14 @@ func ReconcileCapabilities(ctx context.Context, c client.Client, vmOperatorVersi
 
 	var capabilitiesFile []byte
 	switch vmOperatorVersion {
-	case "9.1":
-		capabilitiesFile = capabilities9_1
-	case "9.2":
-		capabilitiesFile = capabilities9_2
+	case "9.1.0":
+		capabilitiesFile = capabilities9_1_0
+	case "9.1.3":
+		capabilitiesFile = capabilities9_1_3
 	}
 	if capabilitiesFile == nil {
-		log.Info("VM_OPERATOR_VERSION not set, using capabilities for 9.2 version")
-		capabilitiesFile = capabilities9_2
+		log.Info("VM_OPERATOR_VERSION not set, using capabilities for 9.1.3 version")
+		capabilitiesFile = capabilities9_1_3
 	}
 	objs, err := utilyaml.ToUnstructured(capabilitiesFile)
 	if err != nil {
@@ -318,7 +318,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			return retryError
 		}
 
-		// Create StoragePolicy CR if the CRD exists (required for vm-operator >= 9.2).
+		// Create StoragePolicy CR if the CRD exists (required for vm-operator >= 9.1.3).
 		// The naming convention follows vm-operator's GetStoragePolicyObjectName:
 		// strip dashes from the UUID, then use pol-{first8chars}-{last16chars}.
 		storagePolicyCRD := &apiextensionsv1.CustomResourceDefinition{
@@ -359,7 +359,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			}
 		} else {
 			if apierrors.IsNotFound(err) {
-				log.Info("Skipping creation of vm-operator StoragePolicy, CRD not found (only required when using vm-operator >= 9.2)")
+				log.Info("Skipping creation of vm-operator StoragePolicy, CRD not found (only required when using vm-operator >= 9.1.3)")
 			} else {
 				return pkgerrors.Wrapf(err, "failed to get StoragePolicy CRD")
 			}

@@ -355,7 +355,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: clustervirtualmachineimages.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -2975,7 +2975,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: contentlibraryproviders.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -3040,7 +3040,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: contentsourcebindings.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -3097,7 +3097,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: contentsources.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -4015,7 +4015,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachineclassbindings.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -4083,7 +4083,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachineclasses.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -5471,7 +5471,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachineclassinstances.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -6179,7 +6179,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachinegrouppublishrequests.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -6285,9 +6285,6 @@ spec:
                   CompletionTime represents when the request was completed. It is not
                   guaranteed to be set in happens-before order across separate operations.
                   It is represented in RFC3339 form and is in UTC.
-
-                  The value of this field should be equal to the value of the
-                  LastTransitionTime for the status condition Type=Complete.
                 format: date-time
                 type: string
               conditions:
@@ -6556,9 +6553,6 @@ spec:
                   CompletionTime represents when the request was completed. It is not
                   guaranteed to be set in happens-before order across separate operations.
                   It is represented in RFC3339 form and is in UTC.
-
-                  The value of this field should be equal to the value of the
-                  LastTransitionTime for the status condition Type=Complete.
                 format: date-time
                 type: string
               conditions:
@@ -6739,7 +6733,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachinegroups.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -8360,7 +8354,9 @@ spec:
                   sequentially in the order they appear in this list, with delays being
                   cumulative across orders.
 
-                  When powering off, all members are stopped immediately without delays.
+                  When powering off, the boot order groups are processed in reverse order
+                  (last group first), with an optional PowerOffDelay before powering off
+                  each group. Delays are cumulative across groups.
                 items:
                   description: |-
                     VirtualMachineGroupBootOrderGroup describes a boot order group within a
@@ -8396,6 +8392,17 @@ spec:
                       - kind
                       - name
                       x-kubernetes-list-type: map
+                    powerOffDelay:
+                      description: |-
+                        PowerOffDelay is the amount of time to wait before powering off all the
+                        members of this boot order group.
+
+                        When powering off, boot order groups are processed in reverse order
+                        (last group first). Delays are cumulative across groups.
+
+                        If omitted, the members will be powered off immediately when the
+                        group's power state changes to PoweredOff.
+                      type: string
                     powerOnDelay:
                       description: |-
                         PowerOnDelay is the amount of time to wait before powering on all the
@@ -8722,7 +8729,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachineimagecaches.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -9964,7 +9971,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachineimages.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -11863,7 +11870,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachinepublishrequests.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -13432,9 +13439,6 @@ spec:
                   CompletionTime represents time when the request was completed. It is not
                   guaranteed to be set in happens-before order across separate operations.
                   It is represented in RFC3339 form and is in UTC.
-
-                  The value of this field should be equal to the value of the
-                  LastTransitionTime for the status condition Type=Complete.
                 format: date-time
                 type: string
               conditions:
@@ -13790,9 +13794,6 @@ spec:
                   CompletionTime represents time when the request was completed. It is not
                   guaranteed to be set in happens-before order across separate operations.
                   It is represented in RFC3339 form and is in UTC.
-
-                  The value of this field should be equal to the value of the
-                  LastTransitionTime for the status condition Type=Complete.
                 format: date-time
                 type: string
               conditions:
@@ -13982,7 +13983,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachinereplicasets.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -20431,15 +20432,6 @@ spec:
                                   format: int32
                                   type: integer
                                 controllerType:
-                                  allOf:
-                                  - enum:
-                                    - IDE
-                                    - NVME
-                                    - SCSI
-                                    - SATA
-                                  - enum:
-                                    - IDE
-                                    - SATA
                                   description: |-
                                     ControllerType describes the type of the controller to which this CD-ROM
                                     should be attached.
@@ -20453,6 +20445,11 @@ spec:
                                     Defaults to IDE when controllerBusNumber is also omitted; otherwise the
                                     default value is determined by the logic outlined in the description of
                                     the controllerBusNumber field.
+                                  enum:
+                                  - IDE
+                                  - NVME
+                                  - SCSI
+                                  - SATA
                                   type: string
                                 image:
                                   description: |-
@@ -21689,6 +21686,7 @@ spec:
                   This is a pointer to distinguish between explicit zero and unspecified.
                   Defaults to 1.
                 format: int32
+                minimum: 0
                 type: integer
               selector:
                 description: |-
@@ -21808,6 +21806,8 @@ spec:
                               CPUAffinityExclusiveNoStatsEnabled disables per-VM CPU accounting
                               statistics, reducing scheduler overhead for latency-sensitive workloads.
                               Typically set alongside LatencySensitivity=High.
+
+                              When omitted, vSphere decides the effective value.
                             type: boolean
                           defaultVolumeProvisioningMode:
                             description: |-
@@ -21850,37 +21850,44 @@ spec:
                               HugePages1GEnabled enables 1 GB huge page backing for VM memory, reducing
                               TLB pressure for memory-intensive workloads such as Telco VNFs.
                               Cannot be changed while the VM is powered on.
+
+                              When omitted, vSphere decides the effective value.
                             type: boolean
-                          pNUMANodeAffinity:
+                          pnumaNodeAffinity:
                             description: |-
                               PNUMANodeAffinity pins this VM to the specified physical host NUMA nodes.
                               vSphere scheduler places vCPUs and memory only on the listed physical
                               NUMA node IDs. An empty slice removes any existing affinity constraint.
 
                               This is distinct from per-NIC virtual NUMA node assignment
-                              (interfaces[].vNUMANodeID), which assigns a NIC to a vNUMA node.
+                              (interfaces[].vnumaNodeID), which assigns a NIC to a vNUMA node.
                             items:
                               format: int32
                               type: integer
                             type: array
-                          preferHTEnabled:
+                          preferHtEnabled:
                             description: |-
                               PreferHTEnabled hints to the ESXi scheduler to prefer placing vCPUs on
                               hyperthreads of the same physical core, improving memory locality for
                               latency-sensitive workloads.
+
+                              When omitted, vSphere decides the effective value.
                             type: boolean
                           timeTrackerLowLatencyEnabled:
                             description: |-
                               TimeTrackerLowLatencyEnabled enables the low-latency time tracking mode,
                               using a higher-resolution timer to reduce scheduling jitter for
                               latency-sensitive workloads. Typically set alongside LatencySensitivity=High.
+
+                              When omitted, vSphere decides the effective value.
                             type: boolean
                           vmxSwapEnabled:
                             description: |-
                               VMXSwapEnabled controls whether the VMX process memory may be swapped to
                               disk by the host. Set to false to disable VMX swapping, reducing latency
-                              jitter for memory-sensitive workloads. When nil the VMX key is left unset,
-                              preserving the hypervisor default.
+                              jitter for memory-sensitive workloads.
+
+                              When omitted, vSphere decides the effective value.
                             type: boolean
                         type: object
                       affinity:
@@ -22061,6 +22068,91 @@ spec:
                                   type: object
                                 type: array
                                 x-kubernetes-list-type: atomic
+                              requiredDuringSchedulingRequiredDuringExecution:
+                                description: |-
+                                  RequiredDuringSchedulingRequiredDuringExecution describes affinity
+                                  requirements that must be met or the VM will not be scheduled and
+                                  that must continue to be met.
+
+                                  When there are multiple elements, the lists of nodes corresponding to
+                                  each term are intersected, i.e. all terms must be satisfied.
+
+                                  Note: Any update to this field will replace the entire list rather than
+                                  merging with the existing elements.
+                                items:
+                                  description: VMAffinityTerm defines the VM affinity/anti-affinity
+                                    term.
+                                  properties:
+                                    labelSelector:
+                                      description: |-
+                                        LabelSelector is a label query over a set of VMs.
+                                        When omitted, this term matches with no VMs.
+                                      properties:
+                                        matchExpressions:
+                                          description: matchExpressions is a list
+                                            of label selector requirements. The requirements
+                                            are ANDed.
+                                          items:
+                                            description: |-
+                                              A label selector requirement is a selector that contains values, a key, and an operator that
+                                              relates the key and values.
+                                            properties:
+                                              key:
+                                                description: key is the label key
+                                                  that the selector applies to.
+                                                type: string
+                                              operator:
+                                                description: |-
+                                                  operator represents a key's relationship to a set of values.
+                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                type: string
+                                              values:
+                                                description: |-
+                                                  values is an array of string values. If the operator is In or NotIn,
+                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                  the values array must be empty. This array is replaced during a strategic
+                                                  merge patch.
+                                                items:
+                                                  type: string
+                                                type: array
+                                                x-kubernetes-list-type: atomic
+                                            required:
+                                            - key
+                                            - operator
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                        matchLabels:
+                                          additionalProperties:
+                                            type: string
+                                          description: |-
+                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                          type: object
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    topologyKey:
+                                      description: |-
+                                        TopologyKey describes where this VM should be co-located (affinity) or not
+                                        co-located (anti-affinity).
+                                        Commonly used values include:
+                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+                                        `topology.kubernetes.io/zone` -- This rule is executed in the context of a zone.
+
+                                        Please note, The following rules apply when specifying the topology key in the context of a zone/host.
+
+                                        - When topology key is in the context of a zone, the only supported verbs are
+                                          PreferredDuringSchedulingPreferredDuringExecution and RequiredDuringSchedulingPreferredDuringExecution.
+                                        - When topology key is in the context of a host, the only supported verbs are
+                                          PreferredDuringSchedulingPreferredDuringExecution and RequiredDuringSchedulingPreferredDuringExecution
+                                          for VM-VM node-level anti-affinity scheduling.
+                                      type: string
+                                  required:
+                                  - topologyKey
+                                  type: object
+                                type: array
+                                x-kubernetes-list-type: atomic
                             type: object
                           vmAntiAffinity:
                             description: |-
@@ -22161,6 +22253,91 @@ spec:
                                 description: |-
                                   RequiredDuringSchedulingPreferredDuringExecution describes anti-affinity
                                   requirements that must be met or the VM will not be scheduled.
+
+                                  When there are multiple elements, the lists of nodes corresponding to
+                                  each term are intersected, i.e. all terms must be satisfied.
+
+                                  Note: Any update to this field will replace the entire list rather than
+                                  merging with the existing elements.
+                                items:
+                                  description: VMAffinityTerm defines the VM affinity/anti-affinity
+                                    term.
+                                  properties:
+                                    labelSelector:
+                                      description: |-
+                                        LabelSelector is a label query over a set of VMs.
+                                        When omitted, this term matches with no VMs.
+                                      properties:
+                                        matchExpressions:
+                                          description: matchExpressions is a list
+                                            of label selector requirements. The requirements
+                                            are ANDed.
+                                          items:
+                                            description: |-
+                                              A label selector requirement is a selector that contains values, a key, and an operator that
+                                              relates the key and values.
+                                            properties:
+                                              key:
+                                                description: key is the label key
+                                                  that the selector applies to.
+                                                type: string
+                                              operator:
+                                                description: |-
+                                                  operator represents a key's relationship to a set of values.
+                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                type: string
+                                              values:
+                                                description: |-
+                                                  values is an array of string values. If the operator is In or NotIn,
+                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                  the values array must be empty. This array is replaced during a strategic
+                                                  merge patch.
+                                                items:
+                                                  type: string
+                                                type: array
+                                                x-kubernetes-list-type: atomic
+                                            required:
+                                            - key
+                                            - operator
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                        matchLabels:
+                                          additionalProperties:
+                                            type: string
+                                          description: |-
+                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                          type: object
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    topologyKey:
+                                      description: |-
+                                        TopologyKey describes where this VM should be co-located (affinity) or not
+                                        co-located (anti-affinity).
+                                        Commonly used values include:
+                                        `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+                                        `topology.kubernetes.io/zone` -- This rule is executed in the context of a zone.
+
+                                        Please note, The following rules apply when specifying the topology key in the context of a zone/host.
+
+                                        - When topology key is in the context of a zone, the only supported verbs are
+                                          PreferredDuringSchedulingPreferredDuringExecution and RequiredDuringSchedulingPreferredDuringExecution.
+                                        - When topology key is in the context of a host, the only supported verbs are
+                                          PreferredDuringSchedulingPreferredDuringExecution and RequiredDuringSchedulingPreferredDuringExecution
+                                          for VM-VM node-level anti-affinity scheduling.
+                                      type: string
+                                  required:
+                                  - topologyKey
+                                  type: object
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              requiredDuringSchedulingRequiredDuringExecution:
+                                description: |-
+                                  RequiredDuringSchedulingRequiredDuringExecution describes anti-affinity
+                                  requirements that must be met or the VM will not be scheduled and
+                                  that must continue to be met.
 
                                   When there are multiple elements, the lists of nodes corresponding to
                                   each term are intersected, i.e. all terms must be satisfied.
@@ -23323,6 +23500,103 @@ spec:
                           If a VM is using a class, a different value in spec.className
                           leads to the VM being resized.
                         type: string
+                      cpuAdvanced:
+                        description: |-
+                          CPUAdvanced describes advanced CPU scheduling and topology configuration
+                          for this VM.
+                        properties:
+                          hotAddEnabled:
+                            description: |-
+                              HotAddEnabled allows vCPUs to be added to the VM while it is powered
+                              on (CPU hot-add). Maps to ConfigSpec.CpuHotAddEnabled.
+                              Requires hardware version vmx-11 or later.
+                              Requires power-off to apply.
+                            type: boolean
+                          iommuEnabled:
+                            description: |-
+                              IOMMUEnabled enables Intel Virtualization Technology for Directed I/O
+                              (VT-d / IOMMU) for this VM. Required for SR-IOV and PCI passthrough
+                              workloads. Maps to ConfigSpec.Flags.VvtdEnabled.
+                              Minimum hardware version depends on CPU vendor:
+                              vmx-14 or later on Intel CPUs; vmx-18 or later on AMD CPUs.
+                              Requires power-off to apply.
+                            type: boolean
+                          latencySensitivity:
+                            description: |-
+                              LatencySensitivity sets the vSphere CPU scheduler latency sensitivity
+                              level. Maps to ConfigSpec.LatencySensitivity.Level and
+                              ConfigSpec.SimultaneousThreads (for HighWithHyperthreading).
+                              Requires full CPU and memory reservation (requests = size)
+                              when set to High or HighWithHyperthreading.
+                              When unset, the setting is cleared, reverting to the vSphere default.
+                              Can be reconfigured while the VM is powered on.
+                            enum:
+                            - Normal
+                            - High
+                            - HighWithHyperthreading
+                            type: string
+                          nestedHardwareVirtualizationEnabled:
+                            description: |-
+                              NestedHardwareVirtualizationEnabled exposes hardware-assisted
+                              virtualization to the guest OS, enabling the guest to run its own
+                              hypervisor or use hardware VMX instructions. Required for nested
+                              virtualization workloads.
+                              Maps to ConfigSpec.NestedHVEnabled.
+                              Requires hardware version vmx-9 or later.
+                              Requires power-off to apply.
+                            type: boolean
+                          performanceCountersEnabled:
+                            description: |-
+                              PerformanceCountersEnabled enables virtualized CPU performance
+                              counters (vPMC), allowing profiling tools inside the guest OS to
+                              access hardware performance counter data.
+                              Maps to ConfigSpec.VPMCEnabled.
+                              Requires hardware version vmx-9 or later.
+                              Requires power-off to apply.
+                            type: boolean
+                          topology:
+                            description: |-
+                              Topology describes CPU topology configuration (cores per socket,
+                              cores per NUMA node, vNUMA exposure on hot-add). All sub-fields are
+                              optional and used together to define the guest CPU layout.
+                            properties:
+                              coresPerSocket:
+                                description: |-
+                                  CoresPerSocket controls the number of cores per virtual socket.
+                                  When unset or 0, any explicit cores-per-socket configuration is cleared,
+                                  reverting to the vSphere default (auto sizing). 0 is a sentinel for
+                                  "auto" and is equivalent to leaving the field unset.
+                                  Maps to ConfigSpec.NumCoresPerSocket.
+                                  Requires power-off to apply.
+                                format: int32
+                                minimum: 0
+                                type: integer
+                              vnumaNodeCount:
+                                description: |-
+                                  VNUMANodeCount sets the number of virtual NUMA nodes. vSphere derives
+                                  coresPerNumaNode as total vCPU count / VNUMANodeCount; the vCPU count
+                                  should be evenly divisible by VNUMANodeCount for a balanced topology.
+                                  The derived coresPerNumaNode must be a multiple or divisor of
+                                  CoresPerSocket; the VM will fail to power on if this constraint is
+                                  violated.
+                                  When unset or 0, any manual vNUMA configuration is cleared, enabling
+                                  automatic vNUMA sizing. 0 is a sentinel for "auto" and is equivalent to
+                                  leaving the field unset.
+                                  When set to a value > 0, must be set together with CoresPerSocket.
+                                  Maps to ConfigSpec.VirtualNuma.CoresPerNumaNode.
+                                  Requires hardware version vmx-20 or later.
+                                  Requires power-off to apply.
+                                format: int32
+                                minimum: 0
+                                type: integer
+                            type: object
+                            x-kubernetes-validations:
+                            - message: vnumaNodeCount requires coresPerSocket to be
+                                set to an explicit (non-zero) value
+                              rule: '!has(self.vnumaNodeCount) || self.vnumaNodeCount
+                                == 0 || (has(self.coresPerSocket) && self.coresPerSocket
+                                > 0)'
+                        type: object
                       crypto:
                         description: Crypto describes the desired encryption state
                           of the VirtualMachine.
@@ -23536,15 +23810,6 @@ spec:
                                   format: int32
                                   type: integer
                                 controllerType:
-                                  allOf:
-                                  - enum:
-                                    - IDE
-                                    - NVME
-                                    - SCSI
-                                    - SATA
-                                  - enum:
-                                    - IDE
-                                    - SATA
                                   description: |-
                                     ControllerType describes the type of the controller to which this CD-ROM
                                     should be attached.
@@ -23558,6 +23823,11 @@ spec:
                                     Defaults to IDE when controllerBusNumber is also omitted; otherwise the
                                     default value is determined by the logic outlined in the description of
                                     the controllerBusNumber field.
+                                  enum:
+                                  - IDE
+                                  - NVME
+                                  - SCSI
+                                  - SATA
                                   type: string
                                 image:
                                   description: |-
@@ -23805,6 +24075,26 @@ spec:
                           virtual machine instances, including those that may share the same BIOS UUID.
                         format: uuid
                         type: string
+                      memoryAdvanced:
+                        description: MemoryAdvanced describes advanced memory configuration
+                          for this VM.
+                        properties:
+                          hotAddEnabled:
+                            description: |-
+                              HotAddEnabled allows memory to be added to the VM while it is powered
+                              on (memory hot-add). Maps to ConfigSpec.MemoryHotAddEnabled.
+                              Requires hardware version vmx-7 or later.
+                              Requires power-off to apply.
+                            type: boolean
+                          reservationLockedToMax:
+                            description: |-
+                              ReservationLockedToMax pins the host memory reservation to the full
+                              guest-visible memory size. Required for SR-IOV workloads, which need
+                              full guest RAM pinned on the host.
+                              Maps to ConfigSpec.MemoryReservationLockedToMax.
+                              Can be reconfigured while the VM is powered on.
+                            type: boolean
+                        type: object
                       minHardwareVersion:
                         description: |-
                           MinHardwareVersion describes the desired, minimum hardware version.
@@ -23978,8 +24268,13 @@ spec:
                                   x-kubernetes-list-type: map
                                 dhcp4:
                                   description: |-
-                                    DHCP4 indicates whether or not this interface uses DHCP for IP4
-                                    networking.
+                                    DHCP4 controls IPv4 DHCP for this interface.
+
+                                    When set to true, the interface requests an IPv4 address via DHCP.
+                                    When set to false, DHCP for IPv4 is explicitly disabled; the interface
+                                    relies on static allocation.
+                                    When omitted, the network provider determines the allocation method
+                                    from subnet configuration.
 
                                     Please note this field is only supported if the network connection
                                     supports DHCP.
@@ -23989,8 +24284,13 @@ spec:
                                   type: boolean
                                 dhcp6:
                                   description: |-
-                                    DHCP6 indicates whether or not this interface uses DHCP for IP6
-                                    networking.
+                                    DHCP6 controls DHCPv6 for this interface.
+
+                                    When set to true, the interface requests an IPv6 address via DHCPv6.
+                                    When set to false, DHCPv6 is explicitly disabled; the interface relies
+                                    on static allocation.
+                                    When omitted, the network provider determines the allocation method
+                                    from subnet configuration.
 
                                     Please note this field is only supported if the network connection
                                     supports DHCP.
@@ -24040,6 +24340,14 @@ spec:
 
                                     When unset, the provider's default applies for which families are allocated.
                                     When set, the controller forwards the requested families to the provider for this interface.
+
+                                    IPAMModes is immutable for this network interface once the interface is
+                                    created, including the transition from unset to set or set to unset.
+                                    There is no supported way to convert an interface between single-stack
+                                    and dual-stack, or between IPv4-only and IPv6-only, after creation.
+                                    Removing this interface entry and adding a new one with the same name
+                                    but different IPAMModes is not a supported way to work around this
+                                    restriction; it deletes and recreates the underlying network interface.
                                   items:
                                     description: |-
                                       IPFamily represents the IP Family (IPv4 or IPv6). This type is used
@@ -24182,18 +24490,6 @@ spec:
                                   - VMXNet2
                                   - PCNet32
                                   type: string
-                                vNUMANodeID:
-                                  description: |-
-                                    VNUMANodeID assigns this interface to a specific virtual NUMA node.
-                                    The value must match a virtual NUMA node ID configured in the VM's
-                                    CPU topology (spec.cpu.coresPerNumaNode). Co-locating a NIC with the
-                                    vCPUs that process its traffic reduces cross-NUMA memory latency for
-                                    latency-sensitive workloads.
-                                    Requires spec.minHardwareVersion >= 20.
-                                    Cannot be changed while the VM is powered on.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
                                 vmxnet3:
                                   description: |-
                                     VMXNet3 contains configuration options specific to VMXNet3 interfaces.
@@ -24260,7 +24556,7 @@ spec:
                                             or a non-empty decimal digits string for
                                             VMX pNICFeatures bitmask values (powers
                                             of two such as 1, 2, 4, 8)
-                                          rule: self.matches("^(LargeReceiveOffload|ReceiveSideScaling|^[1-9][0-9]*)$")
+                                          rule: self.matches("^(LargeReceiveOffload|ReceiveSideScaling|[1-9][0-9]*)$")
                                       maxItems: 16
                                       type: array
                                       x-kubernetes-list-type: set
@@ -24271,12 +24567,16 @@ spec:
                                         queues using a hardware-computed hash. Reduces hypervisor CPU overhead
                                         and improves multi-core utilization for high-throughput workloads.
                                         Requires pNIC RSS support.
+
+                                        When omitted, vSphere decides the effective value.
                                       type: boolean
-                                    udpRSSEnabled:
+                                    udpRssEnabled:
                                       description: |-
                                         UDPRSSEnabled extends RSS to UDP traffic. By default RSS only distributes
                                         TCP flows. Enabling this also distributes UDP flows, improving throughput
                                         for UDP-heavy workloads such as GTP-U tunnels, QUIC, or media streaming.
+
+                                        When omitted, vSphere decides the effective value.
                                       type: boolean
                                     uptv2Enabled:
                                       description: |-
@@ -24293,6 +24593,20 @@ spec:
                                   - message: coalescingParams must have length < 128
                                     rule: '!has(self.coalescingParams) || size(self.coalescingParams)
                                       < 128'
+                                vnumaNodeID:
+                                  description: |-
+                                    VNUMANodeID assigns this interface to a specific virtual NUMA node.
+                                    The value must match a virtual NUMA node ID configured in the VM's
+                                    CPU topology (spec.cpuAdvanced.topology.vnumaNodeCount). Co-locating a NIC with the
+                                    vCPUs that process its traffic reduces cross-NUMA memory latency for
+                                    latency-sensitive workloads.
+                                    Requires EFI firmware (spec.hardware.firmware=EFI); Legacy BIOS does
+                                    not support device assignment.
+                                    Requires spec.minHardwareVersion >= 20.
+                                    Cannot be changed while the VM is powered on.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                               required:
                               - name
                               type: object
@@ -24303,6 +24617,10 @@ spec:
                               - message: each ipamModes entry must be IPv4 or IPv6
                                 rule: '!has(self.ipamModes) || self.ipamModes.all(m,
                                   m == ''IPv4'' || m == ''IPv6'')'
+                              - message: ipamModes cannot be changed after creation
+                                rule: (!has(oldSelf.ipamModes) && !has(self.ipamModes))
+                                  || (has(oldSelf.ipamModes) && has(self.ipamModes)
+                                  && self.ipamModes == oldSelf.ipamModes)
                             maxItems: 10
                             type: array
                             x-kubernetes-list-map-keys:
@@ -24407,7 +24725,8 @@ spec:
                           has a field named spec.type. Only ComputePolicy objects with
                           type=Optional may be applied explicitly to a VM.
 
-                          Valid policy types are: ComputePolicy.
+                          Valid policy types are: ComputePolicy, AutomaticVMEvictionPolicy,
+                          BestEffortRestartPolicy, ControlledRebalancingPolicy.
                         items:
                           description: |-
                             LocalObjectRef describes a reference to another object in the same
@@ -24616,6 +24935,180 @@ spec:
                         properties:
                           resourcePolicyName:
                             type: string
+                        type: object
+                      resources:
+                        description: |-
+                          Resources describes the desired compute resource allocation for this VM.
+                          When set, these values override the corresponding fields from the
+                          VirtualMachineClass via field-level merge.
+                        properties:
+                          limits:
+                            description: |-
+                              Limits is the host-level resource allocation ceiling.
+                              limits.cpu is in MHz (e.g. "2000"); limits.memory is in bytes
+                              (e.g. "8Gi").
+                              Each must be either greater than 0, or -1 to explicitly request no
+                              ceiling; a nil value also means unlimited, deferring to the VM Class
+                              or vSphere default. No other negative value is valid.
+                              Maps to CpuAllocation.Limit and MemoryAllocation.Limit.
+                              Can be reconfigured while the VM is powered on.
+                            properties:
+                              cpu:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  CPU is a CPU resource quantity.
+
+                                  For spec.resources.size, the value represents the guest-visible vCPU
+                                  count and must be a whole number (e.g. "4"). Maps to
+                                  ConfigSpec.NumCPUs.
+
+                                  For spec.resources.requests and spec.resources.limits, the value
+                                  represents a host-level CPU allocation in MHz (e.g. "2000" for
+                                  2 GHz). Maps to CpuAllocation.Reservation and CpuAllocation.Limit
+                                  respectively.
+
+                                  For spec.resources.size, an increase can be applied while the VM is
+                                  powered on when cpuAdvanced.hotAddEnabled is already enabled on the
+                                  live VM; a decrease always requires power-off.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                                x-kubernetes-validations:
+                                - message: CPU must be a whole number (e.g. '4' for
+                                    vCPUs or '2000' for 2000 MHz). The 'm' (milli)
+                                    suffix is not supported.
+                                  rule: type(self) != string || !self.endsWith('m')
+                              memory:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  Memory is a memory resource quantity in bytes (e.g. "8Gi").
+
+                                  For spec.resources.size, maps to ConfigSpec.MemoryMB (guest-visible).
+                                  For spec.resources.requests and spec.resources.limits, maps to
+                                  MemoryAllocation.Reservation and MemoryAllocation.Limit respectively.
+
+                                  For spec.resources.size, an increase can be applied while the VM is
+                                  powered on when memoryAdvanced.hotAddEnabled is already enabled on the
+                                  live VM; a decrease always requires power-off. Note that enabling
+                                  memoryAdvanced.hotAddEnabled at the vSphere level is a necessary but
+                                  not sufficient condition: the guest OS and its drivers must also
+                                  support memory hot-add for the guest to recognize the additional
+                                  memory. Not all guest operating systems support this capability.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                            type: object
+                          requests:
+                            description: |-
+                              Requests is the host-level resource reservation (host guarantee).
+                              requests.cpu is in MHz (e.g. "2000"); requests.memory is in bytes
+                              (e.g. "8Gi").
+                              Maps to CpuAllocation.Reservation and MemoryAllocation.Reservation.
+                              Can be reconfigured while the VM is powered on.
+                            properties:
+                              cpu:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  CPU is a CPU resource quantity.
+
+                                  For spec.resources.size, the value represents the guest-visible vCPU
+                                  count and must be a whole number (e.g. "4"). Maps to
+                                  ConfigSpec.NumCPUs.
+
+                                  For spec.resources.requests and spec.resources.limits, the value
+                                  represents a host-level CPU allocation in MHz (e.g. "2000" for
+                                  2 GHz). Maps to CpuAllocation.Reservation and CpuAllocation.Limit
+                                  respectively.
+
+                                  For spec.resources.size, an increase can be applied while the VM is
+                                  powered on when cpuAdvanced.hotAddEnabled is already enabled on the
+                                  live VM; a decrease always requires power-off.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                                x-kubernetes-validations:
+                                - message: CPU must be a whole number (e.g. '4' for
+                                    vCPUs or '2000' for 2000 MHz). The 'm' (milli)
+                                    suffix is not supported.
+                                  rule: type(self) != string || !self.endsWith('m')
+                              memory:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  Memory is a memory resource quantity in bytes (e.g. "8Gi").
+
+                                  For spec.resources.size, maps to ConfigSpec.MemoryMB (guest-visible).
+                                  For spec.resources.requests and spec.resources.limits, maps to
+                                  MemoryAllocation.Reservation and MemoryAllocation.Limit respectively.
+
+                                  For spec.resources.size, an increase can be applied while the VM is
+                                  powered on when memoryAdvanced.hotAddEnabled is already enabled on the
+                                  live VM; a decrease always requires power-off. Note that enabling
+                                  memoryAdvanced.hotAddEnabled at the vSphere level is a necessary but
+                                  not sufficient condition: the guest OS and its drivers must also
+                                  support memory hot-add for the guest to recognize the additional
+                                  memory. Not all guest operating systems support this capability.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                            type: object
+                          size:
+                            description: |-
+                              Size is the guest-visible compute allocation.
+                              size.cpu is the vCPU count; size.memory is the guest RAM.
+                              Maps to ConfigSpec.NumCPUs and ConfigSpec.MemoryMB.
+                              When set, overrides the corresponding VMClass hardware values.
+                            properties:
+                              cpu:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  CPU is a CPU resource quantity.
+
+                                  For spec.resources.size, the value represents the guest-visible vCPU
+                                  count and must be a whole number (e.g. "4"). Maps to
+                                  ConfigSpec.NumCPUs.
+
+                                  For spec.resources.requests and spec.resources.limits, the value
+                                  represents a host-level CPU allocation in MHz (e.g. "2000" for
+                                  2 GHz). Maps to CpuAllocation.Reservation and CpuAllocation.Limit
+                                  respectively.
+
+                                  For spec.resources.size, an increase can be applied while the VM is
+                                  powered on when cpuAdvanced.hotAddEnabled is already enabled on the
+                                  live VM; a decrease always requires power-off.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                                x-kubernetes-validations:
+                                - message: CPU must be a whole number (e.g. '4' for
+                                    vCPUs or '2000' for 2000 MHz). The 'm' (milli)
+                                    suffix is not supported.
+                                  rule: type(self) != string || !self.endsWith('m')
+                              memory:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  Memory is a memory resource quantity in bytes (e.g. "8Gi").
+
+                                  For spec.resources.size, maps to ConfigSpec.MemoryMB (guest-visible).
+                                  For spec.resources.requests and spec.resources.limits, maps to
+                                  MemoryAllocation.Reservation and MemoryAllocation.Limit respectively.
+
+                                  For spec.resources.size, an increase can be applied while the VM is
+                                  powered on when memoryAdvanced.hotAddEnabled is already enabled on the
+                                  live VM; a decrease always requires power-off. Note that enabling
+                                  memoryAdvanced.hotAddEnabled at the vSphere level is a necessary but
+                                  not sufficient condition: the guest OS and its drivers must also
+                                  support memory hot-add for the guest to recognize the additional
+                                  memory. Not all guest operating systems support this capability.
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                            type: object
                         type: object
                       restartMode:
                         default: TrySoft
@@ -24974,7 +25467,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachines.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -36114,15 +36607,6 @@ spec:
                           format: int32
                           type: integer
                         controllerType:
-                          allOf:
-                          - enum:
-                            - IDE
-                            - NVME
-                            - SCSI
-                            - SATA
-                          - enum:
-                            - IDE
-                            - SATA
                           description: |-
                             ControllerType describes the type of the controller to which this CD-ROM
                             should be attached.
@@ -36136,6 +36620,11 @@ spec:
                             Defaults to IDE when controllerBusNumber is also omitted; otherwise the
                             default value is determined by the logic outlined in the description of
                             the controllerBusNumber field.
+                          enum:
+                          - IDE
+                          - NVME
+                          - SCSI
+                          - SATA
                           type: string
                         image:
                           description: |-
@@ -38545,6 +39034,8 @@ spec:
                       CPUAffinityExclusiveNoStatsEnabled disables per-VM CPU accounting
                       statistics, reducing scheduler overhead for latency-sensitive workloads.
                       Typically set alongside LatencySensitivity=High.
+
+                      When omitted, vSphere decides the effective value.
                     type: boolean
                   defaultVolumeProvisioningMode:
                     description: |-
@@ -38586,37 +39077,44 @@ spec:
                       HugePages1GEnabled enables 1 GB huge page backing for VM memory, reducing
                       TLB pressure for memory-intensive workloads such as Telco VNFs.
                       Cannot be changed while the VM is powered on.
+
+                      When omitted, vSphere decides the effective value.
                     type: boolean
-                  pNUMANodeAffinity:
+                  pnumaNodeAffinity:
                     description: |-
                       PNUMANodeAffinity pins this VM to the specified physical host NUMA nodes.
                       vSphere scheduler places vCPUs and memory only on the listed physical
                       NUMA node IDs. An empty slice removes any existing affinity constraint.
 
                       This is distinct from per-NIC virtual NUMA node assignment
-                      (interfaces[].vNUMANodeID), which assigns a NIC to a vNUMA node.
+                      (interfaces[].vnumaNodeID), which assigns a NIC to a vNUMA node.
                     items:
                       format: int32
                       type: integer
                     type: array
-                  preferHTEnabled:
+                  preferHtEnabled:
                     description: |-
                       PreferHTEnabled hints to the ESXi scheduler to prefer placing vCPUs on
                       hyperthreads of the same physical core, improving memory locality for
                       latency-sensitive workloads.
+
+                      When omitted, vSphere decides the effective value.
                     type: boolean
                   timeTrackerLowLatencyEnabled:
                     description: |-
                       TimeTrackerLowLatencyEnabled enables the low-latency time tracking mode,
                       using a higher-resolution timer to reduce scheduling jitter for
                       latency-sensitive workloads. Typically set alongside LatencySensitivity=High.
+
+                      When omitted, vSphere decides the effective value.
                     type: boolean
                   vmxSwapEnabled:
                     description: |-
                       VMXSwapEnabled controls whether the VMX process memory may be swapped to
                       disk by the host. Set to false to disable VMX swapping, reducing latency
-                      jitter for memory-sensitive workloads. When nil the VMX key is left unset,
-                      preserving the hypervisor default.
+                      jitter for memory-sensitive workloads.
+
+                      When omitted, vSphere decides the effective value.
                     type: boolean
                 type: object
               affinity:
@@ -38795,6 +39293,90 @@ spec:
                           type: object
                         type: array
                         x-kubernetes-list-type: atomic
+                      requiredDuringSchedulingRequiredDuringExecution:
+                        description: |-
+                          RequiredDuringSchedulingRequiredDuringExecution describes affinity
+                          requirements that must be met or the VM will not be scheduled and
+                          that must continue to be met.
+
+                          When there are multiple elements, the lists of nodes corresponding to
+                          each term are intersected, i.e. all terms must be satisfied.
+
+                          Note: Any update to this field will replace the entire list rather than
+                          merging with the existing elements.
+                        items:
+                          description: VMAffinityTerm defines the VM affinity/anti-affinity
+                            term.
+                          properties:
+                            labelSelector:
+                              description: |-
+                                LabelSelector is a label query over a set of VMs.
+                                When omitted, this term matches with no VMs.
+                              properties:
+                                matchExpressions:
+                                  description: matchExpressions is a list of label
+                                    selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: |-
+                                      A label selector requirement is a selector that contains values, a key, and an operator that
+                                      relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the
+                                          selector applies to.
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          operator represents a key's relationship to a set of values.
+                                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: |-
+                                          values is an array of string values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                          the values array must be empty. This array is replaced during a strategic
+                                          merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                  type: object
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            topologyKey:
+                              description: |-
+                                TopologyKey describes where this VM should be co-located (affinity) or not
+                                co-located (anti-affinity).
+                                Commonly used values include:
+                                `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+                                `topology.kubernetes.io/zone` -- This rule is executed in the context of a zone.
+
+                                Please note, The following rules apply when specifying the topology key in the context of a zone/host.
+
+                                - When topology key is in the context of a zone, the only supported verbs are
+                                  PreferredDuringSchedulingPreferredDuringExecution and RequiredDuringSchedulingPreferredDuringExecution.
+                                - When topology key is in the context of a host, the only supported verbs are
+                                  PreferredDuringSchedulingPreferredDuringExecution and RequiredDuringSchedulingPreferredDuringExecution
+                                  for VM-VM node-level anti-affinity scheduling.
+                              type: string
+                          required:
+                          - topologyKey
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
                     type: object
                   vmAntiAffinity:
                     description: |-
@@ -38894,6 +39476,90 @@ spec:
                         description: |-
                           RequiredDuringSchedulingPreferredDuringExecution describes anti-affinity
                           requirements that must be met or the VM will not be scheduled.
+
+                          When there are multiple elements, the lists of nodes corresponding to
+                          each term are intersected, i.e. all terms must be satisfied.
+
+                          Note: Any update to this field will replace the entire list rather than
+                          merging with the existing elements.
+                        items:
+                          description: VMAffinityTerm defines the VM affinity/anti-affinity
+                            term.
+                          properties:
+                            labelSelector:
+                              description: |-
+                                LabelSelector is a label query over a set of VMs.
+                                When omitted, this term matches with no VMs.
+                              properties:
+                                matchExpressions:
+                                  description: matchExpressions is a list of label
+                                    selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: |-
+                                      A label selector requirement is a selector that contains values, a key, and an operator that
+                                      relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the
+                                          selector applies to.
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          operator represents a key's relationship to a set of values.
+                                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: |-
+                                          values is an array of string values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                          the values array must be empty. This array is replaced during a strategic
+                                          merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                  type: object
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            topologyKey:
+                              description: |-
+                                TopologyKey describes where this VM should be co-located (affinity) or not
+                                co-located (anti-affinity).
+                                Commonly used values include:
+                                `kubernetes.io/hostname` -- The rule is executed in the context of a node/host.
+                                `topology.kubernetes.io/zone` -- This rule is executed in the context of a zone.
+
+                                Please note, The following rules apply when specifying the topology key in the context of a zone/host.
+
+                                - When topology key is in the context of a zone, the only supported verbs are
+                                  PreferredDuringSchedulingPreferredDuringExecution and RequiredDuringSchedulingPreferredDuringExecution.
+                                - When topology key is in the context of a host, the only supported verbs are
+                                  PreferredDuringSchedulingPreferredDuringExecution and RequiredDuringSchedulingPreferredDuringExecution
+                                  for VM-VM node-level anti-affinity scheduling.
+                              type: string
+                          required:
+                          - topologyKey
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      requiredDuringSchedulingRequiredDuringExecution:
+                        description: |-
+                          RequiredDuringSchedulingRequiredDuringExecution describes anti-affinity
+                          requirements that must be met or the VM will not be scheduled and
+                          that must continue to be met.
 
                           When there are multiple elements, the lists of nodes corresponding to
                           each term are intersected, i.e. all terms must be satisfied.
@@ -40049,6 +40715,102 @@ spec:
                   If a VM is using a class, a different value in spec.className
                   leads to the VM being resized.
                 type: string
+              cpuAdvanced:
+                description: |-
+                  CPUAdvanced describes advanced CPU scheduling and topology configuration
+                  for this VM.
+                properties:
+                  hotAddEnabled:
+                    description: |-
+                      HotAddEnabled allows vCPUs to be added to the VM while it is powered
+                      on (CPU hot-add). Maps to ConfigSpec.CpuHotAddEnabled.
+                      Requires hardware version vmx-11 or later.
+                      Requires power-off to apply.
+                    type: boolean
+                  iommuEnabled:
+                    description: |-
+                      IOMMUEnabled enables Intel Virtualization Technology for Directed I/O
+                      (VT-d / IOMMU) for this VM. Required for SR-IOV and PCI passthrough
+                      workloads. Maps to ConfigSpec.Flags.VvtdEnabled.
+                      Minimum hardware version depends on CPU vendor:
+                      vmx-14 or later on Intel CPUs; vmx-18 or later on AMD CPUs.
+                      Requires power-off to apply.
+                    type: boolean
+                  latencySensitivity:
+                    description: |-
+                      LatencySensitivity sets the vSphere CPU scheduler latency sensitivity
+                      level. Maps to ConfigSpec.LatencySensitivity.Level and
+                      ConfigSpec.SimultaneousThreads (for HighWithHyperthreading).
+                      Requires full CPU and memory reservation (requests = size)
+                      when set to High or HighWithHyperthreading.
+                      When unset, the setting is cleared, reverting to the vSphere default.
+                      Can be reconfigured while the VM is powered on.
+                    enum:
+                    - Normal
+                    - High
+                    - HighWithHyperthreading
+                    type: string
+                  nestedHardwareVirtualizationEnabled:
+                    description: |-
+                      NestedHardwareVirtualizationEnabled exposes hardware-assisted
+                      virtualization to the guest OS, enabling the guest to run its own
+                      hypervisor or use hardware VMX instructions. Required for nested
+                      virtualization workloads.
+                      Maps to ConfigSpec.NestedHVEnabled.
+                      Requires hardware version vmx-9 or later.
+                      Requires power-off to apply.
+                    type: boolean
+                  performanceCountersEnabled:
+                    description: |-
+                      PerformanceCountersEnabled enables virtualized CPU performance
+                      counters (vPMC), allowing profiling tools inside the guest OS to
+                      access hardware performance counter data.
+                      Maps to ConfigSpec.VPMCEnabled.
+                      Requires hardware version vmx-9 or later.
+                      Requires power-off to apply.
+                    type: boolean
+                  topology:
+                    description: |-
+                      Topology describes CPU topology configuration (cores per socket,
+                      cores per NUMA node, vNUMA exposure on hot-add). All sub-fields are
+                      optional and used together to define the guest CPU layout.
+                    properties:
+                      coresPerSocket:
+                        description: |-
+                          CoresPerSocket controls the number of cores per virtual socket.
+                          When unset or 0, any explicit cores-per-socket configuration is cleared,
+                          reverting to the vSphere default (auto sizing). 0 is a sentinel for
+                          "auto" and is equivalent to leaving the field unset.
+                          Maps to ConfigSpec.NumCoresPerSocket.
+                          Requires power-off to apply.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      vnumaNodeCount:
+                        description: |-
+                          VNUMANodeCount sets the number of virtual NUMA nodes. vSphere derives
+                          coresPerNumaNode as total vCPU count / VNUMANodeCount; the vCPU count
+                          should be evenly divisible by VNUMANodeCount for a balanced topology.
+                          The derived coresPerNumaNode must be a multiple or divisor of
+                          CoresPerSocket; the VM will fail to power on if this constraint is
+                          violated.
+                          When unset or 0, any manual vNUMA configuration is cleared, enabling
+                          automatic vNUMA sizing. 0 is a sentinel for "auto" and is equivalent to
+                          leaving the field unset.
+                          When set to a value > 0, must be set together with CoresPerSocket.
+                          Maps to ConfigSpec.VirtualNuma.CoresPerNumaNode.
+                          Requires hardware version vmx-20 or later.
+                          Requires power-off to apply.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
+                    x-kubernetes-validations:
+                    - message: vnumaNodeCount requires coresPerSocket to be set to
+                        an explicit (non-zero) value
+                      rule: '!has(self.vnumaNodeCount) || self.vnumaNodeCount == 0
+                        || (has(self.coresPerSocket) && self.coresPerSocket > 0)'
+                type: object
               crypto:
                 description: Crypto describes the desired encryption state of the
                   VirtualMachine.
@@ -40262,15 +41024,6 @@ spec:
                           format: int32
                           type: integer
                         controllerType:
-                          allOf:
-                          - enum:
-                            - IDE
-                            - NVME
-                            - SCSI
-                            - SATA
-                          - enum:
-                            - IDE
-                            - SATA
                           description: |-
                             ControllerType describes the type of the controller to which this CD-ROM
                             should be attached.
@@ -40284,6 +41037,11 @@ spec:
                             Defaults to IDE when controllerBusNumber is also omitted; otherwise the
                             default value is determined by the logic outlined in the description of
                             the controllerBusNumber field.
+                          enum:
+                          - IDE
+                          - NVME
+                          - SCSI
+                          - SATA
                           type: string
                         image:
                           description: |-
@@ -40531,6 +41289,26 @@ spec:
                   virtual machine instances, including those that may share the same BIOS UUID.
                 format: uuid
                 type: string
+              memoryAdvanced:
+                description: MemoryAdvanced describes advanced memory configuration
+                  for this VM.
+                properties:
+                  hotAddEnabled:
+                    description: |-
+                      HotAddEnabled allows memory to be added to the VM while it is powered
+                      on (memory hot-add). Maps to ConfigSpec.MemoryHotAddEnabled.
+                      Requires hardware version vmx-7 or later.
+                      Requires power-off to apply.
+                    type: boolean
+                  reservationLockedToMax:
+                    description: |-
+                      ReservationLockedToMax pins the host memory reservation to the full
+                      guest-visible memory size. Required for SR-IOV workloads, which need
+                      full guest RAM pinned on the host.
+                      Maps to ConfigSpec.MemoryReservationLockedToMax.
+                      Can be reconfigured while the VM is powered on.
+                    type: boolean
+                type: object
               minHardwareVersion:
                 description: |-
                   MinHardwareVersion describes the desired, minimum hardware version.
@@ -40704,8 +41482,13 @@ spec:
                           x-kubernetes-list-type: map
                         dhcp4:
                           description: |-
-                            DHCP4 indicates whether or not this interface uses DHCP for IP4
-                            networking.
+                            DHCP4 controls IPv4 DHCP for this interface.
+
+                            When set to true, the interface requests an IPv4 address via DHCP.
+                            When set to false, DHCP for IPv4 is explicitly disabled; the interface
+                            relies on static allocation.
+                            When omitted, the network provider determines the allocation method
+                            from subnet configuration.
 
                             Please note this field is only supported if the network connection
                             supports DHCP.
@@ -40715,8 +41498,13 @@ spec:
                           type: boolean
                         dhcp6:
                           description: |-
-                            DHCP6 indicates whether or not this interface uses DHCP for IP6
-                            networking.
+                            DHCP6 controls DHCPv6 for this interface.
+
+                            When set to true, the interface requests an IPv6 address via DHCPv6.
+                            When set to false, DHCPv6 is explicitly disabled; the interface relies
+                            on static allocation.
+                            When omitted, the network provider determines the allocation method
+                            from subnet configuration.
 
                             Please note this field is only supported if the network connection
                             supports DHCP.
@@ -40766,6 +41554,14 @@ spec:
 
                             When unset, the provider's default applies for which families are allocated.
                             When set, the controller forwards the requested families to the provider for this interface.
+
+                            IPAMModes is immutable for this network interface once the interface is
+                            created, including the transition from unset to set or set to unset.
+                            There is no supported way to convert an interface between single-stack
+                            and dual-stack, or between IPv4-only and IPv6-only, after creation.
+                            Removing this interface entry and adding a new one with the same name
+                            but different IPAMModes is not a supported way to work around this
+                            restriction; it deletes and recreates the underlying network interface.
                           items:
                             description: |-
                               IPFamily represents the IP Family (IPv4 or IPv6). This type is used
@@ -40908,18 +41704,6 @@ spec:
                           - VMXNet2
                           - PCNet32
                           type: string
-                        vNUMANodeID:
-                          description: |-
-                            VNUMANodeID assigns this interface to a specific virtual NUMA node.
-                            The value must match a virtual NUMA node ID configured in the VM's
-                            CPU topology (spec.cpu.coresPerNumaNode). Co-locating a NIC with the
-                            vCPUs that process its traffic reduces cross-NUMA memory latency for
-                            latency-sensitive workloads.
-                            Requires spec.minHardwareVersion >= 20.
-                            Cannot be changed while the VM is powered on.
-                          format: int32
-                          minimum: 0
-                          type: integer
                         vmxnet3:
                           description: |-
                             VMXNet3 contains configuration options specific to VMXNet3 interfaces.
@@ -40985,7 +41769,7 @@ spec:
                                     or a non-empty decimal digits string for VMX pNICFeatures
                                     bitmask values (powers of two such as 1, 2, 4,
                                     8)
-                                  rule: self.matches("^(LargeReceiveOffload|ReceiveSideScaling|^[1-9][0-9]*)$")
+                                  rule: self.matches("^(LargeReceiveOffload|ReceiveSideScaling|[1-9][0-9]*)$")
                               maxItems: 16
                               type: array
                               x-kubernetes-list-type: set
@@ -40996,12 +41780,16 @@ spec:
                                 queues using a hardware-computed hash. Reduces hypervisor CPU overhead
                                 and improves multi-core utilization for high-throughput workloads.
                                 Requires pNIC RSS support.
+
+                                When omitted, vSphere decides the effective value.
                               type: boolean
-                            udpRSSEnabled:
+                            udpRssEnabled:
                               description: |-
                                 UDPRSSEnabled extends RSS to UDP traffic. By default RSS only distributes
                                 TCP flows. Enabling this also distributes UDP flows, improving throughput
                                 for UDP-heavy workloads such as GTP-U tunnels, QUIC, or media streaming.
+
+                                When omitted, vSphere decides the effective value.
                               type: boolean
                             uptv2Enabled:
                               description: |-
@@ -41018,6 +41806,20 @@ spec:
                           - message: coalescingParams must have length < 128
                             rule: '!has(self.coalescingParams) || size(self.coalescingParams)
                               < 128'
+                        vnumaNodeID:
+                          description: |-
+                            VNUMANodeID assigns this interface to a specific virtual NUMA node.
+                            The value must match a virtual NUMA node ID configured in the VM's
+                            CPU topology (spec.cpuAdvanced.topology.vnumaNodeCount). Co-locating a NIC with the
+                            vCPUs that process its traffic reduces cross-NUMA memory latency for
+                            latency-sensitive workloads.
+                            Requires EFI firmware (spec.hardware.firmware=EFI); Legacy BIOS does
+                            not support device assignment.
+                            Requires spec.minHardwareVersion >= 20.
+                            Cannot be changed while the VM is powered on.
+                          format: int32
+                          minimum: 0
+                          type: integer
                       required:
                       - name
                       type: object
@@ -41027,6 +41829,10 @@ spec:
                       - message: each ipamModes entry must be IPv4 or IPv6
                         rule: '!has(self.ipamModes) || self.ipamModes.all(m, m ==
                           ''IPv4'' || m == ''IPv6'')'
+                      - message: ipamModes cannot be changed after creation
+                        rule: (!has(oldSelf.ipamModes) && !has(self.ipamModes)) ||
+                          (has(oldSelf.ipamModes) && has(self.ipamModes) && self.ipamModes
+                          == oldSelf.ipamModes)
                     maxItems: 10
                     type: array
                     x-kubernetes-list-map-keys:
@@ -41130,7 +41936,8 @@ spec:
                   has a field named spec.type. Only ComputePolicy objects with
                   type=Optional may be applied explicitly to a VM.
 
-                  Valid policy types are: ComputePolicy.
+                  Valid policy types are: ComputePolicy, AutomaticVMEvictionPolicy,
+                  BestEffortRestartPolicy, ControlledRebalancingPolicy.
                 items:
                   description: |-
                     LocalObjectRef describes a reference to another object in the same
@@ -41339,6 +42146,180 @@ spec:
                 properties:
                   resourcePolicyName:
                     type: string
+                type: object
+              resources:
+                description: |-
+                  Resources describes the desired compute resource allocation for this VM.
+                  When set, these values override the corresponding fields from the
+                  VirtualMachineClass via field-level merge.
+                properties:
+                  limits:
+                    description: |-
+                      Limits is the host-level resource allocation ceiling.
+                      limits.cpu is in MHz (e.g. "2000"); limits.memory is in bytes
+                      (e.g. "8Gi").
+                      Each must be either greater than 0, or -1 to explicitly request no
+                      ceiling; a nil value also means unlimited, deferring to the VM Class
+                      or vSphere default. No other negative value is valid.
+                      Maps to CpuAllocation.Limit and MemoryAllocation.Limit.
+                      Can be reconfigured while the VM is powered on.
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          CPU is a CPU resource quantity.
+
+                          For spec.resources.size, the value represents the guest-visible vCPU
+                          count and must be a whole number (e.g. "4"). Maps to
+                          ConfigSpec.NumCPUs.
+
+                          For spec.resources.requests and spec.resources.limits, the value
+                          represents a host-level CPU allocation in MHz (e.g. "2000" for
+                          2 GHz). Maps to CpuAllocation.Reservation and CpuAllocation.Limit
+                          respectively.
+
+                          For spec.resources.size, an increase can be applied while the VM is
+                          powered on when cpuAdvanced.hotAddEnabled is already enabled on the
+                          live VM; a decrease always requires power-off.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                        x-kubernetes-validations:
+                        - message: CPU must be a whole number (e.g. '4' for vCPUs
+                            or '2000' for 2000 MHz). The 'm' (milli) suffix is not
+                            supported.
+                          rule: type(self) != string || !self.endsWith('m')
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          Memory is a memory resource quantity in bytes (e.g. "8Gi").
+
+                          For spec.resources.size, maps to ConfigSpec.MemoryMB (guest-visible).
+                          For spec.resources.requests and spec.resources.limits, maps to
+                          MemoryAllocation.Reservation and MemoryAllocation.Limit respectively.
+
+                          For spec.resources.size, an increase can be applied while the VM is
+                          powered on when memoryAdvanced.hotAddEnabled is already enabled on the
+                          live VM; a decrease always requires power-off. Note that enabling
+                          memoryAdvanced.hotAddEnabled at the vSphere level is a necessary but
+                          not sufficient condition: the guest OS and its drivers must also
+                          support memory hot-add for the guest to recognize the additional
+                          memory. Not all guest operating systems support this capability.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  requests:
+                    description: |-
+                      Requests is the host-level resource reservation (host guarantee).
+                      requests.cpu is in MHz (e.g. "2000"); requests.memory is in bytes
+                      (e.g. "8Gi").
+                      Maps to CpuAllocation.Reservation and MemoryAllocation.Reservation.
+                      Can be reconfigured while the VM is powered on.
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          CPU is a CPU resource quantity.
+
+                          For spec.resources.size, the value represents the guest-visible vCPU
+                          count and must be a whole number (e.g. "4"). Maps to
+                          ConfigSpec.NumCPUs.
+
+                          For spec.resources.requests and spec.resources.limits, the value
+                          represents a host-level CPU allocation in MHz (e.g. "2000" for
+                          2 GHz). Maps to CpuAllocation.Reservation and CpuAllocation.Limit
+                          respectively.
+
+                          For spec.resources.size, an increase can be applied while the VM is
+                          powered on when cpuAdvanced.hotAddEnabled is already enabled on the
+                          live VM; a decrease always requires power-off.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                        x-kubernetes-validations:
+                        - message: CPU must be a whole number (e.g. '4' for vCPUs
+                            or '2000' for 2000 MHz). The 'm' (milli) suffix is not
+                            supported.
+                          rule: type(self) != string || !self.endsWith('m')
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          Memory is a memory resource quantity in bytes (e.g. "8Gi").
+
+                          For spec.resources.size, maps to ConfigSpec.MemoryMB (guest-visible).
+                          For spec.resources.requests and spec.resources.limits, maps to
+                          MemoryAllocation.Reservation and MemoryAllocation.Limit respectively.
+
+                          For spec.resources.size, an increase can be applied while the VM is
+                          powered on when memoryAdvanced.hotAddEnabled is already enabled on the
+                          live VM; a decrease always requires power-off. Note that enabling
+                          memoryAdvanced.hotAddEnabled at the vSphere level is a necessary but
+                          not sufficient condition: the guest OS and its drivers must also
+                          support memory hot-add for the guest to recognize the additional
+                          memory. Not all guest operating systems support this capability.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  size:
+                    description: |-
+                      Size is the guest-visible compute allocation.
+                      size.cpu is the vCPU count; size.memory is the guest RAM.
+                      Maps to ConfigSpec.NumCPUs and ConfigSpec.MemoryMB.
+                      When set, overrides the corresponding VMClass hardware values.
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          CPU is a CPU resource quantity.
+
+                          For spec.resources.size, the value represents the guest-visible vCPU
+                          count and must be a whole number (e.g. "4"). Maps to
+                          ConfigSpec.NumCPUs.
+
+                          For spec.resources.requests and spec.resources.limits, the value
+                          represents a host-level CPU allocation in MHz (e.g. "2000" for
+                          2 GHz). Maps to CpuAllocation.Reservation and CpuAllocation.Limit
+                          respectively.
+
+                          For spec.resources.size, an increase can be applied while the VM is
+                          powered on when cpuAdvanced.hotAddEnabled is already enabled on the
+                          live VM; a decrease always requires power-off.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                        x-kubernetes-validations:
+                        - message: CPU must be a whole number (e.g. '4' for vCPUs
+                            or '2000' for 2000 MHz). The 'm' (milli) suffix is not
+                            supported.
+                          rule: type(self) != string || !self.endsWith('m')
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          Memory is a memory resource quantity in bytes (e.g. "8Gi").
+
+                          For spec.resources.size, maps to ConfigSpec.MemoryMB (guest-visible).
+                          For spec.resources.requests and spec.resources.limits, maps to
+                          MemoryAllocation.Reservation and MemoryAllocation.Limit respectively.
+
+                          For spec.resources.size, an increase can be applied while the VM is
+                          powered on when memoryAdvanced.hotAddEnabled is already enabled on the
+                          live VM; a decrease always requires power-off. Note that enabling
+                          memoryAdvanced.hotAddEnabled at the vSphere level is a necessary but
+                          not sufficient condition: the guest OS and its drivers must also
+                          support memory hot-add for the guest to recognize the additional
+                          memory. Not all guest operating systems support this capability.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
                 type: object
               restartMode:
                 default: TrySoft
@@ -41856,20 +42837,101 @@ spec:
                     description: CPU describes the observed CPU allocation of the
                       VM.
                     properties:
+                      coresPerSocket:
+                        description: |-
+                          CoresPerSocket describes the observed number of cores per virtual socket.
+                          Maps to VirtualHardware.numCoresPerSocket.
+                        format: int32
+                        type: integer
+                      hotAddEnabled:
+                        description: |-
+                          HotAddEnabled describes whether CPU hot-add is observed as enabled.
+                          Maps to VirtualMachineConfigInfo.cpuHotAddEnabled.
+                        type: boolean
+                      iommuEnabled:
+                        description: |-
+                          IOMMUEnabled describes whether Intel VT-d (IOMMU) is observed as enabled.
+                          Maps to VirtualMachineFlagInfo.vvtdEnabled.
+                        type: boolean
+                      latencySensitivity:
+                        description: |-
+                          LatencySensitivity describes the observed CPU scheduler latency
+                          sensitivity level as reported by vSphere (e.g. "low", "normal", "high").
+                          An empty string indicates the field is not available or not set.
+                          Maps to VirtualMachineConfigInfo.latencySensitivity.level.
+                        type: string
+                      limit:
+                        description: |-
+                          Limit describes the observed CPU limit in MHz. A nil value indicates
+                          no limit is set (unlimited). Maps to CpuAllocation.Limit.
+                        format: int64
+                        type: integer
+                      nestedHardwareVirtualizationEnabled:
+                        description: |-
+                          NestedHardwareVirtualizationEnabled describes whether nested hardware
+                          virtualization is observed as enabled.
+                          Maps to VirtualMachineConfigInfo.nestedHVEnabled.
+                        type: boolean
+                      performanceCountersEnabled:
+                        description: |-
+                          PerformanceCountersEnabled describes whether virtual CPU performance
+                          counters are observed as enabled.
+                          Maps to VirtualMachineConfigInfo.vPMCEnabled.
+                        type: boolean
                       reservation:
                         description: Reservation describes the observed CPU reservation
                           in MHz.
                         format: int64
                         type: integer
+                      simultaneousThreads:
+                        description: |-
+                          SimultaneousThreads describes the observed number of SMT (simultaneous
+                          multithreading) threads per core. A value of 2 indicates hyperthreading
+                          is enabled. Maps to VirtualHardware.simultaneousThreads.
+                        format: int32
+                        type: integer
                       total:
                         description: Total describes the observed number of processors.
                         format: int32
                         type: integer
+                      vnuma:
+                        description: |-
+                          VNUMA describes the observed vNUMA topology of the VM.
+                          Maps to VirtualMachineConfigInfo.numaInfo.
+                        properties:
+                          autoCoresPerNumaNode:
+                            description: |-
+                              AutoCoresPerNumaNode describes whether the number of cores per vNUMA
+                              node is determined automatically by vSphere.
+                              Maps to VirtualMachineVirtualNumaInfo.autoCoresPerNumaNode.
+                            type: boolean
+                          coresPerNumaNode:
+                            description: |-
+                              CoresPerNumaNode describes the observed number of cores per vNUMA node.
+                              When zero, vNUMA node sizing is determined automatically by vSphere.
+                              Maps to VirtualMachineVirtualNumaInfo.coresPerNumaNode.
+                            format: int32
+                            type: integer
+                        type: object
                     type: object
                   memory:
                     description: Memory describes the observed memory allocation of
                       the VM.
                     properties:
+                      hotAddEnabled:
+                        description: |-
+                          HotAddEnabled describes whether memory hot-add is observed as enabled.
+                          Maps to VirtualMachineConfigInfo.memoryHotAddEnabled.
+                        type: boolean
+                      limit:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          Limit describes the observed memory limit. A nil value indicates no
+                          limit is set (unlimited). Maps to MemoryAllocation.Limit.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       reservation:
                         anyOf:
                         - type: integer
@@ -41877,6 +42939,12 @@ spec:
                         description: Reservation describes the observed memory reservation.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
+                      reservationLockedToMax:
+                        description: |-
+                          ReservationLockedToMax describes whether the memory reservation is
+                          observed as locked to the VM's memory size.
+                          Maps to VirtualMachineConfigInfo.memoryReservationLockedToMax.
+                        type: boolean
                       total:
                         anyOf:
                         - type: integer
@@ -42313,6 +43381,45 @@ spec:
                             Please note this name is not necessarily related to the name of the
                             device as it is surfaced inside of the guest.
                           type: string
+                        vmxnet3:
+                          description: |-
+                            VMXNet3 reflects the observed VMXNet3-specific device properties for
+                            this interface. Unset if the interface is not a VMXNet3 adapter.
+                          properties:
+                            uptv2Active:
+                              description: |-
+                                UPTv2Active indicates whether UPTv2 (Uniform Pass-through v2) is active at
+                                runtime. True means the NIC is operating in pass-through mode. False means
+                                the NIC has network connectivity but UPTv2 is inactive (see UPTv2InactiveReasonVM
+                                and UPTv2InactiveReasonOther for the reason). Unset if the NIC is not VMXNet3
+                                or UPTv2Enabled is not true. Read from
+                                VirtualMachineDeviceRuntimeInfoVirtualEthernetCardRuntimeState.
+                              type: boolean
+                            uptv2Enabled:
+                              description: UPTv2Enabled reflects the observed UPTv2
+                                enablement config on this interface.
+                              type: boolean
+                            uptv2InactiveReasonOther:
+                              description: |-
+                                UPTv2InactiveReasonOther lists reasons why UPTv2 is inactive that are not
+                                related to virtual machine state or configuration. Populated when UPTv2Active is false.
+                              items:
+                                type: string
+                              type: array
+                            uptv2InactiveReasonVm:
+                              description: |-
+                                UPTv2InactiveReasonVM lists reasons why UPTv2 is inactive that are related
+                                to virtual machine state or configuration. Populated when UPTv2Active is false.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        vnumaNodeID:
+                          description: |-
+                            VNUMANodeID reflects the observed virtual NUMA node assignment for this
+                            interface. Unset if the interface has no NUMA node affinity configured.
+                          format: int32
+                          type: integer
                       type: object
                     type: array
                   ipStacks:
@@ -42798,6 +43905,16 @@ spec:
                     name:
                       description: Name describes the name of the volume.
                       type: string
+                    provisioningMode:
+                      description: |-
+                        ProvisioningMode describes the volume's observed provisioning mode.
+                        This indicates whether the disk is thin-provisioned, thick-provisioned,
+                        or thick-provisioned with eager zeroing.
+                      enum:
+                      - Thin
+                      - Thick
+                      - ThickEagerZero
+                      type: string
                     requested:
                       anyOf:
                       - type: integer
@@ -42870,7 +43987,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachineservices.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -42952,6 +44069,7 @@ spec:
                   This feature depends on whether the underlying load balancer provider supports specifying
                   the loadBalancerIP when a load balancer is created.
                   This field will be ignored if the provider does not support the feature.
+
                   Deprecated: This field was under-specified and its meaning varies across implementations.
                   Using it is non-portable and it may not support dual-stack.
                   Users are encouraged to use implementation-specific annotations when available.
@@ -43112,6 +44230,7 @@ spec:
                   This feature depends on whether the underlying load balancer provider
                   supports specifying the loadBalancerIP when a load balancer is created.
                   This field will be ignored if the provider does not support the feature.
+
                   Deprecated: This field was under-specified and its meaning varies across implementations.
                   Using it is non-portable and it may not support dual-stack.
                   Users are encouraged to use implementation-specific annotations when available.
@@ -43283,6 +44402,7 @@ spec:
                   This feature depends on whether the underlying load balancer provider
                   supports specifying the loadBalancerIP when a load balancer is created.
                   This field will be ignored if the provider does not support the feature.
+
                   Deprecated: This field was under-specified and its meaning varies across implementations.
                   Using it is non-portable and it may not support dual-stack.
                   Users are encouraged to use implementation-specific annotations when available.
@@ -43454,6 +44574,7 @@ spec:
                   This feature depends on whether the underlying load balancer provider
                   supports specifying the loadBalancerIP when a load balancer is created.
                   This field will be ignored if the provider does not support the feature.
+
                   Deprecated: This field was under-specified and its meaning varies across implementations.
                   Using it is non-portable and it may not support dual-stack.
                   Users are encouraged to use implementation-specific annotations when available.
@@ -43625,6 +44746,7 @@ spec:
                   This feature depends on whether the underlying load balancer provider
                   supports specifying the loadBalancerIP when a load balancer is created.
                   This field will be ignored if the provider does not support the feature.
+
                   Deprecated: This field was under-specified and its meaning varies across implementations.
                   Using it is non-portable and it may not support dual-stack.
                   Users are encouraged to use implementation-specific annotations when available.
@@ -43836,6 +44958,7 @@ spec:
                   This feature depends on whether the underlying load balancer provider
                   supports specifying the loadBalancerIP when a load balancer is created.
                   This field will be ignored if the provider does not support the feature.
+
                   Deprecated: This field was under-specified and its meaning varies across implementations.
                   Using it is non-portable and it may not support dual-stack.
                   Users are encouraged to use implementation-specific annotations when available.
@@ -43917,11 +45040,72 @@ spec:
             - message: each ipFamilies entry must be IPv4 or IPv6
               rule: '!has(self.ipFamilies) || self.ipFamilies.all(f, f == ''IPv4''
                 || f == ''IPv6'')'
+            - message: the primary IP family may not be changed or removed once set
+              rule: self.type == 'ExternalName' || !has(oldSelf.ipFamilies) || size(oldSelf.ipFamilies)
+                == 0 || (has(self.ipFamilies) && size(self.ipFamilies) > 0 && self.ipFamilies[0]
+                == oldSelf.ipFamilies[0])
           status:
             description: |-
               VirtualMachineServiceStatus defines the observed state of
               VirtualMachineService.
             properties:
+              conditions:
+                description: Conditions describes the observed conditions of the VirtualMachineService.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
               loadBalancer:
                 description: |-
                   LoadBalancer contains the current status of the load balancer,
@@ -43963,7 +45147,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachinesetresourcepolicies.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -44723,7 +45907,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachinesnapshots.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -45111,6 +46295,30 @@ spec:
                   - type
                   type: object
                 type: array
+              disks:
+                description: Disks represents the list of disks included in the snapshot.
+                items:
+                  description: |-
+                    VirtualMachineSnapshotDiskStatus defines the status of a specific disk
+                    captured in the VirtualMachineSnapshot.
+                  properties:
+                    changedBlockTrackingID:
+                      description: |-
+                        ChangedBlockTrackingID represents the Change Block Tracking (CBT) change ID
+                        for the disk at the time the snapshot was taken. This value may be empty
+                        if CBT is not enabled or not applicable.
+                      type: string
+                    id:
+                      description: ID is the unique identifier of the disk in the
+                        snapshot.
+                      type: string
+                  required:
+                  - id
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - id
+                x-kubernetes-list-type: map
               powerState:
                 description: |-
                   PowerState represents the observed power state of the virtual
@@ -45187,7 +46395,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: virtualmachinewebconsolerequests.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -45648,7 +46856,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: webconsolerequests.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com

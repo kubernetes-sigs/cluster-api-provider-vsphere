@@ -58,7 +58,7 @@
     # used by clusterctl init (init requires all the objects to be in the same namespace).
     - /test/framework/vmoperator/vmoperator-capabilities-9.1.0.yaml
 
-# IMPORTANT: run "VM_OPERATOR_VERSION=9.1.3 VM_OPERATOR_COMMIT_DESCRIBE=v1.9.0-1045-g46d6f2c0 VM_OPERATOR_COMMIT=46d6f2c0092ebb12e5a6bb7883b2e2e241058402 make generate-manifests-vm-operator" before using this "provider" with tilt
+# IMPORTANT: run "VM_OPERATOR_VERSION=9.1.3 VM_OPERATOR_COMMIT_DESCRIBE=v1.9.0-1429-gca004a72d VM_OPERATOR_COMMIT=ca004a72d870e9a95873ca3c757d2a2f0b51edbc make generate-manifests-vm-operator" before using this "provider" with tilt
 - name: vm-operator-9.1.3
   config:
     version: "9.1.3"

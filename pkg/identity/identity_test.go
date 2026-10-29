@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
@@ -261,6 +262,133 @@ var _ = Describe("validateInputs", func() {
 	Context("If the identityRef is missing on cluster", func() {
 		It("should error if identityRef is missing on cluster", func() {
 			Expect(validateInputs(k8sclient, cluster)).NotTo(Succeed())
+		})
+	})
+})
+
+var _ = Describe("GetCredentialsForDeploymentZone", func() {
+	var (
+		deploymentZone *infrav1.VSphereDeploymentZone
+	)
+
+	BeforeEach(func() {
+		deploymentZone = &infrav1.VSphereDeploymentZone{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "deployment-zone-",
+			},
+			Spec: infrav1.VSphereDeploymentZoneSpec{
+				Server:        "test-server",
+				FailureDomain: "test-fd",
+			},
+		}
+		Expect(k8sclient.Create(ctx, deploymentZone)).To(Succeed())
+	})
+
+	AfterEach(func() {
+		Expect(k8sclient.Delete(ctx, deploymentZone)).To(Succeed())
+	})
+
+	Context("with using a secret directly", func() {
+		It("should find and return credentials from a secret within controller namespace", func() {
+			credentialSecret := createSecret(manager.DefaultPodNamespace)
+			deploymentZone.Spec.IdentityRef = infrav1.VSphereIdentityReference{
+				Kind: infrav1.SecretKind,
+				Name: credentialSecret.Name,
+			}
+			Expect(k8sclient.Update(ctx, deploymentZone)).To(Succeed())
+
+			creds, err := GetCredentialsForDeploymentZone(ctx, k8sclient, deploymentZone, manager.DefaultPodNamespace)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(creds.Username).To(Equal(getData(credentialSecret, UsernameKey)))
+			Expect(creds.Password).To(Equal(getData(credentialSecret, PasswordKey)))
+		})
+	})
+
+	Context("with using a VSphereClusterIdentity", func() {
+		It("should fetch the secret from the controller namespace and return credentials", func() {
+			credentialSecret := createSecret(manager.DefaultPodNamespace)
+			identity := createIdentity(credentialSecret.Name)
+
+			// Update the namespace with the label (it already exists)
+			existingNs := &corev1.Namespace{}
+			Expect(k8sclient.Get(ctx, client.ObjectKey{Name: manager.DefaultPodNamespace}, existingNs)).To(Succeed())
+			if existingNs.Labels == nil {
+				existingNs.Labels = map[string]string{}
+			}
+			existingNs.Labels["identity-authorized"] = "true"
+			Expect(k8sclient.Update(ctx, existingNs)).To(Succeed())
+
+			deploymentZone.Spec.IdentityRef = infrav1.VSphereIdentityReference{
+				Kind: infrav1.VSphereClusterIdentityKind,
+				Name: identity.Name,
+			}
+			Expect(k8sclient.Update(ctx, deploymentZone)).To(Succeed())
+
+			creds, err := GetCredentialsForDeploymentZone(ctx, k8sclient, deploymentZone, manager.DefaultPodNamespace)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(creds.Username).To(Equal(getData(credentialSecret, UsernameKey)))
+			Expect(creds.Password).To(Equal(getData(credentialSecret, PasswordKey)))
+
+			// Clean up the label
+			delete(existingNs.Labels, "identity-authorized")
+			Expect(k8sclient.Update(ctx, existingNs)).To(Succeed())
+		})
+
+		It("should error if identity isn't Ready", func() {
+			credentialSecret := createSecret(manager.DefaultPodNamespace)
+			identity := createIdentity(credentialSecret.Name)
+			identity.Status.Ready = ptr.To(false)
+			Expect(k8sclient.Status().Update(ctx, identity)).To(Succeed())
+
+			deploymentZone.Spec.IdentityRef = infrav1.VSphereIdentityReference{
+				Kind: infrav1.VSphereClusterIdentityKind,
+				Name: identity.Name,
+			}
+			Expect(k8sclient.Update(ctx, deploymentZone)).To(Succeed())
+
+			_, err := GetCredentialsForDeploymentZone(ctx, k8sclient, deploymentZone, manager.DefaultPodNamespace)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+})
+
+var _ = Describe("validateDeploymentZoneInputs", func() {
+	var (
+		deploymentZone *infrav1.VSphereDeploymentZone
+	)
+
+	BeforeEach(func() {
+		deploymentZone = &infrav1.VSphereDeploymentZone{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "deployment-zone-",
+			},
+			Spec: infrav1.VSphereDeploymentZoneSpec{
+				Server:        "test-server",
+				FailureDomain: "test-fd",
+			},
+		}
+		Expect(k8sclient.Create(ctx, deploymentZone)).To(Succeed())
+	})
+
+	AfterEach(func() {
+		Expect(k8sclient.Delete(ctx, deploymentZone)).To(Succeed())
+	})
+
+	Context("If the client is missing", func() {
+		It("should error if client is missing", func() {
+			Expect(validateDeploymentZoneInputs(nil, deploymentZone)).NotTo(Succeed())
+		})
+	})
+
+	Context("If the deployment zone is missing", func() {
+		It("should error if deployment zone is missing", func() {
+			Expect(validateDeploymentZoneInputs(k8sclient, nil)).NotTo(Succeed())
+		})
+	})
+
+	Context("If the identityRef is missing on deployment zone", func() {
+		It("should error if identityRef is missing on deployment zone", func() {
+			Expect(validateDeploymentZoneInputs(k8sclient, deploymentZone)).NotTo(Succeed())
 		})
 	})
 })

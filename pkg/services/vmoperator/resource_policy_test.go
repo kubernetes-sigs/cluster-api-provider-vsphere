@@ -57,18 +57,18 @@ func TestRPService(t *testing.T) {
 	existingPolicyWithWorkerGroup := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{
 		Spec: vmoprv1alpha5.VirtualMachineSetResourcePolicySpec{
 			ResourcePool: vmoprv1alpha5.ResourcePoolSpec{
-				Name: "outdated-pool",
+				Name: "existing-pool",
 			},
-			Folder:              "outdated-folder",
+			Folder:              "existing-folder",
 			ClusterModuleGroups: []string{ControlPlaneVMClusterModuleGroupName, workerGroupName},
 		},
 	}
 	existingPolicyWithoutWorkerGroup := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{
 		Spec: vmoprv1alpha5.VirtualMachineSetResourcePolicySpec{
 			ResourcePool: vmoprv1alpha5.ResourcePoolSpec{
-				Name: "outdated-pool",
+				Name: "existing-pool",
 			},
-			Folder:              "outdated-folder",
+			Folder:              "existing-folder",
 			ClusterModuleGroups: []string{ControlPlaneVMClusterModuleGroupName},
 		},
 	}
@@ -89,21 +89,21 @@ func TestRPService(t *testing.T) {
 			expectedPolicy: expectedPolicyWithoutWorkerGroup,
 		},
 		{
-			name:           "Restores legacy worker group when feature gate is disabled",
+			name:           "Preserves existing policy when feature gate is disabled",
 			existingPolicy: existingPolicyWithoutWorkerGroup,
-			expectedPolicy: expectedPolicyWithWorkerGroup,
+			expectedPolicy: existingPolicyWithoutWorkerGroup,
 		},
 		{
 			name:           "Preserves legacy worker group when feature gate is enabled",
 			featureEnabled: true,
 			existingPolicy: existingPolicyWithWorkerGroup,
-			expectedPolicy: expectedPolicyWithWorkerGroup,
+			expectedPolicy: existingPolicyWithWorkerGroup,
 		},
 		{
 			name:           "Keeps worker group absent when feature gate is enabled",
 			featureEnabled: true,
 			existingPolicy: existingPolicyWithoutWorkerGroup,
-			expectedPolicy: expectedPolicyWithoutWorkerGroup,
+			expectedPolicy: existingPolicyWithoutWorkerGroup,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestRPService(t *testing.T) {
 			}
 			g.Expect(rpService.ReconcileResourcePolicy(ctx, clusterCtx)).To(Succeed())
 
-			// Use VM Operator native types to verify the policy persisted through the conversion client.
+			// Use VM Operator types to check the policy stored by the conversion client.
 			resourcePolicy := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{}
 			g.Expect(rpService.Client.Get(ctx, key, resourcePolicy)).To(Succeed())
 			g.Expect(apiequality.Semantic.DeepEqual(resourcePolicy.Spec, tc.expectedPolicy.Spec)).To(BeTrue(),
@@ -139,7 +139,7 @@ func TestRPService(t *testing.T) {
 				},
 			}))
 
-			// Repeated reconciliation must not write an unchanged policy.
+			// Reconcile again and check that an unchanged policy is not written.
 			resourceVersion := resourcePolicy.ResourceVersion
 			g.Expect(rpService.ReconcileResourcePolicy(ctx, clusterCtx)).To(Succeed())
 			g.Expect(rpService.Client.Get(ctx, key, resourcePolicy)).To(Succeed())

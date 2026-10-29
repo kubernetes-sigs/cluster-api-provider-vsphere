@@ -67,20 +67,21 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 	}
 	originalResourcePolicy := vmResourcePolicy.DeepCopy()
 
-	clusterModuleGroups := []string{ControlPlaneVMClusterModuleGroupName}
-	if !feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) {
-		clusterModuleGroups = append(clusterModuleGroups, getMachineDeploymentNameForCluster(clusterCtx.Cluster))
-	} else if vmResourcePolicyExists {
-		// Preserve existing groups during migration to compute-policy-based worker anti-affinity.
-		clusterModuleGroups = vmResourcePolicy.Spec.ClusterModuleGroups
-	}
+	// Only set the resource pool, folder, and cluster module groups on create as
+	// these fields are immutable.
+	if !vmResourcePolicyExists {
+		clusterModuleGroups := []string{ControlPlaneVMClusterModuleGroupName}
+		if !feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) {
+			clusterModuleGroups = append(clusterModuleGroups, getMachineDeploymentNameForCluster(clusterCtx.Cluster))
+		}
 
-	vmResourcePolicy.Spec = vmoprvhub.VirtualMachineSetResourcePolicySpec{
-		ResourcePool: vmoprvhub.ResourcePoolSpec{
-			Name: clusterCtx.Cluster.Name,
-		},
-		Folder:              clusterCtx.Cluster.Name,
-		ClusterModuleGroups: clusterModuleGroups,
+		vmResourcePolicy.Spec = vmoprvhub.VirtualMachineSetResourcePolicySpec{
+			ResourcePool: vmoprvhub.ResourcePoolSpec{
+				Name: clusterCtx.Cluster.Name,
+			},
+			Folder:              clusterCtx.Cluster.Name,
+			ClusterModuleGroups: clusterModuleGroups,
+		}
 	}
 	// Ensure that the VirtualMachineSetResourcePolicy is owned by the VSphereCluster
 	if err := ctrlutil.SetOwnerReference(

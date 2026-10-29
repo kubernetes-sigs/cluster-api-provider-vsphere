@@ -618,6 +618,9 @@ type VirtualMachineSpec struct {
 	// the ComputePolicy object from the vsphere.policy.vmware.com API group
 	// has a field named spec.type. Only ComputePolicy objects with
 	// type=Optional may be applied explicitly to a VM.
+	//
+	// Valid policy types are: ComputePolicy, AutomaticVMEvictionPolicy,
+	// BestEffortRestartPolicy, ControlledRebalancingPolicy.
 	// +optional
 	Policies []PolicySpec `json:"policies,omitempty"`
 }

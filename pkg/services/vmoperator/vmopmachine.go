@@ -287,96 +287,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 		sort.Strings(otherMDNames)
 
-		defaultHostAntiAffinity := []vmoprvhub.VMAffinityTerm{
-			{
-				LabelSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: mdName,
-					},
-				},
-				TopologyKey: corev1.LabelHostname,
-			},
-		}
-
-		affInfo.affinitySpec = vmoprvhub.AffinitySpec{
-			VMAffinity: &vmoprvhub.VMAffinitySpec{
-				// All the machines belonging to the same MachineDeployment should be placed in the same failure domain - required.
-				RequiredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{
-					{
-						LabelSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								clusterv1.MachineDeploymentNameLabel: mdName,
-							},
-						},
-						TopologyKey: corev1.LabelTopologyZone,
-					},
-				},
-			},
-			VMAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{},
-		}
-
-		var userConfiguredAntiAffinity bool
-		if feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) &&
-			supervisorMachineCtx.VSphereMachine.Spec.Affinity.IsDefined() {
-			userConfiguredAntiAffinity = true
-			antiAff := supervisorMachineCtx.VSphereMachine.Spec.Affinity.VMAntiAffinity
-
-			if antiAff.RequiredDuringSchedulingRequiredDuringExecution != nil {
-				terms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAff.RequiredDuringSchedulingRequiredDuringExecution))
-				for _, term := range *antiAff.RequiredDuringSchedulingRequiredDuringExecution {
-					terms = append(terms, vmoprvhub.VMAffinityTerm{
-						LabelSelector: term.LabelSelector.DeepCopy(),
-						TopologyKey:   term.TopologyKey,
-					})
-				}
-				affInfo.affinitySpec.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = terms
-			}
-
-			if antiAff.RequiredDuringSchedulingPreferredDuringExecution != nil {
-				terms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAff.RequiredDuringSchedulingPreferredDuringExecution))
-				for _, term := range *antiAff.RequiredDuringSchedulingPreferredDuringExecution {
-					terms = append(terms, vmoprvhub.VMAffinityTerm{
-						LabelSelector: term.LabelSelector.DeepCopy(),
-						TopologyKey:   term.TopologyKey,
-					})
-				}
-				affInfo.affinitySpec.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
-			}
-
-			if antiAff.PreferredDuringSchedulingPreferredDuringExecution != nil {
-				prefTerms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAff.PreferredDuringSchedulingPreferredDuringExecution))
-				for _, term := range *antiAff.PreferredDuringSchedulingPreferredDuringExecution {
-					prefTerms = append(prefTerms, vmoprvhub.VMAffinityTerm{
-						LabelSelector: term.LabelSelector.DeepCopy(),
-						TopologyKey:   term.TopologyKey,
-					})
-				}
-				affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = prefTerms
-			}
-		}
-
-		if !userConfiguredAntiAffinity {
-			// All the machines belonging to the same MachineDeployment should be spread across esxi hosts in the same failure domain - best-efforts.
-			affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = defaultHostAntiAffinity
-		}
-		if len(otherMDNames) > 0 {
-			// Different MachineDeployments and corresponding VMs should be spread across failure domains - best-efforts.
-			affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = append(
-				affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution,
-				vmoprvhub.VMAffinityTerm{
-					LabelSelector: &metav1.LabelSelector{
-						MatchExpressions: []metav1.LabelSelectorRequirement{
-							{
-								Key:      clusterv1.MachineDeploymentNameLabel,
-								Operator: metav1.LabelSelectorOpIn,
-								Values:   otherMDNames,
-							},
-						},
-					},
-					TopologyKey: corev1.LabelTopologyZone,
-				},
-			)
-		}
+		affInfo.affinitySpec = getAffinitySpec(mdName, otherMDNames, supervisorMachineCtx.VSphereMachine.Spec.Affinity.VMAntiAffinity)
 	}
 
 	// Check for the presence of an existing object
@@ -527,6 +438,91 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		Reason: infrav1.VSphereMachineVirtualMachineProvisionedReason,
 	})
 	return false, nil
+}
+
+func getAffinitySpec(mdName string, otherMDNames []string, antiAffinity vmwarev1.VMAntiAffinitySpec) vmoprvhub.AffinitySpec {
+	affinitySpec := vmoprvhub.AffinitySpec{
+		VMAffinity: &vmoprvhub.VMAffinitySpec{
+			// Place VMs in the same MachineDeployment in the same zone.
+			RequiredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							clusterv1.MachineDeploymentNameLabel: mdName,
+						},
+					},
+					TopologyKey: corev1.LabelTopologyZone,
+				},
+			},
+		},
+		VMAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{},
+	}
+
+	if feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) && antiAffinity.IsDefined() {
+		if antiAffinity.RequiredDuringSchedulingRequiredDuringExecution != nil {
+			terms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAffinity.RequiredDuringSchedulingRequiredDuringExecution))
+			for _, term := range *antiAffinity.RequiredDuringSchedulingRequiredDuringExecution {
+				terms = append(terms, vmoprvhub.VMAffinityTerm{
+					LabelSelector: term.LabelSelector.DeepCopy(),
+					TopologyKey:   term.TopologyKey,
+				})
+			}
+			affinitySpec.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = terms
+		}
+
+		if antiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
+			terms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAffinity.RequiredDuringSchedulingPreferredDuringExecution))
+			for _, term := range *antiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
+				terms = append(terms, vmoprvhub.VMAffinityTerm{
+					LabelSelector: term.LabelSelector.DeepCopy(),
+					TopologyKey:   term.TopologyKey,
+				})
+			}
+			affinitySpec.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
+		}
+
+		if antiAffinity.PreferredDuringSchedulingPreferredDuringExecution != nil {
+			terms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAffinity.PreferredDuringSchedulingPreferredDuringExecution))
+			for _, term := range *antiAffinity.PreferredDuringSchedulingPreferredDuringExecution {
+				terms = append(terms, vmoprvhub.VMAffinityTerm{
+					LabelSelector: term.LabelSelector.DeepCopy(),
+					TopologyKey:   term.TopologyKey,
+				})
+			}
+			affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = terms
+		}
+	} else {
+		// Prefer different hosts for VMs in the same MachineDeployment.
+		affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = []vmoprvhub.VMAffinityTerm{
+			{
+				LabelSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: mdName,
+					},
+				},
+				TopologyKey: corev1.LabelHostname,
+			},
+		}
+	}
+	if len(otherMDNames) > 0 {
+		// Prefer different zones for VMs in different MachineDeployments.
+		affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = append(
+			affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution,
+			vmoprvhub.VMAffinityTerm{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      clusterv1.MachineDeploymentNameLabel,
+							Operator: metav1.LabelSelectorOpIn,
+							Values:   otherMDNames,
+						},
+					},
+				},
+				TopologyKey: corev1.LabelTopologyZone,
+			},
+		)
+	}
+	return affinitySpec
 }
 
 // virtualMachineObjectKey returns the object key of the VirtualMachine.
@@ -717,7 +713,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	// Note: no matter of the different placement behaviour, we are setting affinity rules on all machines for consistency.
 	if affinityInfo != nil {
 		// Only set spec.affinity on create as the field is immutable.
-		if !vmExists && vmOperatorVM.CreationTimestamp.IsZero() {
+		if !vmExists {
 			vmOperatorVM.Spec.Affinity = &affinityInfo.affinitySpec
 		}
 		if vmOperatorVM.Spec.GroupName == "" {
@@ -882,24 +878,31 @@ func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, su
 	return vms, nil
 }
 
-// reconcileResourcePolicyAnnotations reconciles anti-affinity and Cluster Module Group (CMG) annotations.
+// reconcileResourcePolicyAnnotations reconciles anti-affinity and cluster module
+// group (CMG) annotations when creating a VM. We leave annotations on existing VMs
+// unchanged.
 //
-// Control Plane: Currently uses legacy CP anti-affinity tag and "control-plane" CMG.
+// Control plane VMs continue to use the legacy anti-affinity tag and "control-plane"
+// CMG. Worker VMs also use legacy annotations when WorkerStrictAntiAffinity is disabled.
 //
-// Workers:
-// - If WorkerStrictAntiAffinity is disabled: Always sets legacy worker tag and CMG ("<cluster>-workers-0").
-// - If WorkerStrictAntiAffinity is enabled (which implies NodeAutoPlacement is enabled):
-//   - Existing VM: Preserves annotations as-is; spec.affinity is also preserved during reconciliation.
-//   - Greenfield (VMSetRP has no worker CMG): Skips legacy annotations; uses spec.affinity only
-//     (the new policy-based AF/AAF).
-//   - Brownfield (VMSetRP has worker CMG): Inspects non-terminating peer VMs in the same
-//     cluster and MachineDeployment. If any peer lacks spec.affinity, sets both legacy worker
-//     annotations; otherwise omits legacy annotations, including when there are no eligible peers.
-//     The pool typically transitions over two rollouts: the first replaces VMs lacking
-//     spec.affinity with VMs using both spec.affinity and legacy annotations while legacy
-//     peers remain. Once all eligible peers have spec.affinity, subsequent replacements
-//     omit legacy annotations, completing the transition during the second rollout.
+// When WorkerStrictAntiAffinity is enabled:
+//   - If the resource policy has no legacy worker CMG, new VMs do not need legacy
+//     annotations. This is the case for clusters created with the feature enabled.
+//   - If the policy has a legacy worker CMG, we check the non-terminating VMs in the
+//     same MachineDeployment and namespace. New VMs still need legacy annotations
+//     if any of those VMs has no spec.affinity. Once all of them have spec.affinity,
+//     or none remain, we no longer add legacy annotations to new VMs.
+//     If the Machine has no MachineDeployment label, we cannot check its existing
+//     VMs, so we keep the legacy annotations.
+//
+// Keeping legacy annotations allows new VMs to share legacy anti-affinity with VMs
+// that do not have spec.affinity yet. As those VMs are replaced, we can stop using
+// legacy annotations for new VMs without changing annotations on existing VMs.
 func (v *VmopMachineService) reconcileResourcePolicyAnnotations(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprvhub.VirtualMachine, vmExists bool) error {
+	if vmExists {
+		return nil
+	}
+
 	annotations := vm.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -919,15 +922,6 @@ func (v *VmopMachineService) reconcileResourcePolicyAnnotations(ctx context.Cont
 		return nil
 	}
 
-	// On VM Update: Retain the current annotation and spec.affinity if they exist.
-	// CAPV never removes them because we cannot programmatically verify if the annotation's
-	// removal or the spec.affinity (ComputePolicy) tags have been successfully applied and enforced in VC.
-	if vmExists {
-		return nil
-	}
-
-	// On VM Creation:
-	// Step 1 (Check VMSetRP): Inspect the associated VMSetRP's spec.clusterModuleGroups.
 	vmSetRP := &vmoprvhub.VirtualMachineSetResourcePolicy{}
 	key := client.ObjectKey{
 		Namespace: supervisorMachineCtx.Cluster.Namespace,
@@ -946,15 +940,15 @@ func (v *VmopMachineService) reconcileResourcePolicyAnnotations(ctx context.Cont
 		}
 	}
 
-	// If it does not contain the legacy worker CMG (indicative of a greenfield cluster),
-	// CAPV skips legacy annotations completely and applies spec.affinity only.
+	// If the policy has no legacy worker group, there is no need to add legacy annotations.
 	if !hasWorkerCMG {
 		return nil
 	}
 
-	// Step 2 (Stateless VM Affinity Check): If the worker CMG is present (indicative of a brownfield cluster):
 	mdName := supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
 	if mdName == "" {
+		// We cannot check the MachineDeployment's existing VMs without its name,
+		// so keep the legacy annotations.
 		annotations[ProviderTagsAnnotationKey] = WorkerVMVMAntiAffinityTagValue
 		annotations[ClusterModuleNameAnnotationKey] = legacyWorkerCMG
 		vm.ObjectMeta.SetAnnotations(annotations)
@@ -966,29 +960,16 @@ func (v *VmopMachineService) reconcileResourcePolicyAnnotations(ctx context.Cont
 		client.InNamespace(supervisorMachineCtx.Cluster.Namespace),
 		client.MatchingLabels{clusterv1.MachineDeploymentNameLabel: mdName},
 	); err != nil {
-		return pkgerrors.Wrapf(err, "error listing virtual machines for MachineDeployment %s", mdName)
+		return pkgerrors.Wrapf(err, "error listing VirtualMachines for MachineDeployment %s", mdName)
 	}
 
-	// Check if all observed non-terminating peer VMs in this MachineDeployment pool have spec.affinity configured:
-	// - Skip terminating VMs during rolling upgrades, remediation, or scale-down. A deletion
-	//   timestamp excludes a peer from this decision; it does not confirm removal from vCenter.
-	// - Skip the current VM itself (item.Name == vm.Name).
-	// - Verify cluster ownership: although ClusterClass-managed topologies generate unique MD names with random
-	//   hashes, non-ClusterClass or custom-templated clusters may share identical MD names (e.g. "workers-0")
-	//   within the same supervisor namespace. Checking the cluster labels prevents cross-cluster
-	//   interference in multi-tenant namespaces.
-	// - If any eligible peer VM lacks spec.affinity, the pool still contains legacy VMs, and new VMs
-	//   must retain the legacy ClusterModuleGroup annotation to maintain anti-affinity with existing VMs.
+	// Check if the existing VMs in this MachineDeployment still need legacy anti-affinity.
+	// We only get here when creating a VM, so the new VM is not in the list.
+	// Ignore VMs that are being deleted so they do not keep replacement VMs on legacy
+	// placement. Their deletion timestamp does not mean they have been removed from vCenter.
 	allHaveAffinity := true
-	clusterName := supervisorMachineCtx.Cluster.Name
 	for _, item := range vmList.Items {
 		if !item.DeletionTimestamp.IsZero() {
-			continue
-		}
-		if item.Name == vm.Name {
-			continue
-		}
-		if item.Labels[clusterv1.ClusterNameLabel] != clusterName && item.Labels[ClusterSelectorKey] != clusterName {
 			continue
 		}
 		if item.Spec.Affinity == nil {
@@ -997,9 +978,9 @@ func (v *VmopMachineService) reconcileResourcePolicyAnnotations(ctx context.Cont
 		}
 	}
 
-	// If all eligible peers have spec.affinity configured, or there are no eligible peers:
-	// Start creating new VMs with spec.affinity only (without the legacy vsphere-cluster-module-group annotation).
-	// Else: Keep creating VMs with both spec.affinity and the legacy vsphere-cluster-module-group annotation.
+	// Keep legacy annotations on the new VM while there are VMs without spec.affinity
+	// in the MachineDeployment. If all non-terminating VMs have spec.affinity, or none
+	// remain, we do not add legacy annotations.
 	if !allHaveAffinity {
 		annotations[ProviderTagsAnnotationKey] = WorkerVMVMAntiAffinityTagValue
 		annotations[ClusterModuleNameAnnotationKey] = legacyWorkerCMG

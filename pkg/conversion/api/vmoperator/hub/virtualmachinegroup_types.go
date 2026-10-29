@@ -98,7 +98,9 @@ type VirtualMachineGroupSpec struct {
 	// sequentially in the order they appear in this list, with delays being
 	// cumulative across orders.
 	//
-	// When powering off, all members are stopped immediately without delays.
+	// When powering off, the boot order groups are processed in reverse order
+	// (last group first), with an optional PowerOffDelay before powering off
+	// each group. Delays are cumulative across groups.
 	BootOrder []VirtualMachineGroupBootOrderGroup `json:"bootOrder,omitempty"`
 }
 

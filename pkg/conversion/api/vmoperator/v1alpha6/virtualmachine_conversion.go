@@ -123,12 +123,8 @@ func convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 						Value: ap.Value,
 					})
 				}
-				if iface.DHCP4 != nil {
-					d.DHCP4 = ptr.To(*iface.DHCP4)
-				}
-				if iface.DHCP6 != nil {
-					d.DHCP6 = ptr.To(*iface.DHCP6)
-				}
+				d.DHCP4 = iface.DHCP4
+				d.DHCP6 = iface.DHCP6
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
 				d.GuestDeviceName = iface.GuestDeviceName
@@ -334,17 +330,11 @@ func convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 					d.VMXNet3 = &vmoprvhub.VirtualMachineNetworkInterfaceVMXNet3Status{
 						UPTv2InactiveReasonOther: slices.Clone(iface.VMXNet3.UPTv2InactiveReasonOther),
 						UPTv2InactiveReasonVM:    slices.Clone(iface.VMXNet3.UPTv2InactiveReasonVM),
-					}
-					if iface.VMXNet3.UPTv2Active != nil {
-						d.VMXNet3.UPTv2Active = ptr.To(*iface.VMXNet3.UPTv2Active)
-					}
-					if iface.VMXNet3.UPTv2Enabled != nil {
-						d.VMXNet3.UPTv2Enabled = ptr.To(*iface.VMXNet3.UPTv2Enabled)
+						UPTv2Active:              iface.VMXNet3.UPTv2Active,
+						UPTv2Enabled:             iface.VMXNet3.UPTv2Enabled,
 					}
 				}
-				if iface.VNUMANodeID != nil {
-					d.VNUMANodeID = ptr.To(*iface.VNUMANodeID)
-				}
+				d.VNUMANodeID = iface.VNUMANodeID
 				dst.Status.Network.Interfaces = append(dst.Status.Network.Interfaces, d)
 			}
 		}
@@ -464,12 +454,8 @@ func convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(_ context.Context, sr
 						Value: ap.Value,
 					})
 				}
-				if iface.DHCP4 != nil {
-					d.DHCP4 = ptr.To(*iface.DHCP4)
-				}
-				if iface.DHCP6 != nil {
-					d.DHCP6 = ptr.To(*iface.DHCP6)
-				}
+				d.DHCP4 = iface.DHCP4
+				d.DHCP6 = iface.DHCP6
 				d.Gateway4 = iface.Gateway4
 				d.Gateway6 = iface.Gateway6
 				d.GuestDeviceName = iface.GuestDeviceName
@@ -676,17 +662,11 @@ func convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(_ context.Context, sr
 					d.VMXNet3 = &vmoprv1alpha6.VirtualMachineNetworkInterfaceVMXNet3Status{
 						UPTv2InactiveReasonOther: slices.Clone(iface.VMXNet3.UPTv2InactiveReasonOther),
 						UPTv2InactiveReasonVM:    slices.Clone(iface.VMXNet3.UPTv2InactiveReasonVM),
-					}
-					if iface.VMXNet3.UPTv2Active != nil {
-						d.VMXNet3.UPTv2Active = ptr.To(*iface.VMXNet3.UPTv2Active)
-					}
-					if iface.VMXNet3.UPTv2Enabled != nil {
-						d.VMXNet3.UPTv2Enabled = ptr.To(*iface.VMXNet3.UPTv2Enabled)
+						UPTv2Active:              iface.VMXNet3.UPTv2Active,
+						UPTv2Enabled:             iface.VMXNet3.UPTv2Enabled,
 					}
 				}
-				if iface.VNUMANodeID != nil {
-					d.VNUMANodeID = ptr.To(*iface.VNUMANodeID)
-				}
+				d.VNUMANodeID = iface.VNUMANodeID
 				dst.Status.Network.Interfaces = append(dst.Status.Network.Interfaces, d)
 			}
 		}

@@ -215,12 +215,14 @@ type VirtualMachineNetworkInterfaceSpec struct {
 
 	// VNUMANodeID assigns this interface to a specific virtual NUMA node.
 	// The value must match a virtual NUMA node ID configured in the VM's
-	// CPU topology (spec.cpu.coresPerNumaNode). Co-locating a NIC with the
+	// CPU topology (spec.cpuAdvanced.topology.vnumaNodeCount). Co-locating a NIC with the
 	// vCPUs that process its traffic reduces cross-NUMA memory latency for
 	// latency-sensitive workloads.
+	// Requires EFI firmware (spec.hardware.firmware=EFI); Legacy BIOS does
+	// not support device assignment.
 	// Requires spec.minHardwareVersion >= 20.
 	// Cannot be changed while the VM is powered on.
-	VNUMANodeID *int32 `json:"vNUMANodeID,omitempty"`
+	VNUMANodeID *int32 `json:"vnumaNodeID,omitempty"`
 
 	// +optional
 
@@ -253,6 +255,14 @@ type VirtualMachineNetworkInterfaceSpec struct {
 	//
 	// When unset, the provider's default applies for which families are allocated.
 	// When set, the controller forwards the requested families to the provider for this interface.
+	//
+	// IPAMModes is immutable for this network interface once the interface is
+	// created, including the transition from unset to set or set to unset.
+	// There is no supported way to convert an interface between single-stack
+	// and dual-stack, or between IPv4-only and IPv6-only, after creation.
+	// Removing this interface entry and adding a new one with the same name
+	// but different IPAMModes is not a supported way to work around this
+	// restriction; it deletes and recreates the underlying network interface.
 	IPAMModes []corev1.IPFamily `json:"ipamModes,omitempty"`
 }
 
@@ -302,6 +312,13 @@ type VirtualMachineNetworkSpec struct {
 
 	// VLANs is a list of VLAN interfaces to be configured on top of the
 	// physical network interfaces.
+	//
+	// VLAN interfaces are virtual network interfaces that tag traffic with a
+	// VLAN ID. Each VLAN must reference a parent interface from the Interfaces
+	// list via the Link field.
+	//
+	// Please note this feature is available only with the following bootstrap
+	// providers: CloudInit.
 	VLANs []VirtualMachineNetworkVLANSpec `json:"vlans,omitempty"`
 }
 
@@ -595,19 +612,23 @@ type VirtualMachineNetworkInterfaceVMXNet3Status struct {
 	// +optional
 
 	// UPTv2Active indicates whether UPTv2 (Uniform Pass-through v2) is active at
-	// runtime. Unset if the interface is not VMXNet3 or UPTv2Enabled is not true.
+	// runtime. True means the NIC is operating in pass-through mode. False means
+	// the NIC has network connectivity but UPTv2 is inactive (see UPTv2InactiveReasonVM
+	// and UPTv2InactiveReasonOther for the reason). Unset if the NIC is not VMXNet3
+	// or UPTv2Enabled is not true. Read from
+	// VirtualMachineDeviceRuntimeInfoVirtualEthernetCardRuntimeState.
 	UPTv2Active *bool `json:"uptv2Active,omitempty"`
 
 	// +optional
 
-	// UPTv2InactiveReasonVM lists reasons related to the virtual machine state or
-	// configuration. Populated when UPTv2Active is false.
+	// UPTv2InactiveReasonVM lists reasons why UPTv2 is inactive that are related
+	// to virtual machine state or configuration. Populated when UPTv2Active is false.
 	UPTv2InactiveReasonVM []string `json:"uptv2InactiveReasonVm,omitempty"`
 
 	// +optional
 
-	// UPTv2InactiveReasonOther lists other reasons why UPTv2 is inactive.
-	// Populated when UPTv2Active is false.
+	// UPTv2InactiveReasonOther lists reasons why UPTv2 is inactive that are not
+	// related to virtual machine state or configuration. Populated when UPTv2Active is false.
 	UPTv2InactiveReasonOther []string `json:"uptv2InactiveReasonOther,omitempty"`
 }
 

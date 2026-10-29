@@ -1452,16 +1452,32 @@ var _ = Describe("VirtualMachine tests", func() {
 						Expect(vmService.Client.Create(ctx, existingVM)).To(Succeed())
 					})
 
-					Specify("retains existing legacy annotations without deletion on update", func() {
+					DescribeTable("preserves existing placement annotations on update", func(featureEnabled, controlPlane, legacyAnnotations bool) {
+						featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.WorkerStrictAntiAffinity, featureEnabled)
+						if controlPlane {
+							machine.Labels[clusterv1.MachineControlPlaneLabel] = ""
+							vsphereMachine.Labels[clusterv1.MachineControlPlaneLabel] = ""
+						}
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						if !legacyAnnotations {
+							vmopVM.Annotations = map[string]string{"example.com/custom": "preserved"}
+							Expect(vmService.Client.Update(ctx, vmopVM)).To(Succeed())
+						}
+						expectedAnnotations := vmopVM.DeepCopy().Annotations
+
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 						Expect(err).ShouldNot(HaveOccurred())
 						Expect(requeue).Should(BeTrue())
 
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 						Expect(vmopVM).ShouldNot(BeNil())
-						Expect(vmopVM.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(getMachineDeploymentNameForCluster(cluster)))
-						Expect(vmopVM.Annotations[ProviderTagsAnnotationKey]).To(Equal(WorkerVMVMAntiAffinityTagValue))
-					})
+						Expect(vmopVM.Annotations).To(Equal(expectedAnnotations))
+					},
+						Entry("worker with legacy annotations and gate enabled", true, false, true),
+						Entry("worker without legacy annotations and gate disabled", false, false, false),
+						Entry("control plane with gate enabled", true, true, false),
+						Entry("control plane with gate disabled", false, true, false),
+					)
 				})
 
 				Context("Brownfield Cluster Creation with Legacy VMs", func() {
@@ -1492,7 +1508,6 @@ var _ = Describe("VirtualMachine tests", func() {
 								Namespace: corev1.NamespaceDefault,
 								Labels: map[string]string{
 									clusterv1.MachineDeploymentNameLabel: machineDeploymentName,
-									clusterv1.ClusterNameLabel:           clusterName,
 								},
 								Annotations: map[string]string{
 									ClusterModuleNameAnnotationKey: getMachineDeploymentNameForCluster(cluster),
@@ -1680,235 +1695,29 @@ var _ = Describe("VirtualMachine tests", func() {
 						Expect(vmService.Client.Create(ctx, vmSetRP)).To(Succeed())
 					})
 
-					DescribeTable("keeps default host anti-affinity when no user terms are configured", func(affinity vmwarev1.AffinitySpec) {
-						vsphereMachine.Spec.Affinity = affinity
+					Specify("sets user affinity on create and preserves it on update", func() {
+						vsphereMachine.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = &[]vmwarev1.VMAffinityTerm{
+							{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname},
+						}
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(requeue).To(BeTrue())
+
 						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
 						Expect(vmopVM6.Spec.Affinity).NotTo(BeNil())
 						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity).NotTo(BeNil())
-						terms := vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution
-						Expect(terms).To(HaveLen(1))
-						Expect(terms[0].TopologyKey).To(Equal(corev1.LabelHostname))
-						Expect(terms[0].LabelSelector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, machineDeploymentName))
-					},
-						Entry("zero affinity", vmwarev1.AffinitySpec{}),
-						Entry("empty anti-affinity", vmwarev1.AffinitySpec{VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{}}),
-					)
+						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution).To(Equal([]vmoprv1alpha6.VMAffinityTerm{
+							{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname},
+						}))
+						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution).To(BeEmpty())
 
-					Specify("preserves an empty label selector as a non-nil VM Operator selector", func() {
-						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
-							RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAffinityTerm{{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname}},
-						}}
+						originalAffinity := vmopVM6.Spec.Affinity.DeepCopy()
+						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{}
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(requeue).To(BeTrue())
 						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
-						terms := vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution
-						Expect(terms).To(HaveLen(1))
-						Expect(terms[0].LabelSelector).To(Equal(&metav1.LabelSelector{}))
-					})
-
-					Specify("maps user-configured PreferredDuringSchedulingPreferredDuringExecution anti-affinity into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
-							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
-								PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{
-									{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{
-												"custom-key": "custom-val",
-											},
-										},
-										TopologyKey: "custom.topology.key",
-									},
-								},
-							},
-						}
-
-						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
-
-						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM6).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
-						term := vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution[0]
-						Expect(term.TopologyKey).To(Equal("custom.topology.key"))
-						Expect(term.LabelSelector.MatchLabels).To(HaveKeyWithValue("custom-key", "custom-val"))
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution).To(BeEmpty())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution).To(BeEmpty())
-					})
-
-					Specify("maps user-configured RequiredDuringSchedulingPreferredDuringExecution anti-affinity into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
-							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
-								RequiredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{
-									{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{
-												"strict-key": "strict-val",
-											},
-										},
-										TopologyKey: corev1.LabelHostname,
-									},
-								},
-							},
-						}
-
-						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
-
-						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM6).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
-						term := vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution[0]
-						Expect(term.TopologyKey).To(Equal(corev1.LabelHostname))
-						Expect(term.LabelSelector.MatchLabels).To(HaveKeyWithValue("strict-key", "strict-val"))
-						// Default soft host anti-affinity should NOT be present
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution).To(BeEmpty())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution).To(BeEmpty())
-					})
-
-					Specify("maps user-configured RequiredDuringSchedulingRequiredDuringExecution anti-affinity into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
-							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
-								RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAffinityTerm{
-									{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{
-												"hard-key": "hard-val",
-											},
-										},
-										TopologyKey: corev1.LabelHostname,
-									},
-								},
-							},
-						}
-
-						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
-
-						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM6).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution).To(HaveLen(1))
-						term := vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution[0]
-						Expect(term.TopologyKey).To(Equal(corev1.LabelHostname))
-						Expect(term.LabelSelector.MatchLabels).To(HaveKeyWithValue("hard-key", "hard-val"))
-						// Default soft host anti-affinity should NOT be present
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution).To(BeEmpty())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution).To(BeEmpty())
-					})
-
-					Specify("maps both Required and Preferred anti-affinity types together into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
-							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
-								RequiredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{
-									{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{
-												"req-key": "req-val",
-											},
-										},
-										TopologyKey: corev1.LabelHostname,
-									},
-								},
-								PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{
-									{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{
-												"pref-key": "pref-val",
-											},
-										},
-										TopologyKey: "custom.topology.key",
-									},
-								},
-							},
-						}
-
-						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
-
-						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM6).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution).To(BeEmpty())
-						reqTerm := vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution[0]
-						Expect(reqTerm.TopologyKey).To(Equal(corev1.LabelHostname))
-						Expect(reqTerm.LabelSelector.MatchLabels).To(HaveKeyWithValue("req-key", "req-val"))
-						prefTerm := vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution[0]
-						Expect(prefTerm.TopologyKey).To(Equal("custom.topology.key"))
-						Expect(prefTerm.LabelSelector.MatchLabels).To(HaveKeyWithValue("pref-key", "pref-val"))
-					})
-
-					Specify("maps all three anti-affinity types together into VirtualMachine spec.affinity", func() {
-						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{
-							VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
-								RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAffinityTerm{
-									{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{
-												"hard-key": "hard-val",
-											},
-										},
-										TopologyKey: corev1.LabelHostname,
-									},
-								},
-								RequiredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{
-									{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{
-												"req-key": "req-val",
-											},
-										},
-										TopologyKey: corev1.LabelHostname,
-									},
-								},
-								PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{
-									{
-										LabelSelector: &metav1.LabelSelector{
-											MatchLabels: map[string]string{
-												"pref-key": "pref-val",
-											},
-										},
-										TopologyKey: "custom.topology.key",
-									},
-								},
-							},
-						}
-
-						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
-
-						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM6).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity).ShouldNot(BeNil())
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution).To(HaveLen(1))
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
-						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
-						hardTerm := vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution[0]
-						Expect(hardTerm.TopologyKey).To(Equal(corev1.LabelHostname))
-						Expect(hardTerm.LabelSelector.MatchLabels).To(HaveKeyWithValue("hard-key", "hard-val"))
-						reqTerm := vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution[0]
-						Expect(reqTerm.TopologyKey).To(Equal(corev1.LabelHostname))
-						Expect(reqTerm.LabelSelector.MatchLabels).To(HaveKeyWithValue("req-key", "req-val"))
-						prefTerm := vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution[0]
-						Expect(prefTerm.TopologyKey).To(Equal("custom.topology.key"))
-						Expect(prefTerm.LabelSelector.MatchLabels).To(HaveKeyWithValue("pref-key", "pref-val"))
+						Expect(vmopVM6.Spec.Affinity).To(Equal(originalAffinity))
 					})
 				})
 			})
@@ -2064,6 +1873,120 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 			for _, matcher := range tt.want {
 				g.Expect(got.Name).To(matcher)
 			}
+		})
+	}
+}
+
+func Test_getAffinitySpec(t *testing.T) {
+	const mdName = "workers"
+	selector := &metav1.LabelSelector{MatchLabels: map[string]string{"app": "worker"}}
+	userTerms := &[]vmwarev1.VMAffinityTerm{{LabelSelector: selector, TopologyKey: corev1.LabelHostname}}
+	expectedUserTerms := []vmoprvhub.VMAffinityTerm{{LabelSelector: selector, TopologyKey: corev1.LabelHostname}}
+	defaultHostTerm := vmoprvhub.VMAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{clusterv1.MachineDeploymentNameLabel: mdName}},
+		TopologyKey:   corev1.LabelHostname,
+	}
+	zoneAffinityTerm := vmoprvhub.VMAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{clusterv1.MachineDeploymentNameLabel: mdName}},
+		TopologyKey:   corev1.LabelTopologyZone,
+	}
+	zoneAntiAffinityTerm := vmoprvhub.VMAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{
+			{Key: clusterv1.MachineDeploymentNameLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{"other-workers"}},
+		}},
+		TopologyKey: corev1.LabelTopologyZone,
+	}
+
+	for _, tc := range []struct {
+		name                 string
+		featureEnabled       bool
+		antiAffinity         vmwarev1.VMAntiAffinitySpec
+		otherMDNames         []string
+		expectedAntiAffinity *vmoprvhub.VMAntiAffinitySpec
+	}{
+		{
+			name:         "gate disabled uses default host rule",
+			antiAffinity: vmwarev1.VMAntiAffinitySpec{PreferredDuringSchedulingPreferredDuringExecution: userTerms},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{defaultHostTerm},
+			},
+		},
+		{
+			name:           "omitted host rules use defaults including zone anti-affinity",
+			featureEnabled: true,
+			otherMDNames:   []string{"other-workers"},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{defaultHostTerm, zoneAntiAffinityTerm},
+			},
+		},
+		{
+			name:           "explicitly empty preferred list disables default host rule",
+			featureEnabled: true,
+			antiAffinity:   vmwarev1.VMAntiAffinitySpec{PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{}},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{},
+			},
+		},
+		{
+			name:           "explicitly empty preferred list retains default zone rule",
+			featureEnabled: true,
+			antiAffinity:   vmwarev1.VMAntiAffinitySpec{PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{}},
+			otherMDNames:   []string{"other-workers"},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{zoneAntiAffinityTerm},
+			},
+		},
+		{
+			name:           "preferred host rules replace the default host rule",
+			featureEnabled: true,
+			antiAffinity:   vmwarev1.VMAntiAffinitySpec{PreferredDuringSchedulingPreferredDuringExecution: userTerms},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: expectedUserTerms,
+			},
+		},
+		{
+			name:           "required scheduling rules replace the default host rule",
+			featureEnabled: true,
+			antiAffinity:   vmwarev1.VMAntiAffinitySpec{RequiredDuringSchedulingPreferredDuringExecution: userTerms},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				RequiredDuringSchedulingPreferredDuringExecution: expectedUserTerms,
+			},
+		},
+		{
+			name:           "required execution rules preserve an empty selector",
+			featureEnabled: true,
+			antiAffinity: vmwarev1.VMAntiAffinitySpec{
+				RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAffinityTerm{{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname}},
+			},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				RequiredDuringSchedulingRequiredDuringExecution: []vmoprvhub.VMAffinityTerm{{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname}},
+			},
+		},
+		{
+			name:           "all host rule types coexist with default zone rules",
+			featureEnabled: true,
+			antiAffinity: vmwarev1.VMAntiAffinitySpec{
+				RequiredDuringSchedulingPreferredDuringExecution:  userTerms,
+				PreferredDuringSchedulingPreferredDuringExecution: userTerms,
+				RequiredDuringSchedulingRequiredDuringExecution:   userTerms,
+			},
+			otherMDNames: []string{"other-workers"},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				RequiredDuringSchedulingPreferredDuringExecution:  expectedUserTerms,
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{expectedUserTerms[0], zoneAntiAffinityTerm},
+				RequiredDuringSchedulingRequiredDuringExecution:   expectedUserTerms,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.WorkerStrictAntiAffinity, tc.featureEnabled)
+			g.Expect(getAffinitySpec(mdName, tc.otherMDNames, tc.antiAffinity)).To(Equal(vmoprvhub.AffinitySpec{
+				VMAffinity: &vmoprvhub.VMAffinitySpec{
+					RequiredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{zoneAffinityTerm},
+				},
+				VMAntiAffinity: tc.expectedAntiAffinity,
+			}))
 		})
 	}
 }

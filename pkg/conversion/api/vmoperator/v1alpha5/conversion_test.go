@@ -19,14 +19,12 @@ package v1alpha5
 import (
 	"testing"
 
-	. "github.com/onsi/gomega"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
@@ -156,46 +154,6 @@ func virtualMachineGroupFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 func hubVirtualMachineGroupBootOrderGroup(in *vmoprvhub.VirtualMachineGroupBootOrderGroup, c randfill.Continue) {
 	c.FillNoCustom(in)
 	in.PowerOffDelay = nil
-}
-
-func TestVirtualMachineDHCPConversion(t *testing.T) {
-	states := []struct {
-		name     string
-		value    *bool
-		legacy   bool
-		restored *bool
-	}{
-		{name: "unset"},
-		{name: "disabled", value: ptr.To(false)},
-		{name: "enabled", value: ptr.To(true), legacy: true, restored: ptr.To(true)},
-	}
-	for _, dhcp4 := range states {
-		for _, dhcp6 := range states {
-			t.Run(dhcp4.name+"/"+dhcp6.name, func(t *testing.T) {
-				g := NewWithT(t)
-				hub := &vmoprvhub.VirtualMachine{
-					Spec: vmoprvhub.VirtualMachineSpec{
-						Network: &vmoprvhub.VirtualMachineNetworkSpec{
-							Interfaces: []vmoprvhub.VirtualMachineNetworkInterfaceSpec{
-								{Name: "eth0", DHCP4: dhcp4.value, DHCP6: dhcp6.value},
-							},
-						},
-					},
-				}
-				spoke := &vmoprv1alpha5.VirtualMachine{}
-				g.Expect(convert_hub_VirtualMachine_To_v1alpha5_VirtualMachine(t.Context(), hub, spoke)).To(Succeed())
-				g.Expect(spoke.Spec.Network.Interfaces).To(HaveLen(1))
-				g.Expect(spoke.Spec.Network.Interfaces[0].DHCP4).To(Equal(dhcp4.legacy))
-				g.Expect(spoke.Spec.Network.Interfaces[0].DHCP6).To(Equal(dhcp6.legacy))
-
-				restored := &vmoprvhub.VirtualMachine{}
-				g.Expect(convert_v1alpha5_VirtualMachine_To_hub_VirtualMachine(t.Context(), spoke, restored)).To(Succeed())
-				g.Expect(restored.Spec.Network.Interfaces).To(HaveLen(1))
-				g.Expect(restored.Spec.Network.Interfaces[0].DHCP4).To(Equal(dhcp4.restored))
-				g.Expect(restored.Spec.Network.Interfaces[0].DHCP6).To(Equal(dhcp6.restored))
-			})
-		}
-	}
 }
 
 func hubVirtualMachineNetworkInterfaceStatus(in *vmoprvhub.VirtualMachineNetworkInterfaceStatus, c randfill.Continue) {

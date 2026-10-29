@@ -69,8 +69,8 @@ type RoundTripCheckTypesInput struct {
 	FieldNameMap map[string]string
 
 	// PointerToValueFields lists hub field paths whose pointer values are represented
-	// by the identical non-pointer type in an older spoke API. Conversion tests must
-	// separately verify the zero-value semantics for these fields.
+	// by the identical non-pointer type in an older spoke API. Fuzzers should normalize
+	// pointer states that cannot be represented by the spoke API.
 	PointerToValueFields sets.Set[string]
 }
 

@@ -351,6 +351,11 @@ type VMAntiAffinitySpec struct {
 	RequiredDuringSchedulingRequiredDuringExecution *[]VMAffinityTerm `json:"requiredDuringSchedulingRequiredDuringExecution,omitempty"` //nolint:kubeapilinter // Preserve omitted versus explicitly empty lists.
 }
 
+// IsDefined returns true if the VMAntiAffinitySpec is defined.
+func (r *VMAntiAffinitySpec) IsDefined() bool {
+	return !reflect.DeepEqual(r, &VMAntiAffinitySpec{})
+}
+
 // VMAffinityTerm defines the VSphereMachine affinity/anti-affinity term.
 type VMAffinityTerm struct {
 	// labelSelector is a label query over a set of VSphereMachines.

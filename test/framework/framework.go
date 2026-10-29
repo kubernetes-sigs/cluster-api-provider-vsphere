@@ -218,9 +218,9 @@ func InitBootstrapCluster(ctx context.Context, bootstrapClusterProxy framework.C
 		if runtimeExtension == "vm-operator" {
 			Expect(vmoperator.ReconcileCapabilities(ctx, bootstrapClusterProxy.GetClient(), config.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).Should(Succeed())
 			if config.HasVariable("VM_OPERATOR_VERSION") {
-				// Note: VM_OPERATOR_VERSION use a major.minor version.
-				// In order to make this value similar to CAPI/provider versions, as required by clusterctl, add the v prefix and the .0 patch version.
-				runtimeExtensions = append(runtimeExtensions, fmt.Sprintf("vm-operator:v%s.0", config.MustGetVariable("VM_OPERATOR_VERSION")))
+				// Note: VM_OPERATOR_VERSION is a major.minor.patch version.
+				// In order to make this value similar to CAPI/provider versions, as required by clusterctl, add the v prefix.
+				runtimeExtensions = append(runtimeExtensions, fmt.Sprintf("vm-operator:v%s", config.MustGetVariable("VM_OPERATOR_VERSION")))
 				continue
 			}
 		}

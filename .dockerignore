@@ -5,8 +5,8 @@
 .golangci.yml
 bin/
 **/*.yaml
-!test/framework/vmoperator/vmoperator-capabilities-9.1.yaml
-!test/framework/vmoperator/vmoperator-capabilities-9.2.yaml
+!test/framework/vmoperator/vmoperator-capabilities-9.1.0.yaml
+!test/framework/vmoperator/vmoperator-capabilities-9.1.3.yaml
 out/
 docs/
 packaging/

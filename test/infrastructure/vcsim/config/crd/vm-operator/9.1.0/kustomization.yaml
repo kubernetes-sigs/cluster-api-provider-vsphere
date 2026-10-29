@@ -21,15 +21,13 @@ resources:
   - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinegroups.yaml
   - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinesnapshots.yaml
   - ../../../../../vm-operator/vm-operator.tmp/config/crd/bases/vmoperator.vmware.com_virtualmachinegrouppublishrequests.yaml
-  # CRD list from test/infrastructure/vm-operator/config/9.2/kustomization.yaml (with adjusted path)
-  - ../../../../../vm-operator/config/9.2/external-crds/topology.tanzu.vmware.com_availabilityzones.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/topology.tanzu.vmware.com_zones.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/imageregistry.vmware.com_clustercontentlibraryitems.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/netoperator.vmware.com_networkinterfaces.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/cns.vmware.com_cnsnodevmattachments.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/cns.vmware.com_cnsnodevmbatchattachments.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/cns.vmware.com_cnsregistervolumes.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/cns.vmware.com_storagepolicyquotas.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/cns.vmware.com_storagepolicyusages.yaml
-  - ../../../../../vm-operator/config/9.2/external-crds/infra.vmware.com_storagepolicies.yaml
+  # CRD list from test/infrastructure/vm-operator/config/9.1.0/kustomization.yaml (with adjusted path)
+  - ../../../../../vm-operator/config/9.1.0/external-crds/topology.tanzu.vmware.com_availabilityzones.yaml
+  - ../../../../../vm-operator/config/9.1.0/external-crds/topology.tanzu.vmware.com_zones.yaml
+  - ../../../../../vm-operator/config/9.1.0/external-crds/imageregistry.vmware.com_clustercontentlibraryitems.yaml
+  - ../../../../../vm-operator/config/9.1.0/external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
+  - ../../../../../vm-operator/config/9.1.0/external-crds/netoperator.vmware.com_networkinterfaces.yaml
+  - ../../../../../vm-operator/config/9.1.0/external-crds/cns.vmware.com_cnsnodevmattachments.yaml
+  - ../../../../../vm-operator/config/9.1.0/external-crds/cns.vmware.com_cnsregistervolumes.yaml
+  - ../../../../../vm-operator/config/9.1.0/external-crds/cns.vmware.com_storagepolicyquotas.yaml
+  - ../../../../../vm-operator/config/9.1.0/external-crds/cns.vmware.com_storagepolicyusages.yaml

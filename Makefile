@@ -232,15 +232,15 @@ VCSIM_CONTROLLER_IMG ?= $(REGISTRY)/$(VCSIM_IMAGE_NAME)
 # vmoperator controller
 VM_OPERATOR_DIR := test/infrastructure/vm-operator
 VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
-# VM_OPERATOR_VERSION ?= 8.0
+# VM_OPERATOR_VERSION ?= 8.0.0
 # VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
 # VM_OPERATOR_COMMIT_DESCRIBE ?= v1.8.6-0-gde75746a
-# VM_OPERATOR_VERSION ?= 9.1
+# VM_OPERATOR_VERSION ?= 9.1.0
 # VM_OPERATOR_COMMIT ?= v1.10.0
 # VM_OPERATOR_COMMIT_DESCRIBE ?= release-vc-9.1.0-0-g77005588
-VM_OPERATOR_VERSION ?= 9.2
-VM_OPERATOR_COMMIT ?= 46d6f2c0092ebb12e5a6bb7883b2e2e241058402
-VM_OPERATOR_COMMIT_DESCRIBE ?= v1.9.0-1045-g46d6f2c0
+VM_OPERATOR_VERSION ?= 9.1.3
+VM_OPERATOR_COMMIT ?= ca004a72d870e9a95873ca3c757d2a2f0b51edbc
+VM_OPERATOR_COMMIT_DESCRIBE ?= v1.9.0-1429-gca004a72d
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
 VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
@@ -971,11 +971,11 @@ generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	$(MAKE) generate-manifests-vm-operator-$(VM_OPERATOR_VERSION)
 
-generate-manifests-vm-operator-8.0:
+generate-manifests-vm-operator-8.0.0:
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION)/vm-operator.yaml"
 	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
-generate-manifests-vm-operator-9.1:
+generate-manifests-vm-operator-9.1.0:
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
 	make kustomize-wcp
 	@cd "$(ROOT_DIR)"
@@ -983,7 +983,7 @@ generate-manifests-vm-operator-9.1:
 	$(KUSTOMIZE) build "$(VM_OPERATOR_DIR)/config/$(VM_OPERATOR_VERSION)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone "$(VCSIM_VM_OPERATOR_CRD_ROOT)/$(VM_OPERATOR_VERSION)" > "$(VCSIM_VM_OPERATOR_CRD_ROOT)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
-generate-manifests-vm-operator-9.2:
+generate-manifests-vm-operator-9.1.3:
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
 	GOTOOLCHAIN=auto make kustomize-wcp
 	@cd "$(ROOT_DIR)"
@@ -996,13 +996,13 @@ docker-build-all-vm-operator: checkout-vm-operator
 	$(MAKE) docker-build-vm-operator-vm-operator-$(VM_OPERATOR_VERSION)
 
 # IMPORTANT: before running this command please add --provenance=false to the docker build command in test/infrastructure/vm-operator/vm-operator.tmp/hack/build-container.sh
-docker-build-vm-operator-vm-operator-8.0:
+docker-build-vm-operator-vm-operator-8.0.0:
 	@if [ -z "${VM_OPERATOR_IMAGE_TAG}" ]; then echo "VM_OPERATOR_IMAGE_TAG is not set"; exit 1; fi
 	cd $(VM_OPERATOR_TMP_DIR); \
 	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) GOARCH=amd64 docker-build ; \
 	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-arm64 IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) GOARCH=arm64 docker-build
 
-docker-build-vm-operator-vm-operator-9.1:
+docker-build-vm-operator-vm-operator-9.1.0:
 	@if [ -z "${VM_OPERATOR_IMAGE_TAG}" ]; then echo "VM_OPERATOR_IMAGE_TAG is not set"; exit 1; fi
 	cd $(VM_OPERATOR_TMP_DIR); \
 	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_FILE=artifacts/vm-operator-amd64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-amd64; \
@@ -1010,7 +1010,7 @@ docker-build-vm-operator-vm-operator-9.1:
 	IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-arm64 IMAGE_FILE=artifacts/vm-operator-arm64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-arm64; \
 	docker load -i $(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)/artifacts/vm-operator-arm64.tar
 
-docker-build-vm-operator-vm-operator-9.2:
+docker-build-vm-operator-vm-operator-9.1.3:
 	@if [ -z "${VM_OPERATOR_IMAGE_TAG}" ]; then echo "VM_OPERATOR_IMAGE_TAG is not set"; exit 1; fi
 	cd $(VM_OPERATOR_TMP_DIR); \
 	GOTOOLCHAIN=auto IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-amd64 IMAGE_FILE=artifacts/vm-operator-amd64.tar ADDITIONAL_CRI_BUILD_FLAGS="--provenance=false" make image-build-amd64; \

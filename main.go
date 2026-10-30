@@ -32,7 +32,6 @@ import (
 	vmoprv1alpha2 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
-	"gopkg.in/fsnotify.v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -638,15 +637,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// initialize notifier for capv-manager-bootstrap-credentials
-	watch, err := manager.InitializeWatch(mgr.GetControllerManagerContext(), &managerOpts)
-	if err != nil {
-		setupLog.Error(err, "failed to initialize watch on CAPV credentials file")
-		os.Exit(1)
-	}
-	defer func(watch *fsnotify.Watcher) {
-		_ = watch.Close()
-	}(watch)
 	defer session.Clear()
 }
 

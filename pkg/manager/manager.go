@@ -18,7 +18,6 @@ package manager
 
 import (
 	"context"
-	"fmt"
 
 	pkgerrors "github.com/pkg/errors"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
@@ -28,7 +27,6 @@ import (
 	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
-	"gopkg.in/fsnotify.v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -129,42 +127,4 @@ type manager struct {
 
 func (m *manager) GetControllerManagerContext() *capvcontext.ControllerManagerContext {
 	return m.controllerManagerCtx
-}
-
-// UpdateCredentials reads and updates credentials from the credentials file.
-func UpdateCredentials(opts *Options) {
-	opts.readAndSetCredentials()
-}
-
-// InitializeWatch adds a filesystem watcher for the capv credentials file.
-// In case of any update to the credentials file, the new credentials are passed to the capv manager context.
-func InitializeWatch(controllerManagerContext *capvcontext.ControllerManagerContext, managerOpts *Options) (watch *fsnotify.Watcher, err error) {
-	capvCredentialsFile := managerOpts.CredentialsFile
-	updateEventCh := make(chan bool)
-	watch, err = fsnotify.NewWatcher()
-	if err != nil {
-		return nil, pkgerrors.Wrap(err, fmt.Sprintf("failed to create new Watcher for %s", capvCredentialsFile))
-	}
-	if err = watch.Add(capvCredentialsFile); err != nil {
-		return nil, pkgerrors.Wrap(err, "received error on CAPV credential watcher")
-	}
-	go func() {
-		for {
-			select {
-			case err := <-watch.Errors:
-				controllerManagerContext.Logger.Error(err, "Received error on CAPV credential watcher")
-			case event := <-watch.Events:
-				controllerManagerContext.Logger.Info(fmt.Sprintf("Received event %v on the credential file %s", event, capvCredentialsFile))
-				updateEventCh <- true
-			}
-		}
-	}()
-
-	go func() {
-		for range updateEventCh {
-			UpdateCredentials(managerOpts)
-		}
-	}()
-
-	return watch, err
 }

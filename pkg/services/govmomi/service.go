@@ -210,6 +210,10 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 		return vm, err
 	}
 
+	if err := vms.reconcileClearBootstrapUserData(ctx, virtualMachineCtx); err != nil {
+		return vm, err
+	}
+
 	vm.State = services.VirtualMachineStateReady
 	return vm, nil
 }
@@ -401,6 +405,69 @@ func (vms *VMService) reconcileMetadata(ctx context.Context, virtualMachineCtx *
 	virtualMachineCtx.VSphereVM.Status.TaskRef = taskRef
 	log.Info("Wait for VM metadata to be updated")
 	return false, nil
+}
+
+// reconcileClearBootstrapUserData clears the bootstrap user data
+// (guestinfo.userdata / guestinfo.ignition.config.data) from the VM's
+// extraConfig once the guest has booted and reported an IP address.
+// Bootstrap user data typically carries credentials (e.g. the kubeadm join
+// token), and guestinfo keys remain readable at rest by any process inside
+// the guest via the VMware Tools RPC channel and by vCenter principals with
+// VirtualMachine config read access. Cloud-init and Ignition consume the
+// user data during early boot, before VMware Tools reports guest IP
+// addresses, so clearing at this point does not interfere with bootstrap.
+func (vms *VMService) reconcileClearBootstrapUserData(ctx context.Context, virtualMachineCtx *virtualMachineContext) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	// Only clear after the guest has reported an IP address, which means the
+	// guest has booted and already consumed the bootstrap user data.
+	hasGuestIP := false
+	for _, netStatus := range virtualMachineCtx.State.Network {
+		if len(netStatus.IPAddrs) > 0 {
+			hasGuestIP = true
+			break
+		}
+	}
+	if !hasGuestIP {
+		return nil
+	}
+
+	var (
+		obj mo.VirtualMachine
+
+		pc    = property.DefaultCollector(virtualMachineCtx.Session.Client.Client)
+		props = []string{"config.extraConfig"}
+	)
+	if err := pc.RetrieveOne(ctx, virtualMachineCtx.Ref, props, &obj); err != nil {
+		return pkgerrors.Wrapf(err, "unable to fetch props %v for vm %s", props, virtualMachineCtx)
+	}
+	if obj.Config == nil {
+		return nil
+	}
+
+	var extraConfig extra.Config
+	for _, ec := range obj.Config.ExtraConfig {
+		optVal := ec.GetOptionValue()
+		if optVal == nil || (optVal.Key != guestInfoCloudInitData && optVal.Key != guestInfoIgnitionData) {
+			continue
+		}
+		if v, ok := optVal.Value.(string); ok && v != "" {
+			extraConfig = append(extraConfig, &types.OptionValue{Key: optVal.Key, Value: ""})
+		}
+	}
+	if len(extraConfig) == 0 {
+		return nil
+	}
+
+	log.Info("Clearing bootstrap user data from VM extraConfig")
+	task, err := virtualMachineCtx.Obj.Reconfigure(ctx, types.VirtualMachineConfigSpec{
+		ExtraConfig: extraConfig,
+	})
+	if err != nil {
+		return pkgerrors.Wrapf(err, "unable to clear bootstrap user data on vm %s", virtualMachineCtx)
+	}
+	virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
+	return nil
 }
 
 func (vms *VMService) reconcilePowerState(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {

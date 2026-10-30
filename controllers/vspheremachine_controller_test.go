@@ -29,10 +29,14 @@ import (
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
 var _ = Describe("VsphereMachineReconciler", func() {
@@ -396,4 +400,61 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		}, timeout).Should(Succeed())
 	})
+}
+
+func TestMachineReadySummary(t *testing.T) {
+	maintenanceReason := vmwarev1.VSphereMachineInfraInMaintenanceReason
+	owner := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine", Namespace: "default"}}
+	machine := &vmwarev1.VSphereMachine{ObjectMeta: metav1.ObjectMeta{
+		Name: "vsphere-machine", Namespace: owner.Namespace,
+		Finalizers: []string{infrav1.MachineFinalizer},
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: clusterv1.GroupVersion.String(), Kind: "Machine", Name: owner.Name,
+		}},
+	}}
+	conditions.Set(machine, metav1.Condition{
+		Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason,
+	})
+	c := fake.NewClientBuilder().WithScheme(testEnv.GetScheme()).
+		WithStatusSubresource(machine).WithObjects(owner, machine).Build()
+	r := &machineReconciler{
+		Client: c, supervisorBased: true, VMService: &vmoperator.VmopMachineService{Client: c},
+	}
+	key := client.ObjectKeyFromObject(machine)
+
+	for _, tt := range []struct {
+		name       string
+		status     metav1.ConditionStatus
+		reason     string
+		wantReason string
+	}{
+		{
+			name:       "when VM is not provisioned due to InfraInMaintenance",
+			status:     metav1.ConditionFalse,
+			reason:     maintenanceReason,
+			wantReason: maintenanceReason,
+		},
+		{
+			name:       "when VM is provisioned",
+			status:     metav1.ConditionTrue,
+			reason:     infrav1.VSphereMachineVirtualMachineProvisionedReason,
+			wantReason: infrav1.VSphereMachineReadyReason,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			conditions.Set(machine, metav1.Condition{
+				Type: infrav1.VSphereMachineVirtualMachineProvisionedCondition, Status: tt.status, Reason: tt.reason,
+			})
+			g.Expect(c.Status().Update(ctx, machine)).To(Succeed())
+			// Without a Cluster, Reconcile runs its Ready summary without VM operations.
+			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(c.Get(ctx, key, machine)).To(Succeed())
+			ready := conditions.Get(machine, infrav1.VSphereMachineReadyCondition)
+			g.Expect(ready).NotTo(BeNil())
+			g.Expect(ready.Status).To(Equal(tt.status))
+			g.Expect(ready.Reason).To(Equal(tt.wantReason))
+		})
+	}
 }

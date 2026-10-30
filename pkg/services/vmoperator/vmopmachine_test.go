@@ -30,6 +30,7 @@ import (
 	vmoprv1alpha5common "github.com/vmware-tanzu/vm-operator/api/v1alpha5/common"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,9 +39,11 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
+	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
@@ -256,7 +259,17 @@ var _ = Describe("VirtualMachine tests", func() {
 			}
 		}
 
+		patchVMOperatorStatus := func(vm *vmoprv1alpha5.VirtualMachine, powerState vmoprv1alpha5.VirtualMachinePowerState, statusConditions ...metav1.Condition) {
+			original := vm.DeepCopy()
+			vm.Status.PowerState = powerState
+			for _, condition := range statusConditions {
+				meta.SetStatusCondition(&vm.Status.Conditions, condition)
+			}
+			patchReconciledVMStatus(ctx, vmService, vm, original)
+		}
+
 		Specify("Reconcile valid Machine", func() {
+			featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.HostMaintenanceMode, true)
 			// Reconcile should return an error up and until all prerequisites have been met
 			expectReconcileError = false
 			// A vmoperator VM should be created unless there is an error in configuration
@@ -465,6 +478,41 @@ var _ = Describe("VirtualMachine tests", func() {
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
+			By("Preserving power state and reconciling other fields during host maintenance")
+			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+			patchVMOperatorStatus(vmopVM, vmoprv1alpha5.VirtualMachinePowerStateOff, metav1.Condition{
+				Type: vmoprv1alpha5.VirtualMachinePowerStateSynced, Status: metav1.ConditionFalse,
+				Reason: vmwarev1.VSphereMachineInfraInMaintenanceReason,
+			})
+			modifiedImage = "maintenance-image"
+			expectedImageName = modifiedImage
+			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(requeue).To(BeTrue())
+			Expect(conditions.IsFalse(vsphereMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition)).To(BeTrue())
+			Expect(conditions.GetReason(vsphereMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition)).To(Equal(vmwarev1.VSphereMachineInfraInMaintenanceReason))
+			Expect(conditions.GetMessage(vsphereMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition)).To(Equal("VirtualMachine is not ready due to infrastructure maintenance"))
+			Expect(deprecatedv1beta1conditions.GetReason(vsphereMachine, infrav1.VMProvisionedV1Beta1Condition)).To(Equal(vmwarev1beta1.VSphereMachineInfraInMaintenanceReason))
+			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+			Expect(vmopVM.Spec.ImageName).To(Equal(modifiedImage))
+			Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1alpha5.VirtualMachinePowerStateOn))
+
+			// PoweredOff covers a spec change before VM Operator refreshes the maintenance condition.
+			vmopVM.Spec.PowerState = vmoprv1alpha5.VirtualMachinePowerStateOff
+			Expect(vmService.Client.Update(ctx, vmopVM)).To(Succeed())
+			_, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+			Expect(err).NotTo(HaveOccurred())
+			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+			Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1alpha5.VirtualMachinePowerStateOff))
+
+			By("Resuming normal power reconciliation when host maintenance ends")
+			patchVMOperatorStatus(vmopVM, vmoprv1alpha5.VirtualMachinePowerStateOn, metav1.Condition{
+				Type: vmoprv1alpha5.VirtualMachinePowerStateSynced, Status: metav1.ConditionTrue, Reason: "Synced",
+			})
+			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+			verifyOutput(supervisorMachineContext)
+			Expect(deprecatedv1beta1conditions.IsTrue(vsphereMachine, infrav1.VMProvisionedV1Beta1Condition)).To(BeTrue())
+
 			By("Updates to immutable VMOp fields are dropped", func() {
 				vsphereMachine.Spec.ImageName = "new-image"
 				vsphereMachine.Spec.ClassName = "new-class"
@@ -475,6 +523,28 @@ var _ = Describe("VirtualMachine tests", func() {
 				verifyOutput(supervisorMachineContext)
 			})
 		})
+
+		DescribeTable("Reconcile power state outside host maintenance", func(enabled bool, reason string) {
+			featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.HostMaintenanceMode, enabled)
+			_, err := vmService.ReconcileNormal(ctx, supervisorMachineContext)
+			Expect(err).NotTo(HaveOccurred())
+			vm := getReconciledVM(ctx, vmService, supervisorMachineContext)
+			vm.Spec.PowerState = vmoprv1alpha5.VirtualMachinePowerStateOff
+			Expect(vmService.Client.Update(ctx, vm)).To(Succeed())
+			patchVMOperatorStatus(vm, vmoprv1alpha5.VirtualMachinePowerStateOff,
+				metav1.Condition{Type: vmoprv1alpha5.VirtualMachineConditionCreated, Status: metav1.ConditionTrue, Reason: "Created"},
+				metav1.Condition{Type: vmoprv1alpha5.VirtualMachinePowerStateSynced, Status: metav1.ConditionFalse, Reason: reason},
+			)
+
+			requeue, err := vmService.ReconcileNormal(ctx, supervisorMachineContext)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(requeue).To(BeTrue())
+			Expect(getReconciledVM(ctx, vmService, supervisorMachineContext).Spec.PowerState).To(Equal(vmoprv1alpha5.VirtualMachinePowerStateOn))
+			Expect(conditions.Get(vsphereMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition).Reason).To(Equal(infrav1.VSphereMachineVirtualMachinePoweringOnReason))
+		},
+			Entry("feature disabled", false, vmwarev1.VSphereMachineInfraInMaintenanceReason),
+			Entry("unsynced power state without a maintenance reason", true, "NotSynced"),
+		)
 
 		Specify("Reconcile will add a probe once the cluster reports that the control plane is ready", func() {
 			// Reconcile should prompt to requeue until the prerequisites are met
@@ -983,6 +1053,31 @@ var _ = Describe("VirtualMachine tests", func() {
 						err := vmService.Client.Get(ctx, nsname, vm)
 
 						Expect(apierrors.IsNotFound(err)).To(BeTrue())
+						Expect(conditions.Get(vsphereMachineNoVMG, infrav1.VSphereMachineVirtualMachineProvisionedCondition).Reason).To(Equal(infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupReason))
+
+						By("Preserving maintenance reporting during placement waits and clearing it on recovery")
+						featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.HostMaintenanceMode, true)
+						vm.Name, vm.Namespace = nsname.Name, nsname.Namespace
+						Expect(vmService.Client.Create(ctx, vm)).To(Succeed())
+						for _, tt := range []struct {
+							status             metav1.ConditionStatus
+							reason, wantReason string
+						}{
+							{metav1.ConditionFalse, vmwarev1.VSphereMachineInfraInMaintenanceReason, vmwarev1.VSphereMachineInfraInMaintenanceReason},
+							{metav1.ConditionTrue, "Synced", infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupReason},
+						} {
+							original := vm.DeepCopy()
+							meta.SetStatusCondition(&vm.Status.Conditions, metav1.Condition{
+								Type: vmoprv1alpha5.VirtualMachinePowerStateSynced, Status: tt.status, Reason: tt.reason,
+							})
+							patchReconciledVMStatus(ctx, vmService, vm, original)
+							requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(requeue).To(BeTrue())
+							Expect(conditions.IsFalse(vsphereMachineNoVMG, infrav1.VSphereMachineVirtualMachineProvisionedCondition)).To(BeTrue())
+							Expect(conditions.GetReason(vsphereMachineNoVMG, infrav1.VSphereMachineVirtualMachineProvisionedCondition)).To(Equal(tt.wantReason))
+						}
+						Expect(deprecatedv1beta1conditions.Get(vsphereMachineNoVMG, infrav1.VMProvisionedV1Beta1Condition).Reason).To(Equal(vmwarev1.VMProvisionStartedV1Beta1Reason))
 					})
 				})
 

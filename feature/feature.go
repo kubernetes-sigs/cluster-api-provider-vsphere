@@ -70,6 +70,12 @@ const (
 	// alpha: v1.17
 	InfrastructurePolicies featuregate.Feature = "InfrastructurePolicies"
 
+	// HostMaintenanceMode enables host maintenance handling for Supervisor VMs.
+	// Requires vm-operator v1alpha5 or later on the supervisor.
+	//
+	// alpha: v1.18
+	HostMaintenanceMode featuregate.Feature = "HostMaintenanceMode"
+
 	// VolumeControllerParameters is a feature gate for setting volume parameters such as
 	// controller bus number, unit number, etc. when attaching VSphereMachine volumes.
 	// Requires vm-operator v1alpha5 or later on the supervisor.
@@ -137,6 +143,9 @@ var (
 		// },
 		// Features depending on vm-operator v1alpha5.
 		InfrastructurePolicies: {
+			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
+		},
+		HostMaintenanceMode: {
 			{Version: toFeatureVersion(vmoprv1alpha5.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
 		VolumeControllerParameters: {

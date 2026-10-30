@@ -172,6 +172,13 @@ type affinityInfo struct {
 	failureDomain string
 }
 
+// Messages for the VirtualMachineProvisioned conditions (v1beta2 and deprecated v1beta1) set in ReconcileNormal's
+// deferred maintenance handling.
+const (
+	vmNotReadyDueToMaintenanceMessage = "VirtualMachine is not ready due to infrastructure maintenance"
+	vmReadinessNotConfirmedMessage    = "VirtualMachine readiness has not yet been confirmed"
+)
+
 // ReconcileNormal reconciles create and update events for VM Operator VMs.
 func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -202,6 +209,54 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 	log = log.WithValues("VirtualMachine", klog.KRef(vmKey.Namespace, vmKey.Name))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Fetch the VM first so maintenance can still be reported if placement checks return early.
+	if err := v.Client.Get(ctx, *vmKey, vmOperatorVM); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return false, err
+		}
+		// Define the VM Operator VirtualMachine resource to reconcile.
+		vmOperatorVM = &vmoprvhub.VirtualMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vmKey.Name,
+				Namespace: vmKey.Namespace,
+			},
+		}
+	}
+
+	// Defer setting/clearing the maintenance reason until we're exiting so it gets set properly on all paths.
+	// We want to reflect the current maintenance state in the VirtualMachineProvisioned conditions (v1beta2 and deprecated v1beta1).
+	// When maintenance has ended, clear the stale maintenance reason unless this reconcile already set a different one.
+	defer func() {
+		if feature.Gates.Enabled(feature.HostMaintenanceMode) && isInfraInMaintenance(vmOperatorVM) {
+			// In maintenance mode: force that state, overriding reasons set earlier in this function
+			// (e.g. WaitingForVirtualMachineGroup). Set it on both the new and deprecated conditions.
+			conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereMachineInfraInMaintenanceReason,
+				Message: vmNotReadyDueToMaintenanceMessage,
+			})
+			deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition,
+				vmwarev1.VSphereMachineInfraInMaintenanceReason, clusterv1.ConditionSeverityInfo, vmNotReadyDueToMaintenanceMessage)
+			return
+		}
+
+		// Not in maintenance. If either condition still has the maintenance reason, nothing in this reconcile has
+		// determined that the VM is provisioned, so reset it to "readiness not confirmed".
+		if conditions.GetReason(supervisorMachineCtx.VSphereMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition) == vmwarev1.VSphereMachineInfraInMaintenanceReason {
+			conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  infrav1.VSphereMachineVirtualMachineNotProvisionedReason,
+				Message: vmReadinessNotConfirmedMessage,
+			})
+		}
+		if deprecatedv1beta1conditions.GetReason(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition) == vmwarev1.VSphereMachineInfraInMaintenanceReason {
+			deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition,
+				vmwarev1.VMProvisionStartedV1Beta1Reason, clusterv1.ConditionSeverityInfo, vmReadinessNotConfirmedMessage)
+		}
+	}()
 
 	// When creating a new cluster and the user doesn't provide info about placement of VMs in a specific failure domain,
 	// CAPV will define affinity rules to ensure proper placement of the machine.
@@ -329,20 +384,6 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 	}
 
-	// Check for the presence of an existing object
-	if err := v.Client.Get(ctx, *vmKey, vmOperatorVM); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return false, err
-		}
-		// Define the VM Operator VirtualMachine resource to reconcile.
-		vmOperatorVM = &vmoprvhub.VirtualMachine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      vmKey.Name,
-				Namespace: vmKey.Namespace,
-			},
-		}
-	}
-
 	// Reconcile the VM Operator VirtualMachine.
 	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM, affInfo); err != nil {
 		deprecatedv1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition, vmwarev1.VMCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning,
@@ -355,6 +396,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		})
 		// TODO: what to do if AlreadyExists error
 		return false, err
+	}
+	if feature.Gates.Enabled(feature.HostMaintenanceMode) && isInfraInMaintenance(vmOperatorVM) {
+		return true, nil
 	}
 
 	// Update the VM's state to Pending
@@ -574,7 +618,10 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	if vmOperatorVM.Spec.StorageClass == "" {
 		vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
 	}
-	vmOperatorVM.Spec.PowerState = vmoprvhub.VirtualMachinePowerStateOn
+	// DRS controls power state during host maintenance.
+	if !feature.Gates.Enabled(feature.HostMaintenanceMode) || !isInfraInMaintenance(vmOperatorVM) {
+		vmOperatorVM.Spec.PowerState = vmoprvhub.VirtualMachinePowerStateOn
+	}
 	if vmOperatorVM.Spec.Reserved == nil {
 		vmOperatorVM.Spec.Reserved = &vmoprvhub.VirtualMachineReservedSpec{}
 	}
@@ -699,6 +746,11 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	}
 
 	return nil
+}
+
+func isInfraInMaintenance(vm *vmoprvhub.VirtualMachine) bool {
+	c := meta.FindStatusCondition(vm.Status.Conditions, vmoprvhub.VirtualMachinePowerStateSynced)
+	return c != nil && c.Status == metav1.ConditionFalse && c.Reason == vmwarev1.VSphereMachineInfraInMaintenanceReason
 }
 
 func convertKeyValueSlice(pairs []vmoprvhub.KeyValuePair) []vmwarev1.KeyValuePair {

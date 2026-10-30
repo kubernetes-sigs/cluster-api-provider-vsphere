@@ -299,6 +299,11 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 			),
 		)
 
+		notReadyReason := infrav1.VSphereMachineNotReadyReason
+		if r.supervisorBased && conditions.GetReason(machineContext.GetVSphereMachine(), infrav1.VSphereMachineVirtualMachineProvisionedCondition) == vmwarev1.VSphereMachineInfraInMaintenanceReason {
+			notReadyReason = vmwarev1.VSphereMachineInfraInMaintenanceReason
+		}
+
 		if err := conditions.SetSummaryCondition(machineContext.GetVSphereMachine(), machineContext.GetVSphereMachine(), infrav1.VSphereMachineReadyCondition,
 			conditions.ForConditionTypes{
 				infrav1.VSphereMachineVirtualMachineProvisionedCondition,
@@ -308,7 +313,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 				MergeStrategy: conditions.DefaultMergeStrategy(
 					// Use custom reasons.
 					conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-						infrav1.VSphereMachineNotReadyReason,
+						notReadyReason,
 						infrav1.VSphereMachineReadyUnknownReason,
 						infrav1.VSphereMachineReadyReason,
 					)),

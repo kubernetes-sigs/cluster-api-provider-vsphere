@@ -199,7 +199,16 @@ func spokeVSphereClusterIdentityStatus(in *infrav1beta1.VSphereClusterIdentitySt
 func VSphereDeploymentZoneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVSphereDeploymentZoneStatus,
+		spokeVSphereDeploymentZoneSpec,
 		spokeVSphereDeploymentZoneStatus,
+	}
+}
+
+func spokeVSphereDeploymentZoneSpec(in *infrav1beta1.VSphereDeploymentZoneSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.IdentityRef != nil && reflect.DeepEqual(in.IdentityRef, &infrav1beta1.VSphereIdentityReference{}) {
+		in.IdentityRef = nil
 	}
 }
 

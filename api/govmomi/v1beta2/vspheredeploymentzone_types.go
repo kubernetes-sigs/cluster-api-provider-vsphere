@@ -122,6 +122,11 @@ type VSphereDeploymentZoneSpec struct {
 	// +kubebuilder:validation:MaxLength=1024
 	Server string `json:"server,omitempty"`
 
+	// identityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+	// the identity to use when reconciling the deployment zone.
+	// +optional
+	IdentityRef VSphereIdentityReference `json:"identityRef,omitempty,omitzero"`
+
 	// failureDomain is the name of the VSphereFailureDomain used for this VSphereDeploymentZone
 	// +required
 	// +kubebuilder:validation:MinLength=1

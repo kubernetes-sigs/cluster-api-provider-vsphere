@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/randfill"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion"
@@ -45,6 +46,12 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{
 			virtualMachineFuncs,
 		},
+		CheckTypes: conversiontest.RoundTripCheckTypesInput{
+			PointerToValueFields: sets.New(
+				"VirtualMachine.Spec.Network.Interfaces[0].DHCP4",
+				"VirtualMachine.Spec.Network.Interfaces[0].DHCP6",
+			),
+		},
 	}))
 	t.Run("for VirtualMachineClass", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
@@ -55,6 +62,9 @@ func TestFuzzyConversion(t *testing.T) {
 		Converter: converter,
 		Hub:       &vmoprvhub.VirtualMachineGroup{},
 		Spoke:     &vmoprv1alpha5.VirtualMachineGroup{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{
+			virtualMachineGroupFuncs,
+		},
 	}))
 	t.Run("for VirtualMachineImage", conversiontest.RoundTripTest(conversiontest.RoundTripTestInput{
 		Converter: converter,
@@ -85,6 +95,17 @@ func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubVirtualMachineNetworkSpec,
 		hubVirtualMachineNetworkInterfaceSpec,
+		hubVirtualMachineNetworkInterfaceStatus,
+		hubVirtualMachineAffinitySpec,
+	}
+}
+
+func hubVirtualMachineAffinitySpec(in *vmoprvhub.AffinitySpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Anti-affinity RequiredDuringSchedulingRequiredDuringExecution exists in hub and v1alpha6 but not in v1alpha5; zero it so the
+	// hub-spoke-hub round-trip test does not report spurious data loss.
+	if in.VMAntiAffinity != nil {
+		in.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = nil
 	}
 }
 
@@ -102,6 +123,13 @@ func hubVirtualMachineServiceSpec(in *vmoprvhub.VirtualMachineServiceSpec, c ran
 
 func hubVirtualMachineNetworkInterfaceSpec(in *vmoprvhub.VirtualMachineNetworkInterfaceSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
+	// Legacy APIs cannot distinguish explicitly disabled DHCP from unset.
+	if in.DHCP4 != nil && !*in.DHCP4 {
+		in.DHCP4 = nil
+	}
+	if in.DHCP6 != nil && !*in.DHCP6 {
+		in.DHCP6 = nil
+	}
 	// Fields existing in hub but not in v1alpha5.VirtualMachineNetworkInterfaceSpec
 	in.AdvancedProperties = nil
 	in.IPAMModes = nil
@@ -115,4 +143,22 @@ func hubVirtualMachineNetworkSpec(in *vmoprvhub.VirtualMachineNetworkSpec, c ran
 	// VLANs exists in hub and v1alpha6 but not in v1alpha5; zero it so the
 	// hub-spoke-hub round-trip test does not report spurious data loss.
 	in.VLANs = nil
+}
+
+func virtualMachineGroupFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubVirtualMachineGroupBootOrderGroup,
+	}
+}
+
+func hubVirtualMachineGroupBootOrderGroup(in *vmoprvhub.VirtualMachineGroupBootOrderGroup, c randfill.Continue) {
+	c.FillNoCustom(in)
+	in.PowerOffDelay = nil
+}
+
+func hubVirtualMachineNetworkInterfaceStatus(in *vmoprvhub.VirtualMachineNetworkInterfaceStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Fields existing in hub but not in v1alpha5.VirtualMachineNetworkInterfaceStatus.
+	in.VMXNet3 = nil
+	in.VNUMANodeID = nil
 }

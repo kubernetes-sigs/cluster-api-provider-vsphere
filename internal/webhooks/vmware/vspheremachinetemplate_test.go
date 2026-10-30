@@ -23,6 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
@@ -1067,6 +1068,64 @@ func TestVSphereMachineTemplate_ValidateVLANs(t *testing.T) {
 				if tc.wantErrMsg != "" {
 					g.Expect(err.Error()).To(ContainSubstring(tc.wantErrMsg))
 				}
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestVSphereMachineTemplate_Validate_Affinity(t *testing.T) {
+	configuredAffinity := vmwarev1.AffinitySpec{
+		VMAntiAffinity: vmwarev1.VMAntiAffinitySpec{
+			PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+					TopologyKey:   corev1.LabelHostname,
+				},
+			},
+		},
+	}
+	tests := []struct {
+		name        string
+		featureGate bool
+		affinity    vmwarev1.AffinitySpec
+		wantErr     bool
+	}{
+		{
+			name: "affinity omitted when feature gate disabled",
+		},
+		{
+			name:     "affinity set when feature gate disabled",
+			affinity: configuredAffinity,
+			wantErr:  true,
+		},
+		{
+			name:        "affinity set when feature gate enabled",
+			featureGate: true,
+			affinity:    configuredAffinity,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.WorkerStrictAntiAffinity, tc.featureGate)
+			webhook := &VSphereMachineTemplate{NetworkProviderFactory: newTestStaticNetworkProviderFactory(t, manager.VDSNetworkProvider)}
+			obj := &vmwarev1.VSphereMachineTemplate{
+				Spec: vmwarev1.VSphereMachineTemplateSpec{
+					Template: vmwarev1.VSphereMachineTemplateResource{
+						Spec: vmwarev1.VSphereMachineSpec{
+							Affinity: tc.affinity,
+						},
+					},
+				},
+			}
+
+			_, err := webhook.ValidateCreate(context.Background(), obj)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring("affinity can only be set when feature gate WorkerStrictAntiAffinity is enabled"))
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}

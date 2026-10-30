@@ -44,6 +44,7 @@ func convert_v1alpha6_VirtualMachineGroup_To_hub_VirtualMachineGroup(_ context.C
 				}
 			}
 			bg.PowerOnDelay = bootOrderGroup.PowerOnDelay
+			bg.PowerOffDelay = bootOrderGroup.PowerOffDelay
 			dst.Spec.BootOrder = append(dst.Spec.BootOrder, bg)
 		}
 	}
@@ -111,6 +112,7 @@ func convert_hub_VirtualMachineGroup_To_v1alpha6_VirtualMachineGroup(_ context.C
 				}
 			}
 			bg.PowerOnDelay = bootOrderGroup.PowerOnDelay
+			bg.PowerOffDelay = bootOrderGroup.PowerOffDelay
 			dst.Spec.BootOrder = append(dst.Spec.BootOrder, bg)
 		}
 	}

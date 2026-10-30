@@ -28,6 +28,7 @@ import (
 	gomegatypes "github.com/onsi/gomega/types"
 	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	vmoprv1alpha5common "github.com/vmware-tanzu/vm-operator/api/v1alpha5/common"
+	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -53,6 +54,21 @@ import (
 func getReconciledVM(ctx context.Context, vmService VmopMachineService, supervisorMachineContext *vmware.SupervisorMachineContext) *vmoprv1alpha5.VirtualMachine {
 	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
 	vm := &vmoprv1alpha5.VirtualMachine{}
+	nsname := types.NamespacedName{
+		Namespace: supervisorMachineContext.Machine.Namespace,
+		Name:      supervisorMachineContext.Machine.Name,
+	}
+	err := vmService.Client.Get(ctx, nsname, vm)
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	Expect(err).ShouldNot(HaveOccurred())
+	return vm
+}
+
+func getReconciledVMV1Alpha6(ctx context.Context, vmService VmopMachineService, supervisorMachineContext *vmware.SupervisorMachineContext) *vmoprv1alpha6.VirtualMachine {
+	// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
+	vm := &vmoprv1alpha6.VirtualMachine{}
 	nsname := types.NamespacedName{
 		Namespace: supervisorMachineContext.Machine.Namespace,
 		Name:      supervisorMachineContext.Machine.Name,
@@ -1260,6 +1276,452 @@ var _ = Describe("VirtualMachine tests", func() {
 			})
 
 		})
+
+		Context("With WorkerStrictAntiAffinity feature gate", func() {
+			var (
+				machineDeploymentName string
+				workerMachineName     string
+				vmGroup               *vmoprv1alpha5.VirtualMachineGroup
+			)
+
+			BeforeEach(func() {
+				featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.NodeAutoPlacement, true)
+
+				machineDeploymentName = "test-md-v2"
+				workerMachineName = "test-worker-machine-v2"
+				machine = util.CreateMachine(workerMachineName, clusterName, k8sVersion, false)
+				machine.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentName
+
+				vsphereMachine = util.CreateVSphereMachine(workerMachineName, clusterName, className, imageName, storageClass, false)
+
+				clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
+				supervisorMachineContext = util.CreateMachineContext(clusterContext, machine, vsphereMachine)
+				supervisorMachineContext.ControllerManagerContext = controllerManagerContext
+
+				// Create bootstrap data secret
+				secretName := machine.GetName() + "-data"
+				secret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: machine.GetNamespace(),
+					},
+					Data: map[string][]byte{
+						"value": []byte(bootstrapData),
+					},
+				}
+				Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
+				machine.Spec.Bootstrap.DataSecretName = &secretName
+
+				// Create MachineDeployment for the worker
+				md := createMachineDeployment(machineDeploymentName, corev1.NamespaceDefault, clusterName, "")
+				Expect(vmService.Client.Create(ctx, md)).To(Succeed())
+
+				// Create VirtualMachineGroup for the cluster with workerMachineName as member
+				vmGroup = &vmoprv1alpha5.VirtualMachineGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      clusterName,
+						Namespace: corev1.NamespaceDefault,
+					},
+					Spec: vmoprv1alpha5.VirtualMachineGroupSpec{
+						BootOrder: []vmoprv1alpha5.VirtualMachineGroupBootOrderGroup{
+							{
+								Members: []vmoprv1alpha5.GroupMember{
+									{
+										Name: workerMachineName,
+										Kind: "VirtualMachine",
+									},
+								},
+							},
+						},
+					},
+				}
+				Expect(vmService.Client.Create(ctx, vmGroup)).To(Succeed())
+			})
+
+			Context("when feature gate is disabled", func() {
+				BeforeEach(func() {
+					t := GinkgoT()
+					featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.WorkerStrictAntiAffinity, false)
+				})
+
+				Specify("applies legacy worker annotations", func() {
+					requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(requeue).Should(BeTrue())
+
+					vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+					Expect(vmopVM).ShouldNot(BeNil())
+					Expect(vmopVM.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(getMachineDeploymentNameForCluster(cluster)))
+					Expect(vmopVM.Annotations[ProviderTagsAnnotationKey]).To(Equal(WorkerVMVMAntiAffinityTagValue))
+				})
+			})
+
+			Context("when feature gate is enabled", func() {
+				BeforeEach(func() {
+					t := GinkgoT()
+					featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.WorkerStrictAntiAffinity, true)
+				})
+
+				Context("Greenfield Cluster (VMSetRP without legacy worker CMG)", func() {
+					BeforeEach(func() {
+						// Create VMSetRP with only control plane CMG
+						vmSetRP := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      clusterName,
+								Namespace: corev1.NamespaceDefault,
+							},
+							Spec: vmoprv1alpha5.VirtualMachineSetResourcePolicySpec{
+								ResourcePool: vmoprv1alpha5.ResourcePoolSpec{
+									Name: clusterName,
+								},
+								Folder: clusterName,
+								ClusterModuleGroups: []string{
+									ControlPlaneVMClusterModuleGroupName,
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, vmSetRP)).To(Succeed())
+					})
+
+					Specify("does not require a VirtualMachineGroup when NodeAutoPlacement is disabled", func() {
+						featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.NodeAutoPlacement, false)
+						Expect(vmService.Client.Delete(ctx, vmGroup)).To(Succeed())
+
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).To(BeNil())
+						Expect(vmopVM.Spec.GroupName).To(BeEmpty())
+					})
+
+					Specify("creates VM with spec.affinity and without legacy annotations", func() {
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM.Annotations).ToNot(HaveKey(ClusterModuleNameAnnotationKey))
+						Expect(vmopVM.Annotations).ToNot(HaveKey(ProviderTagsAnnotationKey))
+					})
+				})
+
+				Context("Brownfield Cluster Update (vmExists == true)", func() {
+					BeforeEach(func() {
+						// Create VMSetRP with legacy worker CMG
+						vmSetRP := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      clusterName,
+								Namespace: corev1.NamespaceDefault,
+							},
+							Spec: vmoprv1alpha5.VirtualMachineSetResourcePolicySpec{
+								ResourcePool: vmoprv1alpha5.ResourcePoolSpec{
+									Name: clusterName,
+								},
+								Folder: clusterName,
+								ClusterModuleGroups: []string{
+									ControlPlaneVMClusterModuleGroupName,
+									getMachineDeploymentNameForCluster(cluster),
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, vmSetRP)).To(Succeed())
+
+						// Pre-create VM with legacy annotations
+						existingVM := &vmoprv1alpha5.VirtualMachine{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      workerMachineName,
+								Namespace: corev1.NamespaceDefault,
+								Labels: map[string]string{
+									clusterv1.MachineDeploymentNameLabel: machineDeploymentName,
+									clusterv1.ClusterNameLabel:           clusterName,
+								},
+								Annotations: map[string]string{
+									ClusterModuleNameAnnotationKey: getMachineDeploymentNameForCluster(cluster),
+									ProviderTagsAnnotationKey:      WorkerVMVMAntiAffinityTagValue,
+								},
+							},
+							Spec: vmoprv1alpha5.VirtualMachineSpec{
+								ImageName: imageName,
+								ClassName: className,
+							},
+						}
+						Expect(vmService.Client.Create(ctx, existingVM)).To(Succeed())
+					})
+
+					DescribeTable("preserves existing placement annotations on update", func(featureEnabled, controlPlane, legacyAnnotations bool) {
+						featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.WorkerStrictAntiAffinity, featureEnabled)
+						if controlPlane {
+							machine.Labels[clusterv1.MachineControlPlaneLabel] = ""
+							vsphereMachine.Labels[clusterv1.MachineControlPlaneLabel] = ""
+						}
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						if !legacyAnnotations {
+							vmopVM.Annotations = map[string]string{"example.com/custom": "preserved"}
+							Expect(vmService.Client.Update(ctx, vmopVM)).To(Succeed())
+						}
+						expectedAnnotations := vmopVM.DeepCopy().Annotations
+
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM.Annotations).To(Equal(expectedAnnotations))
+					},
+						Entry("worker with legacy annotations and gate enabled", true, false, true),
+						Entry("worker without legacy annotations and gate disabled", false, false, false),
+						Entry("control plane with gate enabled", true, true, false),
+						Entry("control plane with gate disabled", false, true, false),
+					)
+				})
+
+				Context("Brownfield Cluster Creation with Legacy VMs", func() {
+					BeforeEach(func() {
+						// Create VMSetRP with legacy worker CMG
+						vmSetRP := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      clusterName,
+								Namespace: corev1.NamespaceDefault,
+							},
+							Spec: vmoprv1alpha5.VirtualMachineSetResourcePolicySpec{
+								ResourcePool: vmoprv1alpha5.ResourcePoolSpec{
+									Name: clusterName,
+								},
+								Folder: clusterName,
+								ClusterModuleGroups: []string{
+									ControlPlaneVMClusterModuleGroupName,
+									getMachineDeploymentNameForCluster(cluster),
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, vmSetRP)).To(Succeed())
+
+						// Pre-create an existing legacy active worker VM without spec.affinity
+						legacyVM := &vmoprv1alpha5.VirtualMachine{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "legacy-worker-vm",
+								Namespace: corev1.NamespaceDefault,
+								Labels: map[string]string{
+									clusterv1.MachineDeploymentNameLabel: machineDeploymentName,
+								},
+								Annotations: map[string]string{
+									ClusterModuleNameAnnotationKey: getMachineDeploymentNameForCluster(cluster),
+									ProviderTagsAnnotationKey:      WorkerVMVMAntiAffinityTagValue,
+								},
+							},
+							Spec: vmoprv1alpha5.VirtualMachineSpec{
+								ImageName: imageName,
+								ClassName: className,
+								// Spec.Affinity is nil
+							},
+						}
+						Expect(vmService.Client.Create(ctx, legacyVM)).To(Succeed())
+					})
+
+					Specify("creates new VM with BOTH spec.affinity and legacy annotations", func() {
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(getMachineDeploymentNameForCluster(cluster)))
+						Expect(vmopVM.Annotations[ProviderTagsAnnotationKey]).To(Equal(WorkerVMVMAntiAffinityTagValue))
+					})
+				})
+
+				Context("Brownfield Cluster Creation with Migrated VMs", func() {
+					BeforeEach(func() {
+						// Create VMSetRP with legacy worker CMG
+						vmSetRP := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      clusterName,
+								Namespace: corev1.NamespaceDefault,
+							},
+							Spec: vmoprv1alpha5.VirtualMachineSetResourcePolicySpec{
+								ResourcePool: vmoprv1alpha5.ResourcePoolSpec{
+									Name: clusterName,
+								},
+								Folder: clusterName,
+								ClusterModuleGroups: []string{
+									ControlPlaneVMClusterModuleGroupName,
+									getMachineDeploymentNameForCluster(cluster),
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, vmSetRP)).To(Succeed())
+
+						// Pre-create existing active worker VM with spec.affinity populated
+						migratedVM := &vmoprv1alpha5.VirtualMachine{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "migrated-worker-vm",
+								Namespace: corev1.NamespaceDefault,
+								Labels: map[string]string{
+									clusterv1.MachineDeploymentNameLabel: machineDeploymentName,
+									clusterv1.ClusterNameLabel:           clusterName,
+								},
+							},
+							Spec: vmoprv1alpha5.VirtualMachineSpec{
+								ImageName: imageName,
+								ClassName: className,
+								Affinity: &vmoprv1alpha5.AffinitySpec{
+									VMAffinity: &vmoprv1alpha5.VMAffinitySpec{},
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, migratedVM)).To(Succeed())
+					})
+
+					Specify("creates new VM with spec.affinity ONLY (no legacy annotations)", func() {
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM.Annotations).ToNot(HaveKey(ClusterModuleNameAnnotationKey))
+						Expect(vmopVM.Annotations).ToNot(HaveKey(ProviderTagsAnnotationKey))
+					})
+				})
+
+				Context("Brownfield Cluster Creation for New MD (0 active VMs)", func() {
+					BeforeEach(func() {
+						// Create VMSetRP with legacy worker CMG
+						vmSetRP := &vmoprv1alpha5.VirtualMachineSetResourcePolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      clusterName,
+								Namespace: corev1.NamespaceDefault,
+							},
+							Spec: vmoprv1alpha5.VirtualMachineSetResourcePolicySpec{
+								ResourcePool: vmoprv1alpha5.ResourcePoolSpec{
+									Name: clusterName,
+								},
+								Folder: clusterName,
+								ClusterModuleGroups: []string{
+									ControlPlaneVMClusterModuleGroupName,
+									getMachineDeploymentNameForCluster(cluster),
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, vmSetRP)).To(Succeed())
+						// No existing VMs in machineDeploymentName
+					})
+
+					Specify("creates new VM with spec.affinity only (no legacy annotations)", func() {
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM.Annotations).ToNot(HaveKey(ClusterModuleNameAnnotationKey))
+						Expect(vmopVM.Annotations).ToNot(HaveKey(ProviderTagsAnnotationKey))
+					})
+				})
+
+				Context("User-configured Affinity on VSphereMachine", func() {
+					var vmopVM6 *vmoprv1alpha6.VirtualMachine
+
+					BeforeEach(func() {
+						clusterContext, controllerManagerContext := util.CreateClusterContextV1Alpha6(cluster, vsphereCluster)
+						supervisorMachineContext = util.CreateMachineContext(clusterContext, machine, vsphereMachine)
+						supervisorMachineContext.ControllerManagerContext = controllerManagerContext
+						supervisorMachineContext.ConfigureControlPlaneVMReadinessProbe = network.DummyLBNetworkProvider().SupportsVMReadinessProbe()
+						vmService = VmopMachineService{Client: controllerManagerContext.Client}
+
+						// Create bootstrap data secret
+						secretName := machine.GetName() + "-data"
+						secret := &corev1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      secretName,
+								Namespace: machine.GetNamespace(),
+							},
+							Data: map[string][]byte{
+								"value": []byte(bootstrapData),
+							},
+						}
+						Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
+						machine.Spec.Bootstrap.DataSecretName = &secretName
+
+						// Create MachineDeployment for the worker
+						md := createMachineDeployment(machineDeploymentName, corev1.NamespaceDefault, clusterName, "")
+						Expect(vmService.Client.Create(ctx, md)).To(Succeed())
+
+						// Create VirtualMachineGroup for the cluster with workerMachineName as member
+						vmGroup := &vmoprv1alpha6.VirtualMachineGroup{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      clusterName,
+								Namespace: corev1.NamespaceDefault,
+							},
+							Spec: vmoprv1alpha6.VirtualMachineGroupSpec{
+								BootOrder: []vmoprv1alpha6.VirtualMachineGroupBootOrderGroup{
+									{
+										Members: []vmoprv1alpha6.GroupMember{
+											{
+												Name: workerMachineName,
+												Kind: "VirtualMachine",
+											},
+										},
+									},
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, vmGroup)).To(Succeed())
+
+						// Create VMSetRP with only control plane CMG (greenfield)
+						vmSetRP := &vmoprv1alpha6.VirtualMachineSetResourcePolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      clusterName,
+								Namespace: corev1.NamespaceDefault,
+							},
+							Spec: vmoprv1alpha6.VirtualMachineSetResourcePolicySpec{
+								ResourcePool: vmoprv1alpha6.ResourcePoolSpec{
+									Name: clusterName,
+								},
+								Folder: clusterName,
+								ClusterModuleGroups: []string{
+									ControlPlaneVMClusterModuleGroupName,
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, vmSetRP)).To(Succeed())
+					})
+
+					Specify("sets user affinity on create and preserves it on update", func() {
+						vsphereMachine.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = &[]vmwarev1.VMAffinityTerm{
+							{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname},
+						}
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(requeue).To(BeTrue())
+
+						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM6.Spec.Affinity).NotTo(BeNil())
+						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity).NotTo(BeNil())
+						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution).To(Equal([]vmoprv1alpha6.VMAffinityTerm{
+							{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname},
+						}))
+						Expect(vmopVM6.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution).To(BeEmpty())
+
+						originalAffinity := vmopVM6.Spec.Affinity.DeepCopy()
+						vsphereMachine.Spec.Affinity = vmwarev1.AffinitySpec{}
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(requeue).To(BeTrue())
+						vmopVM6 = getReconciledVMV1Alpha6(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM6.Spec.Affinity).To(Equal(originalAffinity))
+					})
+				})
+			})
+		})
 	})
 
 	Context("Delete tests", func() {
@@ -1411,6 +1873,120 @@ func Test_virtualMachineObjectKey(t *testing.T) {
 			for _, matcher := range tt.want {
 				g.Expect(got.Name).To(matcher)
 			}
+		})
+	}
+}
+
+func Test_getAffinitySpec(t *testing.T) {
+	const mdName = "workers"
+	selector := &metav1.LabelSelector{MatchLabels: map[string]string{"app": "worker"}}
+	userTerms := &[]vmwarev1.VMAffinityTerm{{LabelSelector: selector, TopologyKey: corev1.LabelHostname}}
+	expectedUserTerms := []vmoprvhub.VMAffinityTerm{{LabelSelector: selector, TopologyKey: corev1.LabelHostname}}
+	defaultHostTerm := vmoprvhub.VMAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{clusterv1.MachineDeploymentNameLabel: mdName}},
+		TopologyKey:   corev1.LabelHostname,
+	}
+	zoneAffinityTerm := vmoprvhub.VMAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{clusterv1.MachineDeploymentNameLabel: mdName}},
+		TopologyKey:   corev1.LabelTopologyZone,
+	}
+	zoneAntiAffinityTerm := vmoprvhub.VMAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{
+			{Key: clusterv1.MachineDeploymentNameLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{"other-workers"}},
+		}},
+		TopologyKey: corev1.LabelTopologyZone,
+	}
+
+	for _, tc := range []struct {
+		name                 string
+		featureEnabled       bool
+		antiAffinity         vmwarev1.VMAntiAffinitySpec
+		otherMDNames         []string
+		expectedAntiAffinity *vmoprvhub.VMAntiAffinitySpec
+	}{
+		{
+			name:         "gate disabled uses default host rule",
+			antiAffinity: vmwarev1.VMAntiAffinitySpec{PreferredDuringSchedulingPreferredDuringExecution: userTerms},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{defaultHostTerm},
+			},
+		},
+		{
+			name:           "omitted host rules use defaults including zone anti-affinity",
+			featureEnabled: true,
+			otherMDNames:   []string{"other-workers"},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{defaultHostTerm, zoneAntiAffinityTerm},
+			},
+		},
+		{
+			name:           "explicitly empty preferred list disables default host rule",
+			featureEnabled: true,
+			antiAffinity:   vmwarev1.VMAntiAffinitySpec{PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{}},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{},
+			},
+		},
+		{
+			name:           "explicitly empty preferred list retains default zone rule",
+			featureEnabled: true,
+			antiAffinity:   vmwarev1.VMAntiAffinitySpec{PreferredDuringSchedulingPreferredDuringExecution: &[]vmwarev1.VMAffinityTerm{}},
+			otherMDNames:   []string{"other-workers"},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{zoneAntiAffinityTerm},
+			},
+		},
+		{
+			name:           "preferred host rules replace the default host rule",
+			featureEnabled: true,
+			antiAffinity:   vmwarev1.VMAntiAffinitySpec{PreferredDuringSchedulingPreferredDuringExecution: userTerms},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: expectedUserTerms,
+			},
+		},
+		{
+			name:           "required scheduling rules replace the default host rule",
+			featureEnabled: true,
+			antiAffinity:   vmwarev1.VMAntiAffinitySpec{RequiredDuringSchedulingPreferredDuringExecution: userTerms},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				RequiredDuringSchedulingPreferredDuringExecution: expectedUserTerms,
+			},
+		},
+		{
+			name:           "required execution rules preserve an empty selector",
+			featureEnabled: true,
+			antiAffinity: vmwarev1.VMAntiAffinitySpec{
+				RequiredDuringSchedulingRequiredDuringExecution: &[]vmwarev1.VMAffinityTerm{{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname}},
+			},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				RequiredDuringSchedulingRequiredDuringExecution: []vmoprvhub.VMAffinityTerm{{LabelSelector: &metav1.LabelSelector{}, TopologyKey: corev1.LabelHostname}},
+			},
+		},
+		{
+			name:           "all host rule types coexist with default zone rules",
+			featureEnabled: true,
+			antiAffinity: vmwarev1.VMAntiAffinitySpec{
+				RequiredDuringSchedulingPreferredDuringExecution:  userTerms,
+				PreferredDuringSchedulingPreferredDuringExecution: userTerms,
+				RequiredDuringSchedulingRequiredDuringExecution:   userTerms,
+			},
+			otherMDNames: []string{"other-workers"},
+			expectedAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{
+				RequiredDuringSchedulingPreferredDuringExecution:  expectedUserTerms,
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{expectedUserTerms[0], zoneAntiAffinityTerm},
+				RequiredDuringSchedulingRequiredDuringExecution:   expectedUserTerms,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.WorkerStrictAntiAffinity, tc.featureEnabled)
+			g.Expect(getAffinitySpec(mdName, tc.otherMDNames, tc.antiAffinity)).To(Equal(vmoprvhub.AffinitySpec{
+				VMAffinity: &vmoprvhub.VMAffinitySpec{
+					RequiredDuringSchedulingPreferredDuringExecution: []vmoprvhub.VMAffinityTerm{zoneAffinityTerm},
+				},
+				VMAntiAffinity: tc.expectedAntiAffinity,
+			}))
 		})
 	}
 }

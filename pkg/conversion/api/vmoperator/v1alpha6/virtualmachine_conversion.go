@@ -18,6 +18,7 @@ package v1alpha6
 
 import (
 	"context"
+	"slices"
 
 	vmoprv1alpha6 "github.com/vmware-tanzu/vm-operator/api/v1alpha6"
 	vmoprv1alpha6common "github.com/vmware-tanzu/vm-operator/api/v1alpha6/common"
@@ -64,6 +65,32 @@ func convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 					terms = append(terms, t)
 				}
 				dst.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = terms
+			}
+			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
+				terms := []vmoprvhub.VMAffinityTerm{}
+				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
+					t := vmoprvhub.VMAffinityTerm{
+						TopologyKey: term.TopologyKey,
+					}
+					if term.LabelSelector != nil {
+						t.LabelSelector = term.LabelSelector.DeepCopy()
+					}
+					terms = append(terms, t)
+				}
+				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
+			}
+			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution != nil {
+				terms := []vmoprvhub.VMAffinityTerm{}
+				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution {
+					t := vmoprvhub.VMAffinityTerm{
+						TopologyKey: term.TopologyKey,
+					}
+					if term.LabelSelector != nil {
+						t.LabelSelector = term.LabelSelector.DeepCopy()
+					}
+					terms = append(terms, t)
+				}
+				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = terms
 			}
 		}
 	}
@@ -299,6 +326,15 @@ func convert_v1alpha6_VirtualMachine_To_hub_VirtualMachine(_ context.Context, sr
 					}
 				}
 				d.Name = iface.Name
+				if iface.VMXNet3 != nil {
+					d.VMXNet3 = &vmoprvhub.VirtualMachineNetworkInterfaceVMXNet3Status{
+						UPTv2InactiveReasonOther: slices.Clone(iface.VMXNet3.UPTv2InactiveReasonOther),
+						UPTv2InactiveReasonVM:    slices.Clone(iface.VMXNet3.UPTv2InactiveReasonVM),
+						UPTv2Active:              iface.VMXNet3.UPTv2Active,
+						UPTv2Enabled:             iface.VMXNet3.UPTv2Enabled,
+					}
+				}
+				d.VNUMANodeID = iface.VNUMANodeID
 				dst.Status.Network.Interfaces = append(dst.Status.Network.Interfaces, d)
 			}
 		}
@@ -360,6 +396,32 @@ func convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(_ context.Context, sr
 					terms = append(terms, t)
 				}
 				dst.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = terms
+			}
+			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution != nil {
+				terms := []vmoprv1alpha6.VMAffinityTerm{}
+				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution {
+					t := vmoprv1alpha6.VMAffinityTerm{
+						TopologyKey: term.TopologyKey,
+					}
+					if term.LabelSelector != nil {
+						t.LabelSelector = term.LabelSelector.DeepCopy()
+					}
+					terms = append(terms, t)
+				}
+				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingPreferredDuringExecution = terms
+			}
+			if src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution != nil {
+				terms := []vmoprv1alpha6.VMAffinityTerm{}
+				for _, term := range src.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution {
+					t := vmoprv1alpha6.VMAffinityTerm{
+						TopologyKey: term.TopologyKey,
+					}
+					if term.LabelSelector != nil {
+						t.LabelSelector = term.LabelSelector.DeepCopy()
+					}
+					terms = append(terms, t)
+				}
+				dst.Spec.Affinity.VMAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution = terms
 			}
 		}
 	}
@@ -596,6 +658,15 @@ func convert_hub_VirtualMachine_To_v1alpha6_VirtualMachine(_ context.Context, sr
 					}
 				}
 				d.Name = iface.Name
+				if iface.VMXNet3 != nil {
+					d.VMXNet3 = &vmoprv1alpha6.VirtualMachineNetworkInterfaceVMXNet3Status{
+						UPTv2InactiveReasonOther: slices.Clone(iface.VMXNet3.UPTv2InactiveReasonOther),
+						UPTv2InactiveReasonVM:    slices.Clone(iface.VMXNet3.UPTv2InactiveReasonVM),
+						UPTv2Active:              iface.VMXNet3.UPTv2Active,
+						UPTv2Enabled:             iface.VMXNet3.UPTv2Enabled,
+					}
+				}
+				d.VNUMANodeID = iface.VNUMANodeID
 				dst.Status.Network.Interfaces = append(dst.Status.Network.Interfaces, d)
 			}
 		}

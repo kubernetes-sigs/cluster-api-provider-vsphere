@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
@@ -66,15 +67,21 @@ func (s *RPService) createOrPatchVirtualMachineSetResourcePolicy(ctx context.Con
 	}
 	originalResourcePolicy := vmResourcePolicy.DeepCopy()
 
-	vmResourcePolicy.Spec = vmoprvhub.VirtualMachineSetResourcePolicySpec{
-		ResourcePool: vmoprvhub.ResourcePoolSpec{
-			Name: clusterCtx.Cluster.Name,
-		},
-		Folder: clusterCtx.Cluster.Name,
-		ClusterModuleGroups: []string{
-			ControlPlaneVMClusterModuleGroupName,
-			getMachineDeploymentNameForCluster(clusterCtx.Cluster),
-		},
+	// Only set the resource pool, folder, and cluster module groups on create as
+	// these fields are immutable.
+	if !vmResourcePolicyExists {
+		clusterModuleGroups := []string{ControlPlaneVMClusterModuleGroupName}
+		if !feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) {
+			clusterModuleGroups = append(clusterModuleGroups, getMachineDeploymentNameForCluster(clusterCtx.Cluster))
+		}
+
+		vmResourcePolicy.Spec = vmoprvhub.VirtualMachineSetResourcePolicySpec{
+			ResourcePool: vmoprvhub.ResourcePoolSpec{
+				Name: clusterCtx.Cluster.Name,
+			},
+			Folder:              clusterCtx.Cluster.Name,
+			ClusterModuleGroups: clusterModuleGroups,
+		}
 	}
 	// Ensure that the VirtualMachineSetResourcePolicy is owned by the VSphereCluster
 	if err := ctrlutil.SetOwnerReference(

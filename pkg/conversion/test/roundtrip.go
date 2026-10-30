@@ -67,6 +67,11 @@ type RoundTripCheckTypesInput struct {
 	// Instruct the type checked about a field rename, e.g. "VirtualMachine.Status.NodeName": "Host",
 	// Note: currently this applies only to fields of type scalar (not to pointers, array, map, struct).
 	FieldNameMap map[string]string
+
+	// PointerToValueFields lists hub field paths whose pointer values are represented
+	// by the identical non-pointer type in an older spoke API. Fuzzers should normalize
+	// pointer states that cannot be represented by the spoke API.
+	PointerToValueFields sets.Set[string]
 }
 
 type roundTripCheckTypesOptions struct {
@@ -164,8 +169,11 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 	g := NewWithT(t)
 
 	// If hub type is a pointer, inspect Elem types.
-	// Note: Current logic assumes that when a field in hub is a pointer, also the corresponding spoke field is. This can be improved in the future.
 	if hubT.Kind() == reflect.Pointer {
+		if spokeT.Kind() != reflect.Pointer && options.PointerToValueFields.Has(path.String()) {
+			g.Expect(hubT.Elem()).To(Equal(spokeT), fmt.Sprintf("field %s has incompatible pointer and value types in hub and spoke", path.String()))
+			return
+		}
 		g.Expect(spokeT.Kind()).To(Equal(reflect.Pointer), fmt.Sprintf("field %s is a pointer in hub, not in spoke", path.String()))
 		inspectTypes(t, hubT.Elem(), spokeT.Elem(), path, options)
 		return

@@ -458,6 +458,8 @@ func getAffinitySpec(mdName string, otherMDNames []string, antiAffinity vmwarev1
 		VMAntiAffinity: &vmoprvhub.VMAntiAffinitySpec{},
 	}
 
+	// Apply the VM-VM anti-affinity configuration at host level per user intent if specified.
+	// Otherwise, fall back to CAPV default settings.
 	if feature.Gates.Enabled(feature.WorkerStrictAntiAffinity) && antiAffinity.IsDefined() {
 		if antiAffinity.RequiredDuringSchedulingRequiredDuringExecution != nil {
 			terms := make([]vmoprvhub.VMAffinityTerm, 0, len(*antiAffinity.RequiredDuringSchedulingRequiredDuringExecution))

@@ -65,6 +65,19 @@ type VMAntiAffinitySpec struct {
 	// +optional
 	// +listType=atomic
 
+	// RequiredDuringSchedulingPreferredDuringExecution describes anti-affinity
+	// requirements that must be met or the VM will not be scheduled.
+	//
+	// When there are multiple elements, the lists of nodes corresponding to
+	// each term are intersected, i.e. all terms must be satisfied.
+	//
+	// Note: Any update to this field will replace the entire list rather than
+	// merging with the existing elements.
+	RequiredDuringSchedulingPreferredDuringExecution []VMAffinityTerm `json:"requiredDuringSchedulingPreferredDuringExecution,omitempty"`
+
+	// +optional
+	// +listType=atomic
+
 	// PreferredDuringSchedulingPreferredDuringExecution describes anti-affinity
 	// requirements that should be met, but the VM can still be scheduled if
 	// the requirement cannot be satisfied. The scheduler will prefer to
@@ -80,6 +93,20 @@ type VMAntiAffinitySpec struct {
 	// Note: Any update to this field will replace the entire list rather than
 	// merging with the existing elements.
 	PreferredDuringSchedulingPreferredDuringExecution []VMAffinityTerm `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"`
+
+	// +optional
+	// +listType=atomic
+
+	// RequiredDuringSchedulingRequiredDuringExecution describes anti-affinity
+	// requirements that must be met or the VM will not be scheduled and
+	// that must continue to be met.
+	//
+	// When there are multiple elements, the lists of nodes corresponding to
+	// each term are intersected, i.e. all terms must be satisfied.
+	//
+	// Note: Any update to this field will replace the entire list rather than
+	// merging with the existing elements.
+	RequiredDuringSchedulingRequiredDuringExecution []VMAffinityTerm `json:"requiredDuringSchedulingRequiredDuringExecution,omitempty"`
 }
 
 // AffinitySpec defines the group of affinity scheduling rules.

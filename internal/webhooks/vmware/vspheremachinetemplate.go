@@ -130,6 +130,7 @@ func (webhook *VSphereMachineTemplate) validate(ctx context.Context, _, newVSphe
 
 	allErrs = append(allErrs, validatePolicies(newVSphereMachineTemplate.Spec.Template.Spec.Policies, field.NewPath("spec", "template", "spec", "policies"))...)
 	allErrs = append(allErrs, validateVolumes(newVSphereMachineTemplate.Spec.Template.Spec.Volumes, field.NewPath("spec", "template", "spec", "volumes"))...)
+	allErrs = append(allErrs, validateAffinity(newVSphereMachineTemplate.Spec.Template.Spec.Affinity, field.NewPath("spec", "template", "spec", "affinity"))...)
 
 	// Validate namingStrategy
 	namingStrategy := newVSphereMachineTemplate.Spec.Template.Spec.Naming

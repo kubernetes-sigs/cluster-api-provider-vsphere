@@ -155,7 +155,7 @@ type VirtualMachineNetworkInterfaceVMXNet3Spec struct {
 	// Visible in esxtop as NetWorld-Dev-<name>-Tx threads.
 	// Accepts known enum values (PerDevice, PerVM, PerQueue) or single digit integers (1-9)
 	// for direct VMX values.
-	CtxPerDev *TxContextThreadingMode `json:"ctxPerDev,omitempty" vmx:"ethernet%d.ctxPerDev"`
+	CtxPerDev *TxContextThreadingMode `json:"ctxPerDev,omitempty" vmx:"ethernet%d.ctxPerDev" vmxmode:"powercycle"`
 
 	// +optional
 
@@ -164,14 +164,18 @@ type VirtualMachineNetworkInterfaceVMXNet3Spec struct {
 	// queues using a hardware-computed hash. Reduces hypervisor CPU overhead
 	// and improves multi-core utilization for high-throughput workloads.
 	// Requires pNIC RSS support.
-	RSSOffloadEnabled *bool `json:"rssOffloadEnabled,omitempty" vmx:"ethernet%d.rssoffload"`
+	//
+	// When omitted, vSphere decides the effective value.
+	RSSOffloadEnabled *bool `json:"rssOffloadEnabled,omitempty" vmx:"ethernet%d.rssoffload" vmxmode:"powercycle"`
 
 	// +optional
 
 	// UDPRSSEnabled extends RSS to UDP traffic. By default RSS only distributes
 	// TCP flows. Enabling this also distributes UDP flows, improving throughput
 	// for UDP-heavy workloads such as GTP-U tunnels, QUIC, or media streaming.
-	UDPRSSEnabled *UDPRSSMode `json:"udpRSSEnabled,omitempty" vmx:"ethernet%d.udpRSS"`
+	//
+	// When omitted, vSphere decides the effective value.
+	UDPRSSEnabled *UDPRSSMode `json:"udpRssEnabled,omitempty" vmx:"ethernet%d.udpRSS" vmxmode:"powercycle"`
 
 	// +optional
 	// +kubebuilder:validation:MaxItems=16
@@ -185,7 +189,7 @@ type VirtualMachineNetworkInterfaceVMXNet3Spec struct {
 	// extra pNIC queue features beyond defaults.
 	// Accepts known enum values (LargeReceiveOffload, ReceiveSideScaling) or integer strings
 	// representing powers of 2 (1,2,4,8,...) for direct VMX bitmask values.
-	PNICFeatures []PNICQueueFeature `json:"pnicFeatures,omitempty" vmx:"ethernet%d.pnicfeatures"`
+	PNICFeatures []PNICQueueFeature `json:"pnicFeatures,omitempty" vmx:"ethernet%d.pnicFeatures" vmxmode:"powercycle"`
 
 	// +optional
 
@@ -194,7 +198,7 @@ type VirtualMachineNetworkInterfaceVMXNet3Spec struct {
 	// workloads to minimise interrupt latency.
 	// Accepts known enum values (Disabled, Adapt, Static, RateBasedCoalescing) or any
 	// string with length < 128 for forward compatibility.
-	CoalescingScheme *CoalescingScheme `json:"coalescingScheme,omitempty" vmx:"ethernet%d.coalescingScheme"`
+	CoalescingScheme *CoalescingScheme `json:"coalescingScheme,omitempty" vmx:"ethernet%d.coalescingScheme" vmxmode:"live"`
 
 	// +optional
 
@@ -204,5 +208,5 @@ type VirtualMachineNetworkInterfaceVMXNet3Spec struct {
 	//   - Static: integer string for packet queue limit (e.g. "64")
 	// Ignored when coalescingScheme is Disabled or Adapt.
 	// Must be length < 128 and valid 32-bit unsigned integer for RateBasedCoalescing.
-	CoalescingParams *string `json:"coalescingParams,omitempty" vmx:"ethernet%d.coalescingParams"`
+	CoalescingParams *string `json:"coalescingParams,omitempty" vmx:"ethernet%d.coalescingParams" vmxmode:"live"`
 }

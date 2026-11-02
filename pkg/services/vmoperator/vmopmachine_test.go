@@ -1452,7 +1452,7 @@ var _ = Describe("VirtualMachine tests", func() {
 						Expect(vmService.Client.Create(ctx, existingVM)).To(Succeed())
 					})
 
-					DescribeTable("preserves existing placement annotations on update", func(featureEnabled, controlPlane, legacyAnnotations bool) {
+					DescribeTable("reconciles placement annotations on update", func(featureEnabled, controlPlane, legacyAnnotations bool, expectedTag, expectedCMG string) {
 						featuregatetesting.SetFeatureGateDuringTest(GinkgoT(), feature.Gates, feature.WorkerStrictAntiAffinity, featureEnabled)
 						if controlPlane {
 							machine.Labels[clusterv1.MachineControlPlaneLabel] = ""
@@ -1460,10 +1460,18 @@ var _ = Describe("VirtualMachine tests", func() {
 						}
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 						if !legacyAnnotations {
-							vmopVM.Annotations = map[string]string{"example.com/custom": "preserved"}
-							Expect(vmService.Client.Update(ctx, vmopVM)).To(Succeed())
+							delete(vmopVM.Annotations, ProviderTagsAnnotationKey)
+							delete(vmopVM.Annotations, ClusterModuleNameAnnotationKey)
 						}
-						expectedAnnotations := vmopVM.DeepCopy().Annotations
+						vmopVM.Annotations["example.com/custom"] = "preserved"
+						Expect(vmService.Client.Update(ctx, vmopVM)).To(Succeed())
+						expectedAnnotations := map[string]string{"example.com/custom": "preserved"}
+						if expectedTag != "" {
+							expectedAnnotations[ProviderTagsAnnotationKey] = expectedTag
+						}
+						if expectedCMG != "" {
+							expectedAnnotations[ClusterModuleNameAnnotationKey] = expectedCMG
+						}
 
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 						Expect(err).ShouldNot(HaveOccurred())
@@ -1473,10 +1481,11 @@ var _ = Describe("VirtualMachine tests", func() {
 						Expect(vmopVM).ShouldNot(BeNil())
 						Expect(vmopVM.Annotations).To(Equal(expectedAnnotations))
 					},
-						Entry("worker with legacy annotations and gate enabled", true, false, true),
-						Entry("worker without legacy annotations and gate disabled", false, false, false),
-						Entry("control plane with gate enabled", true, true, false),
-						Entry("control plane with gate disabled", false, true, false),
+						Entry("preserves worker legacy annotations with gate enabled", true, false, true, WorkerVMVMAntiAffinityTagValue, clusterName+"-workers-0"),
+						Entry("preserves missing worker legacy annotations with gate enabled", true, false, false, "", ""),
+						Entry("restores worker legacy annotations with gate disabled", false, false, false, WorkerVMVMAntiAffinityTagValue, clusterName+"-workers-0"),
+						Entry("restores control plane annotations with gate enabled", true, true, false, ControlPlaneVMVMAntiAffinityTagValue, ControlPlaneVMClusterModuleGroupName),
+						Entry("restores control plane annotations with gate disabled", false, true, false, ControlPlaneVMVMAntiAffinityTagValue, ControlPlaneVMClusterModuleGroupName),
 					)
 				})
 

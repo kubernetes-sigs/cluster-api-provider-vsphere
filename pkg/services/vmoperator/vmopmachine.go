@@ -879,30 +879,32 @@ func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, su
 }
 
 // reconcileResourcePolicyAnnotations reconciles anti-affinity and cluster module
-// group (CMG) annotations when creating a VM. We leave annotations on existing VMs
-// unchanged.
+// group (CMG) annotations. Legacy cluster-module-group-based anti-affinity implementation
+// consumes them, however, modern compute-policy-based anti-affinity doesn't rely on them
+// but uses spec.affinity configuration.
 //
-// Control plane VMs continue to use the legacy anti-affinity tag and "control-plane"
-// CMG. Worker VMs also use legacy annotations when WorkerStrictAntiAffinity is disabled.
+// Control plane VMs continue to use legacy cluster-module-group-based anti-affinity.
+// Worker VMs continue to use legacy cluster-module-group-based anti-affinity when
+// WorkerStrictAntiAffinity is disabled.
 //
-// When WorkerStrictAntiAffinity is enabled:
+// When WorkerStrictAntiAffinity is enabled, worker VMs will be migrated to modern
+// compute-policy-based anti-affinity gradually:
+//   - Existing worker VMs keep their annotations, since they're already placed.
 //   - If the resource policy has no legacy worker CMG, new VMs do not need legacy
 //     annotations. This is the case for clusters created with the feature enabled.
-//   - If the policy has a legacy worker CMG, we check the non-terminating VMs in the
+//   - If the policy has a legacy worker CMG, this is the case for clusters created
+//     when the feature is disabled. We check the non-terminating VMs in the
 //     same MachineDeployment and namespace. New VMs still need legacy annotations
 //     if any of those VMs has no spec.affinity. Once all of them have spec.affinity,
-//     or none remain, we no longer add legacy annotations to new VMs.
+//     or none remain, we no longer add legacy annotations to new VMs, since new workers
+//     no longer join the legacy group.
 //     If the Machine has no MachineDeployment label, we cannot check its existing
-//     VMs, so we keep the legacy annotations.
+//     VMs, so we keep the legacy annotations as a fallback.
 //
-// Keeping legacy annotations allows new VMs to share legacy anti-affinity with VMs
-// that do not have spec.affinity yet. As those VMs are replaced, we can stop using
-// legacy annotations for new VMs without changing annotations on existing VMs.
+// This allows migration as workers are replaced. We keep legacy annotations, which allows new VMs
+// to share legacy group with VMs that do not have spec.affinity yet. After VMs within a MachineDeployment
+// all have spec.affinity, we can stop using legacy annotations for new VMs.
 func (v *VmopMachineService) reconcileResourcePolicyAnnotations(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprvhub.VirtualMachine, vmExists bool) error {
-	if vmExists {
-		return nil
-	}
-
 	annotations := vm.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -919,6 +921,11 @@ func (v *VmopMachineService) reconcileResourcePolicyAnnotations(ctx context.Cont
 		annotations[ProviderTagsAnnotationKey] = WorkerVMVMAntiAffinityTagValue
 		annotations[ClusterModuleNameAnnotationKey] = getMachineDeploymentNameForCluster(supervisorMachineCtx.Cluster)
 		vm.ObjectMeta.SetAnnotations(annotations)
+		return nil
+	}
+
+	// Preserve placement annotations on existing workers during migration.
+	if vmExists {
 		return nil
 	}
 

@@ -51,6 +51,7 @@ const (
 	NodeAutoPlacement featuregate.Feature = "NodeAutoPlacement"
 
 	// WorkerStrictAntiAffinity is a feature gate for the WorkerStrictAntiAffinity functionality for supervisor.
+	// Requires vm-operator v1alpha6 or later on the supervisor.
 	//
 	// alpha: v1.18
 	WorkerStrictAntiAffinity featuregate.Feature = "WorkerStrictAntiAffinity"

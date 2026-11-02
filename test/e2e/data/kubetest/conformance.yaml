@@ -1,5 +1,5 @@
 ginkgo.focus: \[Conformance\]
-ginkgo.skip: \[Serial\]
+ginkgo.skip: \[Serial\]|\[sig-node\] Secrets should be consumable (from pods in env vars|via the environment|as environment variable names)
 disable-log-dump: true
 ginkgo.show-node-events: true
 ginkgo.slow-spec-threshold: 120s

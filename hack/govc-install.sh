@@ -50,13 +50,13 @@ source "$(dirname "$0")/utils.sh"
 # checksums.txt whenever that dependency is bumped.
 # Read via indirect expansion below, so shellcheck can't see the usage.
 # shellcheck disable=SC2034
-GOVC_SHA256_Darwin_arm64="559430d7691c98172b6b137337cb99c8e0c822512e0ddd170f19bea63cc95e15"
+GOVC_SHA256_Darwin_arm64="d5b85abf6e2d8ef602aedb35110567d58016edf5bc4ce13f25fb1a4af31957c3"
 # shellcheck disable=SC2034
-GOVC_SHA256_Darwin_x86_64="0c0b1bace57542574584d4e76d097fb81d003c07380469d96bacc1f8eb640042"
+GOVC_SHA256_Darwin_x86_64="665233e84940a659596c84e3ce8bb79ec7e1e142f55cb696974b37db45b2a188"
 # shellcheck disable=SC2034
-GOVC_SHA256_Linux_arm64="d813c8bff6f4410332fac97b368235504ecabfcc2baa1aae38bcc868280850e0"
+GOVC_SHA256_Linux_arm64="9c34a018300fbb02b943e48f277b9cee8f90ab7a6e6936427ef9f48c1e93af50"
 # shellcheck disable=SC2034
-GOVC_SHA256_Linux_x86_64="beabfa250fb91f1a9687586448a24c24fd4f95324fa905d157241d0c9efcfeb0"
+GOVC_SHA256_Linux_x86_64="12889f30e42e868487041f6628e9789606c80e13a194fb37c099abffc92d5a59"
 
 rm -f "${GOBIN}/${1}"* || true
 

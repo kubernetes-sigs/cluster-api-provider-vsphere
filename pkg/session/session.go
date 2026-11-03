@@ -130,8 +130,10 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	h := sha256.New()
 	h.Write([]byte(userPassword))
 	hashedUserPassword := h.Sum(nil)
-	sessionKey := fmt.Sprintf("%s#%s#%s#%x", params.server, params.datacenter, params.userinfo.Username(),
-		hashedUserPassword)
+	// Include the thumbprint in the key so sessions with different TLS
+	// verification settings (pinned vs. insecure) can be differentiated.
+	sessionKey := fmt.Sprintf("%s#%s#%s#%x#%s", params.server, params.datacenter, params.userinfo.Username(),
+		hashedUserPassword, params.thumbprint)
 
 	// Lock per sessionKey so duplicate session creations for the same key are
 	// still prevented while unrelated keys (other servers) proceed

@@ -98,27 +98,37 @@ type VirtualMachineNetworkInterfaceSpec struct {
 
 	// +optional
 
-	// DHCP4 indicates whether or not this interface uses DHCP for IP4
-	// networking.
+	// DHCP4 controls IPv4 DHCP for this interface.
+	//
+	// When set to true, the interface requests an IPv4 address via DHCP.
+	// When set to false, DHCP for IPv4 is explicitly disabled; the interface
+	// relies on static allocation.
+	// When omitted, the network provider determines the allocation method
+	// from subnet configuration.
 	//
 	// Please note this field is only supported if the network connection
 	// supports DHCP.
 	//
 	// Please note this field is mutually exclusive with IP4 addresses in the
 	// Addresses field and the Gateway4 field.
-	DHCP4 bool `json:"dhcp4,omitempty"`
+	DHCP4 *bool `json:"dhcp4,omitempty"`
 
 	// +optional
 
-	// DHCP6 indicates whether or not this interface uses DHCP for IP6
-	// networking.
+	// DHCP6 controls DHCPv6 for this interface.
+	//
+	// When set to true, the interface requests an IPv6 address via DHCPv6.
+	// When set to false, DHCPv6 is explicitly disabled; the interface relies
+	// on static allocation.
+	// When omitted, the network provider determines the allocation method
+	// from subnet configuration.
 	//
 	// Please note this field is only supported if the network connection
 	// supports DHCP.
 	//
 	// Please note this field is mutually exclusive with IP6 addresses in the
 	// Addresses field and the Gateway6 field.
-	DHCP6 bool `json:"dhcp6,omitempty"`
+	DHCP6 *bool `json:"dhcp6,omitempty"`
 
 	// +optional
 
@@ -205,12 +215,14 @@ type VirtualMachineNetworkInterfaceSpec struct {
 
 	// VNUMANodeID assigns this interface to a specific virtual NUMA node.
 	// The value must match a virtual NUMA node ID configured in the VM's
-	// CPU topology (spec.cpu.coresPerNumaNode). Co-locating a NIC with the
+	// CPU topology (spec.cpuAdvanced.topology.vnumaNodeCount). Co-locating a NIC with the
 	// vCPUs that process its traffic reduces cross-NUMA memory latency for
 	// latency-sensitive workloads.
+	// Requires EFI firmware (spec.hardware.firmware=EFI); Legacy BIOS does
+	// not support device assignment.
 	// Requires spec.minHardwareVersion >= 20.
 	// Cannot be changed while the VM is powered on.
-	VNUMANodeID *int32 `json:"vNUMANodeID,omitempty"`
+	VNUMANodeID *int32 `json:"vnumaNodeID,omitempty"`
 
 	// +optional
 
@@ -243,6 +255,14 @@ type VirtualMachineNetworkInterfaceSpec struct {
 	//
 	// When unset, the provider's default applies for which families are allocated.
 	// When set, the controller forwards the requested families to the provider for this interface.
+	//
+	// IPAMModes is immutable for this network interface once the interface is
+	// created, including the transition from unset to set or set to unset.
+	// There is no supported way to convert an interface between single-stack
+	// and dual-stack, or between IPv4-only and IPv6-only, after creation.
+	// Removing this interface entry and adding a new one with the same name
+	// but different IPAMModes is not a supported way to work around this
+	// restriction; it deletes and recreates the underlying network interface.
 	IPAMModes []corev1.IPFamily `json:"ipamModes,omitempty"`
 }
 
@@ -292,6 +312,13 @@ type VirtualMachineNetworkSpec struct {
 
 	// VLANs is a list of VLAN interfaces to be configured on top of the
 	// physical network interfaces.
+	//
+	// VLAN interfaces are virtual network interfaces that tag traffic with a
+	// VLAN ID. Each VLAN must reference a parent interface from the Interfaces
+	// list via the Link field.
+	//
+	// Please note this feature is available only with the following bootstrap
+	// providers: CloudInit.
 	VLANs []VirtualMachineNetworkVLANSpec `json:"vlans,omitempty"`
 }
 
@@ -560,6 +587,49 @@ type VirtualMachineNetworkInterfaceStatus struct {
 
 	// DNS describes the observed state of the interface's DNS configuration.
 	DNS *VirtualMachineNetworkDNSStatus `json:"dns,omitempty"`
+
+	// +optional
+
+	// VNUMANodeID reflects the observed virtual NUMA node assignment for this
+	// interface. Unset if the interface has no NUMA node affinity configured.
+	VNUMANodeID *int32 `json:"vnumaNodeID,omitempty"`
+
+	// +optional
+
+	// VMXNet3 reflects the observed VMXNet3-specific device properties for
+	// this interface. Unset if the interface is not a VMXNet3 adapter.
+	VMXNet3 *VirtualMachineNetworkInterfaceVMXNet3Status `json:"vmxnet3,omitempty"`
+}
+
+// VirtualMachineNetworkInterfaceVMXNet3Status describes observed VMXNet3 device
+// properties for a network interface.
+type VirtualMachineNetworkInterfaceVMXNet3Status struct {
+	// +optional
+
+	// UPTv2Enabled reflects the observed UPTv2 enablement config on this interface.
+	UPTv2Enabled *bool `json:"uptv2Enabled,omitempty"`
+
+	// +optional
+
+	// UPTv2Active indicates whether UPTv2 (Uniform Pass-through v2) is active at
+	// runtime. True means the NIC is operating in pass-through mode. False means
+	// the NIC has network connectivity but UPTv2 is inactive (see UPTv2InactiveReasonVM
+	// and UPTv2InactiveReasonOther for the reason). Unset if the NIC is not VMXNet3
+	// or UPTv2Enabled is not true. Read from
+	// VirtualMachineDeviceRuntimeInfoVirtualEthernetCardRuntimeState.
+	UPTv2Active *bool `json:"uptv2Active,omitempty"`
+
+	// +optional
+
+	// UPTv2InactiveReasonVM lists reasons why UPTv2 is inactive that are related
+	// to virtual machine state or configuration. Populated when UPTv2Active is false.
+	UPTv2InactiveReasonVM []string `json:"uptv2InactiveReasonVm,omitempty"`
+
+	// +optional
+
+	// UPTv2InactiveReasonOther lists reasons why UPTv2 is inactive that are not
+	// related to virtual machine state or configuration. Populated when UPTv2Active is false.
+	UPTv2InactiveReasonOther []string `json:"uptv2InactiveReasonOther,omitempty"`
 }
 
 // VirtualMachineNetworkConfigInterfaceStatus describes the configured state of

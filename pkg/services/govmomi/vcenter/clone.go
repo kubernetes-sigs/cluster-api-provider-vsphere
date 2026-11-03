@@ -608,7 +608,11 @@ func newUnitNumberAssigner(controller types.BaseVirtualController, existingDevic
 
 	// SCSIControllers also use a unit.
 	if scsiController, ok := controller.(types.BaseVirtualSCSIController); ok {
-		used[scsiController.GetVirtualSCSIController().ScsiCtlrUnitNumber] = true
+		unitNumber := scsiController.GetVirtualSCSIController().ScsiCtlrUnitNumber
+		if unitNumber < 0 || unitNumber >= maxUnitNumber {
+			return nil, pkgerrors.Errorf("invalid unit number %d (< 0 or >= %d)", unitNumber, maxUnitNumber)
+		}
+		used[unitNumber] = true
 	}
 	controllerKey := controller.GetVirtualController().Key
 
@@ -616,6 +620,9 @@ func newUnitNumberAssigner(controller types.BaseVirtualController, existingDevic
 	for _, device := range existingDevices {
 		d := device.GetVirtualDevice()
 		if d.ControllerKey == controllerKey && d.UnitNumber != nil {
+			if *d.UnitNumber < 0 || *d.UnitNumber >= maxUnitNumber {
+				return nil, pkgerrors.Errorf("invalid unit number %d (< 0 or >= %d)", *d.UnitNumber, maxUnitNumber)
+			}
 			used[*d.UnitNumber] = true
 		}
 	}

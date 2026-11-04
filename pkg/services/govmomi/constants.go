@@ -22,5 +22,7 @@ const (
 )
 
 const (
-	guestInfoKeyMetadata = "guestinfo.metadata"
+	guestInfoKeyMetadata   = "guestinfo.metadata"
+	guestInfoCloudInitData = "guestinfo.userdata"
+	guestInfoIgnitionData  = "guestinfo.ignition.config.data"
 )

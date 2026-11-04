@@ -22,11 +22,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	pbmsimulator "github.com/vmware/govmomi/pbm/simulator"
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/vim25"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -47,6 +49,133 @@ func emptyVirtualMachineContext() *virtualMachineContext {
 		VMContext: capvcontext.VMContext{
 			ControllerManagerContext: &capvcontext.ControllerManagerContext{},
 		},
+	}
+}
+
+func Test_reconcileClearBootstrapUserData(t *testing.T) {
+	guestNetwork := []infrav1.NetworkStatus{{IPAddrs: []string{"192.0.2.1"}}}
+	tests := []struct {
+		name        string
+		network     []infrav1.NetworkStatus
+		extraConfig map[string]string
+		wantClear   bool
+	}{
+		{
+			name: "no network status preserves bootstrap data",
+			extraConfig: map[string]string{
+				guestInfoCloudInitData: "cloud-init-data",
+				guestInfoIgnitionData:  "ignition-data",
+			},
+		},
+		{
+			name:    "network without guest IP preserves bootstrap data",
+			network: []infrav1.NetworkStatus{{}},
+			extraConfig: map[string]string{
+				guestInfoCloudInitData: "cloud-init-data",
+				guestInfoIgnitionData:  "ignition-data",
+			},
+		},
+		{
+			name:        "guest IP clears cloud-init data",
+			network:     guestNetwork,
+			extraConfig: map[string]string{guestInfoCloudInitData: "cloud-init-data"},
+			wantClear:   true,
+		},
+		{
+			name:        "guest IP clears Ignition data",
+			network:     guestNetwork,
+			extraConfig: map[string]string{guestInfoIgnitionData: "ignition-data"},
+			wantClear:   true,
+		},
+		{
+			name:    "guest IP on a later network device clears both payloads",
+			network: []infrav1.NetworkStatus{{}, {IPAddrs: []string{"2001:db8::1"}}},
+			extraConfig: map[string]string{
+				guestInfoCloudInitData: "cloud-init-data",
+				guestInfoIgnitionData:  "ignition-data",
+			},
+			wantClear: true,
+		},
+		{
+			name:    "absent bootstrap data does not create a task",
+			network: guestNetwork,
+		},
+		{
+			name:    "empty bootstrap data does not create a task",
+			network: guestNetwork,
+			extraConfig: map[string]string{
+				guestInfoCloudInitData: "",
+				guestInfoIgnitionData:  "",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			simulator.Run(func(ctx context.Context, c *vim25.Client) error {
+				vm, err := find.NewFinder(c).VirtualMachine(ctx, "DC0_H0_VM0")
+				g.Expect(err).ToNot(HaveOccurred())
+
+				extraConfig := []types.BaseOptionValue{
+					&types.OptionValue{Key: guestInfoKeyMetadata, Value: "metadata"},
+					&types.OptionValue{Key: "guestinfo.userdata.encoding", Value: "base64"},
+					&types.OptionValue{Key: "guestinfo.ignition.config.data.encoding", Value: "base64"},
+					&types.OptionValue{Key: "unrelated", Value: "preserve-me"},
+				}
+				for key, value := range tt.extraConfig {
+					extraConfig = append(extraConfig, &types.OptionValue{Key: key, Value: value})
+				}
+				task, err := vm.Reconfigure(ctx, types.VirtualMachineConfigSpec{ExtraConfig: extraConfig})
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(task.Wait(ctx)).To(Succeed())
+
+				getExtraConfig := func() map[string]interface{} {
+					var obj mo.VirtualMachine
+					g.Expect(vm.Properties(ctx, vm.Reference(), []string{"config.extraConfig"}, &obj)).To(Succeed())
+					config := map[string]interface{}{}
+					for _, ec := range obj.Config.ExtraConfig {
+						opt := ec.GetOptionValue()
+						config[opt.Key] = opt.Value
+					}
+					return config
+				}
+				wantExtraConfig := getExtraConfig()
+				if tt.wantClear {
+					// Setting an existing extraConfig key to an empty string removes it.
+					delete(wantExtraConfig, guestInfoCloudInitData)
+					delete(wantExtraConfig, guestInfoIgnitionData)
+				}
+
+				vmCtx := emptyVirtualMachineContext()
+				vmCtx.Session = &session.Session{Client: &govmomi.Client{Client: c}}
+				vmCtx.VSphereVM = &infrav1.VSphereVM{}
+				vmCtx.Obj = vm
+				vmCtx.Ref = vm.Reference()
+				vmCtx.State = &services.VirtualMachine{Network: tt.network}
+				vms := &VMService{}
+
+				g.Expect(vms.reconcileClearBootstrapUserData(ctx, vmCtx)).To(Succeed())
+				if tt.wantClear {
+					g.Expect(vmCtx.VSphereVM.Status.TaskRef).ToNot(BeEmpty())
+					task := object.NewTask(c, types.ManagedObjectReference{
+						Type:  morefTypeTask,
+						Value: vmCtx.VSphereVM.Status.TaskRef,
+					})
+					g.Expect(task.Wait(ctx)).To(Succeed())
+				} else {
+					g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
+				}
+				g.Expect(getExtraConfig()).To(Equal(wantExtraConfig))
+
+				// Once the clearing task completes, another reconcile should be a no-op.
+				vmCtx.VSphereVM.Status.TaskRef = ""
+				g.Expect(vms.reconcileClearBootstrapUserData(ctx, vmCtx)).To(Succeed())
+				g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
+				g.Expect(getExtraConfig()).To(Equal(wantExtraConfig))
+				return nil
+			})
+		})
 	}
 }
 

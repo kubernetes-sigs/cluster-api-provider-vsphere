@@ -559,6 +559,180 @@ func createMachine(machineName, clusterName, namespace string, isControlPlane bo
 	return m
 }
 
+func TestVSphereDeploymentZone_WithIdentityRef(t *testing.T) {
+	g := NewWithT(t)
+	model := simulator.VPX()
+	model.Pool = 1
+
+	simr, err := vcsim.NewBuilder().
+		WithModel(model).
+		WithOperations().
+		Build()
+	g.Expect(err).NotTo(HaveOccurred())
+	defer func() {
+		simr.Destroy()
+	}()
+
+	operations := []string{
+		"tags.category.create -t Datacenter,ClusterComputeResource k8s-region",
+		"tags.category.create -t Datacenter,ClusterComputeResource k8s-zone",
+		"tags.create -c k8s-region k8s-region-west",
+		"tags.create -c k8s-zone k8s-zone-west-1",
+		"tags.attach -c k8s-region k8s-region-west /DC0",
+		"tags.attach -c k8s-zone k8s-zone-west-1 /DC0/host/DC0_C0",
+	}
+	for _, op := range operations {
+		g.Expect(simr.Run(op, gbytes.NewBuffer(), gbytes.NewBuffer())).To(Succeed())
+	}
+
+	t.Run("should use credentials from identityRef when specified", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create a secret with credentials in the controller namespace
+		credentialSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "creds-",
+				Namespace:    testEnv.Manager.GetControllerManagerContext().Namespace,
+			},
+			Data: map[string][]byte{
+				"username": []byte(simr.ServerURL().User.Username()),
+				"password": func() []byte {
+					pass, _ := simr.ServerURL().User.Password()
+					return []byte(pass)
+				}(),
+			},
+		}
+		g.Expect(testEnv.Create(ctx, credentialSecret)).To(Succeed())
+		defer func() {
+			g.Expect(testEnv.Delete(ctx, credentialSecret)).To(Succeed())
+		}()
+
+		vsphereFailureDomain := &infrav1.VSphereFailureDomain{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "identity-fd-",
+			},
+			Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
+					Name:        "k8s-region-west",
+					Type:        infrav1.DatacenterFailureDomain,
+					TagCategory: "k8s-region",
+				},
+				Zone: infrav1.FailureDomain{
+					Name:        "k8s-zone-west-1",
+					Type:        infrav1.ComputeClusterFailureDomain,
+					TagCategory: "k8s-zone",
+				},
+				Topology: infrav1.Topology{
+					Datacenter:     "DC0",
+					ComputeCluster: "DC0_C0",
+					Datastore:      "LocalDS_0",
+					Networks:       []string{"VM Network"},
+				},
+			},
+		}
+		g.Expect(testEnv.Create(ctx, vsphereFailureDomain)).To(Succeed())
+
+		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "identity-dz-",
+			},
+			Spec: infrav1.VSphereDeploymentZoneSpec{
+				Server:        simr.ServerURL().Host,
+				FailureDomain: vsphereFailureDomain.Name,
+				ControlPlane:  ptr.To(true),
+				IdentityRef: infrav1.VSphereIdentityReference{
+					Kind: infrav1.SecretKind,
+					Name: credentialSecret.Name,
+				},
+				PlacementConstraint: infrav1.PlacementConstraint{
+					ResourcePool: "DC0_C0_RP1",
+					Folder:       "/",
+				},
+			}}
+		g.Expect(testEnv.Create(ctx, vsphereDeploymentZone)).To(Succeed())
+
+		defer func(do ...client.Object) {
+			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		}(vsphereDeploymentZone, vsphereFailureDomain)
+
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone); err != nil {
+				return false
+			}
+			return len(vsphereDeploymentZone.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone); err != nil {
+				return false
+			}
+			return conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneVCenterAvailableCondition) &&
+				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZonePlacementConstraintReadyCondition) &&
+				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneFailureDomainValidatedCondition)
+		}, timeout).Should(BeTrue())
+	})
+
+	t.Run("should fail when identityRef references non-existent secret", func(t *testing.T) {
+		g := NewWithT(t)
+
+		vsphereFailureDomain := &infrav1.VSphereFailureDomain{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "identity-fd-fail-",
+			},
+			Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
+					Name:        "k8s-region-west",
+					Type:        infrav1.DatacenterFailureDomain,
+					TagCategory: "k8s-region",
+				},
+				Zone: infrav1.FailureDomain{
+					Name:        "k8s-zone-west-1",
+					Type:        infrav1.ComputeClusterFailureDomain,
+					TagCategory: "k8s-zone",
+				},
+				Topology: infrav1.Topology{
+					Datacenter:     "DC0",
+					ComputeCluster: "DC0_C0",
+					Datastore:      "LocalDS_0",
+					Networks:       []string{"VM Network"},
+				},
+			},
+		}
+		g.Expect(testEnv.Create(ctx, vsphereFailureDomain)).To(Succeed())
+
+		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "identity-dz-fail-",
+			},
+			Spec: infrav1.VSphereDeploymentZoneSpec{
+				Server:        simr.ServerURL().Host,
+				FailureDomain: vsphereFailureDomain.Name,
+				ControlPlane:  ptr.To(true),
+				IdentityRef: infrav1.VSphereIdentityReference{
+					Kind: infrav1.SecretKind,
+					Name: "non-existent-secret",
+				},
+				PlacementConstraint: infrav1.PlacementConstraint{
+					ResourcePool: "DC0_C0_RP1",
+					Folder:       "/",
+				},
+			}}
+		g.Expect(testEnv.Create(ctx, vsphereDeploymentZone)).To(Succeed())
+
+		defer func(do ...client.Object) {
+			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		}(vsphereDeploymentZone, vsphereFailureDomain)
+
+		// The deployment zone should not become ready because the secret doesn't exist
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone); err != nil {
+				return false
+			}
+			return conditions.IsFalse(vsphereDeploymentZone, infrav1.VSphereDeploymentZoneVCenterAvailableCondition)
+		}, timeout).Should(BeTrue())
+	})
+}
+
 func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T) {
 	tests := []struct {
 		name                string

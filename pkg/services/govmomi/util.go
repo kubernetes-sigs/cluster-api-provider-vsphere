@@ -20,6 +20,7 @@ import (
 	"context"
 	gonet "net"
 	"path"
+	"sync"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
@@ -209,11 +210,23 @@ func isInvalidPowerStateAndExpectedPowerState(f types.BaseMethodFault) bool {
 	return invalidPowerState.ExistingState == invalidPowerState.RequestedState
 }
 
+// ipWaitWatcher tracks the active IP-wait watcher for a VSphereVM so that a
+// new power-on supersedes (cancels) the previous watcher instead of leaking
+// it. At most one watcher exists per VSphereVM.
+type ipWaitWatcher struct {
+	cancel context.CancelFunc
+}
+
+var (
+	ipWaitWatchersMu sync.Mutex
+	ipWaitWatchers   = map[string]*ipWaitWatcher{}
+)
+
 func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx *virtualMachineContext, powerOnTask *object.Task) {
 	reconcileVSphereVMOnChannel(
 		ctx,
 		&virtualMachineCtx.VMContext,
-		func() (<-chan []interface{}, <-chan error, error) {
+		func(done <-chan struct{}) (<-chan []interface{}, <-chan error, error) {
 			// Wait for the VM to be powered on.
 			powerOnTaskInfo, err := powerOnTask.WaitForResult(ctx)
 			if err != nil && powerOnTaskInfo == nil {
@@ -244,15 +257,22 @@ func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx
 			}
 
 			// Wait for the IP addresses to show up for the VM.
-			chanIPAddresses, chanErrs := waitForIPAddresses(ctx, virtualMachineCtx, macToDeviceIndex, deviceToMacIndex)
+			chanIPAddresses, chanErrs := waitForIPAddresses(ctx, virtualMachineCtx, macToDeviceIndex, deviceToMacIndex, done)
 
 			// Trigger a reconcile every time a new IP is discovered.
 			chanOfLoggerKeysAndValues := make(chan []interface{})
 			go func() {
 				for ip := range chanIPAddresses {
-					chanOfLoggerKeysAndValues <- []interface{}{
+					keysAndValues := []interface{}{
 						"reason", "network",
 						"ipAddress", ip,
+					}
+					select {
+					case chanOfLoggerKeysAndValues <- keysAndValues:
+					case <-done:
+						// The consumer loop stopped; exit instead of blocking
+						// forever on the send.
+						return
 					}
 				}
 			}()
@@ -336,7 +356,7 @@ func reconcileVSphereVMOnFuncCompletion(ctx context.Context, vmCtx *capvcontext.
 	}()
 }
 
-func reconcileVSphereVMOnChannel(ctx context.Context, vmCtx *capvcontext.VMContext, waitFn func() (<-chan []interface{}, <-chan error, error)) {
+func reconcileVSphereVMOnChannel(ctx context.Context, vmCtx *capvcontext.VMContext, waitFn func(done <-chan struct{}) (<-chan []interface{}, <-chan error, error)) {
 	log := ctrl.LoggerFrom(ctx)
 
 	obj := vmCtx.VSphereVM.DeepCopy()
@@ -345,7 +365,9 @@ func reconcileVSphereVMOnChannel(ctx context.Context, vmCtx *capvcontext.VMConte
 	// Send a generic event for every set of logger keys/values received
 	// on the channel.
 	go func() {
-		chanOfLoggerKeysAndValues, chanErrs, err := waitFn()
+		done := make(chan struct{})
+		defer close(done)
+		chanOfLoggerKeysAndValues, chanErrs, err := waitFn(done)
 		if err != nil {
 			log.Error(err, "failed to wait on func")
 			return
@@ -437,8 +459,22 @@ func waitForIPAddresses(
 	ctx context.Context,
 	virtualMachineCtx *virtualMachineContext,
 	macToDeviceIndex map[string]int,
-	deviceToMacIndex map[int]string) (<-chan string, <-chan error) {
+	deviceToMacIndex map[int]string,
+	done <-chan struct{}) (<-chan string, <-chan error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// Bound the watcher's lifetime and deduplicate: at most one IP-wait
+	// watcher may exist per VSphereVM; a new power-on supersedes (cancels)
+	// the previous watcher instead of leaking it.
+	watchCtx, cancelWatch := context.WithCancel(context.Background())
+	watchKey := virtualMachineCtx.VSphereVM.Namespace + "/" + virtualMachineCtx.VSphereVM.Name
+	watcher := &ipWaitWatcher{cancel: cancelWatch}
+	ipWaitWatchersMu.Lock()
+	if prev, ok := ipWaitWatchers[watchKey]; ok {
+		prev.cancel()
+	}
+	ipWaitWatchers[watchKey] = watcher
+	ipWaitWatchersMu.Unlock()
 
 	var (
 		chanErrs          = make(chan error)
@@ -471,13 +507,21 @@ func waitForIPAddresses(
 				// device spec.
 				deviceSpecIndex, ok := macToDeviceIndex[mac]
 				if !ok {
-					chanErrs <- pkgerrors.Errorf("unknown device spec index for mac %s while waiting for ip addresses for vm %s", mac, virtualMachineCtx)
+					select {
+					case chanErrs <- pkgerrors.Errorf("unknown device spec index for mac %s while waiting for ip addresses for vm %s", mac, virtualMachineCtx):
+					case <-done:
+					case <-watchCtx.Done():
+					}
 					// Return true to stop the property collector from waiting
 					// on any more changes.
 					return true
 				}
 				if deviceSpecIndex < 0 || deviceSpecIndex >= len(virtualMachineCtx.VSphereVM.Spec.Network.Devices) {
-					chanErrs <- pkgerrors.Errorf("invalid device spec index %d for mac %s while waiting for ip addresses for vm %s", deviceSpecIndex, mac, virtualMachineCtx)
+					select {
+					case chanErrs <- pkgerrors.Errorf("invalid device spec index %d for mac %s while waiting for ip addresses for vm %s", deviceSpecIndex, mac, virtualMachineCtx):
+					case <-done:
+					case <-watchCtx.Done():
+					}
 					// Return true to stop the property collector from waiting
 					// on any more changes.
 					return true
@@ -523,7 +567,13 @@ func waitForIPAddresses(
 								"addressType", "static",
 								"addressValue", discoveredIP)
 							macToHasStaticIP[mac][discoveredIP] = struct{}{}
-							chanIPAddresses <- discoveredIP
+							select {
+							case chanIPAddresses <- discoveredIP:
+							case <-done:
+								return true
+							case <-watchCtx.Done():
+								return true
+							}
 						}
 					case gonet.ParseIP(discoveredIP).To4() != nil:
 						// An IPv4 address...
@@ -534,7 +584,13 @@ func waitForIPAddresses(
 									"addressType", "dhcp4",
 									"addressValue", discoveredIP)
 								macToHasIPv4Lease[mac] = struct{}{}
-								chanIPAddresses <- discoveredIP
+								select {
+								case chanIPAddresses <- discoveredIP:
+								case <-done:
+									return true
+								case <-watchCtx.Done():
+									return true
+								}
 							}
 						}
 					default:
@@ -546,7 +602,13 @@ func waitForIPAddresses(
 									"addressType", "dhcp6",
 									"addressValue", discoveredIP)
 								macToHasIPv6Lease[mac] = struct{}{}
-								chanIPAddresses <- discoveredIP
+								select {
+								case chanIPAddresses <- discoveredIP:
+								case <-done:
+									return true
+								case <-watchCtx.Done():
+									return true
+								}
 							}
 						}
 					}
@@ -565,7 +627,11 @@ func waitForIPAddresses(
 
 			mac, ok := deviceToMacIndex[i]
 			if !ok {
-				chanErrs <- pkgerrors.Errorf("invalid mac index %d waiting for ip addresses for vm %s", i, virtualMachineCtx)
+				select {
+				case chanErrs <- pkgerrors.Errorf("invalid mac index %d waiting for ip addresses for vm %s", i, virtualMachineCtx):
+				case <-done:
+				case <-watchCtx.Done():
+				}
 
 				// Return true to stop the property collector from waiting
 				// on any more changes.
@@ -610,14 +676,26 @@ func waitForIPAddresses(
 	// network devices have IP assignments that match the requested
 	// network device specs. However, every time a new IP is discovered,
 	// a reconcile request will be triggered for the VSphereVM.
-	go func() { //nolint:gosec // Intentionally using context.Background in this goroutine, see explanation below.
+	go func() {
 		// Note: We intentionally don't use the context from the Reconcile
-		// so this go routine continues independent of the current Reconcile.
-		ctx := context.Background()
+		// so this go routine continues independent of the current Reconcile,
+		// but watchCtx bounds its lifetime: it is cancelled when a newer
+		// watcher for the same VSphereVM supersedes this one.
+		defer func() {
+			cancelWatch()
+			ipWaitWatchersMu.Lock()
+			if ipWaitWatchers[watchKey] == watcher {
+				delete(ipWaitWatchers, watchKey)
+			}
+			ipWaitWatchersMu.Unlock()
+		}()
 		if err := property.Wait(
-			ctx, propCollector, virtualMachineCtx.Obj.Reference(),
+			watchCtx, propCollector, virtualMachineCtx.Obj.Reference(),
 			[]string{"guest.net"}, onPropertyChange); err != nil {
-			chanErrs <- pkgerrors.Wrapf(err, "failed to wait for ip addresses for vm %s", virtualMachineCtx)
+			select {
+			case chanErrs <- pkgerrors.Wrapf(err, "failed to wait for ip addresses for vm %s", virtualMachineCtx):
+			case <-done:
+			}
 		}
 		close(chanIPAddresses)
 		close(chanErrs)

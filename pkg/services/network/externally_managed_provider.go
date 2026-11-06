@@ -107,6 +107,7 @@ func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.
 		return pkgerrors.New("primary interface must be defined")
 	}
 
+	oldNetwork := vm.Spec.Network.DeepCopy()
 	vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
 
 	primaryIPAMModes, err := np.ipamModesForInterface(ctx, machine.Namespace, primary.NetworkRef)
@@ -133,6 +134,25 @@ func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.
 			"None",
 			ipamModes,
 		))
+	}
+
+	// Network providers can rebuild interfaces from VSphereMachine, which does not expose MAC addresses.
+	if oldNetwork != nil {
+		for i := range vm.Spec.Network.Interfaces {
+			iface := &vm.Spec.Network.Interfaces[i]
+			if iface.Network == nil {
+				continue
+			}
+			for _, oldIface := range oldNetwork.Interfaces {
+				// Preserve the immutable spec MAC of each existing interface on the same network, including an empty MAC.
+				if oldIface.Network != nil && oldIface.Name == iface.Name &&
+					oldIface.Network.Name == iface.Network.Name &&
+					oldIface.Network.GroupVersionKind().GroupKind() == iface.Network.GroupVersionKind().GroupKind() {
+					iface.MACAddr = oldIface.MACAddr
+					break
+				}
+			}
+		}
 	}
 
 	return setVLANs(machine, vm)

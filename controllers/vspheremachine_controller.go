@@ -537,29 +537,10 @@ func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvc
 	networkModifier := func(obj runtime.Object) (runtime.Object, error) {
 		// No need to check the type. We know this will be a VirtualMachine
 		vm, _ := obj.(*vmoprvhub.VirtualMachine)
-		oldNetwork := vm.Spec.Network.DeepCopy()
 		log.V(3).Info("Applying network config to VM")
 		err := np.ConfigureVirtualMachine(ctx, supervisorMachineCtx.GetClusterContext(), supervisorMachineCtx.VSphereMachine, vm)
 		if err != nil {
 			return nil, pkgerrors.Errorf("failed to configure machine network: %+v", err)
-		}
-		// Network providers can rebuild interfaces from VSphereMachine, which does not expose MAC addresses.
-		// Preserve the immutable spec MAC of each existing interface on the same network, including an empty MAC.
-		if oldNetwork != nil && vm.Spec.Network != nil {
-			for i := range vm.Spec.Network.Interfaces {
-				iface := &vm.Spec.Network.Interfaces[i]
-				if iface.Network == nil {
-					continue
-				}
-				for _, oldIface := range oldNetwork.Interfaces {
-					if oldIface.Network != nil && oldIface.Name == iface.Name &&
-						oldIface.Network.Name == iface.Network.Name &&
-						oldIface.Network.GroupVersionKind().GroupKind() == iface.Network.GroupVersionKind().GroupKind() {
-						iface.MACAddr = oldIface.MACAddr
-						break
-					}
-				}
-			}
 		}
 		return vm, nil
 	}

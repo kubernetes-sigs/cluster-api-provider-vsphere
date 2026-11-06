@@ -21,18 +21,30 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	vmoprv1alpha5 "github.com/vmware-tanzu/vm-operator/api/v1alpha5"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
+	conversionapi "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api"
+	conversionclient "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/client"
+	inframanager "sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
+	infrautil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 var _ = Describe("VsphereMachineReconciler", func() {
@@ -185,6 +197,73 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		Eventually(func() bool {
 			return isPresentAndFalseWithReason(infraMachine, infrav1.VSphereVMVirtualMachineProvisionedCondition, infrav1.VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyReason)
 		}, timeout).Should(BeFalse())
+
+		By("reporting Supervisor VM infrastructure maintenance on the Ready condition")
+		featuregatetesting.SetFeatureGateDuringTest(GinkgoTB(), feature.Gates, feature.HostMaintenanceMode, true)
+		supervisorCluster := &vmwarev1.VSphereCluster{ObjectMeta: metav1.ObjectMeta{Name: infraCluster.Name, Namespace: testNs.Name}}
+		supervisorMachine := &vmwarev1.VSphereMachine{ObjectMeta: metav1.ObjectMeta{
+			Name: infraMachine.Name, Namespace: testNs.Name, Labels: infraMachine.Labels,
+			Finalizers: []string{infrav1.MachineFinalizer}, OwnerReferences: infraMachine.OwnerReferences,
+		}}
+		conditions.Set(supervisorMachine, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
+		owner := capiMachine.DeepCopy()
+		owner.Spec.Version = "v1.30.0"
+		owner.Spec.Bootstrap.DataSecretName = ptr.To("bootstrap-data")
+		owner.Labels[clusterv1.MachineControlPlaneLabel] = ""
+		vm := &vmoprv1alpha5.VirtualMachine{
+			ObjectMeta: metav1.ObjectMeta{Name: owner.Name, Namespace: testNs.Name},
+			Spec:       vmoprv1alpha5.VirtualMachineSpec{PowerState: vmoprv1alpha5.VirtualMachinePowerStateOff},
+			Status: vmoprv1alpha5.VirtualMachineStatus{PowerState: vmoprv1alpha5.VirtualMachinePowerStateOff, Conditions: []metav1.Condition{
+				{Type: vmoprv1alpha5.VirtualMachineConditionCreated, Status: metav1.ConditionTrue, Reason: "Created"},
+				{Type: vmoprv1alpha5.VirtualMachinePowerStateSynced, Status: metav1.ConditionFalse, Reason: "InfraInMaintenance"},
+			}},
+		}
+		// The existing fixture uses govmomi types; use the same CAPI objects with a fake Supervisor client.
+		_, managerContext := infrautil.CreateClusterContext(capiCluster, supervisorCluster)
+		baseClient := fake.NewClientBuilder().WithScheme(managerContext.Scheme).
+			WithStatusSubresource(supervisorMachine, vm).
+			WithObjects(capiCluster.DeepCopy(), owner, supervisorCluster, supervisorMachine, vm).Build()
+		supervisorClient, err := conversionclient.NewWithConverter(baseClient, conversionapi.DefaultConverterFor(vmoprv1alpha5.GroupVersion))
+		Expect(err).NotTo(HaveOccurred())
+		factory, err := inframanager.NewStaticNetworkProviderFactory(ctx, supervisorClient, inframanager.DummyLBNetworkProvider)
+		Expect(err).NotTo(HaveOccurred())
+		reconciler := &machineReconciler{Client: supervisorClient, supervisorBased: true, networkProviderFactory: factory, VMService: &vmoperator.VmopMachineService{Client: supervisorClient}}
+		supervisorKey := client.ObjectKeyFromObject(supervisorMachine)
+		_, err = reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: supervisorKey})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(supervisorClient.Get(ctx, supervisorKey, supervisorMachine)).To(Succeed())
+		Expect(conditions.IsFalse(supervisorMachine, infrav1.VSphereMachineReadyCondition)).To(BeTrue())
+		Expect(conditions.GetReason(supervisorMachine, infrav1.VSphereMachineReadyCondition)).To(Equal("HostMaintenance"))
+		Expect(conditions.GetReason(supervisorMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition)).To(Equal(infrav1.VSphereMachineVirtualMachinePoweringOnReason))
+		Expect(supervisorClient.Get(ctx, client.ObjectKeyFromObject(vm), vm)).To(Succeed())
+		Expect(vm.Spec.PowerState).To(Equal(vmoprv1alpha5.VirtualMachinePowerStateOff))
+
+		By("keeping Ready false while a provisioned VM is in maintenance")
+		vm.Status.PowerState = vmoprv1alpha5.VirtualMachinePowerStateOn
+		vm.Status.Network = &vmoprv1alpha5.VirtualMachineNetworkStatus{PrimaryIP4: "192.0.2.1"}
+		vm.Status.BiosUUID = "test-bios-uuid"
+		vm.Status.NodeName = "test-host"
+		Expect(baseClient.Status().Update(ctx, vm)).To(Succeed())
+		_, err = reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: supervisorKey})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(supervisorClient.Get(ctx, supervisorKey, supervisorMachine)).To(Succeed())
+		Expect(conditions.IsFalse(supervisorMachine, infrav1.VSphereMachineReadyCondition)).To(BeTrue())
+		Expect(conditions.GetReason(supervisorMachine, infrav1.VSphereMachineReadyCondition)).To(Equal("HostMaintenance"))
+		Expect(conditions.IsTrue(supervisorMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition)).To(BeTrue())
+
+		By("restoring normal Ready reconciliation after maintenance")
+		Expect(supervisorClient.Get(ctx, client.ObjectKeyFromObject(vm), vm)).To(Succeed())
+		meta.SetStatusCondition(&vm.Status.Conditions, metav1.Condition{
+			Type: vmoprv1alpha5.VirtualMachinePowerStateSynced, Status: metav1.ConditionTrue, Reason: "Synced",
+		})
+		Expect(baseClient.Status().Update(ctx, vm)).To(Succeed())
+		_, err = reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: supervisorKey})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(supervisorClient.Get(ctx, supervisorKey, supervisorMachine)).To(Succeed())
+		Expect(conditions.IsTrue(supervisorMachine, infrav1.VSphereMachineReadyCondition)).To(BeTrue())
+		Expect(conditions.GetReason(supervisorMachine, infrav1.VSphereMachineReadyCondition)).To(Equal(infrav1.VSphereMachineReadyReason))
+		Expect(supervisorClient.Get(ctx, client.ObjectKeyFromObject(vm), vm)).To(Succeed())
+		Expect(vm.Spec.PowerState).To(Equal(vmoprv1alpha5.VirtualMachinePowerStateOn))
 	})
 
 	Context("With Cluster Infrastructure status ready", func() {

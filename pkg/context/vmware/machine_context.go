@@ -42,6 +42,9 @@ type SupervisorMachineContext struct {
 	VSphereMachine *vmwarev1.VSphereMachine
 	VMModifiers    []VMModifier
 
+	// HostInMaintenance records the observed VM Operator maintenance state for this reconcile.
+	HostInMaintenance bool
+
 	// ConfigureControlPlaneVMReadinessProbe indicates whether a TCP readiness probe should be
 	// configured on control plane VMs. It is resolved per-cluster from the network provider's
 	// SupportsVMReadinessProbe().

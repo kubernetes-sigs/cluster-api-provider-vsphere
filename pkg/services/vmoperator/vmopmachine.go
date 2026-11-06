@@ -290,7 +290,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		affInfo.affinitySpec = getAffinitySpec(mdName, otherMDNames, supervisorMachineCtx.VSphereMachine.Spec.Affinity.VMAntiAffinity)
 	}
 
-	// Check for the presence of an existing object
+	// Check for the presence of an existing object.
 	if err := v.Client.Get(ctx, *vmKey, vmOperatorVM); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return false, err
@@ -303,6 +303,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			},
 		}
 	}
+	supervisorMachineCtx.HostInMaintenance = feature.Gates.Enabled(feature.HostMaintenanceMode) && isInfraInMaintenance(vmOperatorVM)
 
 	// Reconcile the VM Operator VirtualMachine.
 	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM, affInfo); err != nil {
@@ -622,7 +623,10 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	if vmOperatorVM.Spec.StorageClass == "" {
 		vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
 	}
-	vmOperatorVM.Spec.PowerState = vmoprvhub.VirtualMachinePowerStateOn
+	// DRS controls power state during host maintenance.
+	if !feature.Gates.Enabled(feature.HostMaintenanceMode) || !isInfraInMaintenance(vmOperatorVM) {
+		vmOperatorVM.Spec.PowerState = vmoprvhub.VirtualMachinePowerStateOn
+	}
 	if vmOperatorVM.Spec.Reserved == nil {
 		vmOperatorVM.Spec.Reserved = &vmoprvhub.VirtualMachineReservedSpec{}
 	}
@@ -749,6 +753,11 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	}
 
 	return nil
+}
+
+func isInfraInMaintenance(vm *vmoprvhub.VirtualMachine) bool {
+	c := meta.FindStatusCondition(vm.Status.Conditions, vmoprvhub.VirtualMachinePowerStateSynced)
+	return c != nil && c.Status == metav1.ConditionFalse && c.Reason == vmoprvhub.VirtualMachineInfraInMaintenanceReason
 }
 
 func convertKeyValueSlice(pairs []vmoprvhub.KeyValuePair) []vmwarev1.KeyValuePair {

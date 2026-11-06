@@ -65,8 +65,8 @@ const (
 // Conditions and condition Reasons for VSphereMachine.
 // ConditionType VMProvisionedCondition is shared with infrav1.VSphereMachine.
 const (
-	// VSphereMachineInfraInMaintenanceReason reports that a VM is not ready due to infrastructure maintenance.
-	VSphereMachineInfraInMaintenanceReason = "InfraInMaintenance"
+	// VSphereMachineHostMaintenanceReason reports that a VM is not ready because its host is in maintenance.
+	VSphereMachineHostMaintenanceReason = "HostMaintenance"
 
 	// VMCreationFailedV1Beta1Reason reports that creating VM CRD or corresponding bootstrap ConfigMap failed.
 	VMCreationFailedV1Beta1Reason = "VMCreationFailed"

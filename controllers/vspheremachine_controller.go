@@ -299,12 +299,14 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 			),
 		)
 
-		notReadyReason := infrav1.VSphereMachineNotReadyReason
-		if r.supervisorBased && conditions.GetReason(machineContext.GetVSphereMachine(), infrav1.VSphereMachineVirtualMachineProvisionedCondition) == vmwarev1.VSphereMachineInfraInMaintenanceReason {
-			notReadyReason = vmwarev1.VSphereMachineInfraInMaintenanceReason
-		}
-
-		if err := conditions.SetSummaryCondition(machineContext.GetVSphereMachine(), machineContext.GetVSphereMachine(), infrav1.VSphereMachineReadyCondition,
+		if supervisorMachineCtx, ok := machineContext.(*vmware.SupervisorMachineContext); ok && supervisorMachineCtx.HostInMaintenance {
+			conditions.Set(machineContext.GetVSphereMachine(), metav1.Condition{
+				Type:    infrav1.VSphereMachineReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereMachineHostMaintenanceReason,
+				Message: "VirtualMachine is not ready because its host is in maintenance",
+			})
+		} else if err := conditions.SetSummaryCondition(machineContext.GetVSphereMachine(), machineContext.GetVSphereMachine(), infrav1.VSphereMachineReadyCondition,
 			conditions.ForConditionTypes{
 				infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 			},
@@ -313,7 +315,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 				MergeStrategy: conditions.DefaultMergeStrategy(
 					// Use custom reasons.
 					conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-						notReadyReason,
+						infrav1.VSphereMachineNotReadyReason,
 						infrav1.VSphereMachineReadyUnknownReason,
 						infrav1.VSphereMachineReadyReason,
 					)),

@@ -94,6 +94,9 @@ const (
 	// to the desired state.
 	VirtualMachinePowerStateSynced = "VirtualMachinePowerStateSynced"
 
+	// VirtualMachineInfraInMaintenanceReason reports that infrastructure maintenance prevents power state convergence.
+	VirtualMachineInfraInMaintenanceReason = "InfraInMaintenance"
+
 	// VirtualMachineGuestNetworkConfigSynced indicates the VM's guest network
 	// configuration is synced to the desired state, determined by whether or
 	// not the guest is reporting the expected IP address(es).

@@ -54,7 +54,6 @@ var (
 	}
 
 	supervisorVersionedTestGates = map[featuregate.Feature]featuregate.VersionedSpecs{
-		HostMaintenanceMode: supervisorVersionedGates[HostMaintenanceMode],
 		SupervisorFeatureEnabledOnV1Alpha2: {
 			{Version: toFeatureVersion(vmoprv1alpha2.GroupVersion.Version), Default: false, PreRelease: featuregate.Alpha},
 		},
@@ -87,12 +86,10 @@ func TestGetFlagDescription(t *testing.T) {
 		"  SupervisorFeature=true|false (ALPHA - default=false)\n" +
 		"  SupervisorFeatureEnabledOnV1Alpha2=true|false (ALPHA - default=false)\n" +
 		"Options for supervisor mode when --vm-operator-api-version=v1alpha5 are:\n" +
-		"  HostMaintenanceMode=true|false (ALPHA - default=false)\n" +
 		"  SupervisorFeature=true|false (ALPHA - default=false)\n" +
 		"  SupervisorFeatureEnabledOnV1Alpha2=true|false (ALPHA - default=false)\n" +
 		"  SupervisorFeatureEnabledOnV1Alpha5=true|false (ALPHA - default=false)\n" +
 		"Options for supervisor mode when --vm-operator-api-version=v1alpha6 are:\n" +
-		"  HostMaintenanceMode=true|false (ALPHA - default=false)\n" +
 		"  SupervisorFeature=true|false (ALPHA - default=false)\n" +
 		"  SupervisorFeatureEnabledOnV1Alpha2=true|false (ALPHA - default=false)\n" +
 		"  SupervisorFeatureEnabledOnV1Alpha5=true|false (ALPHA - default=false)\n" +
@@ -125,9 +122,6 @@ func TestGetGovmomiGates(t *testing.T) {
 	g.Expect(allTestGates.Enabled(GovmomiFeature)).To(BeTrue())
 
 	// set unknown feature gates
-	err = getGovmomiGates(commonGates, govmomiGates).Set("HostMaintenanceMode=true")
-	g.Expect(err).To(HaveOccurred())
-
 	err = set(allTestGates, allowedGates, nil, "SupervisorFeature=false")
 	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: SupervisorFeature")})))
 
@@ -157,7 +151,6 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
-	g.Expect(allTestGates.Enabled(HostMaintenanceMode)).To(BeFalse())
 
 	// set a known feature gate (not versioned)
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeature=true")
@@ -191,9 +184,6 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 	// set a known versioned feature(v1alpha5), NOT supported in this version, set to true
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha5=true")
 	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha5 to true, feature requires a newer vm-operator API version")})))
-
-	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "HostMaintenanceMode=true")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("cannot set feature gate HostMaintenanceMode to true, feature requires a newer vm-operator API version")})))
 
 	// set a known versioned feature(v1alpha6), NOT supported in this version, set to false
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha6=false")
@@ -236,7 +226,6 @@ func TestGetSupervisorGatesV1Alpha5(t *testing.T) {
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
-	g.Expect(allTestGates.Enabled(HostMaintenanceMode)).To(BeFalse())
 
 	// set a known feature gate (not versioned)
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeature=true")
@@ -249,14 +238,13 @@ func TestGetSupervisorGatesV1Alpha5(t *testing.T) {
 	g.Expect(allTestGates.ResetFeatureValueToDefault(SupervisorFeature)).To(Succeed())
 
 	// set a known versioned feature gate, supported in this version
-	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha2=true,SupervisorFeatureEnabledOnV1Alpha5=true,HostMaintenanceMode=true")
+	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha2=true,SupervisorFeatureEnabledOnV1Alpha5=true")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeTrue())
-	g.Expect(allTestGates.Enabled(HostMaintenanceMode)).To(BeTrue())
 
 	// set a known versioned feature(v1alpha6), NOT supported in this version, set to false
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha6=false")
@@ -299,7 +287,6 @@ func TestGetSupervisorGatesV1Alpha6(t *testing.T) {
 	g.Expect(allTestGates.Enabled(SupervisorFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeFalse())
-	g.Expect(allTestGates.Enabled(HostMaintenanceMode)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha6)).To(BeFalse())
 
 	// set a known feature gate (not versioned)
@@ -314,7 +301,7 @@ func TestGetSupervisorGatesV1Alpha6(t *testing.T) {
 	g.Expect(allTestGates.ResetFeatureValueToDefault(SupervisorFeature)).To(Succeed())
 
 	// set a known versioned feature gate, supported in this version
-	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha2=true,SupervisorFeatureEnabledOnV1Alpha5=true,SupervisorFeatureEnabledOnV1Alpha6=true,HostMaintenanceMode=true")
+	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha2=true,SupervisorFeatureEnabledOnV1Alpha5=true,SupervisorFeatureEnabledOnV1Alpha6=true")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(allTestGates.Enabled(CommonFeature)).To(BeFalse())
 	g.Expect(allTestGates.Enabled(CommonFeatureTrue)).To(BeTrue())
@@ -322,7 +309,6 @@ func TestGetSupervisorGatesV1Alpha6(t *testing.T) {
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha2)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha5)).To(BeTrue())
 	g.Expect(allTestGates.Enabled(SupervisorFeatureEnabledOnV1Alpha6)).To(BeTrue())
-	g.Expect(allTestGates.Enabled(HostMaintenanceMode)).To(BeTrue())
 
 	// set unknown feature gates
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "GovmomiFeature=false")

@@ -402,15 +402,19 @@ spec:
                                         description: |-
                                           name of the remediation template.
                                           name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                          name may be omitted or empty for a VirtualNetwork reference to select the namespace's default network. Otherwise, name is required.
                                         maxLength: 253
-                                        minLength: 1
-                                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$
                                         type: string
                                     required:
                                     - apiVersion
                                     - kind
-                                    - name
                                     type: object
+                                    x-kubernetes-validations:
+                                    - message: name is required unless referencing
+                                        a VirtualNetwork
+                                      rule: self.kind == 'VirtualNetwork' || (has(self.name)
+                                        && size(self.name) > 0)
                                   routes:
                                     description: |-
                                       routes is a list of optional, static routes.
@@ -499,15 +503,19 @@ spec:
                                           description: |-
                                             name of the remediation template.
                                             name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                            name may be omitted or empty for a VirtualNetwork reference to select the namespace's default network. Otherwise, name is required.
                                           maxLength: 253
-                                          minLength: 1
-                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$
                                           type: string
                                       required:
                                       - apiVersion
                                       - kind
-                                      - name
                                       type: object
+                                      x-kubernetes-validations:
+                                      - message: name is required unless referencing
+                                          a VirtualNetwork
+                                        rule: self.kind == 'VirtualNetwork' || (has(self.name)
+                                          && size(self.name) > 0)
                                     routes:
                                       description: |-
                                         routes is a list of optional, static routes.
@@ -1279,15 +1287,19 @@ spec:
                                         description: |-
                                           name of the network object.
                                           name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                          name may be omitted or empty for a VirtualNetwork reference to select the namespace's default network. Otherwise, name is required.
                                         maxLength: 253
-                                        minLength: 1
-                                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$
                                         type: string
                                     required:
                                     - apiVersion
                                     - kind
-                                    - name
                                     type: object
+                                    x-kubernetes-validations:
+                                    - message: name is required unless referencing
+                                        a VirtualNetwork
+                                      rule: self.kind == 'VirtualNetwork' || (has(self.name)
+                                        && size(self.name) > 0)
                                   routes:
                                     description: |-
                                       routes is a list of optional, static routes.
@@ -1375,15 +1387,19 @@ spec:
                                           description: |-
                                             name of the network object.
                                             name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                            name may be omitted or empty for a VirtualNetwork reference to select the namespace's default network. Otherwise, name is required.
                                           maxLength: 253
-                                          minLength: 1
-                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$
                                           type: string
                                       required:
                                       - apiVersion
                                       - kind
-                                      - name
                                       type: object
+                                      x-kubernetes-validations:
+                                      - message: name is required unless referencing
+                                          a VirtualNetwork
+                                        rule: self.kind == 'VirtualNetwork' || (has(self.name)
+                                          && size(self.name) > 0)
                                     routes:
                                       description: |-
                                         routes is a list of optional, static routes.

@@ -494,6 +494,7 @@ func (r *InterfaceSpec) IsDefined() bool {
 
 // InterfaceNetworkReference describes a reference to a network object in the same
 // namespace as the referrer.
+// +kubebuilder:validation:XValidation:rule="self.kind == 'VirtualNetwork' || (has(self.name) && size(self.name) > 0)",message="name is required unless referencing a VirtualNetwork"
 type InterfaceNetworkReference struct {
 	// kind of the network object.
 	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -505,10 +506,11 @@ type InterfaceNetworkReference struct {
 
 	// name of the network object.
 	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-	// +required
-	// +kubebuilder:validation:MinLength=1
+	// name may be omitted or empty for a VirtualNetwork reference to select the namespace's default network. Otherwise, name is required.
+	// +optional
 	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$`
+	//nolint:kubeapilinter // Allow empty string for NSX Tier-1
 	Name string `json:"name,omitempty"`
 
 	// apiVersion of the network object.

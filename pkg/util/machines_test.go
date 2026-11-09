@@ -440,6 +440,57 @@ network:
 `,
 		},
 		{
+			name: "static6 in CIDR notation",
+			machine: &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									IPAddrs:     []string{"2001:db8:1234:5678:9abc:def0:1234:5678/64"},
+									Gateway6:    "2001:db8:1234:5678::1",
+								},
+							},
+							Routes: []infrav1.NetworkRouteSpec{
+								{
+									To:     "2001:db8:1234:5679:9abc:def0:1234:0/112",
+									Via:    "2001:db8:1234:5678::fe",
+									Metric: ptr.To[int32](3),
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: false
+  ipv6: true
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      set-name: "eth0"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
+      addresses:
+      - "2001:db8:1234:5678:9abc:def0:1234:5678/64"
+      gateway6: "2001:db8:1234:5678::1"
+      routes:
+      - to: "2001:db8:1234:5679:9abc:def0:1234:0/112"
+        via: "2001:db8:1234:5678::fe"
+        metric: 3
+`,
+		},
+		{
 			name: "static4+dhcp6+static-routes",
 			machine: &infrav1.VSphereVM{
 				Spec: infrav1.VSphereVMSpec{

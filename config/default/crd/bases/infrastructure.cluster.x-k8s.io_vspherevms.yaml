@@ -1402,7 +1402,7 @@ spec:
                             CIDR notation.
                             Required when DHCP4, DHCP6 and SkipIPAllocation are false.
                           items:
-                            maxLength: 39
+                            maxLength: 43
                             minLength: 1
                             type: string
                           maxItems: 128
@@ -1456,8 +1456,9 @@ spec:
                                 minimum: 0
                                 type: integer
                               to:
-                                description: to is an IPv4 or IPv6 address.
-                                maxLength: 39
+                                description: to is the IPv4 or IPv6 destination of
+                                  the route in CIDR notation.
+                                maxLength: 43
                                 minLength: 1
                                 type: string
                               via:
@@ -1509,8 +1510,9 @@ spec:
                           minimum: 0
                           type: integer
                         to:
-                          description: to is an IPv4 or IPv6 address.
-                          maxLength: 39
+                          description: to is the IPv4 or IPv6 destination of the route
+                            in CIDR notation.
+                          maxLength: 43
                           minLength: 1
                           type: string
                         via:

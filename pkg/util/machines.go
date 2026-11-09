@@ -114,7 +114,11 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 
 		// check static IPs
 		for _, ipStr := range vsphereVM.Spec.Network.Devices[i].IPAddrs {
-			ip := net.ParseIP(ipStr)
+			// Static IPs are in CIDR notation, but also accept a bare address.
+			ip, _, err := net.ParseCIDR(ipStr)
+			if err != nil {
+				ip = net.ParseIP(ipStr)
+			}
 			// check the IP family
 			if ip != nil {
 				if ip.To4() == nil {

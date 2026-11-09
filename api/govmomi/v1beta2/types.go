@@ -558,7 +558,7 @@ type NetworkDeviceSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=128
 	// +kubebuilder:validation:items:MinLength=1
-	// +kubebuilder:validation:items:MaxLength=39
+	// +kubebuilder:validation:items:MaxLength=43
 	IPAddrs []string `json:"ipAddrs,omitempty"`
 
 	// mtu is the device’s Maximum Transmission Unit size in bytes.
@@ -721,10 +721,10 @@ type DHCPOverrides struct {
 
 // NetworkRouteSpec defines a static network route.
 type NetworkRouteSpec struct {
-	// to is an IPv4 or IPv6 address.
+	// to is the IPv4 or IPv6 destination of the route in CIDR notation.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=39
+	// +kubebuilder:validation:MaxLength=43
 	To string `json:"to,omitempty"`
 
 	// via is an IPv4 or IPv6 address.

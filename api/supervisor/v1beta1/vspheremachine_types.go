@@ -483,6 +483,7 @@ type InterfaceNetworkReference struct {
 	// +optional
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$`
+	//nolint:kubeapilinter // Allow empty string for NSX Tier-1
 	Name string `json:"name,omitempty"`
 
 	// apiVersion of the remediation template.

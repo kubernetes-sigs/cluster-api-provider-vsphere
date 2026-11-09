@@ -300,11 +300,11 @@ providers:
 
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-  KUBERNETES_VERSION_MANAGEMENT: "v1.37.0"
-  KUBERNETES_VERSION: "v1.37.0"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.37.0"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.36.0" # Should always be KUBERNETES_VERSION_UPGRADE_TO -1 minor .
-  KUBERNETES_VERSION_CHAINED_UPGRADE_FROM: "v1.33.0" # Should always be KUBERNETES_VERSION_UPGRADE_TO - 4 minor.
+  KUBERNETES_VERSION_MANAGEMENT: "v1.38.0-beta.0"
+  KUBERNETES_VERSION: "v1.38.0-beta.0"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.38.0-beta.0"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.37.0" # Should always be KUBERNETES_VERSION_UPGRADE_TO -1 minor .
+  KUBERNETES_VERSION_CHAINED_UPGRADE_FROM: "v1.34.0" # Should always be KUBERNETES_VERSION_UPGRADE_TO - 4 minor.
   # CPI_IMAGE_K8S_VERSION should be the latest available CPI version matching KUBERNETES_VERSION.
   CPI_IMAGE_K8S_VERSION: "v1.38.0-beta.0"
   # KUBERNETES_VERSION_*_LATEST_CI should always be the upcoming Kubernetes version, if this branch will support it.

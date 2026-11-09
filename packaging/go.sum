@@ -209,10 +209,10 @@ k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098 h1:z5+pcu1jTyKK5mNTe2/+x+
 k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098/go.mod h1:0/mqHCVhlumdJ3BhCfnjSZQE037nAhNodh1/hK0T8/I=
 k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 h1:jVkFFVfXdXP74B/zbO3hM3hpSFD0xvhQ5U686DPurkE=
 k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3/go.mod h1:M2s5JB1lIYP3jzZdorPLHXIPJzt9vv2muW5a6L9DtNM=
-sigs.k8s.io/cluster-api v1.15.0-beta.0 h1:Yp6/mAAhuv55eWzMG2psF8om3GJRfSnnL+RxXcCCK2k=
-sigs.k8s.io/cluster-api v1.15.0-beta.0/go.mod h1:hm5ZFnSZ/psroksaeyIy9Zq/YRnzn5nEVRvY6grt/aw=
-sigs.k8s.io/cluster-api/api v1.15.0-beta.0 h1:EZlQayrTDGib9VeTTVQwvFaKkg9WLr0AzjVmbPJ3K6s=
-sigs.k8s.io/cluster-api/api v1.15.0-beta.0/go.mod h1:oNxKZVT00hg7y1StPjGDXIcC4wokz5pKq4jdL17Z+tQ=
+sigs.k8s.io/cluster-api v1.15.0-beta.0.0.20261109122941-068da3fc0187 h1:C6nw4bEZcHvSAT7juJaUbIhkE35XLqbXXdzs0rbvKA0=
+sigs.k8s.io/cluster-api v1.15.0-beta.0.0.20261109122941-068da3fc0187/go.mod h1:hm5ZFnSZ/psroksaeyIy9Zq/YRnzn5nEVRvY6grt/aw=
+sigs.k8s.io/cluster-api/api v1.15.0-beta.0.0.20261109122941-068da3fc0187 h1:mT16p6HGW36WzowP7gUg0jdAC6koHv5bEtkNjiE9AGc=
+sigs.k8s.io/cluster-api/api v1.15.0-beta.0.0.20261109122941-068da3fc0187/go.mod h1:oNxKZVT00hg7y1StPjGDXIcC4wokz5pKq4jdL17Z+tQ=
 sigs.k8s.io/controller-runtime v0.25.2 h1:bEkK3PVOIVK9X8QWLGVhJgmFc++47vfT6wakSzAOLsQ=
 sigs.k8s.io/controller-runtime v0.25.2/go.mod h1:4QqLdT6z/L6Olj8JJCtvztid4/fnIiYsfaTFScegctc=
 sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 h1:IpInykpT6ceI+QxKBbEflcR5EXP7sU1kvOlxwZh5txg=

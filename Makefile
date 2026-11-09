@@ -199,7 +199,7 @@ KIND_BIN := kind
 KIND := $(abspath $(TOOLS_BIN_DIR)/$(KIND_BIN)-$(KIND_VER))
 KIND_PKG := sigs.k8s.io/kind
 
-CAPI_HACK_TOOLS_VER := a3b7b6f4ec7d422ee9630b2738dc17d17677d8c1 # Note: this the commit ID of CAPI v1.15.0-beta.0 (03.11.2026).
+CAPI_HACK_TOOLS_VER := 068da3fc018781f50fb860cd7f4e9c334293509f # Note: this the commit ID of CAPI main (09.11.2026).
 
 BOSKOSCTL_BIN := boskosctl
 BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))

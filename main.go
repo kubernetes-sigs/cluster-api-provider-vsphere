@@ -458,7 +458,7 @@ func main() {
 					},
 				}
 				byObject[&clusterv1.MachineSet{}] = cache.ByObject{
-					// Drop data of MachineSets as we only use ownerRefs of MachineSets in clog.AddOwners.
+					// Drop data of MachineSets as we only use ownerRefs of MachineSets in logutil.AddOwners.
 					Transform: func(in any) (any, error) {
 						if m, ok := in.(*clusterv1.MachineSet); ok {
 							m.SetManagedFields(nil)

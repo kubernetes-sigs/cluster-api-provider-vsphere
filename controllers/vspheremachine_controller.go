@@ -39,7 +39,7 @@ import (
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -95,12 +95,13 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		Recorder:        mgr.GetEventRecorderFor("vspheremachine-controller"),
 		VMService:       &services.VimMachineService{Client: controllerManagerContext.Client},
 		supervisorBased: supervisorBased,
+		logRateLimiter:  logutil.New(ctx),
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vspheremachine")
 
 	if supervisorBased {
 		r.networkProviderFactory = networkProviderFactory
-		r.VMService = &vmoperator.VmopMachineService{Client: controllerManagerContext.Client}
+		r.VMService = &vmoperator.VmopMachineService{Client: controllerManagerContext.Client, LogRateLimiter: r.logRateLimiter}
 
 		// NOTE: use vm-operator native types for watches (the reconciler uses the internal hub version).
 		vm, err := conversionclient.WatchObject(r.Client, &vmoprvhub.VirtualMachine{})
@@ -185,7 +186,13 @@ type machineReconciler struct {
 	VMService              services.VSphereMachineService
 	networkProviderFactory inframanager.NetworkProviderFactory
 	supervisorBased        bool
+
+	// logRateLimiter reduces the noise of the log lines repeated on every reconcile while waiting for something.
+	logRateLimiter *logutil.Limiter
 }
+
+// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+const logRateLimitInterval = time.Minute
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -231,7 +238,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 
 	// AddOwners adds the owners of Machine as k/v pairs to the logger.
 	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
-	ctx, log, err = clog.AddOwners(ctx, r.Client, machine)
+	ctx, log, err = logutil.AddOwners(ctx, r.Client, machine)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -404,7 +411,7 @@ func (r *machineReconciler) reconcileDelete(ctx context.Context, machineCtx capv
 		if apierrors.IsNotFound(err) {
 			// The VM is deleted so remove the finalizer.
 			if ctrlutil.RemoveFinalizer(machineCtx.GetVSphereMachine(), infrav1.MachineFinalizer) {
-				log.Info(fmt.Sprintf("Removing finalizer %s", infrav1.MachineFinalizer))
+				log.Info(fmt.Sprintf("VSphereMachine %s deleted", machineCtx.GetVSphereMachine().GetName()), "duration", time.Since(machineCtx.GetVSphereMachine().GetDeletionTimestamp().Time).Truncate(time.Second/10))
 			}
 			return reconcile.Result{}, nil
 		}
@@ -455,7 +462,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 	// Make sure bootstrap data is available and populated.
 	if machineCtx.GetMachine().Spec.Bootstrap.DataSecretName == nil {
 		if !util.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) && !conditions.IsTrue(machineCtx.GetCluster(), clusterv1.ClusterControlPlaneInitializedCondition) {
-			log.Info("Waiting for the control plane to be initialized, skipping reconciliation")
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForProvisioningPrerequisitesKey(machineCtx.GetVSphereMachine(), "ControlPlaneInitialized"), "Waiting for the control plane to be initialized")
 			deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
@@ -464,7 +471,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 			})
 			return ctrl.Result{}, nil
 		}
-		log.Info("Waiting for bootstrap data to be ready, skipping reconciliation")
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForProvisioningPrerequisitesKey(machineCtx.GetVSphereMachine(), "BootstrapData"), "Waiting for bootstrap data to be ready")
 		deprecatedv1beta1conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedV1Beta1Condition, infrav1.WaitingForBootstrapDataV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 			Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
@@ -473,6 +480,8 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 		})
 		return reconcile.Result{}, nil
 	}
+
+	r.logRateLimiter.Forget(waitingForProvisioningPrerequisitesKey(machineCtx.GetVSphereMachine(), ""))
 
 	requeue, err := r.VMService.ReconcileNormal(ctx, machineCtx)
 	if err != nil {
@@ -496,6 +505,13 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 		Reason: infrav1.VSphereMachineVirtualMachineProvisionedReason,
 	})
 	return reconcile.Result{}, nil
+}
+
+// waitingForProvisioningPrerequisitesKey identifies the wait of a VSphereMachine for the control plane or the bootstrap data.
+// Note: The step is a value, so a change of the step is logged immediately while the duration still counts from the first wait;
+// the key is forgotten once the bootstrap data is available.
+func waitingForProvisioningPrerequisitesKey(vSphereMachine client.Object, step string) logutil.Key {
+	return logutil.NewKey("WaitingForProvisioningPrerequisites", logutil.WithObjects(vSphereMachine), logutil.WithValues(step))
 }
 
 // patchMachineLabelsWithHostInfo adds the ESXi host information as a label to the Machine object.
@@ -528,7 +544,6 @@ func (r *machineReconciler) patchMachineLabelsWithHostInfo(ctx context.Context, 
 
 // Return hooks that will be invoked when a VirtualMachine is created.
 func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvcontext.MachineContext, np services.NetworkProvider) error {
-	log := ctrl.LoggerFrom(ctx)
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return pkgerrors.New("received unexpected MachineContext. expecting SupervisorMachineContext type")
@@ -537,7 +552,6 @@ func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvc
 	networkModifier := func(obj runtime.Object) (runtime.Object, error) {
 		// No need to check the type. We know this will be a VirtualMachine
 		vm, _ := obj.(*vmoprvhub.VirtualMachine)
-		log.V(3).Info("Applying network config to VM")
 		err := np.ConfigureVirtualMachine(ctx, supervisorMachineCtx.GetClusterContext(), supervisorMachineCtx.VSphereMachine, vm)
 		if err != nil {
 			return nil, pkgerrors.Errorf("failed to configure machine network: %+v", err)

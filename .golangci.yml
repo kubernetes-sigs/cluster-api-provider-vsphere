@@ -201,6 +201,8 @@ linters:
           alias: deprecatedv1beta1conditions
         - pkg: sigs.k8s.io/cluster-api/util/controller
           alias: "capicontrollerutil"
+        - pkg: sigs.k8s.io/cluster-api/util/log
+          alias: logutil
         # CAPI addons
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
           alias: addonsv1

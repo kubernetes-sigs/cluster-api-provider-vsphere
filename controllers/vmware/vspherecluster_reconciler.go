@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
@@ -134,7 +135,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 
 	// Handle deleted clusters
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
-		r.reconcileDelete(clusterContext)
+		r.reconcileDelete(ctx, clusterContext)
 		return ctrl.Result{}, nil
 	}
 
@@ -218,7 +219,9 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 	)
 }
 
-func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
+func (r *ClusterReconciler) reconcileDelete(ctx context.Context, clusterCtx *vmware.ClusterContext) {
+	log := ctrl.LoggerFrom(ctx)
+
 	deletingConditionTypes := []clusterv1.ConditionType{
 		vmwarev1.ResourcePolicyReadyV1Beta1Condition,
 		vmwarev1.ClusterNetworkReadyV1Beta1Condition,
@@ -255,6 +258,10 @@ func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
 		Reason: vmwarev1.VSphereClusterFailureDomainsReadyDeletingReason,
 	})
 	// Cluster is deleted so remove the finalizer.
+	// Note: The VSphereCluster is gone once the patch removing the finalizers succeeds; if the patch fails the next reconcile logs this line again.
+	if controllerutil.ContainsFinalizer(clusterCtx.VSphereCluster, vmwarev1.ClusterFinalizer) {
+		log.Info(fmt.Sprintf("VSphereCluster %s deleted", clusterCtx.VSphereCluster.Name), "duration", time.Since(clusterCtx.VSphereCluster.DeletionTimestamp.Time).Truncate(time.Second/10))
+	}
 	controllerutil.RemoveFinalizer(clusterCtx.VSphereCluster, vmwarev1.ClusterFinalizer)
 }
 
@@ -308,7 +315,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	}
 
 	if !ptr.Deref(clusterCtx.VSphereCluster.Status.Initialization.Provisioned, false) {
-		log.Info("VSphereCluster provisioning complete")
+		log.Info(fmt.Sprintf("VSphereCluster %s provisioning completed", clusterCtx.VSphereCluster.Name), "duration", time.Since(clusterCtx.VSphereCluster.CreationTimestamp.Time).Truncate(time.Second/10))
 	}
 	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = ptr.To(true)
 	return nil

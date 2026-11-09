@@ -183,7 +183,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 				metav1.Condition{Type: vmwarev1.VSphereClusterResourcePolicyReadyCondition, Status: metav1.ConditionTrue},
 				metav1.Condition{Type: vmwarev1.VSphereClusterFailureDomainsReadyCondition, Status: metav1.ConditionTrue}, // Setup FailureDomains condition
 			)
-			reconciler.reconcileDelete(clusterCtx)
+			reconciler.reconcileDelete(ctx, clusterCtx)
 
 			// Verify ResourcePolicy condition
 			c1 := conditions.Get(clusterCtx.VSphereCluster, vmwarev1.VSphereClusterResourcePolicyReadyCondition)
@@ -202,7 +202,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 			otherReady := "OtherReady"
 			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
 				metav1.Condition{Type: otherReady, Status: metav1.ConditionTrue})
-			reconciler.reconcileDelete(clusterCtx)
+			reconciler.reconcileDelete(ctx, clusterCtx)
 			c := conditions.Get(clusterCtx.VSphereCluster, otherReady)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).NotTo(Equal(metav1.ConditionFalse))

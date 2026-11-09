@@ -101,82 +101,80 @@ func (np *externallyManagedNetworkProvider) GetVMServiceAnnotations(_ context.Co
 // ConfigureVirtualMachine straight-propagates machine interfaces and VLANs onto the VM.
 // Interface routes are not propagated (and are rejected by the VSphereMachine webhook).
 // Primary is required (workload network on eth0).
+// Existing interfaces absent from the machine spec are preserved.
 func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.Context, _ *vmware.ClusterContext, machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
 	primary := machine.Spec.Network.Interfaces.Primary
 	if !primary.IsDefined() {
 		return pkgerrors.New("primary interface must be defined")
 	}
 
-	oldNetwork := vm.Spec.Network.DeepCopy()
-	vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	if vm.Spec.Network == nil {
+		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	}
 
 	primaryIPAMModes, err := np.ipamModesForInterface(ctx, machine.Namespace, primary.NetworkRef)
 	if err != nil {
 		return err
 	}
-	vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterfaceFromSpec(
+	vmInterfaceFromSpec(
+		vm.Spec.Network,
 		PrimaryInterfaceName,
 		primary,
 		"", // gateway4
 		"", // gateway6
 		primaryIPAMModes,
-	))
+	)
 
 	for _, secondary := range machine.Spec.Network.Interfaces.Secondary {
 		ipamModes, err := np.ipamModesForInterface(ctx, machine.Namespace, secondary.NetworkRef)
 		if err != nil {
 			return err
 		}
-		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterfaceFromSpec(
+		vmInterfaceFromSpec(
+			vm.Spec.Network,
 			secondary.Name,
 			secondary.InterfaceSpec,
 			"None",
 			"None",
 			ipamModes,
-		))
-	}
-
-	// Network providers can rebuild interfaces from VSphereMachine, which does not expose MAC addresses.
-	if oldNetwork != nil {
-		for i := range vm.Spec.Network.Interfaces {
-			iface := &vm.Spec.Network.Interfaces[i]
-			if iface.Network == nil {
-				continue
-			}
-			for _, oldIface := range oldNetwork.Interfaces {
-				// Preserve the immutable spec MAC of each existing interface on the same network, including an empty MAC.
-				if oldIface.Network != nil && oldIface.Name == iface.Name &&
-					oldIface.Network.Name == iface.Network.Name &&
-					oldIface.Network.GroupVersionKind().GroupKind() == iface.Network.GroupVersionKind().GroupKind() {
-					iface.MACAddr = oldIface.MACAddr
-					break
-				}
-			}
-		}
+		)
 	}
 
 	return setVLANs(machine, vm)
 }
 
-func vmInterfaceFromSpec(name string, iface vmwarev1.InterfaceSpec, gateway4, gateway6 string, ipamModes []corev1.IPFamily) vmoprvhub.VirtualMachineNetworkInterfaceSpec {
+func vmInterfaceFromSpec(network *vmoprvhub.VirtualMachineNetworkSpec, name string, iface vmwarev1.InterfaceSpec, gateway4, gateway6 string, ipamModes []corev1.IPFamily) {
+	var vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec
+
+	// use interface name to determine whether already exists
+	for i := range network.Interfaces {
+		if network.Interfaces[i].Name == name {
+			vmInterface = &network.Interfaces[i]
+			break
+		}
+	}
+
+	// new interface and point to vmInterface
+	if vmInterface == nil {
+		network.Interfaces = append(network.Interfaces, vmoprvhub.VirtualMachineNetworkInterfaceSpec{Name: name})
+		vmInterface = &network.Interfaces[len(network.Interfaces)-1]
+	}
+
+	vmInterface.Network = &vmoprvhub.PartialObjectRef{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       iface.NetworkRef.Kind,
+			APIVersion: iface.NetworkRef.APIVersion,
+		},
+		Name: iface.NetworkRef.Name,
+	}
 	var mtu *int64
 	if iface.MTU != 0 {
 		mtu = ptr.To(int64(iface.MTU))
 	}
-	return vmoprvhub.VirtualMachineNetworkInterfaceSpec{
-		Name: name,
-		Network: &vmoprvhub.PartialObjectRef{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       iface.NetworkRef.Kind,
-				APIVersion: iface.NetworkRef.APIVersion,
-			},
-			Name: iface.NetworkRef.Name,
-		},
-		MTU:       mtu,
-		Gateway4:  gateway4,
-		Gateway6:  gateway6,
-		IPAMModes: ipamModes,
-	}
+	vmInterface.MTU = mtu
+	vmInterface.Gateway4 = gateway4
+	vmInterface.Gateway6 = gateway6
+	vmInterface.IPAMModes = ipamModes
 }
 
 // ipamModesForInterface derives IPAMModes from a referenced Subnet or SubnetSet

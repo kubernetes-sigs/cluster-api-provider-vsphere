@@ -1636,6 +1636,92 @@ var _ = Describe("ExternallyManaged network provider", func() {
 			Expect(vm.Spec.Network.Interfaces[1].Gateway6).To(Equal("None"))
 		})
 
+		It("preserves fields CAPV does not own when reconciling existing interfaces", func() {
+			networkRef := vmwarev1.InterfaceNetworkReference{
+				Kind:       NetworkGVKNSXTVPCSubnet.Kind,
+				APIVersion: NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+				Name:       "workload-subnet",
+			}
+			machine.Spec.Network.Interfaces = vmwarev1.InterfacesSpec{
+				Primary: vmwarev1.InterfaceSpec{
+					NetworkRef: networkRef,
+				},
+				Secondary: []vmwarev1.SecondaryInterfaceSpec{
+					{Name: "eth1", InterfaceSpec: vmwarev1.InterfaceSpec{NetworkRef: networkRef}},
+					{Name: "eth2", InterfaceSpec: vmwarev1.InterfaceSpec{NetworkRef: networkRef}},
+				},
+			}
+
+			// Existing eth0 and eth1
+			vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{
+				Interfaces: []vmoprvhub.VirtualMachineNetworkInterfaceSpec{
+					{
+						Name:            PrimaryInterfaceName,
+						MACAddr:         "00:50:56:00:00:01",
+						Addresses:       []string{"192.168.1.10/24", "2001:db8::10/64"},
+						DHCP4:           ptr.To(false),
+						DHCP6:           ptr.To(false),
+						MTU:             ptr.To(int64(1500)),
+						Gateway4:        "192.168.1.1",
+						Gateway6:        "2001:db8::1",
+						GuestDeviceName: "ens192",
+						Nameservers:     []string{"192.168.1.53"},
+						SearchDomains:   []string{"example.test"},
+						Routes: []vmoprvhub.VirtualMachineNetworkRouteSpec{
+							{To: "10.0.0.0/8", Via: "192.168.1.1", Metric: 100},
+						},
+						Type:        vmoprvhub.VirtualMachineNetworkInterfaceTypeVMXNet3,
+						VNUMANodeID: ptr.To(int32(0)),
+						VMXNet3: &vmoprvhub.VirtualMachineNetworkInterfaceVMXNet3Spec{
+							UPTv2Enabled: ptr.To(true),
+						},
+						AdvancedProperties: []vmoprvhub.KeyValuePair{{Key: "customProperty", Value: "value"}},
+					},
+					{
+						Name:            "eth1",
+						MACAddr:         "00:50:56:00:00:02",
+						Addresses:       []string{"192.168.1.11/24", "2001:db8::11/64"},
+						DHCP4:           ptr.To(true),
+						DHCP6:           ptr.To(true),
+						MTU:             ptr.To(int64(9000)),
+						Gateway4:        "192.168.1.2",
+						Gateway6:        "2001:db8::2",
+						GuestDeviceName: "ens192",
+						Nameservers:     []string{"192.168.1.54"},
+						SearchDomains:   []string{"example1.test"},
+						Routes: []vmoprvhub.VirtualMachineNetworkRouteSpec{
+							{To: "10.0.0.0/8", Via: "192.168.1.2", Metric: 100},
+						},
+						Type:        vmoprvhub.VirtualMachineNetworkInterfaceTypeVMXNet3,
+						VNUMANodeID: ptr.To(int32(0)),
+						VMXNet3: &vmoprvhub.VirtualMachineNetworkInterfaceVMXNet3Spec{
+							UPTv2Enabled: ptr.To(true),
+						},
+						AdvancedProperties: []vmoprvhub.KeyValuePair{{Key: "customProperty", Value: "value"}},
+					},
+				},
+			}
+			expected := vm.Spec.Network.DeepCopy()
+			ref := &vmoprvhub.PartialObjectRef{
+				TypeMeta: metav1.TypeMeta{Kind: networkRef.Kind, APIVersion: networkRef.APIVersion},
+				Name:     networkRef.Name,
+			}
+			expected.Interfaces[0].Network = ref
+			expected.Interfaces[0].MTU = nil
+			expected.Interfaces[0].Gateway4 = ""
+			expected.Interfaces[0].Gateway6 = ""
+			expected.Interfaces[1].Network = ref
+			expected.Interfaces[1].MTU = nil
+			expected.Interfaces[1].Gateway4 = "None"
+			expected.Interfaces[1].Gateway6 = "None"
+			expected.Interfaces = append(expected.Interfaces, vmoprvhub.VirtualMachineNetworkInterfaceSpec{
+				Name: "eth2", Network: ref, Gateway4: "None", Gateway6: "None",
+			})
+
+			Expect(np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)).To(Succeed())
+			Expect(vm.Spec.Network).To(Equal(expected))
+		})
+
 		DescribeTable("derives IPAMModes from Subnet/SubnetSet ipAddressType when IPv6DualStack is enabled",
 			func(kind string, apiVersion string, createObj func(name string, ipType nsxvpcv1.IPAddressType) runtime.Object, ipType nsxvpcv1.IPAddressType, expected []corev1.IPFamily) {
 				Expect(feature.Gates.(featuregate.MutableFeatureGate).Set("IPv6DualStack=true")).To(Succeed())

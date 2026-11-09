@@ -513,6 +513,9 @@ func newSupervisorHeadlessServiceEndpoints(targetHosts []string, targetPort int)
 				Ports: []corev1.EndpointPort{
 					{
 						Port: int32(targetPort),
+						// Note: Set explicitly because the API server defaults it to TCP; leaving it empty makes
+						// CreateOrPatch see a diff and patch the Endpoints on every reconcile.
+						Protocol: corev1.ProtocolTCP,
 					},
 				},
 			},

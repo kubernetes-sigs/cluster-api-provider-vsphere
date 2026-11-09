@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -57,7 +59,14 @@ const (
 // VmopMachineService reconciles VM Operator VM.
 type VmopMachineService struct {
 	Client client.Client
+
+	// LogRateLimiter reduces the noise of the log lines repeated on every reconcile while waiting for the VirtualMachine.
+	// A nil LogRateLimiter does not rate limit.
+	LogRateLimiter *logutil.Limiter
 }
+
+// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+const logRateLimitInterval = time.Minute
 
 // GetMachinesInCluster returns a list of VSphereMachine objects belonging to the cluster.
 func (v *VmopMachineService) GetMachinesInCluster(
@@ -113,7 +122,6 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 	if !ok {
 		return pkgerrors.New("received unexpected SupervisorMachineContext type")
 	}
-	log.Info("Deleting VirtualMachine")
 
 	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
 	if log.V(5).Enabled() {
@@ -131,9 +139,14 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 	if err != nil {
 		return err
 	}
+
+	log = log.WithValues("VirtualMachine", klog.KRef(key.Namespace, key.Name))
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	if err := v.Client.Get(ctx, *key, vmOperatorVM); err != nil {
 		// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
 		if apierrors.IsNotFound(err) {
+			v.LogRateLimiter.Forget(waitingForVirtualMachineDeletionKey(supervisorMachineCtx.VSphereMachine))
 			supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseNotFound
 			return err
 		}
@@ -143,11 +156,13 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 
 	// Next, check to see if it's in the process of being deleted
 	if vmOperatorVM.GetDeletionTimestamp() != nil {
+		v.LogRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForVirtualMachineDeletionKey(supervisorMachineCtx.VSphereMachine), fmt.Sprintf("Waiting for VirtualMachine %s to be deleted", vmOperatorVM.Name))
 		supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseDeleting
 		return nil
 	}
 
 	// If none of the above are true, Delete the VM
+	log.Info(fmt.Sprintf("Deleting VirtualMachine %s", vmOperatorVM.Name), "reason", "VSphereMachineDeleted")
 	if err := v.Client.Delete(ctx, vmOperatorVM); err != nil {
 		if apierrors.IsNotFound(err) {
 			supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseNotFound
@@ -158,6 +173,10 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 	}
 	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseDeleting
 	return nil
+}
+
+func waitingForVirtualMachineDeletionKey(vSphereMachine client.Object) logutil.Key {
+	return logutil.NewKey("WaitingForVirtualMachineDeletion", logutil.WithObjects(vSphereMachine))
 }
 
 // SyncFailureReason returns true if there is a Failure on the VM Operator VM.
@@ -354,7 +373,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				Reason:  c.Reason,
 				Message: c.Message,
 			})
-			return false, pkgerrors.Errorf("vm prerequisites check failed for condition %s: %s", condition, klog.KObj(vmOperatorVM))
+			return false, pkgerrors.Errorf("VirtualMachine %s prerequisite %s is not ready: %s", vmOperatorVM.Name, condition, c.Message)
 		}
 
 		// All the pre-requisites are in place but the machines is not yet created, report it.
@@ -364,7 +383,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.VSphereMachineVirtualMachineProvisioningReason,
 		})
-		log.Info(fmt.Sprintf("VM is not yet created: %s", supervisorMachineCtx))
+		v.LogRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForVirtualMachineKey(supervisorMachineCtx.VSphereMachine, "VirtualMachineCreated"), fmt.Sprintf("Waiting for VirtualMachine %s to be created", vmOperatorVM.Name))
 		return true, nil
 	}
 	// Mark the VM as created
@@ -377,7 +396,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.VSphereMachineVirtualMachinePoweringOnReason,
 		})
-		log.Info(fmt.Sprintf("VM is not yet powered on: %s", supervisorMachineCtx))
+		v.LogRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForVirtualMachineKey(supervisorMachineCtx.VSphereMachine, "VirtualMachinePoweredOn"), fmt.Sprintf("Waiting for VirtualMachine %s to be powered on", vmOperatorVM.Name))
 		return true, nil
 	}
 	// Mark the VM as poweredOn
@@ -390,7 +409,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.VSphereMachineVirtualMachineWaitingForNetworkAddressReason,
 		})
-		log.Info("VM does not have an IP address")
+		v.LogRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForVirtualMachineKey(supervisorMachineCtx.VSphereMachine, "VirtualMachineIPAddress"), fmt.Sprintf("Waiting for VirtualMachine %s to report IP address", vmOperatorVM.Name))
 		return true, nil
 	}
 
@@ -401,7 +420,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.VSphereMachineVirtualMachineWaitingForBIOSUUIDReason,
 		})
-		log.Info("VM does not have a BIOS UUID")
+		v.LogRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForVirtualMachineKey(supervisorMachineCtx.VSphereMachine, "VirtualMachineBIOSUUID"), fmt.Sprintf("Waiting for VirtualMachine %s to report BIOS UUID", vmOperatorVM.Name))
 		return true, nil
 	}
 
@@ -409,7 +428,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	supervisorMachineCtx.VSphereMachine.Status.Phase = vmwarev1.VSphereMachinePhaseReady
 
 	if ok := v.reconcileNetwork(supervisorMachineCtx, vmOperatorVM); !ok {
-		log.Info("IP not yet assigned")
+		v.LogRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForVirtualMachineKey(supervisorMachineCtx.VSphereMachine, "VirtualMachineNetworkInterfaces"), fmt.Sprintf("Waiting for VirtualMachine %s to report IP addresses for all network interfaces", vmOperatorVM.Name))
 		return true, nil
 	}
 
@@ -428,7 +447,8 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 	// Mark the VSphereMachine as Ready
 	if !ptr.Deref(supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned, false) {
-		log.Info("VSphereMachine provisioning complete")
+		v.LogRateLimiter.Forget(waitingForVirtualMachineKey(supervisorMachineCtx.VSphereMachine, ""))
+		log.Info(fmt.Sprintf("VSphereMachine %s provisioning completed", supervisorMachineCtx.VSphereMachine.Name), "duration", time.Since(machineCtx.GetVSphereMachine().GetCreationTimestamp().Time).Truncate(time.Second/10))
 	}
 	supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
 	deprecatedv1beta1conditions.MarkTrue(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition)
@@ -438,6 +458,13 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		Reason: infrav1.VSphereMachineVirtualMachineProvisionedReason,
 	})
 	return false, nil
+}
+
+// waitingForVirtualMachineKey identifies the wait of a VSphereMachine for its VirtualMachine to be provisioned.
+// Note: The step is a value, so a change of the step is logged immediately while the duration still counts from the first wait;
+// the key is forgotten once the VSphereMachine is provisioned.
+func waitingForVirtualMachineKey(vSphereMachine client.Object, step string) logutil.Key {
+	return logutil.NewKey("WaitingForVirtualMachine", logutil.WithObjects(vSphereMachine), logutil.WithValues(step))
 }
 
 func getAffinitySpec(mdName string, otherMDNames []string, antiAffinity vmwarev1.VMAntiAffinitySpec) vmoprvhub.AffinitySpec {
@@ -578,6 +605,8 @@ func (v *VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcon
 }
 
 func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vmOperatorVM *vmoprvhub.VirtualMachine, affinityInfo *affinityInfo) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	// All Machine resources should define the version of Kubernetes to use.
 	if supervisorMachineCtx.Machine.Spec.Version == "" {
 		return pkgerrors.Errorf(
@@ -735,6 +764,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	}
 
 	if !vmExists {
+		log.Info(fmt.Sprintf("Creating VirtualMachine %s", vmOperatorVM.Name))
 		if err := v.Client.Create(ctx, vmOperatorVM); err != nil {
 			return err
 		}
@@ -743,6 +773,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		if err != nil {
 			return pkgerrors.Wrapf(err, "failed to create patch for VirtualMachine object")
 		}
+		log.Info(fmt.Sprintf("Patching VirtualMachine %s", vmOperatorVM.Name))
 		if err := v.Client.Patch(ctx, vmOperatorVM, patch); err != nil {
 			return pkgerrors.Wrapf(err, "failed to patch VirtualMachine object")
 		}

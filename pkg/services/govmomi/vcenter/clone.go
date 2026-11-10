@@ -19,6 +19,7 @@ package vcenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -633,7 +634,7 @@ func newUnitNumberAssigner(controller types.BaseVirtualController, existingDevic
 
 func (a *unitNumberAssigner) assign() (int32, error) {
 	if int(a.offset) > len(a.used) {
-		return -1, fmt.Errorf("all unit numbers are already in-use")
+		return -1, errors.New("all unit numbers are already in-use")
 	}
 	for i, isInUse := range a.used[a.offset:] {
 		unit := int32(i) + a.offset
@@ -643,7 +644,7 @@ func (a *unitNumberAssigner) assign() (int32, error) {
 			return unit, nil
 		}
 	}
-	return -1, fmt.Errorf("all unit numbers are already in-use")
+	return -1, errors.New("all unit numbers are already in-use")
 }
 
 const ethCardType = "vmxnet3"

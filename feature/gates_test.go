@@ -17,7 +17,7 @@ limitations under the License.
 package feature
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -123,13 +123,13 @@ func TestGetGovmomiGates(t *testing.T) {
 
 	// set unknown feature gates
 	err = set(allTestGates, allowedGates, nil, "SupervisorFeature=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: SupervisorFeature")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: SupervisorFeature")})))
 
 	err = set(allTestGates, allowedGates, nil, "SupervisorFeatureEnabledOnV1Alpha2=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: SupervisorFeatureEnabledOnV1Alpha2")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: SupervisorFeatureEnabledOnV1Alpha2")})))
 
 	err = set(allTestGates, allowedGates, nil, "Foo=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: Foo")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: Foo")})))
 }
 
 func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
@@ -183,7 +183,7 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 
 	// set a known versioned feature(v1alpha5), NOT supported in this version, set to true
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha5=true")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha5 to true, feature requires a newer vm-operator API version")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha5 to true, feature requires a newer vm-operator API version")})))
 
 	// set a known versioned feature(v1alpha6), NOT supported in this version, set to false
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha6=false")
@@ -197,14 +197,14 @@ func TestGetSupervisorGatesV1Alpha2(t *testing.T) {
 
 	// set a known versioned feature(v1alpha6), NOT supported in this version, set to true
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha6=true")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha6 to true, feature requires a newer vm-operator API version")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha6 to true, feature requires a newer vm-operator API version")})))
 
 	// set unknown feature gates
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "GovmomiFeature=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: GovmomiFeature")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: GovmomiFeature")})))
 
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "Foo=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: Foo")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: Foo")})))
 }
 
 func TestGetSupervisorGatesV1Alpha5(t *testing.T) {
@@ -258,14 +258,14 @@ func TestGetSupervisorGatesV1Alpha5(t *testing.T) {
 
 	// set a known versioned feature(v1alpha6), NOT supported in this version, set to true
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "SupervisorFeatureEnabledOnV1Alpha6=true")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha6 to true, feature requires a newer vm-operator API version")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("cannot set feature gate SupervisorFeatureEnabledOnV1Alpha6 to true, feature requires a newer vm-operator API version")})))
 
 	// set unknown feature gates
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "GovmomiFeature=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: GovmomiFeature")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: GovmomiFeature")})))
 
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "Foo=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: Foo")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: Foo")})))
 }
 
 func TestGetSupervisorGatesV1Alpha6(t *testing.T) {
@@ -312,8 +312,8 @@ func TestGetSupervisorGatesV1Alpha6(t *testing.T) {
 
 	// set unknown feature gates
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "GovmomiFeature=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: GovmomiFeature")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: GovmomiFeature")})))
 
 	err = set(allTestGates, allowedGates, supervisorVersionedTestGates, "Foo=false")
-	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{fmt.Errorf("unrecognized feature gate: Foo")})))
+	g.Expect(err).To(Equal(kerrors.NewAggregate([]error{errors.New("unrecognized feature gate: Foo")})))
 }

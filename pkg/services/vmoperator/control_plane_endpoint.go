@@ -18,6 +18,7 @@ package vmoperator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -101,7 +102,7 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 	// 3. Validate topology against capabilities
 	if !ipv6DualStackSupported {
 		if ipFamily == util.IPv6SingleStack || ipFamily == util.DualStackIPv4Primary || ipFamily == util.DualStackIPv6Primary {
-			err := fmt.Errorf("IPv6 and DualStack require the IPv6DualStack feature gate, VM Operator v1alpha6+, and a network provider that supports it")
+			err := errors.New("IPv6 and DualStack require the IPv6DualStack feature gate, VM Operator v1alpha6+, and a network provider that supports it")
 			deprecatedv1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyV1Beta1Condition, vmwarev1.LoadBalancerCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%v", err)
 			conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:    vmwarev1.VSphereClusterLoadBalancerReadyCondition,
@@ -412,7 +413,7 @@ func getAndValidateVIPs(vmService *vmoprvhub.VirtualMachineService, topology uti
 		return ipv6VIP, []string{ipv6VIP, ipv4VIP}, nil
 
 	default:
-		return "", nil, fmt.Errorf("unknown cluster IPFamily")
+		return "", nil, errors.New("unknown cluster IPFamily")
 	}
 }
 

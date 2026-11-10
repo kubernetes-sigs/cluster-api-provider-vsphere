@@ -312,6 +312,7 @@ linters:
         - name: time-equal
         - name: unconditional-recursion
         - name: unnecessary-if
+        - name: use-errors-new
         - name: useless-fallthrough
         - name: waitgroup-by-value
   exclusions:

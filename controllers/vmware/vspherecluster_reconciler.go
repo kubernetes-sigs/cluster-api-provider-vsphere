@@ -432,7 +432,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 			return pkgerrors.Wrapf(err, "failed to get VSphereMachine for Machine %s/%s", machine.Namespace, machine.Name)
 		}
 		log = log.WithValues("VSphereMachine", klog.KObj(vsphereMachine))
-		ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
+		ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck,wastedassign // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
 
 		// If the machine has no IP address then skip it.
 		if len(vsphereMachine.Status.Addresses) == 0 {

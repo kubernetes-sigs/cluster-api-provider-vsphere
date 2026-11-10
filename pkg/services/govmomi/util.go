@@ -151,7 +151,7 @@ func checkAndRetryTask(ctx context.Context, vmCtx *capvcontext.VMContext, task *
 
 	// Otherwise the course of action is determined by the state of the task.
 	log = log.WithValues("taskRef", task.Reference().Value, "taskState", task.Info.State, "taskDescriptionID", task.Info.DescriptionId)
-	ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
+	ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck,wastedassign // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
 	switch task.Info.State {
 	case types.TaskInfoStateQueued:
 		log.Info("Task found: Task is still pending")

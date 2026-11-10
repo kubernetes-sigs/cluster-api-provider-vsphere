@@ -552,8 +552,6 @@ func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvc
 	networkModifier := func(obj runtime.Object) (runtime.Object, error) {
 		// No need to check the type. We know this will be a VirtualMachine
 		vm, _ := obj.(*vmoprvhub.VirtualMachine)
-		log.V(3).Info("Applying network config to VM")
-		oldNetwork := vm.Spec.Network.DeepCopy()
 		err := np.ConfigureVirtualMachine(ctx, supervisorMachineCtx.GetClusterContext(), supervisorMachineCtx.VSphereMachine, vm)
 		if err != nil {
 			return nil, pkgerrors.Errorf("failed to configure machine network: %+v", err)

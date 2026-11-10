@@ -1699,6 +1699,10 @@ var _ = Describe("ExternallyManaged network provider", func() {
 						},
 						AdvancedProperties: []vmoprvhub.KeyValuePair{{Key: "customProperty", Value: "value"}},
 					},
+					{
+						Name:    "eth-need-remove",
+						MACAddr: "00:50:56:00:00:02",
+					},
 				},
 			}
 			expected := vm.Spec.Network.DeepCopy()
@@ -1714,9 +1718,10 @@ var _ = Describe("ExternallyManaged network provider", func() {
 			expected.Interfaces[1].MTU = nil
 			expected.Interfaces[1].Gateway4 = "None"
 			expected.Interfaces[1].Gateway6 = "None"
-			expected.Interfaces = append(expected.Interfaces, vmoprvhub.VirtualMachineNetworkInterfaceSpec{
+			// expect eth-need-remove nic is removed, and eth2 nic is appended
+			expected.Interfaces[2] = vmoprvhub.VirtualMachineNetworkInterfaceSpec{
 				Name: "eth2", Network: ref, Gateway4: "None", Gateway6: "None",
-			})
+			}
 
 			Expect(np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)).To(Succeed())
 			Expect(vm.Spec.Network).To(Equal(expected))

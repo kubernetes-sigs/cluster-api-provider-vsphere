@@ -18,6 +18,7 @@ package network
 
 import (
 	"context"
+	"slices"
 
 	pkgerrors "github.com/pkg/errors"
 	nsxvpcv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
@@ -101,7 +102,6 @@ func (np *externallyManagedNetworkProvider) GetVMServiceAnnotations(_ context.Co
 // ConfigureVirtualMachine straight-propagates machine interfaces and VLANs onto the VM.
 // Interface routes are not propagated (and are rejected by the VSphereMachine webhook).
 // Primary is required (workload network on eth0).
-// Existing interfaces absent from the machine spec are preserved.
 func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.Context, _ *vmware.ClusterContext, machine *vmwarev1.VSphereMachine, vm *vmoprvhub.VirtualMachine) error {
 	primary := machine.Spec.Network.Interfaces.Primary
 	if !primary.IsDefined() {
@@ -125,6 +125,9 @@ func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.
 		primaryIPAMModes,
 	)
 
+	// interfaceNames records interfaces from the VSphereMachine spec,
+	// will remove interfaces in VirtualMachine that are not exist in interfaceNames.
+	interfaceNames := map[string]struct{}{PrimaryInterfaceName: {}}
 	for _, secondary := range machine.Spec.Network.Interfaces.Secondary {
 		ipamModes, err := np.ipamModesForInterface(ctx, machine.Namespace, secondary.NetworkRef)
 		if err != nil {
@@ -138,8 +141,17 @@ func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.
 			"None",
 			ipamModes,
 		)
+		interfaceNames[secondary.Name] = struct{}{}
 	}
 
+	// Clean up legacy network interfaces
+	vm.Spec.Network.Interfaces = slices.DeleteFunc(vm.Spec.Network.Interfaces, func(iface vmoprvhub.VirtualMachineNetworkInterfaceSpec) bool {
+		_, desired := interfaceNames[iface.Name]
+		return !desired
+	})
+
+	// CAPV owns the VLAN list, including removal and links to retained interfaces.
+	vm.Spec.Network.VLANs = nil
 	return setVLANs(machine, vm)
 }
 

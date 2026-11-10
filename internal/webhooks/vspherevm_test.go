@@ -41,9 +41,9 @@ func TestVSphereVM_Default(t *testing.T) {
 
 	ctx := context.Background()
 	webhook := &VSphereVM{}
-	g.Expect(webhook.Default(ctx, WindowsVM)).ToNot(HaveOccurred())
-	g.Expect(webhook.Default(ctx, LinuxVM)).ToNot(HaveOccurred())
-	g.Expect(webhook.Default(ctx, NoOSVM)).ToNot(HaveOccurred())
+	g.Expect(webhook.Default(ctx, WindowsVM)).To(Succeed())
+	g.Expect(webhook.Default(ctx, LinuxVM)).To(Succeed())
+	g.Expect(webhook.Default(ctx, NoOSVM)).To(Succeed())
 
 	g.Expect(LinuxVM.Spec.OS).To(Equal(infrav1.Linux))
 	g.Expect(WindowsVM.Spec.OS).To(Equal(infrav1.Windows))

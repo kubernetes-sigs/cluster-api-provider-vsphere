@@ -55,7 +55,7 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 						existingDevices = append(existingDevices, i.pciDeviceSpecs[idx])
 					}
 					g.Expect(vm.AddDevice(ctx,
-						ConstructDeviceSpecs(existingDevices)...)).ToNot(gomega.HaveOccurred())
+						ConstructDeviceSpecs(existingDevices)...)).To(gomega.Succeed())
 				}
 				toBeAdded, err := CalculateDevicesToBeAdded(ctx, vm, i.pciDeviceSpecs)
 				g.Expect(err).ToNot(gomega.HaveOccurred())

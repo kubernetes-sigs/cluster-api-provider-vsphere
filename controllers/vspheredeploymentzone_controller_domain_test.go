@@ -99,11 +99,11 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 
 	vsphereFailureDomain.Spec.Topology.ComputeCluster = "DC0_C1"
 	// Since association is verified, the method errors since the tag is not associated to the object.
-	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
+	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).ToNot(Succeed())
 
 	// Since the tag does not belong to the category
 	vsphereFailureDomain.Spec.Zone.TagCategory = "diff-k8s-region"
-	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
+	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).ToNot(Succeed())
 }
 
 func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroupZone(t *testing.T) {
@@ -166,12 +166,12 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroup
 	reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 
 	// Fails since no hosts are tagged
-	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
+	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).ToNot(Succeed())
 	stdout := gbytes.NewBuffer()
 
 	g.Expect(simr.Run("tags.attach k8s-region-west-2 /DC0/host/DC0_C0/DC0_C0_H0", stdout)).To(Succeed())
 	// Fails as not all hosts are tagged
-	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
+	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).ToNot(Succeed())
 
 	g.Expect(simr.Run("tags.attach k8s-region-west-2 /DC0/host/DC0_C0/DC0_C0_H1", stdout)).To(Succeed())
 	// Succeeds as all hosts are tagged
@@ -179,5 +179,5 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroup
 
 	// Since the tag does not belong to the category
 	vsphereFailureDomain.Spec.Zone.TagCategory = "diff-k8s-region"
-	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
+	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).ToNot(Succeed())
 }

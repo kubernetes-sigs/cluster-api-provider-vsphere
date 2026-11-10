@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	. "github.com/onsi/gomega" //nolint:revive,staticcheck
+	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"

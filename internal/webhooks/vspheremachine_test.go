@@ -34,7 +34,7 @@ func TestVsphereMachine_Default(t *testing.T) {
 		Spec: infrav1.VSphereMachineSpec{},
 	}
 	webhook := &VSphereMachine{}
-	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
+	g.Expect(webhook.Default(context.Background(), m)).To(Succeed())
 
 	g.Expect(m.Spec.Datacenter).To(Equal("*"))
 }

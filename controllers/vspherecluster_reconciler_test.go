@@ -226,7 +226,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				ph, err := patch.NewHelper(instance, testEnv)
 				Expect(err).ShouldNot(HaveOccurred())
 				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Name: capiCluster.Name, UID: "blah"})
-				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
+				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).Should(Succeed())
 				return true
 			}, timeout).Should(BeTrue())
 

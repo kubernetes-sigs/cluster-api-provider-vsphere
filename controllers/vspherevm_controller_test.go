@@ -208,7 +208,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
-		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
+		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).To(Succeed())
 
 		g.Expect(conditions.Has(vm, infrav1.VSphereVMVirtualMachineProvisionedCondition)).To(BeTrue())
 		vmProvisionCondition := conditions.Get(vm, infrav1.VSphereVMVirtualMachineProvisionedCondition)
@@ -244,7 +244,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
-		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
+		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).To(Succeed())
 
 		g.Expect(conditions.Has(vm, infrav1.VSphereVMVirtualMachineProvisionedCondition)).To(BeTrue())
 		vmProvisionCondition := conditions.Get(vm, infrav1.VSphereVMVirtualMachineProvisionedCondition)
@@ -298,7 +298,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 
 		claim := &ipamv1.IPAddressClaim{}
 		ipacKey := util.ObjectKey(ipAddressClaim)
-		g.Expect(r.Client.Get(context.Background(), ipacKey, claim)).NotTo(HaveOccurred())
+		g.Expect(r.Client.Get(context.Background(), ipacKey, claim)).To(Succeed())
 		g.Expect(claim.ObjectMeta.Finalizers).NotTo(ContainElement(infrav1.IPAddressClaimFinalizer))
 	})
 }
@@ -499,7 +499,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
-		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
+		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).To(Succeed())
 		g.Expect(conditions.IsTrue(vm, infrav1.VSphereVMVCenterAvailableCondition)).To(BeTrue())
 	},
 	)

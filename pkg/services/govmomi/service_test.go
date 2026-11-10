@@ -218,7 +218,7 @@ func Test_reconcilePCIDevices(t *testing.T) {
 				},
 			}
 
-			g.Expect(vms.reconcilePCIDevices(ctx, vmCtx)).ToNot(HaveOccurred())
+			g.Expect(vms.reconcilePCIDevices(ctx, vmCtx)).To(Succeed())
 
 			// get the VM's virtual device list
 			devices, err := vm.Device(ctx)
@@ -258,7 +258,7 @@ func Test_ReconcileStoragePolicy(t *testing.T) {
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{},
 			},
 		}
-		g.Expect(vms.reconcileStoragePolicy(context.Background(), vmCtx)).ToNot(HaveOccurred())
+		g.Expect(vms.reconcileStoragePolicy(context.Background(), vmCtx)).To(Succeed())
 		g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
 	})
 

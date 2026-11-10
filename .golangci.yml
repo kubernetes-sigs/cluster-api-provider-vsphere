@@ -105,6 +105,7 @@ linters:
           msg: Pass a context.Context instead
     ginkgolinter:
       forbid-focus-container: true
+      force-succeed: true
     gocritic:
       disabled-checks:
         - appendAssign
@@ -429,6 +430,11 @@ linters:
           - revive
           - staticcheck
         path: test/helpers/vmware/.*.go
+        text: should not use dot imports
+      - linters:
+          - revive
+          - staticcheck
+        path: pkg/conversion/test/.*.go
         text: should not use dot imports
         # Append should be able to assign to a different var/slice.
       - linters:

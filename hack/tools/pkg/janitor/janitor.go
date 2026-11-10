@@ -19,6 +19,7 @@ package janitor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"sort"
@@ -116,7 +117,7 @@ func (s *Janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	if folder == "" {
-		return fmt.Errorf("cannot use empty string as folder")
+		return errors.New("cannot use empty string as folder")
 	}
 
 	log.Info("Deleting vSphere VMs in folder")

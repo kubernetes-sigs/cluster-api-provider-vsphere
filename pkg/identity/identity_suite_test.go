@@ -95,7 +95,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			Name: manager.DefaultPodNamespace,
 		},
 	}
-	Expect(k8sclient.Create(ctx, ns)).NotTo(HaveOccurred())
+	Expect(k8sclient.Create(ctx, ns)).To(Succeed())
 
 	return nil
 }, func([]byte) {})

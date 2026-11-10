@@ -606,7 +606,7 @@ func tryParseClusterInfoFromConfigMap(cm *corev1.ConfigMap) (*clientcmdapi.Confi
 	return parsedKubeConfig, nil
 }
 
-// GetClusterFromKubeConfig returns the default Cluster of the specified KubeConfig.
+// getClusterFromKubeConfig returns the default Cluster of the specified KubeConfig.
 func getClusterFromKubeConfig(config *clientcmdapi.Config) *clientcmdapi.Cluster {
 	// If there is an unnamed cluster object, use it
 	if config.Clusters[""] != nil {

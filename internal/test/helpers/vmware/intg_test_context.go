@@ -114,19 +114,19 @@ func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestC
 		envTest := &envtest.Environment{}
 		envTest.ControlPlane.GetAPIServer().Configure().Set("allow-privileged", "true")
 		config, err = envTest.Start()
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(config).ShouldNot(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config).ToNot(BeNil())
 
 		testCtx.GuestClient, err = client.New(config, client.Options{})
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(testCtx.GuestClient).ShouldNot(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(testCtx.GuestClient).ToNot(BeNil())
 
 		// Create the API Reader, a client with no cache.
 		testCtx.GuestAPIReader, err = client.New(config, client.Options{
 			Scheme: testCtx.GuestClient.Scheme(),
 			Mapper: testCtx.GuestClient.RESTMapper(),
 		})
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
 		testCtx.envTest = envTest
 	})

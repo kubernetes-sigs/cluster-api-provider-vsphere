@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -43,7 +44,7 @@ const (
 // DetermineClusterIPFamily inspects the cluster network to determine the intended IP topology.
 func DetermineClusterIPFamily(cluster *clusterv1.Cluster) (ClusterIPFamily, error) {
 	if cluster == nil {
-		return "", fmt.Errorf("cluster is nil")
+		return "", errors.New("cluster is nil")
 	}
 	cidrBlocks := cluster.Spec.ClusterNetwork.Pods.CIDRBlocks
 	if len(cidrBlocks) == 0 {

@@ -367,8 +367,8 @@ func cleanupVSphereObjects(ctx context.Context, bootstrapClusterProxy framework.
 }
 
 func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, username, password string) {
-	Expect(username).To(Not(BeEmpty()))
-	Expect(password).To(Not(BeEmpty()))
+	Expect(username).ToNot(BeEmpty())
+	Expect(password).ToNot(BeEmpty())
 	Expect(bootstrapClusterProxy.GetClient().Create(ctx,
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{

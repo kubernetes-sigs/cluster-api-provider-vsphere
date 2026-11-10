@@ -177,7 +177,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		By("setting the cluster infrastructure to be ready")
 		Eventually(func() error {
 			ph, err := patch.NewHelper(capiCluster, testEnv)
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			capiCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 			return ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
@@ -190,7 +190,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 	Context("With Cluster Infrastructure status ready", func() {
 		BeforeEach(func() {
 			ph, err := patch.NewHelper(capiCluster, testEnv)
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			capiCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 			Expect(ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 		})
@@ -208,7 +208,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			By("setting the bootstrap data")
 			Eventually(func() error {
 				ph, err := patch.NewHelper(capiMachine, testEnv)
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				capiMachine.Spec.Bootstrap = clusterv1.Bootstrap{
 					DataSecretName: ptr.To("some-secret"),
 				}

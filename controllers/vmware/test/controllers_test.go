@@ -346,14 +346,13 @@ func waitForWebhooks() {
 	}
 }
 
-func prepareClient(isLoadBalanced bool) (cli client.Client, cancelation context.CancelFunc) {
+func prepareClient(isLoadBalanced bool) (client.Client, context.CancelFunc) {
 	networkProvider := ""
 	if isLoadBalanced {
 		networkProvider = manager.DummyLBNetworkProvider
 	}
 
-	cli, cancelation = initManagerAndBuildClient(networkProvider, false)
-	return
+	return initManagerAndBuildClient(networkProvider, false)
 }
 
 var _ = Describe("Reconciliation tests", func() {
@@ -705,7 +704,7 @@ var _ = Describe("Reconciliation tests", func() {
 			// NOTE: use vm-operator native types for testing (the reconciler uses the internal hub version).
 			newVM := &vmoprv1alpha5.VirtualMachine{}
 			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, machineKey, newVM)).Should(Succeed())
+				g.Expect(k8sClient.Get(ctx, machineKey, newVM)).To(Succeed())
 			}, time.Second*10).Should(Succeed())
 
 			By("Modifying the VM to simulate it having been created")

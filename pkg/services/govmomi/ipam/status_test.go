@@ -138,49 +138,49 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		}
 
 		// Creates ip address claims
-		g.Expect(vmCtx.Client.Create(ctx, claim1)).NotTo(gomega.HaveOccurred())
-		g.Expect(vmCtx.Client.Create(ctx, claim2)).NotTo(gomega.HaveOccurred())
-		g.Expect(vmCtx.Client.Create(ctx, claim3)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Create(ctx, claim1)).To(gomega.Succeed())
+		g.Expect(vmCtx.Client.Create(ctx, claim2)).To(gomega.Succeed())
+		g.Expect(vmCtx.Client.Create(ctx, claim3)).To(gomega.Succeed())
 
 		// IP provider has not provided Addresses yet
 		_, err := buildIPAMDeviceConfigs(ctx, vmCtx, networkStatus)
 		g.Expect(err).To(gomega.Equal(ErrWaitingForIPAddr))
 
 		// Simulate IP provider reconciling one claim
-		g.Expect(vmCtx.Client.Create(ctx, address3)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Create(ctx, address3)).To(gomega.Succeed())
 
 		ipAddrClaim := &ipamv1.IPAddressClaim{}
 		ipAddrClaimKey := apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-2",
 		}
-		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).To(gomega.Succeed())
 		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-2-address2"
-		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).To(gomega.Succeed())
 
 		// Only the last claim has been bound
 		_, err = buildIPAMDeviceConfigs(ctx, vmCtx, networkStatus)
 		g.Expect(err).To(gomega.Equal(ErrWaitingForIPAddr))
 
 		// Simulate IP provider reconciling remaining claims
-		g.Expect(vmCtx.Client.Create(ctx, address1)).NotTo(gomega.HaveOccurred())
-		g.Expect(vmCtx.Client.Create(ctx, address2)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Create(ctx, address1)).To(gomega.Succeed())
+		g.Expect(vmCtx.Client.Create(ctx, address2)).To(gomega.Succeed())
 
 		ipAddrClaimKey = apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-0",
 		}
-		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).To(gomega.Succeed())
 		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-0-address0"
-		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).To(gomega.Succeed())
 
 		ipAddrClaimKey = apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-1",
 		}
-		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).To(gomega.Succeed())
 		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-1-address1"
-		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).To(gomega.Succeed())
 
 		// Now that claims are fulfilled, reconciling should update
 		// ipAddrs on network spec
@@ -353,49 +353,49 @@ func Test_BuildState(t *testing.T) {
 		}
 
 		// Creates ip address claims
-		g.Expect(vmCtx.Client.Create(ctx, claim1)).NotTo(gomega.HaveOccurred())
-		g.Expect(vmCtx.Client.Create(ctx, claim2)).NotTo(gomega.HaveOccurred())
-		g.Expect(vmCtx.Client.Create(ctx, claim3)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Create(ctx, claim1)).To(gomega.Succeed())
+		g.Expect(vmCtx.Client.Create(ctx, claim2)).To(gomega.Succeed())
+		g.Expect(vmCtx.Client.Create(ctx, claim3)).To(gomega.Succeed())
 
 		// IP provider has not provided Addresses yet
 		_, err := BuildState(ctx, vmCtx, networkStatus)
 		g.Expect(err).To(gomega.Equal(ErrWaitingForIPAddr))
 
 		// Simulate IP provider reconciling one claim
-		g.Expect(vmCtx.Client.Create(ctx, address3)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Create(ctx, address3)).To(gomega.Succeed())
 
 		ipAddrClaim := &ipamv1.IPAddressClaim{}
 		ipAddrClaimKey := apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-2",
 		}
-		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).To(gomega.Succeed())
 		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-2-address2"
-		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).To(gomega.Succeed())
 
 		// Only the last claim has been bound
 		_, err = BuildState(ctx, vmCtx, networkStatus)
 		g.Expect(err).To(gomega.Equal(ErrWaitingForIPAddr))
 
 		// Simulate IP provider reconciling remaining claims
-		g.Expect(vmCtx.Client.Create(ctx, address1)).NotTo(gomega.HaveOccurred())
-		g.Expect(vmCtx.Client.Create(ctx, address2)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Create(ctx, address1)).To(gomega.Succeed())
+		g.Expect(vmCtx.Client.Create(ctx, address2)).To(gomega.Succeed())
 
 		ipAddrClaimKey = apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-0",
 		}
-		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).To(gomega.Succeed())
 		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-0-address0"
-		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).To(gomega.Succeed())
 
 		ipAddrClaimKey = apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-1",
 		}
-		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).To(gomega.Succeed())
 		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-1-address1"
-		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).To(gomega.Succeed())
 
 		// Now that claims are fulfilled, reconciling should update
 		// ipAddrs on network spec
@@ -495,7 +495,7 @@ func Test_BuildState(t *testing.T) {
 		}
 
 		// Creates ip address claims
-		g.Expect(vmCtx.Client.Create(ctx, claim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Create(ctx, claim)).To(gomega.Succeed())
 
 		// VSphere has not yet assigned MAC addresses to the machine's devices
 		_, err := BuildState(ctx, vmCtx, networkStatus)
@@ -511,17 +511,17 @@ func Test_BuildState(t *testing.T) {
 		g.Expect(err).To(gomega.MatchError("waiting for IP address claims to be bound"))
 
 		// Simulate IP provider reconciling one claim
-		g.Expect(vmCtx.Client.Create(ctx, address)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Create(ctx, address)).To(gomega.Succeed())
 
 		ipAddrClaim := &ipamv1.IPAddressClaim{}
 		ipAddrClaimKey := apitypes.NamespacedName{
 			Namespace: vmCtx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-1-0",
 		}
-		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).To(gomega.Succeed())
 
 		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-1-0-address"
-		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+		g.Expect(vmCtx.Client.Update(ctx, ipAddrClaim)).To(gomega.Succeed())
 
 		// Now that claims are fulfilled, reconciling should update
 		// ipAddrs on network spec
@@ -679,20 +679,20 @@ func Test_BuildState(t *testing.T) {
 				{Connected: ptr.To(true), MACAddr: devMAC1},
 			}
 
-			g.Expect(vmCtx.Client.Create(ctx, claim1)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Create(ctx, claim2)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Create(ctx, claim3)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Create(ctx, claim1)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Create(ctx, claim2)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Create(ctx, claim3)).To(gomega.Succeed())
 
-			g.Expect(vmCtx.Client.Create(ctx, address1)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Create(ctx, address2)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Create(ctx, address3)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Create(ctx, address1)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Create(ctx, address2)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Create(ctx, address3)).To(gomega.Succeed())
 		}
 
 		t.Run("when a provider assigns an IPAddress without an Address field", func(_ *testing.T) {
 			beforeWithClaimsAndAddressCreated()
 
 			address1.Spec.Address = ""
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -703,7 +703,7 @@ func Test_BuildState(t *testing.T) {
 			beforeWithClaimsAndAddressCreated()
 			// Simulate an invalid ip address was provided: the address is not a valid ip
 			address1.Spec.Address = "invalid-ip"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -714,7 +714,7 @@ func Test_BuildState(t *testing.T) {
 			beforeWithClaimsAndAddressCreated()
 			// Simulate an invalid prefix address was provided: the prefix is out of bounds
 			address1.Spec.Prefix = ptr.To[int32](200)
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -725,7 +725,7 @@ func Test_BuildState(t *testing.T) {
 			beforeWithClaimsAndAddressCreated()
 
 			address1.Spec.Gateway = ""
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -736,7 +736,7 @@ func Test_BuildState(t *testing.T) {
 
 			address1.Spec.Address = "fd00:dddd::1"
 			address1.Spec.Gateway = ""
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -746,7 +746,7 @@ func Test_BuildState(t *testing.T) {
 			beforeWithClaimsAndAddressCreated()
 			// Simulate an invalid gateway was provided: the gateway is an invalid ip
 			address1.Spec.Gateway = "invalid-gateway"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -758,7 +758,7 @@ func Test_BuildState(t *testing.T) {
 			// Simulate mismatch address and gateways were provided
 			address1.Spec.Address = "10.0.1.50"
 			address1.Spec.Gateway = "fd01::1"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -767,7 +767,7 @@ func Test_BuildState(t *testing.T) {
 			// Simulate mismatch address and gateways were provided
 			address1.Spec.Address = "fd00:cccc::1"
 			address1.Spec.Gateway = "10.0.0.1"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 
 			_, err = BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -779,10 +779,10 @@ func Test_BuildState(t *testing.T) {
 			// Simulate multiple gateways were provided
 			address1.Spec.Address = "10.0.1.50"
 			address1.Spec.Gateway = "10.0.0.2"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 			address2.Spec.Address = "10.0.1.51"
 			address2.Spec.Gateway = "10.0.0.3"
-			g.Expect(vmCtx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address2)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -791,10 +791,10 @@ func Test_BuildState(t *testing.T) {
 			// Simulate multiple gateways were provided
 			address1.Spec.Address = "fd00:cccc::2"
 			address1.Spec.Gateway = "fd00::1"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
 			address2.Spec.Address = "fd00:cccc::3"
 			address2.Spec.Gateway = "fd00::2"
-			g.Expect(vmCtx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address2)).To(gomega.Succeed())
 
 			_, err = BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -808,7 +808,7 @@ func Test_BuildState(t *testing.T) {
 			vmCtx.VSphereVM.Spec.VirtualMachineCloneSpec.Network.Devices[0].Gateway6 = "fd00::2"
 			address2.Spec.Address = "fd00:cccc::1"
 			address2.Spec.Gateway = "fd00::1"
-			g.Expect(vmCtx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address2)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -829,9 +829,9 @@ func Test_BuildState(t *testing.T) {
 			address1.Spec.Address = "10.10.10.10.10"
 			address2.Spec.Address = "11.11.11.11.11"
 			address3.Spec.Address = "12.12.12.12.12"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Update(ctx, address3)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Update(ctx, address2)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Update(ctx, address3)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -849,9 +849,9 @@ func Test_BuildState(t *testing.T) {
 			address1.Spec.Gateway = "10.10.10.10.10"
 			address2.Spec.Gateway = "11.11.11.11.11"
 			address3.Spec.Gateway = "12.12.12.12.12"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Update(ctx, address3)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Update(ctx, address2)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Update(ctx, address3)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
@@ -868,8 +868,8 @@ func Test_BuildState(t *testing.T) {
 
 			address1.Spec.Address = "10.0.0.50"
 			address2.Spec.Address = "10.0.0.50"
-			g.Expect(vmCtx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
-			g.Expect(vmCtx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
+			g.Expect(vmCtx.Client.Update(ctx, address1)).To(gomega.Succeed())
+			g.Expect(vmCtx.Client.Update(ctx, address2)).To(gomega.Succeed())
 
 			_, err := BuildState(ctx, vmCtx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())

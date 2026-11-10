@@ -89,7 +89,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 	Context("Test VSphereMachineToCluster", func() {
 		It("Returns nil if there is no IP address", func() {
 			request := reconciler.VSphereMachineToCluster(ctx, vsphereMachine)
-			Expect(request).Should(BeNil())
+			Expect(request).To(BeNil())
 		})
 
 		It("Returns valid request with IP address", func() {
@@ -100,9 +100,9 @@ var _ = Describe("Cluster Controller Tests", func() {
 				},
 			}
 			request := reconciler.VSphereMachineToCluster(ctx, vsphereMachine)
-			Expect(request).ShouldNot(BeNil())
-			Expect(request[0].Namespace).Should(Equal(cluster.Namespace))
-			Expect(request[0].Name).Should(Equal(cluster.Name))
+			Expect(request).ToNot(BeNil())
+			Expect(request[0].Namespace).To(Equal(cluster.Namespace))
+			Expect(request[0].Name).To(Equal(cluster.Name))
 		})
 	})
 
@@ -130,19 +130,19 @@ var _ = Describe("Cluster Controller Tests", func() {
 
 		It("Returns nil if object is not KCP", func() {
 			request := reconciler.KubeadmControlPlaneToCluster(ctx, vsphereCluster)
-			Expect(request).Should(BeNil())
+			Expect(request).To(BeNil())
 		})
 
 		It("Returns nil if there is no Cluster name label", func() {
 			kcp.Labels = nil
 			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
-			Expect(request).Should(BeNil())
+			Expect(request).To(BeNil())
 		})
 
 		It("Returns nil if Cluster is not found", func() {
 			kcp.Labels[clusterv1.ClusterNameLabel] = "non-existent-cluster"
 			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
-			Expect(request).Should(BeNil())
+			Expect(request).To(BeNil())
 		})
 
 		It("Returns nil if Cluster has no InfrastructureRef", func() {
@@ -154,7 +154,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 
 			kcp.Labels[clusterv1.ClusterNameLabel] = "cluster-no-infra"
 			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
-			Expect(request).Should(BeNil())
+			Expect(request).To(BeNil())
 		})
 
 		It("Returns nil if Cluster InfrastructureRef is not VSphereCluster", func() {
@@ -166,14 +166,14 @@ var _ = Describe("Cluster Controller Tests", func() {
 
 			kcp.Labels[clusterv1.ClusterNameLabel] = "cluster-wrong-infra"
 			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
-			Expect(request).Should(BeNil())
+			Expect(request).To(BeNil())
 		})
 
 		It("Returns valid request", func() {
 			request := reconciler.KubeadmControlPlaneToCluster(ctx, kcp)
-			Expect(request).ShouldNot(BeNil())
-			Expect(request[0].Namespace).Should(Equal(vsphereCluster.Namespace))
-			Expect(request[0].Name).Should(Equal(vsphereCluster.Name))
+			Expect(request).ToNot(BeNil())
+			Expect(request[0].Namespace).To(Equal(vsphereCluster.Namespace))
+			Expect(request[0].Name).To(Equal(vsphereCluster.Name))
 		})
 	})
 

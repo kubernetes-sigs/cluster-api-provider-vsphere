@@ -313,7 +313,7 @@ func createAdditionalDisks(devices object.VirtualDeviceList, controller types.Ba
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
 	primaryDisk := disks[0].(*types.VirtualDisk)
 
-	for i := 0; i < numOfDisks; i++ {
+	for i := range numOfDisks {
 		newDevice := createVirtualDisk(primaryDisk.ControllerKey+1, controller, 10)
 		newUnitNumber := *primaryDisk.UnitNumber + int32(i+1)
 		newDevice.UnitNumber = &newUnitNumber
@@ -344,9 +344,9 @@ func createVirtualDisk(key int32, controller types.BaseVirtualController, diskSi
 }
 
 func createDataDiskDefinitions(numOfDataDisks int, provisionType *infrav1.ProvisioningMode) []infrav1.VSphereDisk {
-	disks := []infrav1.VSphereDisk{}
+	disks := make([]infrav1.VSphereDisk, 0, numOfDataDisks)
 
-	for i := 0; i < numOfDataDisks; i++ {
+	for i := range numOfDataDisks {
 		disk := infrav1.VSphereDisk{
 			Name:    fmt.Sprintf("disk_%d", i),
 			SizeGiB: 10 * int32(i),

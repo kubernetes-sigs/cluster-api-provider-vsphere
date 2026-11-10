@@ -76,12 +76,12 @@ type Metric struct {
 	// TODO: implements state transition metrics
 }
 
-// UserDataNotFound will be returned if requested resource does not exist.
-type UserDataNotFound struct {
+// UserDataNotFoundError will be returned if requested resource does not exist.
+type UserDataNotFoundError struct {
 	ID string
 }
 
-func (ud *UserDataNotFound) Error() string {
+func (ud *UserDataNotFoundError) Error() string {
 	return fmt.Sprintf("user data ID %s does not exist", ud.ID)
 }
 
@@ -104,7 +104,7 @@ func (ud *UserData) MarshalJSON() ([]byte, error) {
 func (ud *UserData) Extract(id string, out interface{}) error {
 	content, ok := ud.Load(id)
 	if !ok {
-		return &UserDataNotFound{id}
+		return &UserDataNotFoundError{id}
 	}
 	return yaml.Unmarshal([]byte(content.(string)), out)
 }

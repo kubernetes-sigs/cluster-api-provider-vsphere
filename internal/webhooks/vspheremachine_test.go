@@ -34,7 +34,7 @@ func TestVsphereMachine_Default(t *testing.T) {
 		Spec: infrav1.VSphereMachineSpec{},
 	}
 	webhook := &VSphereMachine{}
-	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
+	g.Expect(webhook.Default(context.Background(), m)).To(Succeed())
 
 	g.Expect(m.Spec.Datacenter).To(Equal("*"))
 }
@@ -212,7 +212,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 }
 
 func createVSphereMachine(server string, providerID string, ips []string, powerOffMode infrav1.VirtualMachinePowerOpMode, guestSoftPowerOffTimeout int32, pciDevices []infrav1.PCIDeviceSpec) *infrav1.VSphereMachine {
-	VSphereMachine := &infrav1.VSphereMachine{
+	vsphereMachine := &infrav1.VSphereMachine{
 		Spec: infrav1.VSphereMachineSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
 				Server: server,
@@ -227,9 +227,9 @@ func createVSphereMachine(server string, providerID string, ips []string, powerO
 		},
 	}
 	for _, ip := range ips {
-		VSphereMachine.Spec.Network.Devices = append(VSphereMachine.Spec.Network.Devices, infrav1.NetworkDeviceSpec{
+		vsphereMachine.Spec.Network.Devices = append(vsphereMachine.Spec.Network.Devices, infrav1.NetworkDeviceSpec{
 			IPAddrs: []string{ip},
 		})
 	}
-	return VSphereMachine
+	return vsphereMachine
 }

@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"time"
 
-	v1 "k8s.io/api/admissionregistration/v1"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog/v2"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -36,11 +36,11 @@ const (
 	validatingwebhook     = "validating-webhook-configuration"
 )
 
-// Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
+// appendWebhookConfiguration mutates the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
-func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]*v1.MutatingWebhookConfiguration, []*v1.ValidatingWebhookConfiguration, error) {
-	var mutatingWebhooks []*v1.MutatingWebhookConfiguration
-	var validatingWebhooks []*v1.ValidatingWebhookConfiguration
+func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]*admissionv1.MutatingWebhookConfiguration, []*admissionv1.ValidatingWebhookConfiguration, error) {
+	var mutatingWebhooks []*admissionv1.MutatingWebhookConfiguration
+	var validatingWebhooks []*admissionv1.ValidatingWebhookConfiguration
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
 		klog.Fatalf("failed to parse yaml")
@@ -51,7 +51,7 @@ func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]*v1.Mutati
 		if o.GetKind() == mutatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == mutatingwebhook {
-				var m v1.MutatingWebhookConfiguration
+				var m admissionv1.MutatingWebhookConfiguration
 				o.SetName(mutatingwebhook + "-" + tag)
 				if err := scheme.Convert(&o, &m, nil); err != nil {
 					return nil, nil, err
@@ -62,7 +62,7 @@ func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]*v1.Mutati
 		if o.GetKind() == validatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == validatingwebhook {
-				var v v1.ValidatingWebhookConfiguration
+				var v admissionv1.ValidatingWebhookConfiguration
 				o.SetName(validatingwebhook + "-" + tag)
 				if err := scheme.Convert(&o, &v, nil); err != nil {
 					return nil, nil, err

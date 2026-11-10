@@ -18,7 +18,7 @@ package util
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"io"
 	"text/template"
 
@@ -52,7 +52,7 @@ func (l *limitedWriter) Write(p []byte) (int, error) {
 // the template supports only `trimSuffix` and `trunc` functions.
 func GenerateMachineNameFromTemplate(machineName string, nameTemplate string) (string, error) {
 	if machineName == "" {
-		return "", fmt.Errorf("machine name can not be empty")
+		return "", errors.New("machine name can not be empty")
 	}
 
 	if nameTemplate == "" {

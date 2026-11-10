@@ -19,8 +19,8 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
-	"fmt"
 	"os"
 	"strings"
 
@@ -76,19 +76,19 @@ func run(ctx context.Context) error {
 	log.Info("Configured settings", "dry-run", dryRun)
 
 	if boskosHost == "" {
-		return fmt.Errorf("--boskos-host must be set")
+		return errors.New("--boskos-host must be set")
 	}
 	if resourceOwner == "" {
-		return fmt.Errorf("--resource-owner must be set")
+		return errors.New("--resource-owner must be set")
 	}
 	if len(resourceTypes) == 0 {
-		return fmt.Errorf("--resource-type must be set")
+		return errors.New("--resource-type must be set")
 	}
 
 	// Create clients for vSphere.
 	vSphereTLSThumbprint := os.Getenv("VSPHERE_TLS_THUMBPRINT")
 	if vSphereTLSThumbprint == "" {
-		return fmt.Errorf("env var VSPHERE_TLS_THUMBPRINT must be set")
+		return errors.New("env var VSPHERE_TLS_THUMBPRINT must be set")
 	}
 	vSphereClients, err := janitor.NewVSphereClients(ctx, janitor.NewVSphereClientsInput{
 		Username:   os.Getenv("GOVC_USERNAME"),

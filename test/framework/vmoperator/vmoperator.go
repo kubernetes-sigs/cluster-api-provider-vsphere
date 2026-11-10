@@ -77,7 +77,7 @@ const (
 	datacenterNameConfigMapKey       = "CAPV-TEST-DatacenterName"
 	distributedPortGroupConfigMapKey = "CAPV-TEST-PortGroup"
 
-	// Const for the VcCredsSecret (hard-coded in vm-operator).
+	// vmOperatorSecretName and vmOperatorSecretName1_9 are the names of the VcCredsSecret (hard-coded in vm-operator).
 	vmOperatorSecretName    = "vsphere.provider.credentials.vmoperator.vmware.com"
 	vmOperatorSecretName1_9 = "wcp-vmop-sa-vc-auth" //nolint:gosec
 

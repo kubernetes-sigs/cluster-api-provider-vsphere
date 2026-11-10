@@ -22,13 +22,13 @@ import (
 	"github.com/vmware/govmomi/find"
 )
 
-// errNotFound is returned by the findVM function when a VM is not found.
-type errNotFound struct {
+// notFoundError is returned by the findVM function when a VM is not found.
+type notFoundError struct {
 	uuid            string
 	byInventoryPath string
 }
 
-func (e errNotFound) Error() string {
+func (e notFoundError) Error() string {
 	if e.byInventoryPath != "" {
 		return fmt.Sprintf("vm with inventory path %s not found", e.byInventoryPath)
 	}
@@ -37,7 +37,7 @@ func (e errNotFound) Error() string {
 
 func isNotFound(err error) bool {
 	switch err.(type) {
-	case errNotFound, *errNotFound:
+	case notFoundError, *notFoundError:
 		return true
 	default:
 		return false
@@ -64,8 +64,8 @@ func isVirtualMachineNotFound(err error) bool {
 
 func wasNotFoundByBIOSUUID(err error) bool {
 	switch err.(type) {
-	case errNotFound, *errNotFound:
-		if err.(errNotFound).uuid != "" && err.(errNotFound).byInventoryPath == "" {
+	case notFoundError, *notFoundError:
+		if err.(notFoundError).uuid != "" && err.(notFoundError).byInventoryPath == "" {
 			return true
 		}
 		return false

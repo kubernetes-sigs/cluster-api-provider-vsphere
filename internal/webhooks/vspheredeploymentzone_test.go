@@ -47,8 +47,6 @@ func TestVSphereDeploymentZone_Default(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		// Need to reinit the test variable
-		tt := tt
 		t.Run(tt.name, func(*testing.T) {
 			vdz := infrav1.VSphereDeploymentZone{
 				Spec: infrav1.VSphereDeploymentZoneSpec{
@@ -56,7 +54,7 @@ func TestVSphereDeploymentZone_Default(t *testing.T) {
 				},
 			}
 			webhook := VSphereDeploymentZone{}
-			g.Expect(webhook.Default(context.Background(), &vdz)).NotTo(HaveOccurred())
+			g.Expect(webhook.Default(context.Background(), &vdz)).To(Succeed())
 			g.Expect(vdz.Spec.ControlPlane).NotTo(BeNil())
 			g.Expect(*vdz.Spec.ControlPlane).To(Equal(tt.expectedVal))
 		})

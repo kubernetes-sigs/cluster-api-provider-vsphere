@@ -116,7 +116,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Client: controllerCtx.ControllerManagerContext.Client,
 			}
 			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, network.DummyNetworkProvider())
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(supervisorEndpointIPs).To(Equal([]string{testSupervisorAPIServerVIP}))
 		})
 	})
@@ -213,7 +213,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Client: controllerCtx.ControllerManagerContext.Client,
 			}
 			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, &dummyDualStackNetworkProvider{})
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(supervisorEndpointIPs).To(Equal([]string{testSupervisorAPIServerVIP, testSupervisorAPIServerIPv6VIP}))
 		})
 	})
@@ -234,7 +234,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 				Client: controllerCtx.ControllerManagerContext.Client,
 			}
 			supervisorEndpointIPs, err := r.getSupervisorAPIServerAddresses(ctx, controllerCtx.Cluster, &dummyDualStackNetworkProvider{})
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(supervisorEndpointIPs).To(Equal([]string{testSupervisorAPIServerIPv6VIP}))
 		})
 	})

@@ -227,7 +227,7 @@ func (c *Client) ReleaseAll(dest string) error {
 		return err
 	}
 	if len(resources) == 0 {
-		return fmt.Errorf("no holding resource")
+		return errors.New("no holding resource")
 	}
 	var allErrors []error
 	for _, r := range resources {
@@ -269,7 +269,7 @@ func (c *Client) UpdateAll(state string) error {
 		return err
 	}
 	if len(resources) == 0 {
-		return fmt.Errorf("no holding resource")
+		return errors.New("no holding resource")
 	}
 	var allErrors []error
 	for _, r := range resources {
@@ -389,7 +389,7 @@ func (c *Client) acquire(rtype, state, dest, requestID string) (*Resource, error
 				return false, err
 			}
 			if res.Name == "" {
-				return false, fmt.Errorf("unable to parse resource")
+				return false, errors.New("unable to parse resource")
 			}
 			return true, nil
 		case http.StatusUnauthorized:

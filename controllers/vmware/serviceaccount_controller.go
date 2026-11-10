@@ -241,7 +241,7 @@ func (r *ServiceAccountReconciler) reconcileNormal(ctx context.Context, guestClu
 	return reconcile.Result{}, nil
 }
 
-// Ensure service accounts from provider spec is created.
+// ensureProviderServiceAccounts ensures service accounts from provider spec are created.
 func (r *ServiceAccountReconciler) ensureProviderServiceAccounts(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext, pSvcAccounts []vmwarev1.ProviderServiceAccount) error {
 	log := ctrl.LoggerFrom(ctx)
 

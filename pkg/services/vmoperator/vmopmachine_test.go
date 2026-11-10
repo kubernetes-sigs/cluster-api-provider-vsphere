@@ -62,7 +62,7 @@ func getReconciledVM(ctx context.Context, vmService VmopMachineService, supervis
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	return vm
 }
 
@@ -77,17 +77,17 @@ func getReconciledVMV1Alpha6(ctx context.Context, vmService VmopMachineService, 
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	return vm
 }
 
 func patchReconciledVMStatus(ctx context.Context, vmService VmopMachineService, vm, original *vmoprv1alpha5.VirtualMachine) {
 	err := vmService.Client.Status().Patch(ctx, vm, client.MergeFrom(original))
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func verifyVMAffinityRules(vmopVM *vmoprv1alpha5.VirtualMachine, machineDeploymentName string) {
-	Expect(vmopVM.Spec.Affinity.VMAffinity).ShouldNot(BeNil())
+	Expect(vmopVM.Spec.Affinity.VMAffinity).ToNot(BeNil())
 	Expect(vmopVM.Spec.Affinity.VMAffinity.RequiredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
 
 	vmAffinityTerm := vmopVM.Spec.Affinity.VMAffinity.RequiredDuringSchedulingPreferredDuringExecution[0]
@@ -96,7 +96,7 @@ func verifyVMAffinityRules(vmopVM *vmoprv1alpha5.VirtualMachine, machineDeployme
 }
 
 func verifyVMAntiAffinityRules(vmopVM *vmoprv1alpha5.VirtualMachine, machineDeploymentName string, extraMDs ...string) {
-	Expect(vmopVM.Spec.Affinity.VMAntiAffinity).ShouldNot(BeNil())
+	Expect(vmopVM.Spec.Affinity.VMAntiAffinity).ToNot(BeNil())
 
 	expectedNumAntiAffinityTerms := 1
 	if len(extraMDs) > 0 {
@@ -220,27 +220,27 @@ var _ = Describe("VirtualMachine tests", func() {
 
 	Context("Reconcile VirtualMachine", func() {
 		verifyOutput := func(machineContext *vmware.SupervisorMachineContext) {
-			Expect(err != nil).Should(Equal(expectReconcileError))
-			Expect(requeue).Should(Equal(expectedRequeue))
+			Expect(err != nil).To(Equal(expectReconcileError))
+			Expect(requeue).To(Equal(expectedRequeue))
 			vsphereMachine := machineContext.VSphereMachine
 
-			Expect(vsphereMachine).ShouldNot(BeNil())
-			Expect(vsphereMachine.Name).Should(Equal(machineName))
-			Expect(vsphereMachine.Status.BiosUUID).Should(Equal(expectedBiosUUID))
+			Expect(vsphereMachine).ToNot(BeNil())
+			Expect(vsphereMachine.Name).To(Equal(machineName))
+			Expect(vsphereMachine.Status.BiosUUID).To(Equal(expectedBiosUUID))
 			if expectedVMIP == "" {
-				Expect(vsphereMachine.Status.Addresses).Should(BeEmpty())
+				Expect(vsphereMachine.Status.Addresses).To(BeEmpty())
 			} else {
-				Expect(vsphereMachine.Status.Addresses).Should(HaveLen(1))
-				Expect(vsphereMachine.Status.Addresses[0].Address).Should(Equal(expectedVMIP))
+				Expect(vsphereMachine.Status.Addresses).To(HaveLen(1))
+				Expect(vsphereMachine.Status.Addresses[0].Address).To(Equal(expectedVMIP))
 			}
-			Expect(vsphereMachine.Status.Phase).Should(Equal(expectedState))
+			Expect(vsphereMachine.Status.Phase).To(Equal(expectedState))
 
 			vmopVM = getReconciledVM(ctx, vmService, machineContext)
-			Expect(vmopVM != nil).Should(Equal(expectVMOpVM))
+			Expect(vmopVM != nil).To(Equal(expectVMOpVM))
 
 			if vmopVM != nil {
 				vms, _ := vmService.getVirtualMachinesInCluster(ctx, machineContext)
-				Expect(vms).Should(HaveLen(1))
+				Expect(vms).To(HaveLen(1))
 				Expect(vmopVM.Spec.ImageName).To(Equal(expectedImageName))
 				Expect(vmopVM.Spec.ClassName).To(Equal(className))
 				Expect(vmopVM.Spec.StorageClass).To(Equal(storageClass))
@@ -909,7 +909,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 				By("Verify that control plane machine does not have affinity spec set")
 				vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-				Expect(vmopVM).ShouldNot(BeNil())
+				Expect(vmopVM).ToNot(BeNil())
 				Expect(vmopVM.Spec.Affinity).To(BeNil())
 
 				By("Verify that control plane machine has role label")
@@ -989,8 +989,8 @@ var _ = Describe("VirtualMachine tests", func() {
 
 						By("VirtualMachine is not created")
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 						vm := &vmoprv1alpha5.VirtualMachine{}
 						nsname := types.NamespacedName{
 							Namespace: vsphereMachineNoVMG.Namespace,
@@ -1064,8 +1064,8 @@ var _ = Describe("VirtualMachine tests", func() {
 
 						By("VirtualMachine is not created")
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 						vm := &vmoprv1alpha5.VirtualMachine{}
 						nsname := types.NamespacedName{
 							Namespace: vsphereMachineNotMember.Namespace,
@@ -1100,13 +1100,13 @@ var _ = Describe("VirtualMachine tests", func() {
 
 						By("VirtualMachine is created")
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 
 						By("Verify that worker machine has affinity spec set")
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM).ShouldNot(BeNil())
-						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM).ToNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ToNot(BeNil())
 
 						By("Verify VM affinity rules are set correctly")
 						verifyVMAffinityRules(vmopVM, machineDeploymentName)
@@ -1193,13 +1193,13 @@ var _ = Describe("VirtualMachine tests", func() {
 
 						By("VirtualMachine is created with auto placement and failure domain")
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 
 						By("Verify that worker machine has affinity spec set")
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM).ShouldNot(BeNil())
-						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM).ToNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ToNot(BeNil())
 
 						By("Verify VM affinity rules are set correctly")
 						verifyVMAffinityRules(vmopVM, machineDeploymentName)
@@ -1257,13 +1257,13 @@ var _ = Describe("VirtualMachine tests", func() {
 
 							By("VirtualMachine is created")
 							requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-							Expect(err).ShouldNot(HaveOccurred())
-							Expect(requeue).Should(BeTrue())
+							Expect(err).ToNot(HaveOccurred())
+							Expect(requeue).To(BeTrue())
 
 							By("Verify that worker machine has affinity spec set")
 							vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-							Expect(vmopVM).ShouldNot(BeNil())
-							Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+							Expect(vmopVM).ToNot(BeNil())
+							Expect(vmopVM.Spec.Affinity).ToNot(BeNil())
 
 							By("Verify VM affinity rules are set correctly")
 							verifyVMAffinityRules(vmopVM, machineDeploymentName)
@@ -1346,11 +1346,11 @@ var _ = Describe("VirtualMachine tests", func() {
 
 				Specify("applies legacy worker annotations", func() {
 					requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(requeue).Should(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(requeue).To(BeTrue())
 
 					vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-					Expect(vmopVM).ShouldNot(BeNil())
+					Expect(vmopVM).ToNot(BeNil())
 					Expect(vmopVM.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(getMachineDeploymentNameForCluster(cluster)))
 					Expect(vmopVM.Annotations[ProviderTagsAnnotationKey]).To(Equal(WorkerVMVMAntiAffinityTagValue))
 				})
@@ -1388,22 +1388,22 @@ var _ = Describe("VirtualMachine tests", func() {
 						Expect(vmService.Client.Delete(ctx, vmGroup)).To(Succeed())
 
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM).ToNot(BeNil())
 						Expect(vmopVM.Spec.Affinity).To(BeNil())
 						Expect(vmopVM.Spec.GroupName).To(BeEmpty())
 					})
 
 					Specify("creates VM with spec.affinity and without legacy annotations", func() {
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM).ShouldNot(BeNil())
-						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM).ToNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ToNot(BeNil())
 						Expect(vmopVM.Annotations).ToNot(HaveKey(ClusterModuleNameAnnotationKey))
 						Expect(vmopVM.Annotations).ToNot(HaveKey(ProviderTagsAnnotationKey))
 					})
@@ -1474,11 +1474,11 @@ var _ = Describe("VirtualMachine tests", func() {
 						}
 
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM).ToNot(BeNil())
 						Expect(vmopVM.Annotations).To(Equal(expectedAnnotations))
 					},
 						Entry("preserves worker legacy annotations with gate enabled", true, false, true, WorkerVMVMAntiAffinityTagValue, clusterName+"-workers-0"),
@@ -1534,12 +1534,12 @@ var _ = Describe("VirtualMachine tests", func() {
 
 					Specify("creates new VM with BOTH spec.affinity and legacy annotations", func() {
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM).ShouldNot(BeNil())
-						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM).ToNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ToNot(BeNil())
 						Expect(vmopVM.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(getMachineDeploymentNameForCluster(cluster)))
 						Expect(vmopVM.Annotations[ProviderTagsAnnotationKey]).To(Equal(WorkerVMVMAntiAffinityTagValue))
 					})
@@ -1589,12 +1589,12 @@ var _ = Describe("VirtualMachine tests", func() {
 
 					Specify("creates new VM with spec.affinity ONLY (no legacy annotations)", func() {
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM).ShouldNot(BeNil())
-						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM).ToNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ToNot(BeNil())
 						Expect(vmopVM.Annotations).ToNot(HaveKey(ClusterModuleNameAnnotationKey))
 						Expect(vmopVM.Annotations).ToNot(HaveKey(ProviderTagsAnnotationKey))
 					})
@@ -1625,12 +1625,12 @@ var _ = Describe("VirtualMachine tests", func() {
 
 					Specify("creates new VM with spec.affinity only (no legacy annotations)", func() {
 						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(requeue).Should(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(requeue).To(BeTrue())
 
 						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-						Expect(vmopVM).ShouldNot(BeNil())
-						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						Expect(vmopVM).ToNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ToNot(BeNil())
 						Expect(vmopVM.Annotations).ToNot(HaveKey(ClusterModuleNameAnnotationKey))
 						Expect(vmopVM.Annotations).ToNot(HaveKey(ProviderTagsAnnotationKey))
 					})
@@ -1740,14 +1740,14 @@ var _ = Describe("VirtualMachine tests", func() {
 		verifyDeleteFunc := func() bool {
 			// Our reconcile loop calls DestroyVM until it gets the answer it's looking for
 			_ = vmService.ReconcileDelete(ctx, supervisorMachineContext)
-			Expect(supervisorMachineContext.VSphereMachine).ShouldNot(BeNil())
+			Expect(supervisorMachineContext.VSphereMachine).ToNot(BeNil())
 			if supervisorMachineContext.VSphereMachine.Status.Phase == vmwarev1.VSphereMachinePhaseNotFound {
 				// If the state is NotFound, check that the VM really has gone
-				Expect(getReconciledVM(ctx, vmService, supervisorMachineContext)).Should(BeNil())
+				Expect(getReconciledVM(ctx, vmService, supervisorMachineContext)).To(BeNil())
 				return true
 			}
 			// If the state is not NotFound, it must be Deleting
-			Expect(supervisorMachineContext.VSphereMachine.Status.Phase).Should(Equal(vmwarev1.VSphereMachinePhaseDeleting))
+			Expect(supervisorMachineContext.VSphereMachine.Status.Phase).To(Equal(vmwarev1.VSphereMachinePhaseDeleting))
 			return false
 		}
 
@@ -1757,14 +1757,14 @@ var _ = Describe("VirtualMachine tests", func() {
 
 		// Test expects DestroyVM to return NotFound eventually
 		Specify("Delete VirtualMachine with no delay", func() {
-			Expect(getReconciledVM(ctx, vmService, supervisorMachineContext)).ShouldNot(BeNil())
+			Expect(getReconciledVM(ctx, vmService, supervisorMachineContext)).ToNot(BeNil())
 			Eventually(verifyDeleteFunc, timeout, interval).Should(BeTrue())
 		})
 
 		Context("With finalizers", func() {
 			JustBeforeEach(func() {
 				vmopVM := getReconciledVM(ctx, vmService, supervisorMachineContext)
-				Expect(vmopVM).ShouldNot(BeNil())
+				Expect(vmopVM).ToNot(BeNil())
 				vmopVM.Finalizers = append(supervisorMachineContext.VSphereMachine.Finalizers, "test-finalizer")
 				Expect(vmService.Client.Update(ctx, vmopVM)).To(Succeed())
 			})
@@ -1778,13 +1778,13 @@ var _ = Describe("VirtualMachine tests", func() {
 			Specify("DestroyVM does not continue to update the VirtualMachine", func() {
 				_ = vmService.ReconcileDelete(ctx, supervisorMachineContext)
 				vmopVM := getReconciledVM(ctx, vmService, supervisorMachineContext)
-				Expect(vmopVM).ShouldNot(BeNil())
+				Expect(vmopVM).ToNot(BeNil())
 				deleteTimestamp := vmopVM.GetDeletionTimestamp()
-				Expect(deleteTimestamp).ShouldNot(BeNil())
+				Expect(deleteTimestamp).ToNot(BeNil())
 
 				_ = vmService.ReconcileDelete(ctx, supervisorMachineContext)
 				vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-				Expect(vmopVM).ShouldNot(BeNil())
+				Expect(vmopVM).ToNot(BeNil())
 
 				Expect(vmopVM.GetDeletionTimestamp()).To(Equal(deleteTimestamp))
 			})

@@ -83,7 +83,8 @@ var (
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-vcsim-controller-manager"
 
-	// common flags flags.
+	// common flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -99,6 +100,7 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// vcsim specific flags.
+
 	vSphereVMConcurrency              int
 	virtualMachineConcurrency         int
 	vCenterSimulatorConcurrency       int

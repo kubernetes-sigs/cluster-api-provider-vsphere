@@ -156,11 +156,11 @@ const (
 	// a graceful shutdown request.
 	VSphereVMGuestSoftPowerOffInProgressV1Beta2Reason = "InProgress"
 
-	// GuestSoftPowerOffFailedV1Beta2Reason documents that the graceful
+	// VSphereVMGuestSoftPowerOffFailedV1Beta2Reason documents that the graceful
 	// shutdown request failed.
 	VSphereVMGuestSoftPowerOffFailedV1Beta2Reason = "Failed"
 
-	// GuestSoftPowerOffSucceededV1Beta2Reason documents that the graceful
+	// VSphereVMGuestSoftPowerOffSucceededV1Beta2Reason documents that the graceful
 	// shutdown request succeeded.
 	VSphereVMGuestSoftPowerOffSucceededV1Beta2Reason = "Succeeded"
 )

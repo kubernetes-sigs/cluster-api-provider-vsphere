@@ -141,8 +141,6 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		// Need to reinit the test variable
-		tt := tt
 		t.Run(tt.name, func(*testing.T) {
 			webhook := &VSphereFailureDomain{}
 			_, err := webhook.ValidateCreate(context.Background(), &tt.failureDomain)

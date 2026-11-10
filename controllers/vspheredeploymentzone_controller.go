@@ -136,7 +136,7 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 	return ctrl.Result{}, r.reconcileNormal(ctx, vsphereDeploymentZoneContext)
 }
 
-// Patch patches the VSphereDeploymentZone.
+// patch patches the VSphereDeploymentZone.
 func (r vsphereDeploymentZoneReconciler) patch(ctx context.Context, vsphereDeploymentZoneContext *capvcontext.VSphereDeploymentZoneContext) error {
 	deprecatedv1beta1conditions.SetSummary(vsphereDeploymentZoneContext.VSphereDeploymentZone,
 		deprecatedv1beta1conditions.WithConditions(
@@ -290,7 +290,6 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, 
 		ctx := ctrl.LoggerInto(ctx, log)
 
 		params = params.WithThumbprint(vsphereCluster.Spec.Thumbprint)
-		vsphereCluster := vsphereCluster
 		creds, err := identity.GetCredentials(ctx, r.Client, &vsphereCluster, r.Namespace)
 		if err != nil {
 			log.Error(err, "error retrieving credentials from IdentityRef")

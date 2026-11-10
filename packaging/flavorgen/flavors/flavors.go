@@ -49,7 +49,7 @@ func ClusterClassTemplateWithKubeVIP() []runtime.Object {
 	controlPlaneTemplate := newKubeadmControlPlaneTemplate(fmt.Sprintf("%s-controlplane", env.ClusterClassNameVar))
 	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s-worker-bootstrap-template", env.ClusterClassNameVar), false)
 
-	ClusterClassTemplate := []runtime.Object{
+	clusterClassTemplate := []runtime.Object{
 		&vSphereClusterTemplate,
 		&clusterClass,
 		&machineTemplate,
@@ -57,7 +57,7 @@ func ClusterClassTemplateWithKubeVIP() []runtime.Object {
 		&controlPlaneTemplate,
 		&kubeadmJoinTemplate,
 	}
-	return ClusterClassTemplate
+	return clusterClassTemplate
 }
 
 func ClusterClassTemplateSupervisor() []runtime.Object {
@@ -70,7 +70,7 @@ func ClusterClassTemplateSupervisor() []runtime.Object {
 	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s-worker-bootstrap-template", env.ClusterClassNameVar), false)
 	kubeadmJoinTemplate.Spec.Template.Spec.PreKubeadmCommands = append([]string{"dhclient eth0"}, kubeadmJoinTemplate.Spec.Template.Spec.PreKubeadmCommands...)
 
-	ClusterClassTemplate := []runtime.Object{
+	clusterClassTemplate := []runtime.Object{
 		&vSphereClusterTemplate,
 		&clusterClass,
 		&machineTemplate,
@@ -78,7 +78,7 @@ func ClusterClassTemplateSupervisor() []runtime.Object {
 		&controlPlaneTemplate,
 		&kubeadmJoinTemplate,
 	}
-	return ClusterClassTemplate
+	return clusterClassTemplate
 }
 
 func ClusterTopologyTemplateKubeVIP() ([]runtime.Object, error) {
@@ -93,14 +93,14 @@ func ClusterTopologyTemplateKubeVIP() ([]runtime.Object, error) {
 		return nil, err
 	}
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
-	MultiNodeTemplate := []runtime.Object{ //nolint:prealloc
+	multiNodeTemplate := []runtime.Object{ //nolint:prealloc
 		&cluster,
 		&identitySecret,
 		&clusterResourceSet,
 	}
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
-	return MultiNodeTemplate, nil
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCSI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCPI...)
+	return multiNodeTemplate, nil
 }
 
 func ClusterTopologyTemplateSupervisor() ([]runtime.Object, error) {
@@ -114,13 +114,13 @@ func ClusterTopologyTemplateSupervisor() ([]runtime.Object, error) {
 		return nil, err
 	}
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
-	MultiNodeTemplate := []runtime.Object{ //nolint:prealloc
+	multiNodeTemplate := []runtime.Object{ //nolint:prealloc
 		&cluster,
 		&clusterResourceSet,
 	}
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
-	return MultiNodeTemplate, nil
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCSI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCPI...)
+	return multiNodeTemplate, nil
 }
 
 func MultiNodeTemplateWithKubeVIP() ([]runtime.Object, error) {
@@ -141,7 +141,7 @@ func MultiNodeTemplateWithKubeVIP() ([]runtime.Object, error) {
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
 	identitySecret := newIdentitySecret()
 
-	MultiNodeTemplate := []runtime.Object{ //nolint:prealloc
+	multiNodeTemplate := []runtime.Object{ //nolint:prealloc
 		&cluster,
 		&vsphereCluster,
 		&cpMachineTemplate,
@@ -153,10 +153,10 @@ func MultiNodeTemplateWithKubeVIP() ([]runtime.Object, error) {
 		&identitySecret,
 	}
 
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCSI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCPI...)
 
-	return MultiNodeTemplate, nil
+	return multiNodeTemplate, nil
 }
 
 func MultiNodeTemplateSupervisor() ([]runtime.Object, error) {
@@ -178,7 +178,7 @@ func MultiNodeTemplateSupervisor() ([]runtime.Object, error) {
 	}
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
 
-	MultiNodeTemplate := []runtime.Object{ //nolint:prealloc
+	multiNodeTemplate := []runtime.Object{ //nolint:prealloc
 		&cluster,
 		&vsphereCluster,
 		&cpMachineTemplate,
@@ -189,10 +189,10 @@ func MultiNodeTemplateSupervisor() ([]runtime.Object, error) {
 		&clusterResourceSet,
 	}
 
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCSI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCPI...)
 
-	return MultiNodeTemplate, nil
+	return multiNodeTemplate, nil
 }
 
 func MultiNodeTemplateWithExternalLoadBalancer() ([]runtime.Object, error) {
@@ -211,7 +211,7 @@ func MultiNodeTemplateWithExternalLoadBalancer() ([]runtime.Object, error) {
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
 	identitySecret := newIdentitySecret()
 
-	MultiNodeTemplate := []runtime.Object{ //nolint:prealloc
+	multiNodeTemplate := []runtime.Object{ //nolint:prealloc
 		&cluster,
 		&vsphereCluster,
 		&cpMachineTemplate,
@@ -222,10 +222,10 @@ func MultiNodeTemplateWithExternalLoadBalancer() ([]runtime.Object, error) {
 		&clusterResourceSet,
 		&identitySecret,
 	}
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCSI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCPI...)
 
-	return MultiNodeTemplate, nil
+	return multiNodeTemplate, nil
 }
 
 func MultiNodeTemplateWithKubeVIPIgnition() ([]runtime.Object, error) {
@@ -253,7 +253,7 @@ func MultiNodeTemplateWithKubeVIPIgnition() ([]runtime.Object, error) {
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
 	identitySecret := newIdentitySecret()
 
-	MultiNodeTemplate := []runtime.Object{ //nolint:prealloc
+	multiNodeTemplate := []runtime.Object{ //nolint:prealloc
 		&cluster,
 		&vsphereCluster,
 		&machineTemplate,
@@ -264,10 +264,10 @@ func MultiNodeTemplateWithKubeVIPIgnition() ([]runtime.Object, error) {
 		&identitySecret,
 	}
 
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCSI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCPI...)
 
-	return MultiNodeTemplate, nil
+	return multiNodeTemplate, nil
 }
 
 func MultiNodeTemplateWithKubeVIPNodeIPAM() ([]runtime.Object, error) {
@@ -288,7 +288,7 @@ func MultiNodeTemplateWithKubeVIPNodeIPAM() ([]runtime.Object, error) {
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
 	identitySecret := newIdentitySecret()
 
-	MultiNodeTemplate := []runtime.Object{ //nolint:prealloc
+	multiNodeTemplate := []runtime.Object{ //nolint:prealloc
 		&cluster,
 		&vsphereCluster,
 		&cpMachineTemplate,
@@ -300,8 +300,8 @@ func MultiNodeTemplateWithKubeVIPNodeIPAM() ([]runtime.Object, error) {
 		&identitySecret,
 	}
 
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCSI...)
+	multiNodeTemplate = append(multiNodeTemplate, crsResourcesCPI...)
 
-	return MultiNodeTemplate, nil
+	return multiNodeTemplate, nil
 }

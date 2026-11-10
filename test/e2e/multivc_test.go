@@ -113,7 +113,7 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 	Expect(vms.Items).ToNot(BeEmpty())
 
 	_, err := vsphereFinder.DatacenterOrDefault(ctx, input.Datacenter)
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	By("Turning the workload cluster into a management cluster")
 
@@ -165,7 +165,7 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 		Namespace:            namespace.Name,
 	})
 
-	Expect(selfHostedNamespace.Name).ShouldNot(BeNil(), "namespace should have name")
+	Expect(selfHostedNamespace.Name).ToNot(BeNil(), "namespace should have name")
 
 	wlClusterName := fmt.Sprintf("%s-%s", "wlcluster", util.RandomString(6))
 

@@ -35,19 +35,19 @@ const (
 func TestVSphereVM_Default(t *testing.T) {
 	g := NewWithT(t)
 
-	WindowsVM := createVSphereVM(windowsVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VSphereVMBootstrapReference{}, infrav1.Windows, infrav1.VirtualMachinePowerOpModeTrySoft, 0)
-	LinuxVM := createVSphereVM(linuxVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VSphereVMBootstrapReference{}, infrav1.Linux, infrav1.VirtualMachinePowerOpModeTrySoft, 0)
-	NoOSVM := createVSphereVM(linuxVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VSphereVMBootstrapReference{}, "", infrav1.VirtualMachinePowerOpModeTrySoft, 0)
+	windowsVM := createVSphereVM(windowsVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VSphereVMBootstrapReference{}, infrav1.Windows, infrav1.VirtualMachinePowerOpModeTrySoft, 0)
+	linuxVM := createVSphereVM(linuxVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VSphereVMBootstrapReference{}, infrav1.Linux, infrav1.VirtualMachinePowerOpModeTrySoft, 0)
+	noOSVM := createVSphereVM(linuxVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VSphereVMBootstrapReference{}, "", infrav1.VirtualMachinePowerOpModeTrySoft, 0)
 
 	ctx := context.Background()
 	webhook := &VSphereVM{}
-	g.Expect(webhook.Default(ctx, WindowsVM)).ToNot(HaveOccurred())
-	g.Expect(webhook.Default(ctx, LinuxVM)).ToNot(HaveOccurred())
-	g.Expect(webhook.Default(ctx, NoOSVM)).ToNot(HaveOccurred())
+	g.Expect(webhook.Default(ctx, windowsVM)).To(Succeed())
+	g.Expect(webhook.Default(ctx, linuxVM)).To(Succeed())
+	g.Expect(webhook.Default(ctx, noOSVM)).To(Succeed())
 
-	g.Expect(LinuxVM.Spec.OS).To(Equal(infrav1.Linux))
-	g.Expect(WindowsVM.Spec.OS).To(Equal(infrav1.Windows))
-	g.Expect(NoOSVM.Spec.OS).To(Equal(infrav1.Linux))
+	g.Expect(linuxVM.Spec.OS).To(Equal(infrav1.Linux))
+	g.Expect(windowsVM.Spec.OS).To(Equal(infrav1.Windows))
+	g.Expect(noOSVM.Spec.OS).To(Equal(infrav1.Linux))
 }
 
 func TestVSphereVM_ValidateCreate(t *testing.T) {
@@ -213,7 +213,7 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 }
 
 func createVSphereVM(name, server, biosUUID, thumbprint string, ips []string, bootstrapRef infrav1.VSphereVMBootstrapReference, os infrav1.OS, powerOffMode infrav1.VirtualMachinePowerOpMode, guestSoftPowerOffTimeout int32) *infrav1.VSphereVM {
-	VSphereVM := &infrav1.VSphereVM{
+	vsphereVM := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -233,12 +233,12 @@ func createVSphereVM(name, server, biosUUID, thumbprint string, ips []string, bo
 	}
 
 	if os != "" {
-		VSphereVM.Spec.OS = os
+		vsphereVM.Spec.OS = os
 	}
 	for _, ip := range ips {
-		VSphereVM.Spec.Network.Devices = append(VSphereVM.Spec.Network.Devices, infrav1.NetworkDeviceSpec{
+		vsphereVM.Spec.Network.Devices = append(vsphereVM.Spec.Network.Devices, infrav1.NetworkDeviceSpec{
 			IPAddrs: []string{ip},
 		})
 	}
-	return VSphereVM
+	return vsphereVM
 }

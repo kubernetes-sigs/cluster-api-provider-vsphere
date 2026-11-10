@@ -20,6 +20,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/netip"
 	"os"
@@ -128,10 +129,10 @@ func runCmd(ctx context.Context) func(cmd *cobra.Command, _ []string) error {
 		log := ctrl.LoggerFrom(ctx)
 
 		if boskosHost == "" {
-			return fmt.Errorf("--boskos-host must be set")
+			return errors.New("--boskos-host must be set")
 		}
 		if resourceOwner == "" {
-			return fmt.Errorf("--resource-owner must be set")
+			return errors.New("--resource-owner must be set")
 		}
 		log = log.WithValues("boskosHost", boskosHost, "resourceOwner", resourceOwner)
 		ctx := ctrl.LoggerInto(ctx, log)
@@ -145,7 +146,7 @@ func runCmd(ctx context.Context) func(cmd *cobra.Command, _ []string) error {
 		switch cmd.Use {
 		case "acquire":
 			if resourceType == "" {
-				return fmt.Errorf("--resource-type must be set")
+				return errors.New("--resource-type must be set")
 			}
 			log := log.WithValues("resourceType", resourceType)
 			ctx := ctrl.LoggerInto(ctx, log)
@@ -153,7 +154,7 @@ func runCmd(ctx context.Context) func(cmd *cobra.Command, _ []string) error {
 			return acquire(ctx, client, resourceType)
 		case "heartbeat":
 			if resourceName == "" {
-				return fmt.Errorf("--resource-name must be set")
+				return errors.New("--resource-name must be set")
 			}
 			log := log.WithValues("resourceName", resourceName)
 			ctx := ctrl.LoggerInto(ctx, log)
@@ -161,31 +162,31 @@ func runCmd(ctx context.Context) func(cmd *cobra.Command, _ []string) error {
 			return heartbeat(ctx, client, resourceName)
 		case "release":
 			if resourceName == "" {
-				return fmt.Errorf("--resource-name must be set")
+				return errors.New("--resource-name must be set")
 			}
 			if vSphereUsername == "" {
 				vSphereUsername = os.Getenv("VSPHERE_USERNAME")
 			}
 			if vSphereUsername == "" {
-				return fmt.Errorf("--vsphere-username or VSPHERE_USERNAME env var must be set")
+				return errors.New("--vsphere-username or VSPHERE_USERNAME env var must be set")
 			}
 			if vSpherePassword == "" {
 				vSpherePassword = os.Getenv("VSPHERE_PASSWORD")
 			}
 			if vSpherePassword == "" {
-				return fmt.Errorf("--vsphere-password or VSPHERE_PASSWORD env var must be set")
+				return errors.New("--vsphere-password or VSPHERE_PASSWORD env var must be set")
 			}
 			if vSphereServer == "" {
-				return fmt.Errorf("--vsphere-server must be set")
+				return errors.New("--vsphere-server must be set")
 			}
 			if vSphereTLSThumbprint == "" {
-				return fmt.Errorf("--vsphere-tls-thumbprint must be set")
+				return errors.New("--vsphere-tls-thumbprint must be set")
 			}
 			if vSphereFolder == "" {
-				return fmt.Errorf("--vsphere-folder must be set")
+				return errors.New("--vsphere-folder must be set")
 			}
 			if vSphereResourcePool == "" {
-				return fmt.Errorf("--vsphere-resource-pool must be set")
+				return errors.New("--vsphere-resource-pool must be set")
 			}
 
 			log := log.WithValues("resourceName", resourceName, "vSphereServer", vSphereServer, "vSphereFolder", vSphereFolder, "vSphereResourcePool", vSphereResourcePool)
@@ -272,7 +273,7 @@ type inClusterIPPoolSpec struct {
 func getIPPoolEnvVars(ipPool string) (map[string]string, error) {
 	ipPoolSpec := inClusterIPPoolSpec{}
 	if err := json.Unmarshal([]byte(ipPool), &ipPoolSpec); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal IP pool configuration")
+		return nil, errors.New("failed to unmarshal IP pool configuration")
 	}
 
 	ipSet, err := allIPs(ipPoolSpec.Addresses)

@@ -74,7 +74,7 @@ func findVM(ctx context.Context, vmCtx *capvcontext.VMContext) (types.ManagedObj
 		}
 		if objRef == nil {
 			log.Info("VM not found by bios uuid", "biosUUID", biosUUID)
-			return types.ManagedObjectReference{}, errNotFound{uuid: biosUUID}
+			return types.ManagedObjectReference{}, notFoundError{uuid: biosUUID}
 		}
 		log.Info("VM found by bios uuid", "vmRef", objRef.Reference())
 		return objRef.Reference(), nil
@@ -97,7 +97,7 @@ func findVM(ctx context.Context, vmCtx *capvcontext.VMContext) (types.ManagedObj
 		if err != nil {
 			if isVirtualMachineNotFound(err) {
 				log.Info("VM not found by instance uuid or inventory path")
-				return types.ManagedObjectReference{}, errNotFound{byInventoryPath: inventoryPath}
+				return types.ManagedObjectReference{}, notFoundError{byInventoryPath: inventoryPath}
 			}
 			return types.ManagedObjectReference{}, err
 		}
@@ -151,7 +151,7 @@ func checkAndRetryTask(ctx context.Context, vmCtx *capvcontext.VMContext, task *
 
 	// Otherwise the course of action is determined by the state of the task.
 	log = log.WithValues("taskRef", task.Reference().Value, "taskState", task.Info.State, "taskDescriptionID", task.Info.DescriptionId)
-	ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
+	ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck,wastedassign // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
 	switch task.Info.State {
 	case types.TaskInfoStateQueued:
 		log.Info("Task found: Task is still pending")

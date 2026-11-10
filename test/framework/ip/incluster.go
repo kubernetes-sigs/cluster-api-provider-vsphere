@@ -19,7 +19,7 @@ package ip
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"os"
 	"strconv"
 	"time"
@@ -76,7 +76,7 @@ type inClusterIPPoolSpec struct {
 // If e2eIPAMKubeconfig is an empty string it will return a noop AddressManager which does nothing so we can fallback on setting environment variables.
 func InClusterAddressManager(ctx context.Context, client client.Client, e2eIPPool string, labels map[string]string, skipCleanup bool) (AddressManager, error) {
 	if len(labels) == 0 {
-		return nil, fmt.Errorf("expecting labels to be set to prevent deletion of other IPAddressClaims")
+		return nil, errors.New("expecting labels to be set to prevent deletion of other IPAddressClaims")
 	}
 
 	if e2eIPPool == "" {
@@ -99,7 +99,7 @@ func InClusterAddressManager(ctx context.Context, client client.Client, e2eIPPoo
 func createIPPool(ctx context.Context, c client.Client, e2eIPPool string) (*unstructured.Unstructured, error) {
 	ipPoolSpec := inClusterIPPoolSpec{}
 	if err := json.Unmarshal([]byte(e2eIPPool), &ipPoolSpec); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal IP Pool configuration")
+		return nil, errors.New("failed to unmarshal IP Pool configuration")
 	}
 
 	ipPool := &unstructured.Unstructured{}
@@ -121,7 +121,7 @@ func createIPPool(ctx context.Context, c client.Client, e2eIPPool string) (*unst
 		"gateway":   ipPoolSpec.Gateway,
 	}
 	if err := unstructured.SetNestedField(ipPool.Object, spec, "spec"); err != nil {
-		return nil, fmt.Errorf("failed to set InClusterIPPool spec")
+		return nil, errors.New("failed to set InClusterIPPool spec")
 	}
 
 	// InClusterAddressManager is called on multiple ginkgo workers at the same time.
@@ -263,7 +263,6 @@ func (h *inCluster) Teardown(ctx context.Context, opts ...TearDownOption) error 
 
 	ip := &ipamv1.IPAddress{}
 	for _, ipAddressClaim := range ipAddressClaims.Items {
-		ipAddressClaim := ipAddressClaim
 		if ipAddressClaim.Status.AddressRef.Name == "" {
 			continue
 		}

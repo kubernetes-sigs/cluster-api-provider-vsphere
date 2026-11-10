@@ -134,7 +134,7 @@ func ConfigInitFnTester(method ConfigInitFn, methodName string, dataKey string, 
 		var config Config
 		const passCount = 5
 		multiPassEncodedData := sampleData
-		for i := 0; i < passCount; i++ {
+		for range passCount {
 			multiPassEncodedData = base64Encode(multiPassEncodedData)
 		}
 

@@ -264,7 +264,7 @@ func createVMTemplates(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSim
 	}
 
 	for _, t := range vcsimhelpers.DefaultVMTemplates {
-		for dc := 0; dc < datacenters; dc++ {
+		for dc := range datacenters {
 			exit := cli.Run([]string{"vm.create", fmt.Sprintf("-ds=%s", vcsimhelpers.DatastoreName(datastore)), fmt.Sprintf("-cluster=%s", vcsimhelpers.ClusterName(dc, cluster)), fmt.Sprintf("-net=%s", vcsimhelpers.DefaultNetworkName), "-disk=20G", "-on=false", "-k=true", fmt.Sprintf("-u=%s", govcURL), t})
 			if exit != 0 {
 				return pkgerrors.New("failed to create vm template")

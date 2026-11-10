@@ -13,3 +13,13 @@ patches:
       namespace: vmware-system-csi
     spec:
       replicas: 1
+- target:
+    kind: ClusterRole
+    name: vsphere-csi-controller-role
+  patch: |-
+    - op: add
+      path: /rules/-
+      value:
+        apiGroups: ["storage.k8s.io"]
+        resources: ["volumeattributesclasses"]
+        verbs: ["get", "list", "watch"]

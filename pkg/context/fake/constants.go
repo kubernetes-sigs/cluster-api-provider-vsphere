@@ -42,7 +42,7 @@ const (
 	// ClusterUUID is the UID of the fake CAPI cluster.
 	ClusterUUID = "00000000-0000-0000-0000-000000000002"
 
-	//TODO:(killianmuldoon) assess whether the versioned constants e.g. Clusterv1a2Name are needed.
+	// TODO(killianmuldoon): assess whether the versioned constants e.g. Clusterv1a2Name are needed.
 
 	// Clusterv1a2Name is the name of the fake CAPI v1alpha3 Cluster resource.
 	Clusterv1a2Name = "fake-cluster"

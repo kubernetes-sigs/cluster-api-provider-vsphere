@@ -20,6 +20,7 @@ updates:
   directories:
   - "/"
   - "/api"
+  - "/packaging"
   - "/test"
   schedule:
     interval: "weekly"

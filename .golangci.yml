@@ -78,16 +78,6 @@ linters:
             - k8s.io/apimachinery/pkg/runtime/schema$
             - sigs.k8s.io/cluster-api-provider-vsphere/api
             - sigs.k8s.io/cluster-api/api
-        ginkgo:
-          files:
-            - $all
-            - "!$test"
-            - "!**/cluster-api-provider-vsphere/internal/test/helpers/**"
-            - "!**/cluster-api-provider-vsphere/test/e2e/**"
-            - "!**/cluster-api-provider-vsphere/test/framework/**"
-          deny:
-            - pkg: github.com/onsi/ginkgo
-              desc: Ginkgo should only be used in tests and test utils
         testify:
           files:
             - $all

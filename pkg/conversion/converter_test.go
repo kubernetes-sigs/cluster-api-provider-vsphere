@@ -188,8 +188,8 @@ func Test_converter_AddHubTypes(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(c.gvkToType).To(HaveKey(tt.wantGvk))
-			T := c.gvkToType[tt.wantGvk]
-			g.Expect(c.typeToGVK).To(HaveKeyWithValue(T, tt.wantGvk))
+			typ := c.gvkToType[tt.wantGvk]
+			g.Expect(c.typeToGVK).To(HaveKeyWithValue(typ, tt.wantGvk))
 			g.Expect(c.gvkHubTypes).To(HaveKeyWithValue(tt.wantGvk, true))
 		})
 	}
@@ -318,8 +318,8 @@ func TestConverter_AddConversion(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(c.gvkToType).To(HaveKey(tt.wantSpokeGvk))
-			T := c.gvkToType[tt.wantSpokeGvk]
-			g.Expect(c.typeToGVK).To(HaveKeyWithValue(T, tt.wantSpokeGvk))
+			typ := c.gvkToType[tt.wantSpokeGvk]
+			g.Expect(c.typeToGVK).To(HaveKeyWithValue(typ, tt.wantSpokeGvk))
 			g.Expect(c.gvkHubTypes).To(HaveKeyWithValue(tt.wantSpokeGvk, false))
 			g.Expect(c.conversionFuncs).To(HaveKey(tt.wantHubGvk))
 			g.Expect(c.conversionFuncs[tt.wantHubGvk]).To(HaveKey(tt.wantSpokeGvk))

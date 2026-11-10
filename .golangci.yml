@@ -313,6 +313,7 @@ linters:
         - name: time-date
         - name: time-equal
         - name: unconditional-recursion
+        - name: unexported-naming
         - name: unnecessary-if
         - name: use-errors-new
         - name: useless-break

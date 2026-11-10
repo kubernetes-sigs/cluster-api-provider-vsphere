@@ -41,6 +41,7 @@ const (
 	// Legacy global network provider names (pre-rename values of --network-provider).
 	// The current flag values reuse NSXNetworkProvider / NSXVPCNetworkProvider / VDSNetworkProvider
 	// (NSXTier1 / VPC / VSphereDistributed), matching VSphereCluster.spec.network.provider.
+
 	legacyNSXNetworkProvider    = "NSX"
 	legacyNSXVPCNetworkProvider = "NSX-VPC"
 	legacyVDSNetworkProvider    = "vsphere-network"

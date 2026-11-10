@@ -42,7 +42,7 @@ import (
 )
 
 var (
-	// global Session map against sessionKeys in map[sessionKey]Session.
+	// sessionCache is a global Session map against sessionKeys in map[sessionKey]Session.
 	sessionCache sync.Map
 
 	// sessionKeyLocks contains per-sessionKey mutexes to avoid duplicate session creations for the

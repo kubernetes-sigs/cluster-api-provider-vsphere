@@ -542,7 +542,7 @@ func (r *machineReconciler) patchMachineLabelsWithHostInfo(ctx context.Context, 
 	return patchHelper.Patch(ctx, machine)
 }
 
-// Return hooks that will be invoked when a VirtualMachine is created.
+// setVMModifiers sets hooks that will be invoked when a VirtualMachine is created.
 func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvcontext.MachineContext, np services.NetworkProvider) error {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {

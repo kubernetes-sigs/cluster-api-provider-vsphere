@@ -215,7 +215,7 @@ func legacyControlPlaneVMServiceName(clusterName string) string {
 	return fmt.Sprintf("%s-control-plane-service", clusterName)
 }
 
-// ClusterRoleVMLabels returns labels applied to a VirtualMachine in the cluster. The Control Plane
+// clusterRoleVMLabels returns labels applied to a VirtualMachine in the cluster. The Control Plane
 // VM Service uses these labels to select VMs, as does the Cloud Provider.
 // Add the legacyNodeSelectorKey and legacyClusterSelectorKey to machines as well.
 func clusterRoleVMLabels(ctx *vmware.ClusterContext, controlPlane bool) map[string]string {

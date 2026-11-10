@@ -52,6 +52,7 @@ import (
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
+// capvNamespace is the namespace CAPV is deployed in.
 // TODO: implement support for CAPV deployed in arbitrary ns (TBD if we need this).
 const capvNamespace = "capv-system"
 

@@ -69,7 +69,8 @@ var (
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "net-operator-controller-manager"
 
-	// common flags flags.
+	// common flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -85,6 +86,7 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// net operator specific flags.
+
 	networkInterfaceConcurrency int
 	virtualMachineConcurrency   int
 	vmOperatorAPIVersion        string

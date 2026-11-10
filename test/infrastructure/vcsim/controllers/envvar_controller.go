@@ -208,7 +208,7 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 	return ctrl.Result{}, nil
 }
 
-// vCenterSimulatorSupervisorVariables returns name/value pairs for a VCenterSimulator to be used for clusterctl templates when testing both in supervisor and govmomi mode.
+// vCenterSimulatorCommonVariables returns name/value pairs for a VCenterSimulator to be used for clusterctl templates when testing both in supervisor and govmomi mode.
 func vCenterSimulatorCommonVariables(v *vcsimv1.VCenterSimulator) map[string]string {
 	if v == nil {
 		return nil

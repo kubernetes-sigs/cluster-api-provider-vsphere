@@ -239,7 +239,7 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.Kub
 	return nil
 }
 
-// KubeadmConfigTemplate patches the KubeadmConfigTemplate.
+// patchKubeadmConfigTemplate patches the KubeadmConfigTemplate.
 func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	// patch enableSSHIntoNodes
 	if err := patchUsers(&tpl.Spec.Template.Spec, templateVariables); err != nil {

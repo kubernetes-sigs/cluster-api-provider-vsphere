@@ -36,7 +36,7 @@ const (
 	validatingwebhook     = "validating-webhook-configuration"
 )
 
-// Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
+// appendWebhookConfiguration mutates the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
 func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]*admissionv1.MutatingWebhookConfiguration, []*admissionv1.ValidatingWebhookConfiguration, error) {
 	var mutatingWebhooks []*admissionv1.MutatingWebhookConfiguration

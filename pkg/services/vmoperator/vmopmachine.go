@@ -1287,7 +1287,7 @@ func getPolicies(supervisorMachineCtx *vmware.SupervisorMachineContext) []vmoprv
 	return result
 }
 
-// getMachineDeploymentName returns the MachineDeployment name for a Cluster.
+// getMachineDeploymentNameForCluster returns the MachineDeployment name for a Cluster.
 // This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
 func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
 	return fmt.Sprintf("%s-workers-0", cluster.Name)

@@ -136,7 +136,7 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 	return ctrl.Result{}, r.reconcileNormal(ctx, vsphereDeploymentZoneContext)
 }
 
-// Patch patches the VSphereDeploymentZone.
+// patch patches the VSphereDeploymentZone.
 func (r vsphereDeploymentZoneReconciler) patch(ctx context.Context, vsphereDeploymentZoneContext *capvcontext.VSphereDeploymentZoneContext) error {
 	deprecatedv1beta1conditions.SetSummary(vsphereDeploymentZoneContext.VSphereDeploymentZone,
 		deprecatedv1beta1conditions.WithConditions(

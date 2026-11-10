@@ -72,7 +72,7 @@ func deleteAllControllerRefs(controlled metav1.Object, ref metav1.OwnerReference
 	controlled.SetOwnerReferences(owners)
 }
 
-// Returns true if a and b point to the same object.
+// referSameObject returns true if a and b point to the same object.
 func referSameObject(a, b metav1.OwnerReference) bool {
 	aGV, err := schema.ParseGroupVersion(a.APIVersion)
 	if err != nil {

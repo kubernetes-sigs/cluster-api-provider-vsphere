@@ -260,7 +260,6 @@ folder = "kubernetes"
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.testName, func(*testing.T) {
 			buf, err := tc.configObj.MarshalINI()
 			if err != nil {

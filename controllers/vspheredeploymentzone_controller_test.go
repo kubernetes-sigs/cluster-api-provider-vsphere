@@ -581,8 +581,6 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 	}
 
 	for _, tt := range tests {
-		// Looks odd, but need to reinitialize test variable
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 

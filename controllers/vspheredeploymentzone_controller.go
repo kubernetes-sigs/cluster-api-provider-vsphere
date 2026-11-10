@@ -290,7 +290,6 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, 
 		ctx := ctrl.LoggerInto(ctx, log)
 
 		params = params.WithThumbprint(vsphereCluster.Spec.Thumbprint)
-		vsphereCluster := vsphereCluster
 		creds, err := identity.GetCredentials(ctx, r.Client, &vsphereCluster, r.Namespace)
 		if err != nil {
 			log.Error(err, "error retrieving credentials from IdentityRef")

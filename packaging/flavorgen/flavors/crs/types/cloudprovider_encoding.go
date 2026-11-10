@@ -45,7 +45,7 @@ func (c *CPIConfig) MarshalINI() ([]byte, error) {
 	configValue := reflect.ValueOf(*c)
 	configType := reflect.TypeOf(*c)
 
-	for sectionIndex := 0; sectionIndex < configValue.NumField(); sectionIndex++ {
+	for sectionIndex := range configValue.NumField() {
 		sectionType := configType.Field(sectionIndex)
 		sectionValue := configValue.Field(sectionIndex)
 
@@ -97,7 +97,7 @@ func (c *CPIConfig) marshalINISectionProperties(
 	fmt.Fprintf(out, "[%s]\n", sectionName)
 
 	sectionType := sectionValue.Type()
-	for propertyIndex := 0; propertyIndex < sectionType.NumField(); propertyIndex++ {
+	for propertyIndex := range sectionType.NumField() {
 		propertyType := sectionType.Field(propertyIndex)
 		propertyValue := sectionValue.Field(propertyIndex)
 
@@ -177,7 +177,7 @@ func isEmpty(val reflect.Value) bool {
 
 	case reflect.Struct:
 		structIsEmpty := true
-		for fieldIndex := 0; fieldIndex < val.NumField(); fieldIndex++ {
+		for fieldIndex := range val.NumField() {
 			if structIsEmpty = isEmpty(val.Field(fieldIndex)); !structIsEmpty {
 				break
 			}

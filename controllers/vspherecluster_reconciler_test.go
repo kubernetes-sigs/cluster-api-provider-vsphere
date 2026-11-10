@@ -596,8 +596,6 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			// Looks odd, but need to reinit test variable
-			tt := tt
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				controllerManagerContext := fake.NewControllerManagerContext(tt.initObjs...)
@@ -668,8 +666,6 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			// Looks odd, but need to reinit test variable
-			tt := tt
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				controllerManagerContext := fake.NewControllerManagerContext(tt.initObjs...)

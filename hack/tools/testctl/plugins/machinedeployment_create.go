@@ -75,7 +75,7 @@ func (p MachineDeploymentCreatePlugin) Exec(ctx context.Context, c client.Client
 
 	count := min(config.Count, ptr.Deref(runConfig.Limit, math.MaxInt32))
 	var machineDeployments []clusterv1.MachineDeploymentTopology
-	for i := int32(0); i < count; i++ {
+	for i := range count {
 		mdTopology := config.Template.DeepCopy()
 		if mdTopology.Name == "" {
 			mdTopology.Name = fmt.Sprintf("%s%d", config.GenerateName, i+1)

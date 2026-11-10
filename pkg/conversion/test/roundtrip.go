@@ -210,7 +210,7 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 		// If hub type is a struct, checks fields in the hub type when they have a corresponding field in the spoke type.
 		// Note: hub types are a superset of spoke types in different API versions.
 		spokeFieldNamesWithHubFieldMatch := sets.New[string]()
-		for i := 0; i < hubT.NumField(); i++ {
+		for i := range hubT.NumField() {
 			hubField := hubT.Field(i)
 			hubFieldName := hubField.Name
 			fieldPath := path.Child(hubFieldName)
@@ -240,7 +240,7 @@ func inspectTypes(t *testing.T, hubT reflect.Type, spokeT reflect.Type, path *fi
 
 		// If a full match is required, also check the other way around: all the spoke fields have a corresponding field in hub.
 		if options.fullMatchRequired {
-			for i := 0; i < spokeT.NumField(); i++ {
+			for i := range spokeT.NumField() {
 				spokeField := spokeT.Field(i)
 				spokeFieldName := spokeField.Name
 				if spokeFieldNamesWithHubFieldMatch.Has(spokeFieldName) {

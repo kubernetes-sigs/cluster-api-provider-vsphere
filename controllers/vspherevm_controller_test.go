@@ -375,8 +375,6 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 	r := vmReconciler{ControllerManagerContext: controllerManagerCtx}
 
 	for _, tt := range tests {
-		// Need to explicitly reinitialize test variable, looks odd, but needed
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			vmContext.VSphereVM.Spec.Network = infrav1.NetworkSpec{Devices: tt.devices}
 			isWaiting := r.isWaitingForStaticIPAllocation(vmContext)

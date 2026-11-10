@@ -263,7 +263,6 @@ func (h *inCluster) Teardown(ctx context.Context, opts ...TearDownOption) error 
 
 	ip := &ipamv1.IPAddress{}
 	for _, ipAddressClaim := range ipAddressClaims.Items {
-		ipAddressClaim := ipAddressClaim
 		if ipAddressClaim.Status.AddressRef.Name == "" {
 			continue
 		}

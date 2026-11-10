@@ -99,7 +99,6 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 	}
 
 	for _, v := range replacements {
-		v := v
 		if v.Name == data.GetName() && v.Kind == data.GetKind() {
 			if err := unstructured.SetNestedField(data.Object, v.Value, v.FieldPath...); err != nil {
 				panic(err)
@@ -125,7 +124,6 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 	str := string(bytes)
 
 	for _, s := range stringVars {
-		s := s
 		regex := regexp.MustCompile(s)
 		if err != nil {
 			panic(err)
@@ -133,7 +131,6 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 		str = regex.ReplaceAllString(str, "'$1'")
 	}
 	for _, s := range stringVarsDouble {
-		s := s
 		regex := regexp.MustCompile(s)
 		if err != nil {
 			panic(err)

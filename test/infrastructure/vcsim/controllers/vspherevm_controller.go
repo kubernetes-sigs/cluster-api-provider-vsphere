@@ -184,7 +184,6 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		found := false
 		for _, c := range l.Items {
-			c := c
 			if c.Status.Host != cluster.Spec.ControlPlaneEndpoint.Host || c.Status.Port != cluster.Spec.ControlPlaneEndpoint.Port {
 				continue
 			}

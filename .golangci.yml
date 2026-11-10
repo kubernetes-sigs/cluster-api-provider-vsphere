@@ -11,6 +11,7 @@ linters:
     - bidichk # dangerous unicode sequences
     - bodyclose # unclosed http bodies
     - containedctx # context.Context nested in a struct
+    - copyloopvar # copying loop variables
     - depguard # blocks dependencies
     - dogsled # too many blank identifiers in assignments
     - dupword # duplicate words
@@ -27,6 +28,7 @@ linters:
     - govet # basically 'go vet'
     - importas # consistent import aliases
     - ineffassign # ineffectual assignments
+    - intrange # suggest using integer range in for loops
     - loggercheck # check for even key/value pairs in logger calls
     - misspell # spelling
     - nakedret # naked returns (named return parameters and an empty return)

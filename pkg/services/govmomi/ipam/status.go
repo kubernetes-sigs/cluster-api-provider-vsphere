@@ -21,10 +21,10 @@ import (
 	"context"
 	"fmt"
 	"net/netip"
+	"slices"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -67,7 +67,7 @@ func BuildState(ctx context.Context, vmCtx capvcontext.VMContext, networkStatus 
 				continue
 			}
 
-			if slices.Contains(addressWithPrefixes, addressWithPrefix) { //nolint:govet // govet complains both if the type parameters are explicitly specified or not.
+			if slices.Contains(addressWithPrefixes, addressWithPrefix) {
 				errs = append(errs,
 					fmt.Errorf("IPAddress %s/%s is a duplicate of another address: %q",
 						ipamAddress.Namespace,

@@ -221,6 +221,8 @@ linters:
           alias: ipamv1
         - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta1
           alias: ipamv1beta1
+    loggercheck:
+      no-printf-like: true
     nolintlint:
       require-specific: true
       allow-unused: false

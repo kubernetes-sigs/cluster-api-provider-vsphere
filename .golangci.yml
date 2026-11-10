@@ -72,6 +72,27 @@ linters:
             - k8s.io/apimachinery/pkg/runtime/schema$
             - sigs.k8s.io/cluster-api-provider-vsphere/api
             - sigs.k8s.io/cluster-api/api
+        ginkgo:
+          files:
+            - $all
+            - "!$test"
+            - "!**/cluster-api-provider-vsphere/internal/test/helpers/**"
+            - "!**/cluster-api-provider-vsphere/test/e2e/**"
+            - "!**/cluster-api-provider-vsphere/test/framework/**"
+          deny:
+            - pkg: github.com/onsi/ginkgo
+              desc: Ginkgo should only be used in tests and test utils
+        testify:
+          files:
+            - $all
+            # Note: These files are using testify/mock for fakes.
+            - "!**/cluster-api-provider-vsphere/controllers/clustermodule_reconciler_test.go"
+            - "!**/cluster-api-provider-vsphere/controllers/vspherevm_controller_test.go"
+            - "!**/cluster-api-provider-vsphere/pkg/clustermodule/fake/service.go"
+            - "!**/cluster-api-provider-vsphere/pkg/services/fake/vmservice.go"
+          deny:
+            - pkg: github.com/stretchr/testify
+              desc: Use gomega instead
         vm-operator:
           deny:
             - pkg: "github.com/vmware-tanzu/vm-operator/api"

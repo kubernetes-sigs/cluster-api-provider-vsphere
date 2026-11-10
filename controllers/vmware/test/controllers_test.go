@@ -346,14 +346,13 @@ func waitForWebhooks() {
 	}
 }
 
-func prepareClient(isLoadBalanced bool) (cli client.Client, cancelation context.CancelFunc) {
+func prepareClient(isLoadBalanced bool) (client.Client, context.CancelFunc) {
 	networkProvider := ""
 	if isLoadBalanced {
 		networkProvider = manager.DummyLBNetworkProvider
 	}
 
-	cli, cancelation = initManagerAndBuildClient(networkProvider, false)
-	return
+	return initManagerAndBuildClient(networkProvider, false)
 }
 
 var _ = Describe("Reconciliation tests", func() {

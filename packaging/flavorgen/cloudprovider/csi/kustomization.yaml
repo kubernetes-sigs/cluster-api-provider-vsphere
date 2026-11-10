@@ -11,5 +11,25 @@ patches:
     metadata:
       name: vsphere-csi-controller
       namespace: vmware-system-csi
+      labels:
+        app: vsphere-csi-controller
     spec:
       replicas: 1
+- patch: |-
+    kind: DaemonSet
+    apiVersion: apps/v1
+    metadata:
+      name: vsphere-csi-node
+      namespace: vmware-system-csi
+      labels:
+        app: vsphere-csi-node
+- target:
+    kind: ClusterRole
+    name: vsphere-csi-controller-role
+  patch: |-
+    - op: add
+      path: /rules/-
+      value:
+        apiGroups: ["storage.k8s.io"]
+        resources: ["volumeattributesclasses"]
+        verbs: ["get", "list", "watch"]

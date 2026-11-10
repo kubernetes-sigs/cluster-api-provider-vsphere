@@ -66,21 +66,21 @@ func assertNoEntities(ctx context.Context, ctrlClient client.Client, namespace s
 	Consistently(func() int {
 		var serviceAccountList corev1.ServiceAccountList
 		err := ctrlClient.List(ctx, &serviceAccountList, client.InNamespace(namespace))
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 		return len(serviceAccountList.Items)
 	}, time.Second*3).Should(Equal(0))
 
 	Consistently(func() int {
 		var roleList rbacv1.RoleList
 		err := ctrlClient.List(ctx, &roleList, client.InNamespace(namespace))
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 		return len(roleList.Items)
 	}, time.Second*3).Should(Equal(0))
 
 	Consistently(func() int {
 		var roleBindingList rbacv1.RoleBindingList
 		err := ctrlClient.List(ctx, &roleBindingList, client.InNamespace(namespace))
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 		return len(roleBindingList.Items)
 	}, time.Second*3).Should(Equal(0))
 }
@@ -103,7 +103,7 @@ func assertTargetSecret(ctx context.Context, guestClient client.Client, namespac
 	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, secret)
 	EventuallyWithOffset(2, func() []byte {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
-		Expect(guestClient.Get(ctx, key, secret)).Should(Succeed())
+		Expect(guestClient.Get(ctx, key, secret)).To(Succeed())
 		return secret.Data["token"]
 	}).Should(Equal([]byte(testSecretToken)))
 }
@@ -124,7 +124,7 @@ func assertRoleWithGetPVC(ctx context.Context, ctrlClient client.Client, namespa
 		Namespace: namespace,
 	}
 	err := ctrlClient.List(ctx, &roleList, opts)
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	Expect(roleList.Items).To(HaveLen(1))
 	Expect(roleList.Items[0].Name).To(Equal(name))
 	Expect(roleList.Items[0].Rules).To(Equal([]rbacv1.PolicyRule{
@@ -142,7 +142,7 @@ func assertRoleBinding(ctx context.Context, ctrlClient client.Client, namespace,
 		Namespace: namespace,
 	}
 	err := ctrlClient.List(ctx, &roleBindingList, opts)
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	Expect(roleBindingList.Items).To(HaveLen(1))
 	Expect(roleBindingList.Items[0].Name).To(Equal(name))
 	Expect(roleBindingList.Items[0].RoleRef).To(Equal(rbacv1.RoleRef{

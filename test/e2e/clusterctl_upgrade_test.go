@@ -92,7 +92,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.17
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 				PreInit: func(managementClusterProxy framework.ClusterProxy) {
-					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).Should(Succeed())
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).To(Succeed())
 				},
 			}
 		})
@@ -149,7 +149,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.17
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 				PreInit: func(managementClusterProxy framework.ClusterProxy) {
-					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).Should(Succeed())
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).To(Succeed())
 				},
 			}
 		})
@@ -206,7 +206,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.16
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 				PreInit: func(managementClusterProxy framework.ClusterProxy) {
-					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).Should(Succeed())
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).To(Succeed())
 				},
 			}
 		})
@@ -263,7 +263,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.15
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 				PreInit: func(managementClusterProxy framework.ClusterProxy) {
-					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).Should(Succeed())
+					Expect(vmoperator.ReconcileCapabilities(ctx, managementClusterProxy.GetClient(), e2eConfig.GetVariableOrEmpty("VM_OPERATOR_API_VERSION"))).To(Succeed())
 				},
 			}
 		})

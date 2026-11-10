@@ -90,12 +90,12 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Region)).To(Succeed())
 	stdout := gbytes.NewBuffer()
 	g.Expect(simr.Run("tags.attached.ls k8s-region-west", stdout)).To(Succeed())
-	g.Expect(stdout).Should(gbytes.Say("Datacenter"))
+	g.Expect(stdout).To(gbytes.Say("Datacenter"))
 
 	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(Succeed())
 	stdout = gbytes.NewBuffer()
 	g.Expect(simr.Run("tags.attached.ls k8s-region-west-2", stdout)).To(Succeed())
-	g.Expect(stdout).Should(gbytes.Say("ClusterComputeResource"))
+	g.Expect(stdout).To(gbytes.Say("ClusterComputeResource"))
 
 	vsphereFailureDomain.Spec.Topology.ComputeCluster = "DC0_C1"
 	// Since association is verified, the method errors since the tag is not associated to the object.

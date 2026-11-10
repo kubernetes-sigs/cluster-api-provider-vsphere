@@ -125,7 +125,7 @@ func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 	Expect(vms.Items).ToNot(BeEmpty())
 
 	datacenter, err := vsphereFinder.DatacenterOrDefault(ctx, input.Datacenter)
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	By("verifying storage policy is used by VMs")
 	for _, vm := range vms.Items {
 		si := object.NewSearchIndex(input.Client.Client)

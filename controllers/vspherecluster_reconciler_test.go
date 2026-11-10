@@ -125,7 +125,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			By("setting the OwnerRef on the VSphereCluster")
 			Eventually(func() error {
 				ph, err := patch.NewHelper(instance, testEnv)
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{
 					Kind:       "Cluster",
 					APIVersion: clusterv1.GroupVersion.String(),
@@ -224,9 +224,9 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			By("setting the OwnerRef on the VSphereCluster")
 			Eventually(func() bool {
 				ph, err := patch.NewHelper(instance, testEnv)
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Name: capiCluster.Name, UID: "blah"})
-				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).Should(Succeed())
+				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).To(Succeed())
 				return true
 			}, timeout).Should(BeTrue())
 
@@ -434,7 +434,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			By("Setting the status of the Deployment Zone to true")
 			Eventually(func() error {
 				ph, err := patch.NewHelper(zoneOne, testEnv)
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				zoneOne.Status.Ready = ptr.To(true)
 				return ph.Patch(ctx, zoneOne, patch.WithStatusObservedGeneration{})
 			}, timeout).Should(Succeed())
@@ -452,7 +452,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				By("Setting the status of the Deployment Zone to true")
 				Eventually(func() error {
 					ph, err := patch.NewHelper(zoneOne, testEnv)
-					Expect(err).ShouldNot(HaveOccurred())
+					Expect(err).ToNot(HaveOccurred())
 					zoneOne.Status.Ready = ptr.To(true)
 					return ph.Patch(ctx, zoneOne, patch.WithStatusObservedGeneration{})
 				}, timeout).Should(Succeed())

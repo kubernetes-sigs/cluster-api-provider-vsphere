@@ -133,7 +133,7 @@ func assertHeadlessSvcWithUpdatedVIPEndpoints(ctx context.Context, guestClient c
 	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)
 	Eventually(func() string {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
-		Expect(guestClient.Get(ctx, key, headlessEndpoints)).Should(Succeed())
+		Expect(guestClient.Get(ctx, key, headlessEndpoints)).To(Succeed())
 		return headlessEndpoints.Subsets[0].Addresses[0].IP
 	}, time.Second*10).Should(Equal(testSupervisorAPIServerVIP))
 	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(supervisorAPIServerPort)))

@@ -98,7 +98,7 @@ func updateVMServiceWithVIPs(ctx context.Context, clusterCtx *vmware.ClusterCont
 	vmService.Status.LoadBalancer.Ingress = ingresses
 
 	err := c.Status().Patch(ctx, vmService, ctrlclient.MergeFrom(sOriginal))
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 }
 
 type dummyDualStackNetworkProvider struct {
@@ -175,16 +175,16 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 
 	Context("Reconcile ControlPlaneEndpointService", func() {
 		verifyOutput := func() {
-			Expect(err != nil).Should(Equal(expectReconcileError))
+			Expect(err != nil).To(Equal(expectReconcileError))
 
-			Expect(apiEndpoint != nil).Should(Equal(expectAPIEndpoint))
+			Expect(apiEndpoint != nil).To(Equal(expectAPIEndpoint))
 			if apiEndpoint != nil {
 				Expect(apiEndpoint.Host).To(Equal(expectedHost))
 				Expect(apiEndpoint.Port).To(BeEquivalentTo(expectedPort))
 			}
 
 			vms = getVirtualMachineService(ctx, clusterCtx, c, cpService)
-			Expect(vms != nil).Should(Equal(expectVMS))
+			Expect(vms != nil).To(Equal(expectVMS))
 			if vms != nil {
 				Expect(vms.Spec.Type).To(Equal(expectedType))
 				for k, v := range expectedAnnotations {

@@ -52,7 +52,7 @@ func init() {
 func initVSphereSession() {
 	By("parsing vSphere server URL")
 	serverURL, err := soap.ParseURL(vsphereServer)
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	var vimClient *vim25.Client
 
@@ -61,7 +61,7 @@ func initVSphereSession() {
 		soapClient := soap.NewClient(serverURL, true)
 
 		vimClient, err = vim25.NewClient(ctx, soapClient)
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
 		vsphereClient = &govmomi.Client{
 			Client:         vimClient,
@@ -85,7 +85,7 @@ func initVSphereSession() {
 
 	By("configuring vSphere datacenter")
 	datacenter, err := vsphereFinder.DatacenterOrDefault(ctx, vsphereDatacenter)
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	vsphereFinder.SetDatacenter(datacenter)
 }
 

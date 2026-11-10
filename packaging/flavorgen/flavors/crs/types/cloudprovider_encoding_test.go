@@ -264,11 +264,11 @@ folder = "kubernetes"
 			buf, err := tc.configObj.MarshalINI()
 			if err != nil {
 				if tc.expectedError == nil {
-					g.Expect(err).ShouldNot(
+					g.Expect(err).ToNot(
 						gomega.HaveOccurred(),
 						"unexpected error when marshalling data")
 				} else {
-					g.Expect(err.Error()).Should(
+					g.Expect(err.Error()).To(
 						gomega.Equal(tc.expectedError.Error()),
 						"unexpected error when marshalling data")
 				}

@@ -82,6 +82,11 @@ func (c *VIMMachineContext) GetReady() bool {
 	return ptr.Deref(c.VSphereMachine.Status.Initialization.Provisioned, false)
 }
 
+// IsHostInMaintenance always returns false for VIM-backed machines.
+func (c *VIMMachineContext) IsHostInMaintenance() bool {
+	return false
+}
+
 // GetObjectMeta returns the ObjectMeta for the VSphereMachine in the VIMMachineContext.
 func (c *VIMMachineContext) GetObjectMeta() metav1.ObjectMeta {
 	return c.VSphereMachine.ObjectMeta

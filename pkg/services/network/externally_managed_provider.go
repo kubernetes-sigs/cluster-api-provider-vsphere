@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -127,7 +128,7 @@ func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.
 
 	// interfaceNames records interfaces from the VSphereMachine spec,
 	// will remove interfaces in VirtualMachine that are not exist in interfaceNames.
-	interfaceNames := map[string]struct{}{PrimaryInterfaceName: {}}
+	interfaceNames := sets.Set[string]{PrimaryInterfaceName: {}}
 	for _, secondary := range machine.Spec.Network.Interfaces.Secondary {
 		ipamModes, err := np.ipamModesForInterface(ctx, machine.Namespace, secondary.NetworkRef)
 		if err != nil {
@@ -141,13 +142,12 @@ func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.
 			"None",
 			ipamModes,
 		)
-		interfaceNames[secondary.Name] = struct{}{}
+		interfaceNames.Insert(secondary.Name)
 	}
 
 	// Clean up legacy network interfaces
 	vm.Spec.Network.Interfaces = slices.DeleteFunc(vm.Spec.Network.Interfaces, func(iface vmoprvhub.VirtualMachineNetworkInterfaceSpec) bool {
-		_, desired := interfaceNames[iface.Name]
-		return !desired
+		return !interfaceNames.Has(iface.Name)
 	})
 
 	// CAPV owns the VLAN list, including removal and links to retained interfaces.

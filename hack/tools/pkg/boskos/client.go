@@ -103,7 +103,6 @@ func NewClient(owner, urlString string) (*Client, error) {
 	client.Dialer.DualStack = true
 	client.http.Transport = &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
-		Dial:                  client.Dialer.Dial,
 		DialContext:           client.Dialer.DialContext,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,

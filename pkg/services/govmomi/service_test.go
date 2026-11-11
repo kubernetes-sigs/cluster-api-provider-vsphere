@@ -301,7 +301,7 @@ func Test_ReconcileStoragePolicy(t *testing.T) {
 		model, err := storagePolicyModel()
 		g.Expect(err).ToNot(HaveOccurred())
 
-		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error { //nolint:unparam // library is not under our control so can't fix "result 0 (error) is always nil"
 			authSession, err := getAuthSession(ctx, model.Service.Listen.Host)
 			g.Expect(err).ToNot(HaveOccurred())
 			vmCtx.Session = authSession

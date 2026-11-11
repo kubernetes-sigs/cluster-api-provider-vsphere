@@ -244,7 +244,7 @@ func readPrivateKey() ([]byte, error) {
 		return nil, pkgerrors.Errorf("private key information missing. Please set %s environment variable", VSpherePrivateKeyFilePath)
 	}
 
-	return os.ReadFile(filepath.Clean(privateKeyFilePath))
+	return os.ReadFile(filepath.Clean(privateKeyFilePath)) //nolint:gosec // we don't have to worry about path traversal here
 }
 
 // aggregateConcurrent runs fns concurrently, returning aggregated errors.

@@ -333,7 +333,7 @@ linters:
       # TODO: Excludes that can be removed as part of the CAPV v1.20 release.
       - linters:
           - staticcheck
-        text: 'SA1019: feature.(PriorityQueue|ReconcilerRateLimiting) is deprecated'
+        text: 'SA1019: sigs.k8s.io/cluster-api-provider-vsphere/feature.(PriorityQueue|ReconcilerRateLimiting) is deprecated'
 
       # Specific exclude rules for deprecated types that are still part of the codebase. These
       # should be removed as the referenced deprecated types are removed from the project.
@@ -344,17 +344,17 @@ linters:
       # v1Beta1 deprecated fields
       - linters:
           - staticcheck
-        text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
+        text: 'SA1019: \(.*(DeprecatedStatus\)\.V1Beta1|V1Beta1DeprecatedStatus\)\.[A-Za-z]+) is deprecated'
       - linters:
           - staticcheck
-        text: 'SA1019: clusterv1\.(Condition|Conditions|ConditionSeverity|ConditionType) is deprecated'
+        text: 'SA1019: sigs.k8s.io/cluster-api/api/core/v1beta2\.(Condition|Conditions|ConditionSeverity|ConditionType) is deprecated'
       - linters:
           - staticcheck
         text: 'SA1019: .* is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
         # Excludes for controller-runtime deprecations that we should migrate away from sooner or later
       - linters:
           - staticcheck
-        text: 'SA1019: mgr.GetEventRecorderFor is deprecated'
+        text: 'SA1019: \(sigs.k8s.io/controller-runtime/pkg/manager\.Manager\)\.GetEventRecorderFor is deprecated'
         # Deprecations for old api groups
       - linters:
           - staticcheck
@@ -383,10 +383,13 @@ linters:
         text: 'SA1019: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/.*" is deprecated'
       - linters:
           - staticcheck
-        text: 'SA1019: corev1.Endpoints is deprecated: This API is deprecated in v1.33\+. Use discoveryv1.EndpointSlice.'
+        text: 'SA1019: k8s.io/api/core/v1\.Endpoints is deprecated: This API is deprecated in v1.33\+. Use discoveryv1.EndpointSlice.'
       - linters:
           - staticcheck
-        text: 'SA1019: corev1.EndpointSubset is deprecated: This API is deprecated in v1.33\+.'
+        text: 'SA1019: k8s.io/api/core/v1\.EndpointSubset is deprecated: This API is deprecated in v1.33\+.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: .*TCPSocket is deprecated'
       - linters:
           - revive
         text: 'exported: exported method .*\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported'

@@ -18,12 +18,14 @@ package network
 
 import (
 	"context"
+	"slices"
 
 	pkgerrors "github.com/pkg/errors"
 	nsxvpcv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -107,56 +109,84 @@ func (np *externallyManagedNetworkProvider) ConfigureVirtualMachine(ctx context.
 		return pkgerrors.New("primary interface must be defined")
 	}
 
-	vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	if vm.Spec.Network == nil {
+		vm.Spec.Network = &vmoprvhub.VirtualMachineNetworkSpec{}
+	}
 
 	primaryIPAMModes, err := np.ipamModesForInterface(ctx, machine.Namespace, primary.NetworkRef)
 	if err != nil {
 		return err
 	}
-	vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterfaceFromSpec(
+	vmInterfaceFromSpec(
+		vm.Spec.Network,
 		PrimaryInterfaceName,
 		primary,
 		"", // gateway4
 		"", // gateway6
 		primaryIPAMModes,
-	))
+	)
 
+	// interfaceNames records interfaces from the VSphereMachine spec,
+	// will remove interfaces in VirtualMachine that are not exist in interfaceNames.
+	interfaceNames := sets.Set[string]{PrimaryInterfaceName: {}}
 	for _, secondary := range machine.Spec.Network.Interfaces.Secondary {
 		ipamModes, err := np.ipamModesForInterface(ctx, machine.Namespace, secondary.NetworkRef)
 		if err != nil {
 			return err
 		}
-		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterfaceFromSpec(
+		vmInterfaceFromSpec(
+			vm.Spec.Network,
 			secondary.Name,
 			secondary.InterfaceSpec,
 			"None",
 			"None",
 			ipamModes,
-		))
+		)
+		interfaceNames.Insert(secondary.Name)
 	}
 
+	// Clean up legacy network interfaces
+	vm.Spec.Network.Interfaces = slices.DeleteFunc(vm.Spec.Network.Interfaces, func(iface vmoprvhub.VirtualMachineNetworkInterfaceSpec) bool {
+		return !interfaceNames.Has(iface.Name)
+	})
+
+	// CAPV owns the VLAN list, including removal and links to retained interfaces.
+	vm.Spec.Network.VLANs = nil
 	return setVLANs(machine, vm)
 }
 
-func vmInterfaceFromSpec(name string, iface vmwarev1.InterfaceSpec, gateway4, gateway6 string, ipamModes []corev1.IPFamily) vmoprvhub.VirtualMachineNetworkInterfaceSpec {
+func vmInterfaceFromSpec(network *vmoprvhub.VirtualMachineNetworkSpec, name string, iface vmwarev1.InterfaceSpec, gateway4, gateway6 string, ipamModes []corev1.IPFamily) {
+	var vmInterface *vmoprvhub.VirtualMachineNetworkInterfaceSpec
+
+	// use interface name to determine whether already exists
+	for i := range network.Interfaces {
+		if network.Interfaces[i].Name == name {
+			vmInterface = &network.Interfaces[i]
+			break
+		}
+	}
+
+	// new interface and point to vmInterface
+	if vmInterface == nil {
+		network.Interfaces = append(network.Interfaces, vmoprvhub.VirtualMachineNetworkInterfaceSpec{Name: name})
+		vmInterface = &network.Interfaces[len(network.Interfaces)-1]
+	}
+
+	vmInterface.Network = &vmoprvhub.PartialObjectRef{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       iface.NetworkRef.Kind,
+			APIVersion: iface.NetworkRef.APIVersion,
+		},
+		Name: iface.NetworkRef.Name,
+	}
 	var mtu *int64
 	if iface.MTU != 0 {
 		mtu = ptr.To(int64(iface.MTU))
 	}
-	return vmoprvhub.VirtualMachineNetworkInterfaceSpec{
-		Name: name,
-		Network: &vmoprvhub.PartialObjectRef{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       iface.NetworkRef.Kind,
-				APIVersion: iface.NetworkRef.APIVersion,
-			},
-			Name: iface.NetworkRef.Name,
-		},
-		MTU:       mtu,
-		Gateway4:  gateway4,
-		Gateway6:  gateway6,
-		IPAMModes: ipamModes,
-	}
+	vmInterface.MTU = mtu
+	vmInterface.Gateway4 = gateway4
+	vmInterface.Gateway6 = gateway6
+	vmInterface.IPAMModes = ipamModes
 }
 
 // ipamModesForInterface derives IPAMModes from a referenced Subnet or SubnetSet

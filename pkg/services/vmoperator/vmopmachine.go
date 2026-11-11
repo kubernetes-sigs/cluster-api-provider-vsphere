@@ -290,7 +290,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		affInfo.affinitySpec = getAffinitySpec(mdName, otherMDNames, supervisorMachineCtx.VSphereMachine.Spec.Affinity.VMAntiAffinity)
 	}
 
-	// Check for the presence of an existing object
+	// Check for the presence of an existing object.
 	if err := v.Client.Get(ctx, *vmKey, vmOperatorVM); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return false, err
@@ -303,6 +303,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			},
 		}
 	}
+	supervisorMachineCtx.VMOperatorVM = vmOperatorVM
 
 	// Reconcile the VM Operator VirtualMachine.
 	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM, affInfo); err != nil {
@@ -622,7 +623,10 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	if vmOperatorVM.Spec.StorageClass == "" {
 		vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
 	}
-	vmOperatorVM.Spec.PowerState = vmoprvhub.VirtualMachinePowerStateOn
+	// DRS controls power state during host maintenance.
+	if !supervisorMachineCtx.IsHostInMaintenance() {
+		vmOperatorVM.Spec.PowerState = vmoprvhub.VirtualMachinePowerStateOn
+	}
 	if vmOperatorVM.Spec.Reserved == nil {
 		vmOperatorVM.Spec.Reserved = &vmoprvhub.VirtualMachineReservedSpec{}
 	}

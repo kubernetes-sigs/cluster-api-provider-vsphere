@@ -299,7 +299,14 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 			),
 		)
 
-		if err := conditions.SetSummaryCondition(machineContext.GetVSphereMachine(), machineContext.GetVSphereMachine(), infrav1.VSphereMachineReadyCondition,
+		if machineContext.IsHostInMaintenance() {
+			conditions.Set(machineContext.GetVSphereMachine(), metav1.Condition{
+				Type:    infrav1.VSphereMachineReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  vmwarev1.VSphereMachineHostMaintenanceReason,
+				Message: "VirtualMachine is not ready because its host is in maintenance",
+			})
+		} else if err := conditions.SetSummaryCondition(machineContext.GetVSphereMachine(), machineContext.GetVSphereMachine(), infrav1.VSphereMachineReadyCondition,
 			conditions.ForConditionTypes{
 				infrav1.VSphereMachineVirtualMachineProvisionedCondition,
 			},

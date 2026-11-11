@@ -32,6 +32,7 @@ type MachineContext interface {
 	Patch(ctx context.Context) error
 	GetVSphereMachine() VSphereMachine
 	GetReady() bool
+	IsHostInMaintenance() bool
 	GetObjectMeta() metav1.ObjectMeta
 	GetCluster() *clusterv1.Cluster
 	GetMachine() *clusterv1.Machine

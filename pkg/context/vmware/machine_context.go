@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
@@ -28,7 +29,9 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	vmoprvhub "sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/vmoperator/hub"
 )
 
 // VMModifier allows a function to be passed to VM creation to modify its spec
@@ -40,6 +43,7 @@ type SupervisorMachineContext struct {
 	*capvcontext.BaseMachineContext
 	VSphereCluster *vmwarev1.VSphereCluster
 	VSphereMachine *vmwarev1.VSphereMachine
+	VMOperatorVM   *vmoprvhub.VirtualMachine
 	VMModifiers    []VMModifier
 
 	// ConfigureControlPlaneVMReadinessProbe indicates whether a TCP readiness probe should be
@@ -75,6 +79,20 @@ func (c *SupervisorMachineContext) GetVSphereMachine() capvcontext.VSphereMachin
 // GetReady return when the VSphereMachine is ready.
 func (c *SupervisorMachineContext) GetReady() bool {
 	return ptr.Deref(c.VSphereMachine.Status.Initialization.Provisioned, false)
+}
+
+// IsHostInMaintenance reports whether VM Operator has blocked powering on the VM because its host is in maintenance.
+func (c *SupervisorMachineContext) IsHostInMaintenance() bool {
+	if c == nil || c.VMOperatorVM == nil {
+		return false
+	}
+	if !feature.Gates.Enabled(feature.HostMaintenanceMode) {
+		return false
+	}
+
+	condition := meta.FindStatusCondition(c.VMOperatorVM.Status.Conditions, vmoprvhub.VirtualMachinePowerStateSynced)
+	return condition != nil && condition.Status == metav1.ConditionFalse &&
+		condition.Reason == vmoprvhub.VirtualMachineInfraInMaintenanceReason
 }
 
 // GetObjectMeta returns the metadata for the VSphereMachine from the SupervisorMachineContext.

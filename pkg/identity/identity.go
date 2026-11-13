@@ -52,13 +52,29 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 	}
 
 	ref := cluster.Spec.IdentityRef
+	return getCredentialsFromRef(ctx, c, &ref, cluster.Namespace, controllerNamespace)
+}
+
+// GetCredentialsForDeploymentZone returns the VCenter credentials for the VSphereDeploymentZone.
+func GetCredentialsForDeploymentZone(ctx context.Context, c client.Client, deploymentZone *infrav1.VSphereDeploymentZone, controllerNamespace string) (*Credentials, error) {
+	if err := validateDeploymentZoneInputs(c, deploymentZone); err != nil {
+		return nil, err
+	}
+
+	ref := deploymentZone.Spec.IdentityRef
+	// VSphereDeploymentZone is cluster-scoped, so we use the controller namespace for Secret identity
+	return getCredentialsFromRef(ctx, c, &ref, controllerNamespace, controllerNamespace)
+}
+
+// getCredentialsFromRef returns the VCenter credentials based on the identity reference.
+func getCredentialsFromRef(ctx context.Context, c client.Client, ref *infrav1.VSphereIdentityReference, secretNamespace, controllerNamespace string) (*Credentials, error) {
 	secret := &corev1.Secret{}
 	var secretKey client.ObjectKey
 
 	switch ref.Kind {
 	case infrav1.SecretKind:
 		secretKey = client.ObjectKey{
-			Namespace: cluster.Namespace,
+			Namespace: secretNamespace,
 			Name:      ref.Name,
 		}
 	case infrav1.VSphereClusterIdentityKind:
@@ -85,13 +101,13 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 
 		ns := &corev1.Namespace{}
 		nsKey := client.ObjectKey{
-			Name: cluster.Namespace,
+			Name: secretNamespace,
 		}
 		if err := c.Get(ctx, nsKey, ns); err != nil {
 			return nil, err
 		}
 		if !selector.Matches(labels.Set(ns.GetLabels())) {
-			return nil, fmt.Errorf("namespace %s is not allowed to use specifified identity", cluster.Namespace)
+			return nil, fmt.Errorf("namespace %s is not allowed to use specified identity", secretNamespace)
 		}
 
 		secretKey = client.ObjectKey{
@@ -122,6 +138,20 @@ func validateInputs(c client.Client, cluster *infrav1.VSphereCluster) error {
 		return errors.New("vsphere cluster is required")
 	}
 	ref := cluster.Spec.IdentityRef
+	if !ref.IsDefined() {
+		return errors.New("IdentityRef is required")
+	}
+	return nil
+}
+
+func validateDeploymentZoneInputs(c client.Client, deploymentZone *infrav1.VSphereDeploymentZone) error {
+	if c == nil {
+		return errors.New("kubernetes client is required")
+	}
+	if deploymentZone == nil {
+		return errors.New("vsphere deployment zone is required")
+	}
+	ref := deploymentZone.Spec.IdentityRef
 	if !ref.IsDefined() {
 		return errors.New("IdentityRef is required")
 	}

@@ -275,6 +275,18 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, 
 		WithDatacenter(datacenter).
 		WithUserInfo(r.ControllerManagerContext.Username, r.ControllerManagerContext.Password)
 
+	// First, check if the VSphereDeploymentZone has its own IdentityRef
+	if deploymentZoneCtx.VSphereDeploymentZone.Spec.IdentityRef.IsDefined() {
+		creds, err := identity.GetCredentialsForDeploymentZone(ctx, r.Client, deploymentZoneCtx.VSphereDeploymentZone, r.Namespace)
+		if err != nil {
+			return nil, pkgerrors.Wrap(err, "failed to get credentials from VSphereDeploymentZone IdentityRef")
+		}
+		log.V(4).Info("Using credentials from VSphereDeploymentZone IdentityRef to create the authenticated session")
+		params = params.WithUserInfo(creds.Username, creds.Password)
+		return session.GetOrCreate(ctx, params)
+	}
+
+	// Fallback: try to find a VSphereCluster with matching server and IdentityRef
 	clusterList := &infrav1.VSphereClusterList{}
 	if err := r.Client.List(ctx, clusterList); err != nil {
 		return nil, pkgerrors.Wrapf(err, "failed to list VSphereClusters")

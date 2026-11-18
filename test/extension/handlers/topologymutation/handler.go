@@ -38,7 +38,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/server/topologymutation"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta1"

@@ -3,11 +3,12 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 go 1.26.0
 
 replace (
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.15.0-beta.0.0.20261109122941-068da3fc0187
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.15.0-beta.1
 	sigs.k8s.io/cluster-api-provider-vsphere => ../
 	sigs.k8s.io/cluster-api-provider-vsphere/api => ../api
-	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.15.0-beta.0.0.20261109122941-068da3fc0187
-	sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.15.0-beta.0.0.20261109122941-068da3fc0187
+	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.15.0-beta.1
+	sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.15.0-beta.1
+	sigs.k8s.io/cluster-api/utils => sigs.k8s.io/cluster-api/utils v1.15.0-beta.1
 )
 
 require (
@@ -42,6 +43,7 @@ require (
 	sigs.k8s.io/cluster-api-provider-vsphere/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api/utils v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.25.2
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -123,8 +125,8 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/moby/api v1.56.1 // indirect
-	github.com/moby/moby/client v0.6.2 // indirect
+	github.com/moby/moby/api v1.57.0 // indirect
+	github.com/moby/moby/client v0.6.3 // indirect
 	github.com/moby/spdystream v0.5.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
@@ -174,7 +176,7 @@ require (
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/mod v0.43.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/oauth2 v0.37.0 // indirect
+	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.48.0 // indirect

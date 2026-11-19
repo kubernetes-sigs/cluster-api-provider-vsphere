@@ -120,6 +120,11 @@ type VSphereDeploymentZoneSpec struct {
 	// Server is the address of the vSphere endpoint.
 	Server string `json:"server,omitempty"`
 
+	// IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+	// the identity to use when reconciling the deployment zone.
+	// +optional
+	IdentityRef *VSphereIdentityReference `json:"identityRef,omitempty"`
+
 	// FailureDomain is the name of the VSphereFailureDomain used for this VSphereDeploymentZone
 	FailureDomain string `json:"failureDomain,omitempty"`
 

@@ -205,6 +205,31 @@ func Convert_v1beta1_VSphereClusterIdentityStatus_To_v1beta2_VSphereClusterIdent
 	return nil
 }
 
+func Convert_v1beta2_VSphereDeploymentZoneSpec_To_v1beta1_VSphereDeploymentZoneSpec(in *infrav1.VSphereDeploymentZoneSpec, out *VSphereDeploymentZoneSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_VSphereDeploymentZoneSpec_To_v1beta1_VSphereDeploymentZoneSpec(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.IdentityRef, infrav1.VSphereIdentityReference{}) {
+		out.IdentityRef = &VSphereIdentityReference{}
+		if err := autoConvert_v1beta2_VSphereIdentityReference_To_v1beta1_VSphereIdentityReference(&in.IdentityRef, out.IdentityRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_VSphereDeploymentZoneSpec_To_v1beta2_VSphereDeploymentZoneSpec(in *VSphereDeploymentZoneSpec, out *infrav1.VSphereDeploymentZoneSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_VSphereDeploymentZoneSpec_To_v1beta2_VSphereDeploymentZoneSpec(in, out, s); err != nil {
+		return err
+	}
+	if in.IdentityRef != nil {
+		if err := autoConvert_v1beta1_VSphereIdentityReference_To_v1beta2_VSphereIdentityReference(in.IdentityRef, &out.IdentityRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Convert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(in *infrav1.VSphereDeploymentZoneStatus, out *VSphereDeploymentZoneStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(in, out, s); err != nil {
 		return err

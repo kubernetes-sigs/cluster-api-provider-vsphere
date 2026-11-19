@@ -107,3 +107,6 @@ tilt.d
 tilt-settings.json
 tilt-settings.yaml
 .tiltbuild
+
+# Claude Code local instructions
+.claude/

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"reflect"
 	"slices"
@@ -260,9 +261,7 @@ func (s *CPService) createVMControlPlaneService(ctx context.Context, clusterCtx 
 	if vmService.Annotations == nil {
 		vmService.Annotations = annotations
 	} else {
-		for k, v := range annotations {
-			vmService.Annotations[k] = v
-		}
+		maps.Copy(vmService.Annotations, annotations)
 	}
 	vmService.Annotations = annotations
 	spec := vmoprvhub.VirtualMachineServiceSpec{

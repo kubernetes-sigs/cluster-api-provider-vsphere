@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -66,12 +67,8 @@ func LoadE2EConfig(ctx context.Context, configPath string, configOverridesPath, 
 		configOverrides := &configOverrides{}
 		Expect(yaml.Unmarshal(configData, configOverrides)).To(Succeed(), "Failed to convert e2e config overrides to yaml")
 
-		for k, v := range configOverrides.Variables {
-			config.Variables[k] = v
-		}
-		for k, v := range configOverrides.Intervals {
-			config.Intervals[k] = v
-		}
+		maps.Copy(config.Variables, configOverrides.Variables)
+		maps.Copy(config.Intervals, configOverrides.Intervals)
 	}
 
 	if testTarget == "vcenter" {

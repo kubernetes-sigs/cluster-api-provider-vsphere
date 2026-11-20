@@ -321,8 +321,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	govmomiGVR := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
-	supervisorGVR := vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
+	govmomiGVR := infrav1.GroupVersion.WithResource(reflect.TypeFor[infrav1.VSphereCluster]().Name())
+	supervisorGVR := vmwarev1.GroupVersion.WithResource(reflect.TypeFor[vmwarev1.VSphereCluster]().Name())
 
 	var isSupervisorCRDLoaded, isGovmomiCRDLoaded bool
 	var errGovmomi, errSupervisor error

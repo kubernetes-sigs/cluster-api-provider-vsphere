@@ -262,7 +262,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	// Check for supervisor VSphereCluster and start controller if found
-	gvr := vmwarev1beta1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1beta1.VSphereCluster{}).Elem().Name())
+	gvr := vmwarev1beta1.GroupVersion.WithResource(reflect.TypeFor[vmwarev1beta1.VSphereCluster]().Name())
 	supervisorMode, err := isCRDDeployed(mgr, gvr)
 	if err != nil {
 		setupLog.Error(err, "unable to detect supervisor mode")

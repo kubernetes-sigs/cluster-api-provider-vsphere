@@ -172,10 +172,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 
 	deviceSpecs = append(deviceSpecs, networkSpecs...)
 
-	numCPUs := vmCtx.VSphereVM.Spec.NumCPUs
-	if numCPUs < 2 {
-		numCPUs = 2
-	}
+	numCPUs := max(vmCtx.VSphereVM.Spec.NumCPUs, 2)
 	numCoresPerSocket := vmCtx.VSphereVM.Spec.NumCoresPerSocket
 
 	memMiB := vmCtx.VSphereVM.Spec.MemoryMiB

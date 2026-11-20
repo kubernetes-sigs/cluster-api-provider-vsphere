@@ -333,7 +333,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	// Check for non-supervisor VSphereCluster and start controller if found
-	gvr := infrav1beta1.GroupVersion.WithResource(reflect.TypeOf(&infrav1beta1.VSphereCluster{}).Elem().Name())
+	gvr := infrav1beta1.GroupVersion.WithResource(reflect.TypeFor[infrav1beta1.VSphereCluster]().Name())
 	govmomiMode, err := isCRDDeployed(mgr, gvr)
 	if err != nil {
 		setupLog.Error(err, "unable to detect govmomi mode")
@@ -341,7 +341,7 @@ func main() {
 	}
 
 	// Check for supervisor VSphereCluster and start controller if found
-	gvr = vmwarev1beta1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1beta1.VSphereCluster{}).Elem().Name())
+	gvr = vmwarev1beta1.GroupVersion.WithResource(reflect.TypeFor[vmwarev1beta1.VSphereCluster]().Name())
 	supervisorMode, err := isCRDDeployed(mgr, gvr)
 	if err != nil {
 		setupLog.Error(err, "unable to detect supervisor mode")

@@ -177,8 +177,8 @@ func isEmpty(val reflect.Value) bool {
 
 	case reflect.Struct:
 		structIsEmpty := true
-		for fieldIndex := range val.NumField() {
-			if structIsEmpty = isEmpty(val.Field(fieldIndex)); !structIsEmpty {
+		for _, field := range val.Fields() {
+			if structIsEmpty = isEmpty(field); !structIsEmpty {
 				break
 			}
 		}

@@ -20,7 +20,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
+	"slices"
 	"sort"
 	"time"
 
@@ -977,11 +979,8 @@ func (v *VmopMachineService) reconcileResourcePolicyAnnotations(ctx context.Cont
 
 	hasWorkerCMG := false
 	legacyWorkerCMG := getMachineDeploymentNameForCluster(supervisorMachineCtx.Cluster)
-	for _, cmg := range vmSetRP.Spec.ClusterModuleGroups {
-		if cmg == legacyWorkerCMG {
-			hasWorkerCMG = true
-			break
-		}
+	if slices.Contains(vmSetRP.Spec.ClusterModuleGroups, legacyWorkerCMG) {
+		hasWorkerCMG = true
 	}
 
 	// If the policy has no legacy worker group, there is no need to add legacy annotations.
@@ -1219,9 +1218,7 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 	// Get the labels for the VM that differ based on the cluster role of
 	// the Kubernetes node hosted on this VM.
 	clusterRoleLabels := clusterRoleVMLabels(supervisorMachineCtx.GetClusterContext(), infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine))
-	for k, v := range clusterRoleLabels {
-		vmLabels[k] = v
-	}
+	maps.Copy(vmLabels, clusterRoleLabels)
 
 	// Set the labels that determine the VM's placement.
 	// Note: if the failureDomain is not set, auto placement will happen according to affinity rules on VM during initial Cluster creation.
@@ -1233,9 +1230,7 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 		failureDomain = affinityInfo.failureDomain
 	}
 	topologyLabels := getTopologyLabels(supervisorMachineCtx, failureDomain)
-	for k, v := range topologyLabels {
-		vmLabels[k] = v
-	}
+	maps.Copy(vmLabels, topologyLabels)
 
 	// Ensure the VM has a label that can be used when searching for
 	// resources associated with the target cluster.

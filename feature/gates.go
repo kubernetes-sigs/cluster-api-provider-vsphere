@@ -90,16 +90,17 @@ func getFlagDescription(commonGates, govmomiGates, supervisorGates map[featurega
 		return r
 	}
 
-	description := "A set of key=value pairs that describe feature gates for alpha/experimental features.\n"
-	description += fmt.Sprintf("Common options are:\n%s\n", strings.Join(fix(commonMutableGates.KnownFeatures(), false), "\n"))
-	description += fmt.Sprintf("Options for govmomi mode are:\n%s\n", strings.Join(fix(govmomiMutableGates.KnownFeatures(), true), "\n"))
+	var description strings.Builder
+	description.WriteString("A set of key=value pairs that describe feature gates for alpha/experimental features.\n")
+	fmt.Fprintf(&description, "Common options are:\n%s\n", strings.Join(fix(commonMutableGates.KnownFeatures(), false), "\n"))
+	fmt.Fprintf(&description, "Options for govmomi mode are:\n%s\n", strings.Join(fix(govmomiMutableGates.KnownFeatures(), true), "\n"))
 	for _, v := range supportedVersions {
 		supervisorMutableGates := featuregate.NewVersionedFeatureGate(toFeatureVersion(v))
 		utilruntime.Must(supervisorMutableGates.Add(supervisorGates))
 		utilruntime.Must(supervisorMutableGates.AddVersioned(supervisorVersionedGates))
-		description += fmt.Sprintf("Options for supervisor mode when --vm-operator-api-version=%s are:\n%s\n", v, strings.Join(fix(supervisorMutableGates.KnownFeatures(), true), "\n"))
+		fmt.Fprintf(&description, "Options for supervisor mode when --vm-operator-api-version=%s are:\n%s\n", v, strings.Join(fix(supervisorMutableGates.KnownFeatures(), true), "\n"))
 	}
-	return description
+	return description.String()
 }
 
 // getGovmomiGates gets a featuregate.FeatureGate instance for govmomi mode.
@@ -143,7 +144,7 @@ func set(allGates, allowedGates featuregate.MutableFeatureGate, versionedGates m
 	// unknown, versioned feature gates set to false, while we keep everything else, including
 	// invalid feature gates so that errors will surface when we call allowedGates.Set later in this func.
 	var values []string
-	for _, s := range strings.Split(value, ",") {
+	for s := range strings.SplitSeq(value, ",") {
 		if s == "" {
 			continue
 		}

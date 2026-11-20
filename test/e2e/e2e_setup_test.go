@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"strconv"
@@ -303,9 +304,7 @@ func allocateIPAddresses(managementClusterProxy framework.ClusterProxy, options 
 		Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
 		// get IPs from the in cluster address manager
 		testSpecificIPAddressClaims, ipVariables = testSpecificIPAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithPrefix(options.prefixVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
-		for k, v := range ipVariables {
-			testSpecificVariables[k] = v
-		}
+		maps.Copy(testSpecificVariables, ipVariables)
 
 	case VCSimTestTarget:
 		testSpecificIPAddressManager = vcsimAddressManager
@@ -322,9 +321,7 @@ func allocateIPAddresses(managementClusterProxy framework.ClusterProxy, options 
 		// NOTE: ControlPlaneEndpointIP is the first claim in the returned list (this assumption is used below).
 		Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
 		testSpecificIPAddressClaims, ipVariables = testSpecificIPAddressManager.ClaimIPs(ctx, vsphereip.WithIP(options.additionalIPVariableNames...))
-		for k, v := range ipVariables {
-			testSpecificVariables[k] = v
-		}
+		maps.Copy(testSpecificVariables, ipVariables)
 	}
 
 	return testSpecificIPAddressManager, testSpecificIPAddressClaims, testSpecificVariables
@@ -505,7 +502,7 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 
 	items := e2eConfig.MustGetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS")
 	if items != "" {
-		for _, i := range strings.Split(e2eConfig.MustGetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS"), ",") {
+		for i := range strings.SplitSeq(e2eConfig.MustGetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS"), ",") {
 			dependenciesConfig.Spec.VCenter.ContentLibrary.Items = append(dependenciesConfig.Spec.VCenter.ContentLibrary.Items, vcsimv1.ContentLibraryItemConfig{
 				Name:     i,
 				ItemType: "ovf",

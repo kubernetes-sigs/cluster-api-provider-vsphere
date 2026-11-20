@@ -94,8 +94,8 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereClusterStatus,
 		hubVSphereFailureDomain,
 		spokeVSphereClusterSpec,
@@ -156,8 +156,8 @@ func spokeVSphereClusterStatus(in *infrav1beta1.VSphereClusterStatus, c randfill
 	}
 }
 
-func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereClusterTemplateResource,
 		spokeVSphereClusterSpec,
 	}
@@ -169,8 +169,8 @@ func hubVSphereClusterTemplateResource(in *infrav1.VSphereClusterTemplateResourc
 	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
 
-func VSphereClusterIdentityFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereClusterIdentityFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereClusterIdentityStatus,
 		spokeVSphereClusterIdentityStatus,
 	}
@@ -196,8 +196,8 @@ func spokeVSphereClusterIdentityStatus(in *infrav1beta1.VSphereClusterIdentitySt
 	}
 }
 
-func VSphereDeploymentZoneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereDeploymentZoneFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereDeploymentZoneStatus,
 		spokeVSphereDeploymentZoneStatus,
 	}
@@ -223,8 +223,8 @@ func spokeVSphereDeploymentZoneStatus(in *infrav1beta1.VSphereDeploymentZoneStat
 	}
 }
 
-func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeVSphereFailureDomainSpec,
 		spokeTypedLocalObjectReference,
 	}
@@ -246,8 +246,8 @@ func spokeVSphereFailureDomainSpec(in *infrav1beta1.VSphereFailureDomainSpec, c 
 	in.Zone.AutoConfigure = nil   // field has been dropped in v1beta2
 }
 
-func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereMachineStatus,
 		spokeVSphereMachineSpec,
 		spokeVSphereMachineStatus,
@@ -302,15 +302,15 @@ func spokeVSphereMachineStatus(in *infrav1beta1.VSphereMachineStatus, c randfill
 	}
 }
 
-func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeVSphereMachineSpec,
 		spokeTypedLocalObjectReference,
 	}
 }
 
-func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereVMStatus,
 		spokeVSphereVM,
 		spokeVSphereVMSpec,

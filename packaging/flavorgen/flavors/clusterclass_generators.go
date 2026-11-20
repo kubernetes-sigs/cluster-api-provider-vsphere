@@ -197,7 +197,7 @@ func getVMWareClusterClassPatches() []clusterv1.ClusterClassPatch {
 }
 
 func getCredSecretNameTemplate() string {
-	template := map[string]interface{}{
+	template := map[string]any{
 		"name": "{{ .credsSecretName }}",
 		"kind": "Secret",
 	}
@@ -206,7 +206,7 @@ func getCredSecretNameTemplate() string {
 }
 
 func getControlPlaneEndpointTemplate() string {
-	template := map[string]interface{}{
+	template := map[string]any{
 		"host": "{{ .controlPlaneIpAddr }}",
 		"port": "{{ .controlPlanePort }}",
 	}
@@ -218,7 +218,7 @@ func getControlPlaneEndpointTemplate() string {
 }
 
 func getEnableSSHIntoNodesTemplate() string {
-	template := []map[string]interface{}{
+	template := []map[string]any{
 		{
 			"name": "capv",
 			"sshAuthorizedKeys": []string{

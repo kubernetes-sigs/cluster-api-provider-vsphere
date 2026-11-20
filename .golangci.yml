@@ -257,7 +257,6 @@ linters:
       no-printf-like: true
     modernize:
       disable:
-        - any # ~ 64 findings
         - newexpr # ~ 334 findings
     nolintlint:
       require-specific: true

@@ -75,15 +75,15 @@ func appendConfigMapToCrsResource(crs *addonsv1.ClusterResourceSet, generatedCon
 }
 
 func newCPIConfig() ([]byte, error) {
-	config := map[string]interface{}{
-		"global": map[string]interface{}{
+	config := map[string]any{
+		"global": map[string]any{
 			"secretName":      "cloud-provider-vsphere-credentials", // NOTE: this name is used in E2E tests.
 			"secretNamespace": metav1.NamespaceSystem,
 			"thumbprint":      env.VSphereThumbprint,
 			"port":            443,
 		},
-		"vcenter": map[string]interface{}{
-			env.VSphereServerVar: map[string]interface{}{
+		"vcenter": map[string]any{
+			env.VSphereServerVar: map[string]any{
 				"server":      env.VSphereServerVar,
 				"datacenters": []string{env.VSphereDataCenterVar},
 			},

@@ -114,8 +114,8 @@ func RoundTripTest(input RoundTripTestInput) func(*testing.T) {
 				g.Fail("Hub type must implement sigs.k8s.io/cluster-api-provider-vsphere/pkg/conversion/api/meta/Convertible")
 			}
 
-			funcs := append(input.FuzzerFuncs, func(_ runtimeserializer.CodecFactory) []interface{} {
-				return []interface{}{
+			funcs := append(input.FuzzerFuncs, func(_ runtimeserializer.CodecFactory) []any {
+				return []any{
 					func(in *conversionmeta.SourceTypeMeta, _ randfill.Continue) {
 						// Ensure SourceTypeMeta is not set by the fuzzer.
 						in.APIVersion = ""

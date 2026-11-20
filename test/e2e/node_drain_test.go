@@ -206,7 +206,7 @@ func unblockNodeVolumeDetachment(ctx context.Context, bootstrapClusterProxy fram
 	}, e2eConfig.GetIntervals("node-drain", "wait-deployment-available")...)
 }
 
-func waitForDeploymentScaledDown(ctx context.Context, getter framework.Getter, objectKey client.ObjectKey, intervals ...interface{}) {
+func waitForDeploymentScaledDown(ctx context.Context, getter framework.Getter, objectKey client.ObjectKey, intervals ...any) {
 	Byf("Waiting for deployment %s to be scaled to 0", objectKey)
 	deployment := &appsv1.Deployment{}
 	Eventually(func() bool {
@@ -234,7 +234,7 @@ type deployEvictablePodInput struct {
 
 	ModifyStatefulSet func(statefulSet *appsv1.StatefulSet)
 
-	WaitForStatefulSetAvailableInterval []interface{}
+	WaitForStatefulSetAvailableInterval []any
 }
 
 // deployEvictablePod will deploy a StatefulSet on a ControlPlane or MachineDeployment.
@@ -411,7 +411,7 @@ type WaitForStatefulSetsAvailableInput struct {
 // waitForStatefulSetsAvailable waits until the StatefulSet has status.Available = True, that signals that
 // all the desired replicas are in place.
 // This can be used to check if Cluster API controllers installed in the management cluster are working.
-func waitForStatefulSetsAvailable(ctx context.Context, input WaitForStatefulSetsAvailableInput, intervals ...interface{}) {
+func waitForStatefulSetsAvailable(ctx context.Context, input WaitForStatefulSetsAvailableInput, intervals ...any) {
 	Byf("Waiting for statefulset %s to be available", klog.KObj(input.StatefulSet))
 	statefulSet := &appsv1.StatefulSet{}
 	Eventually(func() bool {

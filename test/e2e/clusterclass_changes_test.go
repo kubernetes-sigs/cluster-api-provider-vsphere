@@ -33,22 +33,22 @@ var _ = Describe("When testing ClusterClass changes [vcsim] [supervisor] [Cluste
 				SkipCleanup:           skipCleanup,
 				Flavor:                testSpecificSettingsGetter().FlavorForMode("topology"),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
-				ModifyControlPlaneFields: map[string]interface{}{
+				ModifyControlPlaneFields: map[string]any{
 					"spec.kubeadmConfigSpec.verbosity": int64(4),
 				},
-				ModifyMachineDeploymentBootstrapConfigTemplateFields: map[string]interface{}{
+				ModifyMachineDeploymentBootstrapConfigTemplateFields: map[string]any{
 					"spec.template.spec.verbosity": int64(4),
 				},
 			}
 
 			if testMode == GovmomiTestMode {
-				clusterClassChangesSpecInput.ModifyMachineDeploymentInfrastructureMachineTemplateFields = map[string]interface{}{
+				clusterClassChangesSpecInput.ModifyMachineDeploymentInfrastructureMachineTemplateFields = map[string]any{
 					"spec.template.spec.numCPUs": int64(4),
 				}
 			}
 
 			if testMode == SupervisorTestMode {
-				clusterClassChangesSpecInput.ModifyMachineDeploymentInfrastructureMachineTemplateFields = map[string]interface{}{
+				clusterClassChangesSpecInput.ModifyMachineDeploymentInfrastructureMachineTemplateFields = map[string]any{
 					"spec.template.spec.powerOffMode": "trySoft",
 				}
 			}

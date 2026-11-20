@@ -160,12 +160,12 @@ func parseGcfgTag(field reflect.StructField) (string, bool, bool) {
 
 // IsEmpty returns true if an object is its empty value or if a struct, all of
 // its fields are their empty values.
-func IsEmpty(obj interface{}) bool {
+func IsEmpty(obj any) bool {
 	return isEmpty(reflect.ValueOf(obj))
 }
 
 // IsNotEmpty returns true when IsEmpty returns false.
-func IsNotEmpty(obj interface{}) bool {
+func IsNotEmpty(obj any) bool {
 	return !IsEmpty(obj)
 }
 

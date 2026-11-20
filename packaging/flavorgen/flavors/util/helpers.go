@@ -32,7 +32,7 @@ import (
 type Replacement struct {
 	Kind      string
 	Name      string
-	Value     interface{}
+	Value     any
 	FieldPath []string
 }
 
@@ -53,7 +53,7 @@ var (
 		{
 			Kind:      "MachineDeployment",
 			Name:      "${CLUSTER_NAME}-md-0",
-			Value:     map[string]interface{}{},
+			Value:     map[string]any{},
 			FieldPath: []string{"spec", "selector", "matchLabels"},
 		},
 		{
@@ -111,7 +111,7 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 		path := []string{"spec", "topology", "workers", "machineDeployments"}
 		slice, found, err := unstructured.NestedSlice(data.Object, path...)
 		if found && err == nil {
-			slice[0].(map[string]interface{})["replicas"] = env.WorkerMachineCountVar
+			slice[0].(map[string]any)["replicas"] = env.WorkerMachineCountVar
 			_ = unstructured.SetNestedSlice(data.Object, slice, path...)
 		}
 	}
@@ -150,7 +150,7 @@ func GenerateManifestYaml(objs []runtime.Object, replacements []Replacement) str
 	return string(utilyaml.JoinYaml(bytes...))
 }
 
-func TypeToKind(i interface{}) string {
+func TypeToKind(i any) string {
 	return reflect.ValueOf(i).Elem().Type().Name()
 }
 

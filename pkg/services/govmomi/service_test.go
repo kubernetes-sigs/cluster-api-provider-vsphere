@@ -130,10 +130,10 @@ func Test_reconcileClearBootstrapUserData(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(task.Wait(ctx)).To(Succeed())
 
-				getExtraConfig := func() map[string]interface{} {
+				getExtraConfig := func() map[string]any {
 					var obj mo.VirtualMachine
 					g.Expect(vm.Properties(ctx, vm.Reference(), []string{"config.extraConfig"}, &obj)).To(Succeed())
-					config := map[string]interface{}{}
+					config := map[string]any{}
 					for _, ec := range obj.Config.ExtraConfig {
 						opt := ec.GetOptionValue()
 						config[opt.Key] = opt.Value

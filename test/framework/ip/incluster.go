@@ -111,11 +111,11 @@ func createIPPool(ctx context.Context, c client.Client, e2eIPPool string) (*unst
 	ipPool.SetNamespace(metav1.NamespaceDefault)
 	ipPool.SetName(ipPoolName)
 	// Note: We have to convert ipPoolSpec to a map[string]interface{}, otherwise SetNestedField panics in DeepCopyJSONValue.
-	addresses := []interface{}{}
+	addresses := []any{}
 	for _, a := range ipPoolSpec.Addresses {
 		addresses = append(addresses, a)
 	}
-	spec := map[string]interface{}{
+	spec := map[string]any{
 		"addresses": addresses,
 		"prefix":    int64(ipPoolSpec.Prefix), // DeepCopyJSONValue only supports int64.
 		"gateway":   ipPoolSpec.Gateway,

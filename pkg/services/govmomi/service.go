@@ -35,7 +35,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -763,7 +762,7 @@ func (vms *VMService) getNetworkStatus(ctx context.Context, virtualMachineCtx *v
 	apiNetStatus := []infrav1.NetworkStatus{}
 	for _, s := range allNetStatus {
 		apiNetStatus = append(apiNetStatus, infrav1.NetworkStatus{
-			Connected:   ptr.To(s.Connected),
+			Connected:   new(s.Connected),
 			IPAddrs:     sanitizeIPAddrs(ctx, s.IPAddrs),
 			MACAddr:     s.MACAddr,
 			NetworkName: s.NetworkName,

@@ -80,7 +80,7 @@ func (p ControlPlaneScalePlugin) Exec(ctx context.Context, c client.Client, obje
 
 	if ptr.Deref(cluster.Spec.Topology.ControlPlane.Replicas, 0) != replicas {
 		original := cluster.DeepCopy()
-		cluster.Spec.Topology.ControlPlane.Replicas = ptr.To(replicas)
+		cluster.Spec.Topology.ControlPlane.Replicas = new(replicas)
 		if err := c.Patch(ctx, cluster, client.MergeFrom(original)); err != nil {
 			return pkgerrors.Wrapf(err, "failed to patch Cluster %s", klog.KObj(cluster))
 		}

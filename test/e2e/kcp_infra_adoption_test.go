@@ -29,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -97,7 +96,7 @@ func KCPInfraAdoptionTest(specName string, controlPlaneMachineCount int64) func(
 				BootstrapClusterProxy:    bootstrapClusterProxy,
 				ArtifactFolder:           artifactFolder,
 				SkipCleanup:              skipCleanup,
-				Flavor:                   ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk-self-hosted")),
+				Flavor:                   new(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk-self-hosted")),
 				PostNamespaceCreated:     testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				ControlPlaneMachineCount: new(controlPlaneMachineCount),
 				BeforeForceDelete: func(ctx context.Context, managementClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, objects capi_e2e.ClusterObjects) error {

@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -200,7 +199,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 			Reason:  infrav1.VSphereDeploymentZoneVCenterUnreachableReason,
 			Message: err.Error(),
 		})
-		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(false)
+		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = new(false)
 		return err
 	}
 
@@ -213,18 +212,18 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 	})
 
 	if err := r.reconcilePlacementConstraint(ctx, deploymentZoneCtx); err != nil {
-		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(false)
+		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = new(false)
 		return err
 	}
 
 	// reconcile the failure domain
 	if err := r.reconcileFailureDomain(ctx, deploymentZoneCtx, failureDomain); err != nil {
-		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(false)
+		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = new(false)
 		return err
 	}
 
 	// Mark the deployment zone as ready.
-	deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(true)
+	deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = new(true)
 	return nil
 }
 

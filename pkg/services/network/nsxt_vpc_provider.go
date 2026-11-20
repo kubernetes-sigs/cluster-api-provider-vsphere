@@ -291,7 +291,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 		primary := machine.Spec.Network.Interfaces.Primary
 		var mtu *int64
 		if primary.MTU != 0 {
-			mtu = ptr.To(int64(primary.MTU))
+			mtu = new(int64(primary.MTU))
 		}
 		vmInterface := vmoprvhub.VirtualMachineNetworkInterfaceSpec{
 			Name: PrimaryInterfaceName,
@@ -355,7 +355,7 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprvhub.Vi
 	for _, secondaryInterface := range machine.Spec.Network.Interfaces.Secondary {
 		var mtu *int64
 		if secondaryInterface.MTU != 0 {
-			mtu = ptr.To(int64(secondaryInterface.MTU))
+			mtu = new(int64(secondaryInterface.MTU))
 		}
 		vmInterface := vmoprvhub.VirtualMachineNetworkInterfaceSpec{
 			Name: secondaryInterface.Name,

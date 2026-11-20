@@ -52,7 +52,7 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 					if testMode == GovmomiTestMode {
 						flavor = "topology-runtimesdk"
 					}
-					return ptr.To(testSpecificSettingsGetter().FlavorForMode(flavor))
+					return new(testSpecificSettingsGetter().FlavorForMode(flavor))
 				}(),
 				SkipUpgrade:      false,
 				SkipCleanup:      skipCleanup,
@@ -72,9 +72,9 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 				// AdditionalClusterClassCount can be overwritten via `CAPI_SCALE_ADDITIONAL_CLUSTER_CLASS_COUNT`.
 				AdditionalClusterClassCount: ptr.To[int64](4),
 				// DeployClusterInSeparateNamespaces can be overwritten via `CAPI_SCALE_DEPLOY_CLUSTER_IN_SEPARATE_NAMESPACES`.
-				DeployClusterInSeparateNamespaces: ptr.To(true),
+				DeployClusterInSeparateNamespaces: new(true),
 				// UseCrossNamespaceClusterClass can be overwritten via `CAPI_SCALE_USE_CROSS_NAMESPACE_CLUSTER_CLASS`.
-				UseCrossNamespaceClusterClass: ptr.To(false),
+				UseCrossNamespaceClusterClass: new(false),
 
 				// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 				// by the test-extension-webhook-service.

@@ -255,9 +255,6 @@ linters:
           alias: ipamv1beta1
     loggercheck:
       no-printf-like: true
-    modernize:
-      disable:
-        - newexpr # ~ 334 findings
     nolintlint:
       require-specific: true
       allow-unused: false

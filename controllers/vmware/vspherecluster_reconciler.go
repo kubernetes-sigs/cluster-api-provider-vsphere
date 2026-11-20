@@ -317,7 +317,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	if !ptr.Deref(clusterCtx.VSphereCluster.Status.Initialization.Provisioned, false) {
 		log.Info(fmt.Sprintf("VSphereCluster %s provisioning completed", clusterCtx.VSphereCluster.Name), "duration", time.Since(clusterCtx.VSphereCluster.CreationTimestamp.Time).Truncate(time.Second/10))
 	}
-	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = ptr.To(true)
+	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = new(true)
 	return nil
 }
 
@@ -601,7 +601,7 @@ func (r *ClusterReconciler) reconcileFailureDomains(ctx context.Context, vsphere
 			for _, az := range availabilityZoneList.Items {
 				failureDomains = append(failureDomains, clusterv1.FailureDomain{
 					Name:         az.Name,
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				})
 			}
 		}
@@ -655,15 +655,15 @@ func markControlPlaneFailureDomain(
 		}
 
 		// Default to false unless the individual zone labels match the selector criteria
-		failureDomain.ControlPlane = ptr.To(false)
+		failureDomain.ControlPlane = new(false)
 		if selector.Matches(labels.Set(zone.Labels)) {
-			failureDomain.ControlPlane = ptr.To(true)
+			failureDomain.ControlPlane = new(true)
 		}
 		return nil
 	}
 
 	// Backwards-compatible default
-	failureDomain.ControlPlane = ptr.To(true)
+	failureDomain.ControlPlane = new(true)
 	return nil
 }
 

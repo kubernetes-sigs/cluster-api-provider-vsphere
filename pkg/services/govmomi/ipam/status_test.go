@@ -52,7 +52,7 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		ctx = context.Background()
 		vmCtx = *fake.NewVMContext(ctx, fake.NewControllerManagerContext())
 		networkStatus = []infrav1.NetworkStatus{
-			{Connected: ptr.To(true), MACAddr: devMAC},
+			{Connected: new(true), MACAddr: devMAC},
 		}
 
 		g = gomega.NewWithT(t)
@@ -207,7 +207,7 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 						Devices: []infrav1.NetworkDeviceSpec{
 							{
 								MACAddr: devMAC,
-								DHCP4:   ptr.To(true),
+								DHCP4:   new(true),
 							},
 						},
 					},
@@ -253,7 +253,7 @@ func Test_BuildState(t *testing.T) {
 		ctx = context.Background()
 		vmCtx = *fake.NewVMContext(ctx, fake.NewControllerManagerContext())
 		networkStatus = []infrav1.NetworkStatus{
-			{Connected: ptr.To(true), MACAddr: devMAC},
+			{Connected: new(true), MACAddr: devMAC},
 		}
 
 		g = gomega.NewWithT(t)
@@ -425,7 +425,7 @@ func Test_BuildState(t *testing.T) {
 						Devices: []infrav1.NetworkDeviceSpec{
 							{
 								MACAddr: devMAC,
-								DHCP4:   ptr.To(true),
+								DHCP4:   new(true),
 							},
 						},
 					},
@@ -471,7 +471,7 @@ func Test_BuildState(t *testing.T) {
 					Network: infrav1.NetworkSpec{
 						Devices: []infrav1.NetworkDeviceSpec{
 							{
-								DHCP4: ptr.To(true),
+								DHCP4: new(true),
 							},
 							{
 								AddressesFromPools: []infrav1.IPPoolReference{
@@ -490,8 +490,8 @@ func Test_BuildState(t *testing.T) {
 		}
 
 		networkStatus = []infrav1.NetworkStatus{
-			{Connected: ptr.To(true)},
-			{Connected: ptr.To(true)},
+			{Connected: new(true)},
+			{Connected: new(true)},
 		}
 
 		// Creates ip address claims
@@ -502,8 +502,8 @@ func Test_BuildState(t *testing.T) {
 		g.Expect(err).To(gomega.MatchError("waiting for devices to have MAC address set"))
 
 		networkStatus = []infrav1.NetworkStatus{
-			{Connected: ptr.To(true), MACAddr: devMAC0},
-			{Connected: ptr.To(true), MACAddr: devMAC1},
+			{Connected: new(true), MACAddr: devMAC0},
+			{Connected: new(true), MACAddr: devMAC1},
 		}
 
 		// IP provider has not provided Addresses yet
@@ -675,8 +675,8 @@ func Test_BuildState(t *testing.T) {
 			}
 
 			networkStatus = []infrav1.NetworkStatus{
-				{Connected: ptr.To(true), MACAddr: devMAC0},
-				{Connected: ptr.To(true), MACAddr: devMAC1},
+				{Connected: new(true), MACAddr: devMAC0},
+				{Connected: new(true), MACAddr: devMAC1},
 			}
 
 			g.Expect(vmCtx.Client.Create(ctx, claim1)).To(gomega.Succeed())

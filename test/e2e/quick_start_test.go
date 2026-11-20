@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -41,7 +40,7 @@ var _ = Describe("Cluster Creation using Cluster API quick-start test [vcsim] [s
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode(clusterctl.DefaultFlavor)),
+				Flavor:                new(testSpecificSettingsGetter().FlavorForMode(clusterctl.DefaultFlavor)),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
@@ -58,7 +57,7 @@ var _ = Describe("Cluster Creation using Cluster API quick-start test and MOID [
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode(clusterctl.DefaultFlavor)),
+				Flavor:                new(testSpecificSettingsGetter().FlavorForMode(clusterctl.DefaultFlavor)),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
@@ -75,7 +74,7 @@ var _ = Describe("ClusterClass Creation using Cluster API quick-start test [vcsi
 				BootstrapClusterProxy:     bootstrapClusterProxy,
 				ArtifactFolder:            artifactFolder,
 				SkipCleanup:               skipCleanup,
-				Flavor:                    ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
+				Flavor:                    new(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
 				ExtensionConfigName:       "quick-start-cluster-class",
 				ExtensionServiceNamespace: "capv-test-extension",
 				ExtensionServiceName:      "capv-test-extension-webhook-service",
@@ -96,7 +95,7 @@ var _ = Describe("ClusterClass v1beta1 Creation using Cluster API quick-start te
 				BootstrapClusterProxy:     bootstrapClusterProxy,
 				ArtifactFolder:            artifactFolder,
 				SkipCleanup:               skipCleanup,
-				Flavor:                    ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk-v1beta1")),
+				Flavor:                    new(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk-v1beta1")),
 				ExtensionConfigName:       "quick-start-cluster-class-v1beta1",
 				ExtensionServiceNamespace: "capv-test-extension",
 				ExtensionServiceName:      "capv-test-extension-webhook-service",
@@ -117,7 +116,7 @@ var _ = Describe("Cluster creation with [Ignition] bootstrap [PR-Blocking]", fun
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ignition")),
+				Flavor:                new(testSpecificSettingsGetter().FlavorForMode("ignition")),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})

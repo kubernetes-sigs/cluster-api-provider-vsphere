@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/randfill"
@@ -95,7 +94,7 @@ func hubVSphereClusterStatus(in *vmwarev1.VSphereClusterStatus, c randfill.Conti
 			in.FailureDomains = append(in.FailureDomains,
 				clusterv1.FailureDomain{
 					Name:         fmt.Sprintf("%d-%s", i, c.String(255)), // Ensure valid unique non-empty names.
-					ControlPlane: ptr.To(c.Bool()),
+					ControlPlane: new(c.Bool()),
 				},
 			)
 		}

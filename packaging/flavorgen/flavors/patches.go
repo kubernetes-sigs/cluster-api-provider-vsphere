@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -40,7 +39,7 @@ func createEmptyArraysPatch() clusterv1.ClusterClassPatch {
 					APIVersion: controlplanev1.GroupVersion.String(),
 					Kind:       util.TypeToKind(&controlplanev1.KubeadmControlPlaneTemplate{}),
 					MatchResources: clusterv1.PatchSelectorMatch{
-						ControlPlane: ptr.To(true),
+						ControlPlane: new(true),
 					},
 				},
 				JSONPatches: []clusterv1.JSONPatch{
@@ -87,7 +86,7 @@ func enableSSHPatch() clusterv1.ClusterClassPatch {
 					APIVersion: controlplanev1.GroupVersion.String(),
 					Kind:       util.TypeToKind(&controlplanev1.KubeadmControlPlaneTemplate{}),
 					MatchResources: clusterv1.PatchSelectorMatch{
-						ControlPlane: ptr.To(true),
+						ControlPlane: new(true),
 					},
 				},
 				JSONPatches: []clusterv1.JSONPatch{
@@ -134,7 +133,7 @@ func infraClusterPatch() clusterv1.ClusterClassPatch {
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       util.TypeToKind(&infrav1.VSphereClusterTemplate{}),
 					MatchResources: clusterv1.PatchSelectorMatch{
-						InfrastructureCluster: ptr.To(true),
+						InfrastructureCluster: new(true),
 					},
 				},
 				JSONPatches: []clusterv1.JSONPatch{
@@ -188,7 +187,7 @@ func vmWareInfraClusterPatch() clusterv1.ClusterClassPatch {
 					APIVersion: vmwarev1.GroupVersion.String(),
 					Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
 					MatchResources: clusterv1.PatchSelectorMatch{
-						InfrastructureCluster: ptr.To(true),
+						InfrastructureCluster: new(true),
 					},
 				},
 				JSONPatches: []clusterv1.JSONPatch{

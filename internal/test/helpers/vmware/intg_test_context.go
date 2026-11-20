@@ -29,7 +29,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capiutil "sigs.k8s.io/cluster-api/util"
@@ -178,7 +177,7 @@ func CreateAndWait(ctx context.Context, integrationTestClient client.Client, obj
 func ClusterInfrastructureProvisioned(ctx context.Context, c client.Client, clusterCache clustercache.ClusterCache, cluster *clusterv1.Cluster) {
 	GinkgoHelper()
 	patch := client.MergeFrom(cluster.DeepCopy())
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	Expect(c.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 	// Ensure the ClusterCache reconciled at least once (and if possible created a clusterAccessor).

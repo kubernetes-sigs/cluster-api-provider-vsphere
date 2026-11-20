@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -56,7 +55,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			name: "successful VSphereCluster creation with nsxVPC and createSubnetSet is true and MultiNetworks enabled",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
@@ -67,7 +66,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			name: "failed VSphereCluster creation with nsxVPC and createSubnetSet is true but MultiNetworks disabled",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
@@ -80,7 +79,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			name: "failed VSphereCluster creation with nsxVPC and createSubnetSet is false but MultiNetworks disabled",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(false),
+					CreateSubnetSet: new(false),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
@@ -102,7 +101,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			name: "failed VSphereCluster creation with nsxVPC when network provider is vsphere-network",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.VDSNetworkProvider,
@@ -115,7 +114,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			name: "failed VSphereCluster creation with nsxVPC when network provider is NSX",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(false),
+					CreateSubnetSet: new(false),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXNetworkProvider,
@@ -128,7 +127,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			name: "gate on: successful creation with nsxVPC when spec.network.provider is VPC",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 				Provider: manager.NSXVPCNetworkProvider,
 			}, vmwarev1.FailureDomainsSpec{}),
@@ -139,7 +138,7 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			name: "gate on: failed creation with nsxVPC when spec.network.provider is VSphereDistributed",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 				Provider: manager.VDSNetworkProvider,
 			}, vmwarev1.FailureDomainsSpec{}),
@@ -320,7 +319,7 @@ func TestVSphereCluster_ValidateUpdate(t *testing.T) {
 			oldVSphereCluster: emptyProviderCluster,
 			newVSphereCluster: emptyProviderCluster,
 			featureGates:      map[string]bool{"ClusterNetworkProvider": true},
-			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}},
 			wantErr:           true,
 			errType:           &apierrors.StatusError{},
 			errMsg:            "spec.network.provider must be set",
@@ -330,7 +329,7 @@ func TestVSphereCluster_ValidateUpdate(t *testing.T) {
 			oldVSphereCluster: emptyProviderCluster,
 			newVSphereCluster: emptyProviderClusterDryRun,
 			featureGates:      map[string]bool{"ClusterNetworkProvider": true},
-			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}},
 			wantErr:           false,
 		},
 		{

@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -144,8 +143,8 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 // patchKubeadmControlPlaneTemplate patches the KubeadmControlPlaneTemplate.
 func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	// Remove CP taint (this is useful to run workloads on the test cluster if the cluster has no worker nodes).
-	tpl.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.Taints = ptr.To([]corev1.Taint{})
-	tpl.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.Taints = ptr.To([]corev1.Taint{})
+	tpl.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.Taints = new([]corev1.Taint{})
+	tpl.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.Taints = new([]corev1.Taint{})
 
 	// Tune etcd so the Cluster can be used as a management cluster for scale testing.
 	// Note: This cluster template with this Runtime Extension can be used to setup a scale test environment e.g. in GCVE.
@@ -153,11 +152,11 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.Kub
 	tpl.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ExtraArgs = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ExtraArgs,
 		bootstrapv1.Arg{
 			Name:  "auto-compaction-retention",
-			Value: ptr.To("1"), // compact every hour
+			Value: new("1"), // compact every hour
 		},
 		bootstrapv1.Arg{
 			Name:  "quota-backend-bytes",
-			Value: ptr.To("8589934592"), // 8 GB
+			Value: new("8589934592"), // 8 GB
 		},
 	)
 
@@ -425,7 +424,7 @@ func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate runti
 		if err != nil {
 			return pkgerrors.Wrap(err, "could not set numCPUs")
 		}
-		numCPUs = ptr.To(int32(i))
+		numCPUs = new(int32(i))
 	}
 	memoryMiBJSON, err := topologymutation.GetVariable(templateVariables, "memoryMiB")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
@@ -436,7 +435,7 @@ func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate runti
 		if err != nil {
 			return pkgerrors.Wrap(err, "could not set memoryMiB")
 		}
-		memoryMiB = ptr.To(i)
+		memoryMiB = new(i)
 	}
 	diskGiBJSON, err := topologymutation.GetVariable(templateVariables, "diskGiB")
 	if err != nil && !topologymutation.IsNotFoundError(err) {
@@ -447,7 +446,7 @@ func patchGovmomiMachineTemplate(_ context.Context, vsphereMachineTemplate runti
 		if err != nil {
 			return pkgerrors.Wrap(err, "could not set diskGiB")
 		}
-		diskGiB = ptr.To(int32(i))
+		diskGiB = new(int32(i))
 	}
 	if err := topologymutation.GetObjectVariableInto(templateVariables, "customVMXKeys", &customVMXKeys); err != nil {
 		return pkgerrors.Wrap(err, "could not set customVMXKeys")
@@ -563,14 +562,14 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 	// Make kubeVipPodManifest optional for scale tests.
 	for i := range resp.Variables {
 		if resp.Variables[i].Name == "kubeVipPodManifest" {
-			resp.Variables[i].Required = ptr.To(false)
+			resp.Variables[i].Required = new(false)
 		}
 	}
 
 	resp.Variables = append(resp.Variables,
 		clusterv1.ClusterClassVariable{
 			Name:     "kubeadmControlPlaneMaxSurge",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",
@@ -587,7 +586,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 			},
 		}, clusterv1.ClusterClassVariable{
 			Name:     "files",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type: "array",
@@ -610,7 +609,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 	if req.Settings["testMode"] == "govmomi" {
 		resp.Variables = append(resp.Variables, clusterv1.ClusterClassVariable{
 			Name:     "numCPUs",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:    "integer",
@@ -620,7 +619,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 			},
 		}, clusterv1.ClusterClassVariable{
 			Name:     "memoryMiB",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:    "integer",
@@ -630,7 +629,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 			},
 		}, clusterv1.ClusterClassVariable{
 			Name:     "diskGiB",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:    "integer",
@@ -640,7 +639,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 			},
 		}, clusterv1.ClusterClassVariable{
 			Name:     "customVMXKeys",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:    "object",
@@ -657,7 +656,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 	if req.Settings["testMode"] == "supervisor" {
 		resp.Variables = append(resp.Variables, clusterv1.ClusterClassVariable{
 			Name:     "virtualMachineClass",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",

@@ -291,14 +291,14 @@ func TestCreateDataDisks(t *testing.T) {
 					backingInfo := disk.GetVirtualDeviceConfigSpec().Device.GetVirtualDevice().Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 					switch tc.dataDisks[index].ProvisioningMode {
 					case infrav1.ThinProvisioningMode:
-						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(types.NewBool(true)))
+						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(new(true)))
 						g.Expect(backingInfo.EagerlyScrub).To(gomega.BeNil())
 					case infrav1.ThickProvisioningMode:
-						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(types.NewBool(false)))
+						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(new(false)))
 						g.Expect(backingInfo.EagerlyScrub).To(gomega.BeNil())
 					case infrav1.EagerlyZeroedProvisioningMode:
-						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(types.NewBool(false)))
-						g.Expect(backingInfo.EagerlyScrub).To(gomega.Equal(types.NewBool(true)))
+						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(new(false)))
+						g.Expect(backingInfo.EagerlyScrub).To(gomega.Equal(new(true)))
 					default:
 						// If not set, the behaviour may depend on the configuration of the backing datastore.
 					}
@@ -328,7 +328,7 @@ func createVirtualDisk(key int32, controller types.BaseVirtualController, diskSi
 			Key: key,
 			Backing: &types.VirtualDiskFlatVer2BackingInfo{
 				DiskMode:        string(types.VirtualDiskModePersistent),
-				ThinProvisioned: types.NewBool(true),
+				ThinProvisioned: new(true),
 				VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
 					FileName: "",
 				},

@@ -83,7 +83,7 @@ func (p MachineDeploymentScalePlugin) Exec(ctx context.Context, c client.Client,
 
 	if ptr.Deref(cluster.Spec.Topology.Workers.MachineDeployments[mdTopologyIndex].Replicas, 0) != replicas {
 		original := cluster.DeepCopy()
-		cluster.Spec.Topology.Workers.MachineDeployments[mdTopologyIndex].Replicas = ptr.To(replicas)
+		cluster.Spec.Topology.Workers.MachineDeployments[mdTopologyIndex].Replicas = new(replicas)
 		if err := c.Patch(ctx, cluster, client.MergeFrom(original)); err != nil {
 			return pkgerrors.Wrapf(err, "failed to patch Cluster %s", klog.KObj(cluster))
 		}

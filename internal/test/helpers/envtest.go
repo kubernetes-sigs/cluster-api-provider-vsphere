@@ -48,7 +48,6 @@ import (
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -212,7 +211,7 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 				},
 			},
 			Controller: config.Controller{
-				UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+				UsePriorityQueue: new(feature.Gates.Enabled(feature.PriorityQueue)),
 			},
 			Scheme: scheme,
 			Metrics: metricsserver.Options{

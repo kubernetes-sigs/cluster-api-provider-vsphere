@@ -52,7 +52,6 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
@@ -287,7 +286,7 @@ func main() {
 
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
-			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			UsePriorityQueue: new(feature.Gates.Enabled(feature.PriorityQueue)),
 			// Give the manager more time to sync the caches during startup. This is required
 			// in high scale environments when they are more objects in the system (default is 3m).
 			CacheSyncTimeout: 15 * time.Minute,

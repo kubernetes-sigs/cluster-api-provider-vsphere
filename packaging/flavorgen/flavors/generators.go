@@ -360,8 +360,8 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 			Devices: []infrav1.NetworkDeviceSpec{
 				{
 					NetworkName: env.VSphereNetworkVar,
-					DHCP4:       ptr.To(true),
-					DHCP6:       ptr.To(false),
+					DHCP4:       new(true),
+					DHCP6:       new(false),
 				},
 			},
 		},
@@ -412,8 +412,8 @@ func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 			Devices: []infrav1.NetworkDeviceSpec{
 				{
 					NetworkName: env.VSphereNetworkVar,
-					DHCP4:       ptr.To(false),
-					DHCP6:       ptr.To(false),
+					DHCP4:       new(false),
+					DHCP6:       new(false),
 					AddressesFromPools: []infrav1.IPPoolReference{
 						{
 							APIGroup: env.NodeIPAMPoolAPIGroup,
@@ -455,7 +455,7 @@ func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigS
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "cloud-provider",
-						Value: ptr.To("external"),
+						Value: new("external"),
 					},
 				},
 			},
@@ -488,7 +488,7 @@ func ignitionKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfig
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "cloud-provider",
-						Value: ptr.To("external"),
+						Value: new("external"),
 					},
 				},
 			},
@@ -566,7 +566,7 @@ func defaultNodeRegistrationOptions() bootstrapv1.NodeRegistrationOptions {
 		KubeletExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "cloud-provider",
-				Value: ptr.To("external"),
+				Value: new("external"),
 			},
 		},
 	}

@@ -19,7 +19,6 @@ package webhooks
 import (
 	"context"
 
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -44,7 +43,7 @@ func (webhook *VSphereDeploymentZone) SetupWebhookWithManager(mgr ctrl.Manager) 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (webhook *VSphereDeploymentZone) Default(_ context.Context, typedObj *infrav1.VSphereDeploymentZone) error {
 	if typedObj.Spec.ControlPlane == nil {
-		typedObj.Spec.ControlPlane = ptr.To(true)
+		typedObj.Spec.ControlPlane = new(true)
 	}
 	return nil
 }

@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -106,7 +105,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: vsphereFailureDomain.Name,
-				ControlPlane:  ptr.To(true),
+				ControlPlane:  new(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -185,7 +184,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 				Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:        simr.ServerURL().Host,
 					FailureDomain: vsphereFailureDomain.Name,
-					ControlPlane:  ptr.To(true),
+					ControlPlane:  new(true),
 					PlacementConstraint: infrav1.PlacementConstraint{
 						ResourcePool: "DC0_C1_RP1",
 						Folder:       "/",
@@ -352,7 +351,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: vsphereFailureDomain.Name,
-				ControlPlane:  ptr.To(true),
+				ControlPlane:  new(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -422,7 +421,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: vsphereFailureDomain.Name,
-				ControlPlane:  ptr.To(true),
+				ControlPlane:  new(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -460,7 +459,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: "fd1",
-				ControlPlane:  ptr.To(true),
+				ControlPlane:  new(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -495,7 +494,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: "fd1",
-				ControlPlane:  ptr.To(true),
+				ControlPlane:  new(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -618,7 +617,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 				VSphereDeploymentZone: &infrav1.VSphereDeploymentZone{Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:              simr.ServerURL().Host,
 					FailureDomain:       "blah",
-					ControlPlane:        ptr.To(true),
+					ControlPlane:        new(true),
 					PlacementConstraint: tt.placementConstraint,
 				}},
 			}

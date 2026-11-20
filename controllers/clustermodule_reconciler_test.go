@@ -56,12 +56,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when cluster modules already exist",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     ptr.To(false),
+					ControlPlane:     new(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -97,7 +97,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when one cluster modules exist",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
@@ -122,12 +122,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when cluster modules do not exist anymore",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     ptr.To(false),
+					ControlPlane:     new(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -151,12 +151,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when cluster modules already exist but vCenter returns an error",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     ptr.To(false),
+					ControlPlane:     new(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -180,12 +180,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when one cluster modules exists and for the other we get an error",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     ptr.To(false),
+					ControlPlane:     new(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -209,12 +209,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name: "when one cluster modules does not exist and for the other we get an error",
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     ptr.To(false),
+					ControlPlane:     new(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -310,7 +310,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
@@ -333,8 +333,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				md.ObjectMeta.Finalizers = append(md.ObjectMeta.Finalizers, "keep-this-for-the-test")
 			},
 			clusterModules: []infrav1.ClusterModule{
-				{ControlPlane: ptr.To(true), TargetObjectName: "kcp", ModuleUUID: kcpUUID},
-				{ControlPlane: ptr.To(false), TargetObjectName: "md", ModuleUUID: mdUUID},
+				{ControlPlane: new(true), TargetObjectName: "kcp", ModuleUUID: kcpUUID},
+				{ControlPlane: new(false), TargetObjectName: "md", ModuleUUID: mdUUID},
 			},
 			setupMocks: func(svc *cmodfake.CMService) {
 				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
@@ -344,7 +344,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.ContainElement(
-					infrav1.ClusterModule{ControlPlane: ptr.To(false), TargetObjectName: "md", ModuleUUID: mdUUID}))
+					infrav1.ClusterModule{ControlPlane: new(false), TargetObjectName: "md", ModuleUUID: mdUUID}))
 				g.Expect(conditions.IsFalse(clusterCtx.VSphereCluster, infrav1.VSphereClusterClusterModulesReadyCondition)).To(gomega.BeTrue())
 			},
 		},
@@ -357,12 +357,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     ptr.To(false),
+					ControlPlane:     new(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},
@@ -387,12 +387,12 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
-					ControlPlane:     ptr.To(true),
+					ControlPlane:     new(true),
 					TargetObjectName: "kcp",
 					ModuleUUID:       kcpUUID,
 				},
 				{
-					ControlPlane:     ptr.To(false),
+					ControlPlane:     new(false),
 					TargetObjectName: "md",
 					ModuleUUID:       mdUUID,
 				},

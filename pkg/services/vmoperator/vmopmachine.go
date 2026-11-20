@@ -453,7 +453,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		v.LogRateLimiter.Forget(waitingForVirtualMachineKey(supervisorMachineCtx.VSphereMachine, ""))
 		log.Info(fmt.Sprintf("VSphereMachine %s provisioning completed", supervisorMachineCtx.VSphereMachine.Name), "duration", time.Since(machineCtx.GetVSphereMachine().GetCreationTimestamp().Time).Truncate(time.Second/10))
 	}
-	supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
+	supervisorMachineCtx.VSphereMachine.Status.Initialization.Provisioned = new(true)
 	deprecatedv1beta1conditions.MarkTrue(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedV1Beta1Condition)
 	conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 		Type:   infrav1.VSphereMachineVirtualMachineProvisionedCondition,
@@ -814,11 +814,11 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 				if vmIface.IP.DHCP != nil {
 					dhcp = vmwarev1.VSphereMachineNetworkDHCPStatus{
 						IP4: vmwarev1.VSphereMachineNetworkDHCPOptionsStatus{
-							Enabled: ptr.To(vmIface.IP.DHCP.IP4.Enabled),
+							Enabled: new(vmIface.IP.DHCP.IP4.Enabled),
 							Config:  convertKeyValueSlice(vmIface.IP.DHCP.IP4.Config),
 						},
 						IP6: vmwarev1.VSphereMachineNetworkDHCPOptionsStatus{
-							Enabled: ptr.To(vmIface.IP.DHCP.IP6.Enabled),
+							Enabled: new(vmIface.IP.DHCP.IP6.Enabled),
 							Config:  convertKeyValueSlice(vmIface.IP.DHCP.IP6.Config),
 						},
 					}
@@ -842,7 +842,7 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 			// set DNS
 			if vmIface.DNS != nil {
 				iface.DNS = vmwarev1.VSphereMachineNetworkDNSStatus{
-					DHCP:          ptr.To(vmIface.DNS.DHCP),
+					DHCP:          new(vmIface.DNS.DHCP),
 					DomainName:    vmIface.DNS.DomainName,
 					HostName:      vmIface.DNS.HostName,
 					Nameservers:   vmIface.DNS.Nameservers,

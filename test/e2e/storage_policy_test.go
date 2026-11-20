@@ -26,7 +26,6 @@ import (
 	"github.com/vmware/govmomi/pbm"
 	pbmypes "github.com/vmware/govmomi/pbm/types"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -129,7 +128,7 @@ func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 	By("verifying storage policy is used by VMs")
 	for _, vm := range vms.Items {
 		si := object.NewSearchIndex(input.Client.Client)
-		ref, err := si.FindByUuid(ctx, datacenter, vm.Spec.BiosUUID, true, ptr.To(false))
+		ref, err := si.FindByUuid(ctx, datacenter, vm.Spec.BiosUUID, true, new(false))
 		Expect(err).NotTo(HaveOccurred())
 		found := false
 

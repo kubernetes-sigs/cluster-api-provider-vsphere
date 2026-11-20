@@ -143,7 +143,7 @@ func Test_GetMachineMetadata(t *testing.T) {
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       ptr.To(true),
+									DHCP4:       new(true),
 								},
 							},
 						},
@@ -179,7 +179,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       ptr.To(true),
+									DHCP4:       new(true),
 									DeviceName:  "ens192",
 								},
 							},
@@ -216,7 +216,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP6:       ptr.To(true),
+									DHCP6:       new(true),
 								},
 							},
 						},
@@ -252,8 +252,8 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       ptr.To(true),
-									DHCP6:       ptr.To(true),
+									DHCP4:       new(true),
+									DHCP6:       new(true),
 								},
 							},
 						},
@@ -289,29 +289,29 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       ptr.To(true),
+									DHCP4:       new(true),
 									DHCP4Overrides: &infrav1.DHCPOverrides{
-										Hostname:     toStringPtr("hal"),
+										Hostname:     new("hal"),
 										RouteMetric:  ptr.To[int32](12345),
-										SendHostname: toBoolPtr(true),
-										UseDNS:       toBoolPtr(true),
-										UseDomains:   toStringPtr("true"),
-										UseHostname:  toBoolPtr(true),
-										UseMTU:       toBoolPtr(true),
-										UseNTP:       toBoolPtr(true),
-										UseRoutes:    toStringPtr("route"),
+										SendHostname: new(true),
+										UseDNS:       new(true),
+										UseDomains:   new("true"),
+										UseHostname:  new(true),
+										UseMTU:       new(true),
+										UseNTP:       new(true),
+										UseRoutes:    new("route"),
 									},
-									DHCP6: ptr.To(true),
+									DHCP6: new(true),
 									DHCP6Overrides: &infrav1.DHCPOverrides{
-										Hostname:     toStringPtr("hal"),
+										Hostname:     new("hal"),
 										RouteMetric:  ptr.To[int32](12345),
-										SendHostname: toBoolPtr(true),
-										UseDNS:       toBoolPtr(true),
-										UseDomains:   toStringPtr("true"),
-										UseHostname:  toBoolPtr(true),
-										UseMTU:       toBoolPtr(true),
-										UseNTP:       toBoolPtr(true),
-										UseRoutes:    toStringPtr("route"),
+										SendHostname: new(true),
+										UseDNS:       new(true),
+										UseDomains:   new("true"),
+										UseHostname:  new(true),
+										UseMTU:       new(true),
+										UseNTP:       new(true),
+										UseRoutes:    new("route"),
 									},
 								},
 							},
@@ -368,9 +368,9 @@ network:
 								{
 									NetworkName:    "network1",
 									MACAddr:        "00:00:00:00:00",
-									DHCP4:          ptr.To(true),
+									DHCP4:          new(true),
 									DHCP4Overrides: nil,
-									DHCP6:          ptr.To(true),
+									DHCP6:          new(true),
 									DHCP6Overrides: nil,
 								},
 							},
@@ -407,7 +407,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP6:       ptr.To(true),
+									DHCP6:       new(true),
 									IPAddrs:     []string{"192.168.4.21"},
 									Gateway4:    "192.168.4.1",
 								},
@@ -499,7 +499,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP6:       ptr.To(true),
+									DHCP6:       new(true),
 									IPAddrs:     []string{"192.168.4.21"},
 									Gateway4:    "192.168.4.1",
 								},
@@ -551,7 +551,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       ptr.To(true),
+									DHCP4:       new(true),
 									Routes: []infrav1.NetworkRouteSpec{
 										{
 											To:     "192.168.5.1/24",
@@ -563,7 +563,7 @@ network:
 								{
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
-									DHCP6:       ptr.To(true),
+									DHCP6:       new(true),
 								},
 							},
 							Routes: []infrav1.NetworkRouteSpec{
@@ -625,7 +625,7 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       ptr.To(true),
+									DHCP4:       new(true),
 									Routes: []infrav1.NetworkRouteSpec{
 										{
 											To:     "192.168.5.1/24",
@@ -637,7 +637,7 @@ network:
 								{
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
-									DHCP6:       ptr.To(true),
+									DHCP6:       new(true),
 									MTU:         mtu(100),
 								},
 							},
@@ -696,7 +696,7 @@ network:
 								{
 									NetworkName:   "network12",
 									MACAddr:       "00:00:00:00:01",
-									DHCP6:         ptr.To(true),
+									DHCP6:         new(true),
 									SearchDomains: []string{"vmware6.ci"},
 								},
 							},
@@ -752,12 +752,12 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       ptr.To(true),
+									DHCP4:       new(true),
 								},
 								{
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
-									DHCP6:       ptr.To(true),
+									DHCP6:       new(true),
 								},
 							},
 						},
@@ -809,7 +809,7 @@ network:
 								{
 									NetworkName: "network2",
 									MACAddr:     "00:00:00:00:01",
-									DHCP4:       ptr.To(true),
+									DHCP4:       new(true),
 								},
 								{
 									NetworkName: "network3",
@@ -885,12 +885,12 @@ network:
 								{
 									NetworkName: "network1",
 									MACAddr:     "00:00:00:00:00",
-									DHCP4:       ptr.To(true),
+									DHCP4:       new(true),
 								},
 								{
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
-									DHCP6:       ptr.To(true),
+									DHCP6:       new(true),
 								},
 							},
 							Routes: []infrav1.NetworkRouteSpec{
@@ -989,32 +989,32 @@ func TestConvertProviderIDToUUID(t *testing.T) {
 		},
 		{
 			name:         "empty providerID",
-			providerID:   toStringPtr(""),
+			providerID:   new(""),
 			expectedUUID: "",
 		},
 		{
 			name:         "invalid providerID",
-			providerID:   toStringPtr("1234"),
+			providerID:   new("1234"),
 			expectedUUID: "",
 		},
 		{
 			name:         "missing prefix",
-			providerID:   toStringPtr("12345678-1234-1234-1234-123456789abc"),
+			providerID:   new("12345678-1234-1234-1234-123456789abc"),
 			expectedUUID: "",
 		},
 		{
 			name:         "valid providerID",
-			providerID:   toStringPtr("vsphere://12345678-1234-1234-1234-123456789abc"),
+			providerID:   new("vsphere://12345678-1234-1234-1234-123456789abc"),
 			expectedUUID: "12345678-1234-1234-1234-123456789abc",
 		},
 		{
 			name:         "mixed case",
-			providerID:   toStringPtr("vsphere://12345678-1234-1234-1234-123456789AbC"),
+			providerID:   new("vsphere://12345678-1234-1234-1234-123456789AbC"),
 			expectedUUID: "12345678-1234-1234-1234-123456789AbC",
 		},
 		{
 			name:         "invalid hex chars",
-			providerID:   toStringPtr("vsphere://12345678-1234-1234-1234-123456789abg"),
+			providerID:   new("vsphere://12345678-1234-1234-1234-123456789abg"),
 			expectedUUID: "",
 		},
 	}
@@ -1188,12 +1188,4 @@ func mtu(i int64) *int64 {
 		return nil
 	}
 	return &i
-}
-
-func toStringPtr(s string) *string {
-	return &s
-}
-
-func toBoolPtr(b bool) *bool {
-	return &b
 }

@@ -127,7 +127,7 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 			},
 			Domain:     "ad.domain",
 			TimeZone:   "Etc/UTC",
-			HwClockUTC: types.NewBool(true),
+			HwClockUTC: new(true),
 		},
 		GlobalIPSettings: types.CustomizationGlobalIPSettings{
 			DnsSuffixList: []string{"ad.domain"},

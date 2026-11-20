@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -95,7 +94,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{
 					Initialization: clusterv1.ClusterInitializationStatus{
-						InfrastructureProvisioned: ptr.To(true),
+						InfrastructureProvisioned: new(true),
 					},
 				},
 			}
@@ -219,7 +218,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	t.Run("Waiting for IP addr allocation", func(t *testing.T) {
 		create(infrav1.NetworkSpec{
 			Devices: []infrav1.NetworkDeviceSpec{
-				{NetworkName: "nw-1", DHCP4: ptr.To(true)},
+				{NetworkName: "nw-1", DHCP4: new(true)},
 			},
 		})()
 		fakeVMSvc := new(fake_svc.VMService)
@@ -228,7 +227,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
 			State:    services.VirtualMachineStateReady,
 			Network: []infrav1.NetworkStatus{{
-				Connected:   ptr.To(true),
+				Connected:   new(true),
 				IPAddrs:     []string{}, // empty array to show waiting for IP address
 				MACAddr:     "blah-mac",
 				NetworkName: vsphereVM.Spec.Network.Devices[0].NetworkName,
@@ -276,7 +275,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
 			State:    services.VirtualMachineStateNotFound,
 			Network: []infrav1.NetworkStatus{{
-				Connected:   ptr.To(true),
+				Connected:   new(true),
 				IPAddrs:     []string{}, // empty array to show waiting for IP address
 				MACAddr:     "blah-mac",
 				NetworkName: vsphereVM.Spec.Network.Devices[0].NetworkName,
@@ -311,13 +310,13 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 	}{
 		{
 			name:       "for one n/w device with DHCP set to true",
-			devices:    []infrav1.NetworkDeviceSpec{{DHCP4: ptr.To(true), NetworkName: "nw-1"}},
+			devices:    []infrav1.NetworkDeviceSpec{{DHCP4: new(true), NetworkName: "nw-1"}},
 			shouldWait: false,
 		},
 		{
 			name: "for multiple n/w devices with DHCP set and unset",
 			devices: []infrav1.NetworkDeviceSpec{
-				{DHCP4: ptr.To(true), NetworkName: "nw-1"},
+				{DHCP4: new(true), NetworkName: "nw-1"},
 				{NetworkName: "nw-2"},
 			},
 			shouldWait: true,
@@ -348,7 +347,7 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 		{
 			name: "for one n/w devices with SkipIPAllocation set",
 			devices: []infrav1.NetworkDeviceSpec{
-				{NetworkName: "nw-1", SkipIPAllocation: ptr.To(true)},
+				{NetworkName: "nw-1", SkipIPAllocation: new(true)},
 			},
 			shouldWait: false,
 		},
@@ -356,7 +355,7 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 			name: "for multiple n/w devices with SkipIPAllocation set for the second one",
 			devices: []infrav1.NetworkDeviceSpec{
 				{NetworkName: "nw-1", IPAddrs: []string{"192.168.1.2/32"}},
-				{NetworkName: "nw-2", SkipIPAllocation: ptr.To(true)},
+				{NetworkName: "nw-2", SkipIPAllocation: new(true)},
 			},
 			shouldWait: false,
 		},
@@ -364,7 +363,7 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 			name: "for multiple n/w devices with SkipIPAllocation set only for one",
 			devices: []infrav1.NetworkDeviceSpec{
 				{NetworkName: "nw-1"},
-				{NetworkName: "nw-2", SkipIPAllocation: ptr.To(true)},
+				{NetworkName: "nw-2", SkipIPAllocation: new(true)},
 			},
 			shouldWait: true,
 		},

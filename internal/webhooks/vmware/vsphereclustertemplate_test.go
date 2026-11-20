@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/api/supervisor/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
@@ -51,7 +50,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			name: "successful creation with nsxVPC and createSubnetSet is true and MultiNetworks enabled",
 			template: createVSphereClusterTemplate("test-template", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
@@ -62,7 +61,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			name: "failed creation with nsxVPC and createSubnetSet is true but MultiNetworks disabled",
 			template: createVSphereClusterTemplate("test-template", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
@@ -75,7 +74,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			name: "failed creation with nsxVPC and createSubnetSet is false but MultiNetworks disabled",
 			template: createVSphereClusterTemplate("test-template", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(false),
+					CreateSubnetSet: new(false),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXVPCNetworkProvider,
@@ -97,7 +96,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			name: "failed creation with nsxVPC when network provider is vsphere-network",
 			template: createVSphereClusterTemplate("test-template", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.VDSNetworkProvider,
@@ -110,7 +109,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			name: "gate on: nsxVPC check is skipped for cluster templates",
 			template: createVSphereClusterTemplate("test-template", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(true),
+					CreateSubnetSet: new(true),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.VDSNetworkProvider,
@@ -121,7 +120,7 @@ func TestVSphereClusterTemplate_ValidateCreate(t *testing.T) {
 			name: "failed creation with nsxVPC when network provider is NSX",
 			template: createVSphereClusterTemplate("test-template", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{
-					CreateSubnetSet: ptr.To(false),
+					CreateSubnetSet: new(false),
 				},
 			}, vmwarev1.FailureDomainsSpec{}),
 			networkProvider: manager.NSXNetworkProvider,

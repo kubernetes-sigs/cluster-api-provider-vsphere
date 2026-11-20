@@ -33,7 +33,6 @@ import (
 	"k8s.io/client-go/rest"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -185,7 +184,7 @@ func deployCAPIMachine(namespace string, cluster *clusterv1.Cluster, k8sClient c
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
-			Bootstrap:   clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			Bootstrap:   clusterv1.Bootstrap{DataSecretName: new("data")},
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     "VSphereMachine",
 				Name:     name, // We know that the infra machine is going to be called like the machine.
@@ -234,7 +233,7 @@ func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) man
 	opts := manager.Options{
 		Options: ctrlmgr.Options{
 			Controller: config.Controller{
-				UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+				UsePriorityQueue: new(feature.Gates.Enabled(feature.PriorityQueue)),
 			},
 			Scheme: localScheme,
 			NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
@@ -261,7 +260,7 @@ func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) man
 		)
 	}
 
-	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
+	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: new(true)}
 
 	opts.AddToManager = func(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		networkProviderFactory, err := manager.NewStaticNetworkProviderFactory(ctx, controllerCtx.Client, controllerCtx.NetworkProvider)
@@ -525,7 +524,7 @@ var _ = Describe("Reconciliation tests", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "crud",
-					Bootstrap:   clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:   clusterv1.Bootstrap{DataSecretName: new("data")},
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						Kind:     "VSphereMachine",
 						Name:     name, // We know that the infra machine is going to be called like the machine.

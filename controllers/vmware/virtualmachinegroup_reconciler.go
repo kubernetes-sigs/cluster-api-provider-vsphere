@@ -226,7 +226,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-		Controller: ptr.To(true),
+		Controller: new(true),
 	})
 
 	// Compute the info required to compute the VirtualMachineGroup.

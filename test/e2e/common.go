@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -68,8 +67,8 @@ func defaultConfigCluster(clusterName, namespace, flavor string, controlPlaneNod
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
-		ControlPlaneMachineCount: ptr.To(controlPlaneNodeCount),
-		WorkerMachineCount:       ptr.To(workerNodeCount),
+		ControlPlaneMachineCount: new(controlPlaneNodeCount),
+		WorkerMachineCount:       new(workerNodeCount),
 	}
 	if flavor != "" {
 		configClusterInput.Flavor = flavor

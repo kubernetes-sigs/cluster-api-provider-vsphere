@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
@@ -90,7 +89,7 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 						{
 							Kind:       "ProviderServiceAccount",
 							Name:       "non-controller-owner",
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},
@@ -130,7 +129,7 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 						{
 							Kind:       "ProviderServiceAccount",
 							Name:       "owner",
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},

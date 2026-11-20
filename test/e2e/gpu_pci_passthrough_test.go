@@ -25,7 +25,6 @@ import (
 	"github.com/vmware/govmomi/find"
 	vim25types "github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	capiutil "sigs.k8s.io/cluster-api/util"
@@ -56,8 +55,8 @@ var _ = Describe("Cluster creation with GPU devices as PCI passthrough [speciali
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eConfig.MustGetVariable(KubernetesVersion),
-					ControlPlaneMachineCount: ptr.To(int64(1)),
-					WorkerMachineCount:       ptr.To(int64(1)),
+					ControlPlaneMachineCount: new(int64(1)),
+					WorkerMachineCount:       new(int64(1)),
 				},
 				WaitForClusterIntervals:      e2eConfig.GetIntervals("", "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eConfig.GetIntervals("", "wait-control-plane"),

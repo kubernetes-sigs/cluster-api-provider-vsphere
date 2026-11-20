@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -181,7 +180,7 @@ func vmInterfaceFromSpec(network *vmoprvhub.VirtualMachineNetworkSpec, name stri
 	}
 	var mtu *int64
 	if iface.MTU != 0 {
-		mtu = ptr.To(int64(iface.MTU))
+		mtu = new(int64(iface.MTU))
 	}
 	vmInterface.MTU = mtu
 	vmInterface.Gateway4 = gateway4

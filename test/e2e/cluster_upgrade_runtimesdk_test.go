@@ -24,7 +24,6 @@ import (
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
@@ -64,7 +63,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 					})
 				},
 				// "topology-runtimesdk" is the same as the "topology" flavor but with an additional RuntimeExtension.
-				Flavor:                    ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
+				Flavor:                    new(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
 				ExtensionServiceNamespace: "capv-test-extension",
 				ExtensionServiceName:      "capv-test-extension-webhook-service",
 				PostNamespaceCreated:      testSpecificSettingsGetter().PostNamespaceCreatedFunc,
@@ -96,7 +95,7 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 					framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 				},
 				// "topology-runtimesdk" is the same as the "topology" flavor but with an additional RuntimeExtension.
-				Flavor:                                ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
+				Flavor:                                new(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
 				DeployClusterClassInSeparateNamespace: true,
 				// Setting Kubernetes version from
 				KubernetesVersionFrom: e2eConfig.MustGetVariable(KubernetesVersionChainedUpgradeFrom),

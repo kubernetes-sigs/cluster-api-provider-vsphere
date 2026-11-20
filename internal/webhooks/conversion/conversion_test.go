@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/randfill"
@@ -118,7 +117,7 @@ func hubVSphereClusterStatus(in *infrav1.VSphereClusterStatus, c randfill.Contin
 			in.FailureDomains = append(in.FailureDomains,
 				clusterv1.FailureDomain{
 					Name:         fmt.Sprintf("%d-%s", i, c.String(255)), // Ensure valid unique non-empty names.
-					ControlPlane: ptr.To(c.Bool()),
+					ControlPlane: new(c.Bool()),
 				},
 			)
 		}
@@ -135,7 +134,7 @@ func hubVSphereClusterStatus(in *infrav1.VSphereClusterStatus, c randfill.Contin
 func hubVSphereFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 	c.FillNoCustom(in)
 
-	in.ControlPlane = ptr.To(c.Bool())
+	in.ControlPlane = new(c.Bool())
 }
 
 func spokeVSphereClusterSpec(in *infrav1beta1.VSphereClusterSpec, c randfill.Continue) {
@@ -285,7 +284,7 @@ func spokeVSphereMachineSpec(in *infrav1beta1.VSphereMachineSpec, c randfill.Con
 	}
 
 	if in.GuestSoftPowerOffTimeout != nil {
-		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.GuestSoftPowerOffTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 
 	in.Network.PreferredAPIServerCIDR = "" // field has been dropped in v1beta2
@@ -348,7 +347,7 @@ func spokeVSphereVMSpec(in *infrav1beta1.VSphereVMSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.GuestSoftPowerOffTimeout != nil {
-		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.GuestSoftPowerOffTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 
 	in.Network.PreferredAPIServerCIDR = "" // field has been dropped in v1beta2

@@ -27,7 +27,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -146,7 +145,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 			Reason:  infrav1.VSphereClusterIdentitySecretAlreadyInUseReason,
 			Message: "secret being used by another Cluster/VSphereIdentity",
 		})
-		identity.Status.Ready = ptr.To(false)
+		identity.Status.Ready = new(false)
 		return reconcile.Result{}, pkgerrors.New("secret being used by another Cluster/VSphereIdentity")
 	}
 
@@ -182,7 +181,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		Reason: infrav1.VSphereClusterIdentityAvailableReason,
 	})
 
-	identity.Status.Ready = ptr.To(true)
+	identity.Status.Ready = new(true)
 	return reconcile.Result{}, nil
 }
 

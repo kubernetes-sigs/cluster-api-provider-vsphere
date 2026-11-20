@@ -43,7 +43,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        fmt.Sprintf("server-%s", suffix),
 				FailureDomain: fmt.Sprintf("fd-%s", suffix),
-				ControlPlane:  ptr.To(true),
+				ControlPlane:  new(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: fmt.Sprintf("rp-%s", suffix),
 					Folder:       fmt.Sprintf("folder-%s", suffix),
@@ -75,11 +75,11 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 					NetworkConfigurations: []infrav1.NetworkConfiguration{
 						{
 							NetworkName: fmt.Sprintf("nw-%s", suffix),
-							DHCP4:       ptr.To(true),
+							DHCP4:       new(true),
 						},
 						{
 							NetworkName: "another-nw",
-							DHCP6:       ptr.To(true),
+							DHCP6:       new(true),
 						},
 					},
 				},
@@ -150,7 +150,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}, {NetworkName: "bar", DHCP6: ptr.To(false)}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: new(false)}, {NetworkName: "bar", DHCP6: new(false)}}},
 				},
 			},
 		}
@@ -177,7 +177,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}, {NetworkName: "bar", DHCP6: ptr.To(false)}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: new(false)}, {NetworkName: "bar", DHCP6: new(false)}}},
 				},
 			},
 		}
@@ -206,7 +206,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: new(false)}}},
 				},
 			},
 		}
@@ -233,7 +233,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: new(false)}}},
 				},
 			},
 		}
@@ -262,7 +262,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}, {NetworkName: "bar", DHCP6: ptr.To(false)}, {NetworkName: "baz", DHCP6: ptr.To(false)}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: new(false)}, {NetworkName: "bar", DHCP6: new(false)}, {NetworkName: "baz", DHCP6: new(false)}}},
 				},
 			},
 		}
@@ -291,7 +291,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		vm := &infrav1.VSphereVM{
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: ptr.To(false)}, {NetworkName: "bar", DHCP6: ptr.To(false)}, {NetworkName: "baz", DHCP6: ptr.To(false)}}},
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: new(false)}, {NetworkName: "bar", DHCP6: new(false)}, {NetworkName: "baz", DHCP6: new(false)}}},
 				},
 			},
 		}
@@ -322,16 +322,16 @@ func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
 
 		mergeNetworkConfigurationInNetworkDeviceSpec(&device, infrav1.NetworkConfiguration{
 			NetworkName:   "nw-name",
-			DHCP4:         ptr.To(true),
-			DHCP6:         ptr.To(false),
+			DHCP4:         new(true),
+			DHCP6:         new(false),
 			Nameservers:   []string{"1.1.1.1"},
 			SearchDomains: []string{"vmware.ci"},
 			DHCP4Overrides: &infrav1.DHCPOverrides{
-				Hostname:    ptr.To("hal"),
+				Hostname:    new("hal"),
 				RouteMetric: ptr.To[int32](12345),
 			},
 			DHCP6Overrides: &infrav1.DHCPOverrides{
-				Hostname:    ptr.To("hal"),
+				Hostname:    new("hal"),
 				RouteMetric: ptr.To[int32](23456),
 			},
 			AddressesFromPools: []infrav1.IPPoolReference{
@@ -345,16 +345,16 @@ func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
 
 		g.Expect(device).To(Equal(infrav1.NetworkDeviceSpec{
 			NetworkName:   "nw-name",
-			DHCP4:         ptr.To(true),
-			DHCP6:         ptr.To(false),
+			DHCP4:         new(true),
+			DHCP6:         new(false),
 			Nameservers:   []string{"1.1.1.1"},
 			SearchDomains: []string{"vmware.ci"},
 			DHCP4Overrides: &infrav1.DHCPOverrides{
-				Hostname:    ptr.To("hal"),
+				Hostname:    new("hal"),
 				RouteMetric: ptr.To[int32](12345),
 			},
 			DHCP6Overrides: &infrav1.DHCPOverrides{
-				Hostname:    ptr.To("hal"),
+				Hostname:    new("hal"),
 				RouteMetric: ptr.To[int32](23456),
 			},
 			AddressesFromPools: []infrav1.IPPoolReference{
@@ -442,7 +442,7 @@ func Test_VimMachineService_createOrPatchVSphereVM(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        fmt.Sprintf("server-%s", suffix),
 				FailureDomain: fmt.Sprintf("fd-%s", suffix),
-				ControlPlane:  ptr.To(true),
+				ControlPlane:  new(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: fmt.Sprintf("rp-%s", suffix),
 					Folder:       fmt.Sprintf("folder-%s", suffix),
@@ -581,7 +581,7 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host:      hostAddr,
-				Ready:     ptr.To(conditionStatus == metav1.ConditionTrue),
+				Ready:     new(conditionStatus == metav1.ConditionTrue),
 				Addresses: addresses,
 				Network:   networkStatus,
 				Conditions: []metav1.Condition{
@@ -595,10 +595,10 @@ func Test_VimMachineService_reconcileNetwork(t *testing.T) {
 	}
 
 	networkStatus := []infrav1.NetworkStatus{
-		{Connected: ptr.To(true), IPAddrs: []string{hostAddr}, MACAddr: "aa:bb:cc:dd:ee:ff", NetworkName: "fake"},
+		{Connected: new(true), IPAddrs: []string{hostAddr}, MACAddr: "aa:bb:cc:dd:ee:ff", NetworkName: "fake"},
 	}
 	networkStatusWithoutMACAddr := []infrav1.NetworkStatus{
-		{Connected: ptr.To(true), IPAddrs: []string{hostAddr}, MACAddr: "", NetworkName: "fake"},
+		{Connected: new(true), IPAddrs: []string{hostAddr}, MACAddr: "", NetworkName: "fake"},
 	}
 	addresses := []string{"1.2.3.4"}
 
@@ -648,7 +648,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 			},
 			Status: infrav1.VSphereVMStatus{
 				Host:      hostAddr,
-				Ready:     ptr.To(conditionStatus == metav1.ConditionTrue),
+				Ready:     new(conditionStatus == metav1.ConditionTrue),
 				Addresses: addresses,
 				Network:   networkStatus,
 				Conditions: []metav1.Condition{
@@ -666,7 +666,7 @@ func Test_VimMachineService_ReconcileNormal(t *testing.T) {
 	}
 
 	networkStatus := []infrav1.NetworkStatus{
-		{Connected: ptr.To(true), IPAddrs: []string{hostAddr}, MACAddr: "aa:bb:cc:dd:ee:ff", NetworkName: "fake"},
+		{Connected: new(true), IPAddrs: []string{hostAddr}, MACAddr: "aa:bb:cc:dd:ee:ff", NetworkName: "fake"},
 	}
 	addresses := []string{"1.2.3.4"}
 	biosUUID := "42055285-ff20-2c28-965c-05558ea1b4c7"
@@ -804,8 +804,8 @@ func Test_VimMachineService_FetchVSphereMachine(t *testing.T) {
 					Devices: []infrav1.NetworkDeviceSpec{
 						{
 							NetworkName: "VM Network",
-							DHCP4:       ptr.To(true),
-							DHCP6:       ptr.To(true),
+							DHCP4:       new(true),
+							DHCP6:       new(true),
 						},
 					},
 				},
@@ -886,7 +886,7 @@ func Test_VimMachineService_SyncFailureReason(t *testing.T) {
 						Status: conditionStatus,
 					},
 				},
-				Ready: ptr.To(conditionStatus == metav1.ConditionTrue),
+				Ready: new(conditionStatus == metav1.ConditionTrue),
 			},
 		}
 	}

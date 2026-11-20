@@ -50,7 +50,6 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -611,7 +610,7 @@ func main() {
 	managerOpts.AddToManager = addToManager
 	managerOpts.Metrics = *metricsOptions
 	managerOpts.Controller = config.Controller{
-		UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+		UsePriorityQueue: new(feature.Gates.Enabled(feature.PriorityQueue)),
 		// Give the manager more time to sync the caches during startup. This is required
 		// in high scale environments when they are more objects in the system (default is 3m).
 		CacheSyncTimeout: 5 * time.Minute,

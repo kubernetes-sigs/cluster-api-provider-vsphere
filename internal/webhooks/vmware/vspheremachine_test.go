@@ -587,24 +587,24 @@ func TestVSphereMachine_ValidateCreate_VolumeControllerParameters(t *testing.T) 
 		{
 			name:        "controller parameters set when feature gate disabled",
 			featureGate: false,
-			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ControllerBusNumber: ptr.To(int32(0))},
+			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ControllerBusNumber: new(int32(0))},
 			wantErrMsg:  "can only be set when feature gate VolumeControllerParameters is enabled",
 		},
 		{
 			name:        "controller parameters set when feature gate enabled",
 			featureGate: true,
-			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ControllerBusNumber: ptr.To(int32(0))},
+			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ControllerBusNumber: new(int32(0))},
 		},
 		{
 			name:        "readOnly set when feature gate disabled",
 			featureGate: false,
-			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: ptr.To(false)},
+			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: new(false)},
 			wantErrMsg:  "readOnly can only be set when feature gate VolumeControllerParameters is enabled",
 		},
 		{
 			name:        "readOnly set when feature gate enabled",
 			featureGate: true,
-			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: ptr.To(false)},
+			volume:      vmwarev1.VSphereMachineVolume{Name: "etcd", ReadOnly: new(false)},
 		},
 		{
 			name:        "no gated fields set when feature gate disabled",
@@ -642,7 +642,7 @@ func TestVSphereMachine_ValidateUpdate_VolumeControllerParameters(t *testing.T) 
 
 	volume := vmwarev1.VSphereMachineVolume{
 		Name:       "etcd",
-		UnitNumber: ptr.To(int32(1)),
+		UnitNumber: new(int32(1)),
 	}
 	oldObj := &vmwarev1.VSphereMachine{
 		Spec: vmwarev1.VSphereMachineSpec{},

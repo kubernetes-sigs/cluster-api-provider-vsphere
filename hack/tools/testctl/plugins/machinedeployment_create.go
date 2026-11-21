@@ -56,7 +56,7 @@ type MachineDeploymentCreatePluginConfig struct {
 	GenerateName string `json:"generateName,omitempty"`
 
 	// Template is the MachineDeploymentTopology used as a template for each created MachineDeployment.
-	Template clusterv1.MachineDeploymentTopology `json:"template,omitempty"`
+	Template clusterv1.MachineDeploymentTopology `json:"template,omitzero"`
 }
 
 func init() {

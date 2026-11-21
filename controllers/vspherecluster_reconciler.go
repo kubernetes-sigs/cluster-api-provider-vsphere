@@ -337,7 +337,7 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 		return affinityReconcileResult, err
 	}
 
-	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = ptr.To(true)
+	clusterCtx.VSphereCluster.Status.Initialization.Provisioned = new(true)
 
 	return reconcile.Result{}, nil
 }

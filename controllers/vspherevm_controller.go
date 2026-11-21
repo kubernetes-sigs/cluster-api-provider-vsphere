@@ -525,7 +525,7 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	}
 
 	// Once the network is online the VM is considered ready.
-	vmCtx.VSphereVM.Status.Ready = ptr.To(true)
+	vmCtx.VSphereVM.Status.Ready = new(true)
 	deprecatedv1beta1conditions.MarkTrue(vmCtx.VSphereVM, infrav1.VMProvisionedV1Beta1Condition)
 	conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 		Type:   infrav1.VSphereVMVirtualMachineProvisionedCondition,
@@ -723,7 +723,7 @@ func (r vmReconciler) fetchClusterModuleInfo(ctx context.Context, clusterModInpu
 	for _, mod := range clusterModInput.VSphereCluster.Spec.ClusterModules {
 		if mod.TargetObjectName == owner.GetName() {
 			log.V(4).Info("Cluster module found", "moduleUUID", mod.ModuleUUID)
-			return ptr.To(mod.ModuleUUID), nil
+			return new(mod.ModuleUUID), nil
 		}
 	}
 	log.V(4).Info("No cluster module found")

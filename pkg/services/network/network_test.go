@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/component-base/featuregate"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -587,7 +586,7 @@ var _ = Describe("Network provider", func() {
 					// Set createSubnetSet to false
 					vSphereCluster.Spec.Network = vmwarev1.Network{
 						NSXVPC: vmwarev1.NSXVPC{
-							CreateSubnetSet: ptr.To(false),
+							CreateSubnetSet: new(false),
 						},
 					}
 
@@ -684,12 +683,12 @@ var _ = Describe("Network provider", func() {
 						VLANs: []vmwarev1.VLANSpec{
 							{
 								Name: "vl100",
-								ID:   ptr.To(int32(100)),
+								ID:   new(int32(100)),
 								Link: "eth1",
 							},
 							{
 								Name: "vl200",
-								ID:   ptr.To(int32(200)),
+								ID:   new(int32(200)),
 								Link: "eth2",
 							},
 						},
@@ -1210,7 +1209,7 @@ var _ = Describe("Network provider", func() {
 				// Set createSubnetSet to false on the cluster spec
 				vSphereCluster.Spec.Network = vmwarev1.Network{
 					NSXVPC: vmwarev1.NSXVPC{
-						CreateSubnetSet: ptr.To(false),
+						CreateSubnetSet: new(false),
 					},
 				}
 				// No SubnetSet exists in the cluster
@@ -1659,9 +1658,9 @@ var _ = Describe("ExternallyManaged network provider", func() {
 						Name:            PrimaryInterfaceName,
 						MACAddr:         "00:50:56:00:00:01",
 						Addresses:       []string{"192.168.1.10/24", "2001:db8::10/64"},
-						DHCP4:           ptr.To(false),
-						DHCP6:           ptr.To(false),
-						MTU:             ptr.To(int64(1500)),
+						DHCP4:           new(false),
+						DHCP6:           new(false),
+						MTU:             new(int64(1500)),
 						Gateway4:        "192.168.1.1",
 						Gateway6:        "2001:db8::1",
 						GuestDeviceName: "ens192",
@@ -1671,9 +1670,9 @@ var _ = Describe("ExternallyManaged network provider", func() {
 							{To: "10.0.0.0/8", Via: "192.168.1.1", Metric: 100},
 						},
 						Type:        vmoprvhub.VirtualMachineNetworkInterfaceTypeVMXNet3,
-						VNUMANodeID: ptr.To(int32(0)),
+						VNUMANodeID: new(int32(0)),
 						VMXNet3: &vmoprvhub.VirtualMachineNetworkInterfaceVMXNet3Spec{
-							UPTv2Enabled: ptr.To(true),
+							UPTv2Enabled: new(true),
 						},
 						AdvancedProperties: []vmoprvhub.KeyValuePair{{Key: "customProperty", Value: "value"}},
 					},
@@ -1681,9 +1680,9 @@ var _ = Describe("ExternallyManaged network provider", func() {
 						Name:            "eth1",
 						MACAddr:         "00:50:56:00:00:02",
 						Addresses:       []string{"192.168.1.11/24", "2001:db8::11/64"},
-						DHCP4:           ptr.To(true),
-						DHCP6:           ptr.To(true),
-						MTU:             ptr.To(int64(9000)),
+						DHCP4:           new(true),
+						DHCP6:           new(true),
+						MTU:             new(int64(9000)),
 						Gateway4:        "192.168.1.2",
 						Gateway6:        "2001:db8::2",
 						GuestDeviceName: "ens192",
@@ -1693,9 +1692,9 @@ var _ = Describe("ExternallyManaged network provider", func() {
 							{To: "10.0.0.0/8", Via: "192.168.1.2", Metric: 100},
 						},
 						Type:        vmoprvhub.VirtualMachineNetworkInterfaceTypeVMXNet3,
-						VNUMANodeID: ptr.To(int32(0)),
+						VNUMANodeID: new(int32(0)),
 						VMXNet3: &vmoprvhub.VirtualMachineNetworkInterfaceVMXNet3Spec{
-							UPTv2Enabled: ptr.To(true),
+							UPTv2Enabled: new(true),
 						},
 						AdvancedProperties: []vmoprvhub.KeyValuePair{{Key: "customProperty", Value: "value"}},
 					},
@@ -1945,7 +1944,7 @@ var _ = Describe("ExternallyManaged network provider", func() {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vl100",
-						ID:   ptr.To(int32(100)),
+						ID:   new(int32(100)),
 						Link: "eth1",
 					},
 				},
@@ -1984,7 +1983,7 @@ var _ = Describe("ExternallyManaged network provider", func() {
 				VLANs: []vmwarev1.VLANSpec{
 					{
 						Name: "vl100",
-						ID:   ptr.To(int32(100)),
+						ID:   new(int32(100)),
 						Link: "eth1",
 					},
 				},

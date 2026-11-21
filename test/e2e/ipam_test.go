@@ -32,7 +32,7 @@ var _ = Describe("ClusterClass Creation using Cluster API quick-start test and I
 				BootstrapClusterProxy:    bootstrapClusterProxy,
 				ArtifactFolder:           artifactFolder,
 				SkipCleanup:              skipCleanup,
-				Flavor:                   ptr.To(testSpecificSettingsGetter().FlavorForMode("ipam")),
+				Flavor:                   new(testSpecificSettingsGetter().FlavorForMode("ipam")),
 				PostNamespaceCreated:     testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				ControlPlaneMachineCount: ptr.To[int64](1),
 				WorkerMachineCount:       ptr.To[int64](1),

@@ -21,6 +21,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"maps"
 	"net"
 	"strconv"
 	"time"
@@ -163,9 +164,7 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 	// Variables below are generated using the same utilities used both also for E2E tests setup.
 	if r.SupervisorMode {
 		// variables for supervisor mode derived from the vCenterSimulator
-		for k, v := range vCenterSimulatorCommonVariables(vCenterSimulator) {
-			envVar.Status.Variables[k] = v
-		}
+		maps.Copy(envVar.Status.Variables, vCenterSimulatorCommonVariables(vCenterSimulator))
 
 		// Variables for supervisor mode derived from how do we setup dependency for vm-operator
 		// NOTE: if the VMOperatorDependencies to use is not specified, we use a default dependenciesConfig that works for vcsim.
@@ -181,30 +180,22 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 			}
 		}
 
-		for k, v := range vmOperatorDependenciesSupervisorVariables(dependenciesConfig) {
-			envVar.Status.Variables[k] = v
-		}
+		maps.Copy(envVar.Status.Variables, vmOperatorDependenciesSupervisorVariables(dependenciesConfig))
 
 		// variables for supervisor mode derived from envVar.Spec.Cluster
-		for k, v := range clusterEnvVarSpecSupervisorVariables(&envVar.Spec.Cluster) {
-			envVar.Status.Variables[k] = v
-		}
+		maps.Copy(envVar.Status.Variables, clusterEnvVarSpecSupervisorVariables(&envVar.Spec.Cluster))
 		return ctrl.Result{}, nil
 	}
 
 	// variables for govmomi mode derived from the vCenterSimulator
-	for k, v := range vCenterSimulatorCommonVariables(vCenterSimulator) {
-		envVar.Status.Variables[k] = v
-	}
+	maps.Copy(envVar.Status.Variables, vCenterSimulatorCommonVariables(vCenterSimulator))
 
 	// variables for govmomi mode derived from envVar.Spec.Cluster
 	replaceGovmomi, err := clusterEnvVarSpecGovmomiVariables(ctx, &envVar.Spec.Cluster, envVar.Spec.UseMOID, envVar.Status.Variables)
 	if err != nil {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "error getting govmomi vars")
 	}
-	for k, v := range replaceGovmomi {
-		envVar.Status.Variables[k] = v
-	}
+	maps.Copy(envVar.Status.Variables, replaceGovmomi)
 	return ctrl.Result{}, nil
 }
 

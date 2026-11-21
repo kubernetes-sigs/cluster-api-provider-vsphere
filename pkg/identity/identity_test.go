@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
@@ -189,7 +188,7 @@ var _ = Describe("GetCredentials", func() {
 		It("should error if identity isn't Ready", func() {
 			credentialSecret := createSecret(manager.DefaultPodNamespace)
 			identity := createIdentity(credentialSecret.Name)
-			identity.Status.Ready = ptr.To(false)
+			identity.Status.Ready = new(false)
 			Expect(k8sclient.Status().Update(ctx, identity)).To(Succeed())
 
 			labels := ns.Labels
@@ -297,7 +296,7 @@ func createIdentity(secretName string) *infrav1.VSphereClusterIdentity {
 		},
 	}
 	Expect(k8sclient.Create(ctx, identity)).To(Succeed())
-	identity.Status.Ready = ptr.To(true)
+	identity.Status.Ready = new(true)
 	Expect(k8sclient.Status().Update(ctx, identity)).To(Succeed())
 	return identity
 }

@@ -34,7 +34,6 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -172,10 +171,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 
 	deviceSpecs = append(deviceSpecs, networkSpecs...)
 
-	numCPUs := vmCtx.VSphereVM.Spec.NumCPUs
-	if numCPUs < 2 {
-		numCPUs = 2
-	}
+	numCPUs := max(vmCtx.VSphereVM.Spec.NumCPUs, 2)
 	numCoresPerSocket := vmCtx.VSphereVM.Spec.NumCoresPerSocket
 
 	memMiB := vmCtx.VSphereVM.Spec.MemoryMiB
@@ -203,8 +199,8 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		},
 		Location: types.VirtualMachineRelocateSpec{
 			DiskMoveType: string(diskMoveType),
-			Folder:       types.NewReference(folder.Reference()),
-			Pool:         types.NewReference(pool.Reference()),
+			Folder:       new(folder.Reference()),
+			Pool:         new(pool.Reference()),
 		},
 		// This is implicit, but making it explicit as it is important to not
 		// power the VM on before its virtual hardware is created and the MAC
@@ -219,20 +215,20 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		cpuAllocation := types.ResourceAllocationInfo{}
 		if !vmCtx.VSphereVM.Spec.Resources.Requests.CPU.IsZero() {
 			cpuReservationMhz := convertQuantityToMhz(vmCtx.VSphereVM.Spec.Resources.Requests.CPU)
-			cpuAllocation.Reservation = ptr.To(cpuReservationMhz)
+			cpuAllocation.Reservation = new(cpuReservationMhz)
 		}
 		if !vmCtx.VSphereVM.Spec.Resources.Limits.CPU.IsZero() {
 			cpuLimitMhz := convertQuantityToMhz(vmCtx.VSphereVM.Spec.Resources.Limits.CPU)
-			cpuAllocation.Limit = ptr.To(cpuLimitMhz)
+			cpuAllocation.Limit = new(cpuLimitMhz)
 		}
 		if vmCtx.VSphereVM.Spec.Resources.Shares.CPU > 0 {
 			cpuShares := types.SharesInfo{
 				Shares: vmCtx.VSphereVM.Spec.Resources.Shares.CPU,
 				Level:  types.SharesLevelCustom,
 			}
-			cpuAllocation.Shares = ptr.To(cpuShares)
+			cpuAllocation.Shares = new(cpuShares)
 		}
-		spec.Config.CpuAllocation = ptr.To(cpuAllocation)
+		spec.Config.CpuAllocation = new(cpuAllocation)
 	}
 
 	// Set memory reservations, limits and shares if specified
@@ -240,27 +236,27 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		memoryAllocation := types.ResourceAllocationInfo{}
 		if !vmCtx.VSphereVM.Spec.Resources.Requests.Memory.IsZero() {
 			memoryReservationMiB := convertQuantityToMiB(vmCtx.VSphereVM.Spec.Resources.Requests.Memory)
-			memoryAllocation.Reservation = ptr.To(memoryReservationMiB)
+			memoryAllocation.Reservation = new(memoryReservationMiB)
 		}
 		if !vmCtx.VSphereVM.Spec.Resources.Limits.Memory.IsZero() {
 			memoryLimitMiB := convertQuantityToMiB(vmCtx.VSphereVM.Spec.Resources.Limits.Memory)
-			memoryAllocation.Limit = ptr.To(memoryLimitMiB)
+			memoryAllocation.Limit = new(memoryLimitMiB)
 		}
 		if vmCtx.VSphereVM.Spec.Resources.Shares.Memory > 0 {
 			memoryShares := types.SharesInfo{
 				Shares: vmCtx.VSphereVM.Spec.Resources.Shares.Memory,
 				Level:  types.SharesLevelCustom,
 			}
-			memoryAllocation.Shares = ptr.To(memoryShares)
+			memoryAllocation.Shares = new(memoryShares)
 		}
-		spec.Config.MemoryAllocation = ptr.To(memoryAllocation)
+		spec.Config.MemoryAllocation = new(memoryAllocation)
 	}
 
 	// For PCI devices, the memory for the VM needs to be reserved
 	// We can replace this once we have another way of reserving memory option
 	// exposed via the API types.
 	if len(vmCtx.VSphereVM.Spec.PciDevices) > 0 {
-		spec.Config.MemoryReservationLockedToMax = ptr.To(true)
+		spec.Config.MemoryReservationLockedToMax = new(true)
 	}
 
 	var datastoreRef *types.ManagedObjectReference
@@ -269,7 +265,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		if err != nil {
 			return pkgerrors.Wrapf(err, "unable to get datastore %s for %q", vmCtx.VSphereVM.Spec.Datastore, vmCtx)
 		}
-		datastoreRef = types.NewReference(datastore.Reference())
+		datastoreRef = new(datastore.Reference())
 		spec.Location.Datastore = datastoreRef
 	}
 
@@ -357,7 +353,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		if err != nil {
 			return pkgerrors.Wrapf(err, "unable to get default datastore for %q", vmCtx)
 		}
-		datastoreRef = types.NewReference(datastore.Reference())
+		datastoreRef = new(datastore.Reference())
 	}
 
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
@@ -543,12 +539,12 @@ func createDataDisks(ctx context.Context, dataDiskDefs []infrav1.VSphereDisk, de
 		// Set provisioning type for the new data disk.
 		switch dataDisk.ProvisioningMode {
 		case infrav1.ThinProvisioningMode:
-			backing.ThinProvisioned = types.NewBool(true)
+			backing.ThinProvisioned = new(true)
 		case infrav1.ThickProvisioningMode:
-			backing.ThinProvisioned = types.NewBool(false)
+			backing.ThinProvisioned = new(false)
 		case infrav1.EagerlyZeroedProvisioningMode:
-			backing.ThinProvisioned = types.NewBool(false)
-			backing.EagerlyScrub = types.NewBool(true)
+			backing.ThinProvisioned = new(false)
+			backing.EagerlyScrub = new(true)
 		default:
 			log.V(2).Info("No provisioning type detected. Leaving configuration empty.")
 		}

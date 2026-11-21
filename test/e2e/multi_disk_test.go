@@ -49,7 +49,7 @@ var _ = Describe("Ensure govmomi mode is able to add additional disks to VMs", f
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("multi-disk")),
+				Flavor:                new(testSpecificSettingsGetter().FlavorForMode("multi-disk")),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				PostMachinesProvisioned: func(_ framework.ClusterProxy, namespace, clusterName string) {
 					dsi := diskSpecInput{
@@ -112,14 +112,14 @@ func verifyDisks(ctx context.Context, input diskSpecInput) {
 			By(fmt.Sprintf("Checking provision type \"%v\"", diskConfig.ProvisioningMode))
 			switch diskConfig.ProvisioningMode {
 			case infrav1.ThinProvisioningMode:
-				Expect(backingInfo.ThinProvisioned).To(Equal(types.NewBool(true)), "ThinProvisioned should be true for resulting disk when data disk provisionType is ThinProvisioned")
-				Expect(backingInfo.EagerlyScrub).To(Equal(types.NewBool(false)), "EagerlyScrub should be false for resulting disk when data disk provisionType is ThinProvisioned")
+				Expect(backingInfo.ThinProvisioned).To(Equal(new(true)), "ThinProvisioned should be true for resulting disk when data disk provisionType is ThinProvisioned")
+				Expect(backingInfo.EagerlyScrub).To(Equal(new(false)), "EagerlyScrub should be false for resulting disk when data disk provisionType is ThinProvisioned")
 			case infrav1.ThickProvisioningMode:
-				Expect(backingInfo.ThinProvisioned).To(Equal(types.NewBool(false)), "ThinProvisioned should be false for resulting disk when data disk provisionType is ThickProvisioned")
-				Expect(backingInfo.EagerlyScrub).To(Equal(types.NewBool(false)), "EagerlyScrub should be false for resulting disk when data disk provisionType is ThickProvisioned")
+				Expect(backingInfo.ThinProvisioned).To(Equal(new(false)), "ThinProvisioned should be false for resulting disk when data disk provisionType is ThickProvisioned")
+				Expect(backingInfo.EagerlyScrub).To(Equal(new(false)), "EagerlyScrub should be false for resulting disk when data disk provisionType is ThickProvisioned")
 			case infrav1.EagerlyZeroedProvisioningMode:
-				Expect(backingInfo.ThinProvisioned).To(Equal(types.NewBool(false)), "ThinProvisioned should be false for resulting disk when data disk provisionType is EagerlyZeroed")
-				Expect(backingInfo.EagerlyScrub).To(Equal(types.NewBool(true)), "EagerlyScrub should be true for resulting disk when data disk provisionType is EagerlyZeroed")
+				Expect(backingInfo.ThinProvisioned).To(Equal(new(false)), "ThinProvisioned should be false for resulting disk when data disk provisionType is EagerlyZeroed")
+				Expect(backingInfo.EagerlyScrub).To(Equal(new(true)), "EagerlyScrub should be true for resulting disk when data disk provisionType is EagerlyZeroed")
 			default:
 				// Currently, the settings for default behavior of new disks during clone can come from templates settings,
 				// the default storage policy, the clone's settings or the datastore configuration.

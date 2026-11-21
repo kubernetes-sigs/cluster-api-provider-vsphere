@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -56,7 +55,7 @@ func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
 			vSphereMachines: []vmwarev1.VSphereMachine{
 				*createVSphereMachine("m1", "test-cluster", "md1"),
 				*createVSphereMachine("m2", "test-cluster", "md1", func(vm *vmwarev1.VSphereMachine) {
-					vm.DeletionTimestamp = ptr.To(metav1.Now())
+					vm.DeletionTimestamp = new(metav1.Now())
 				}),
 				*createVSphereMachine("m3", "test-cluster", "md2"),
 				*createVSphereMachine("m4", "test-cluster", "md3"),
@@ -83,7 +82,7 @@ func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "", 2),
 				*createMD("md2", "test-cluster", "", 1, func(md *clusterv1.MachineDeployment) {
-					md.DeletionTimestamp = ptr.To(metav1.Now())
+					md.DeletionTimestamp = new(metav1.Now())
 				}), // Should not be included in the count
 				*createMD("md3", "test-cluster", "zone1", 1),
 			},
@@ -167,7 +166,7 @@ func Test_getVirtualMachineNameToMachineDeploymentMapping(t *testing.T) {
 			vSphereMachines: []vmwarev1.VSphereMachine{
 				*createVSphereMachine("m1", "test-cluster", "md1", withCustomNamingStrategy()),
 				*createVSphereMachine("m2", "test-cluster", "md1", withCustomNamingStrategy(), func(m *vmwarev1.VSphereMachine) {
-					m.DeletionTimestamp = ptr.To(metav1.Now())
+					m.DeletionTimestamp = new(metav1.Now())
 				}), // Should not be included in the mapping
 				*createVSphereMachine("m3", "test-cluster", "md2", withCustomNamingStrategy()),
 				*createVSphereMachine("m4", "test-cluster", "md3"),
@@ -184,7 +183,7 @@ func Test_getVirtualMachineNameToMachineDeploymentMapping(t *testing.T) {
 			vSphereMachines: []vmwarev1.VSphereMachine{
 				*createVSphereMachine("m1", "test-cluster", "md1", withCustomNamingStrategy()),
 				*createVSphereMachine("m2", "test-cluster", "md1", withCustomNamingStrategy(), func(m *vmwarev1.VSphereMachine) {
-					m.DeletionTimestamp = ptr.To(metav1.Now())
+					m.DeletionTimestamp = new(metav1.Now())
 				}), // Should not be included in the mapping
 				*createVSphereMachine("m3", "test-cluster", "md2", withCustomNamingStrategy()),
 				*createVSphereMachine("m4", "test-cluster", "md3"),
@@ -807,7 +806,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 							Kind:       "Cluster",
 							Name:       cluster.Name,
 							UID:        cluster.UID,
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},
@@ -859,7 +858,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 							Kind:       "Cluster",
 							Name:       cluster.Name,
 							UID:        cluster.UID,
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},
@@ -898,7 +897,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 							Kind:       "Cluster",
 							Name:       cluster.Name,
 							UID:        cluster.UID,
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},
@@ -954,7 +953,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 							Kind:       "Cluster",
 							Name:       cluster.Name,
 							UID:        cluster.UID,
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},
@@ -993,7 +992,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 							Kind:       "Cluster",
 							Name:       cluster.Name,
 							UID:        cluster.UID,
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},
@@ -1616,7 +1615,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				Kind:       "Cluster",
 				Name:       tt.cluster.Name,
 				UID:        tt.cluster.UID,
-				Controller: ptr.To(true),
+				Controller: new(true),
 			}))
 			g.Expect(vmg.Annotations).To(Equal(tt.wantVMG.Annotations))
 			g.Expect(vmg.Spec.BootOrder).To(Equal(tt.wantVMG.Spec.BootOrder))

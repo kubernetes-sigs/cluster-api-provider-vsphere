@@ -59,8 +59,8 @@ func GenerateMachineNameFromTemplate(machineName string, nameTemplate string) (s
 		return machineName, nil
 	}
 
-	data := map[string]interface{}{
-		"machine": map[string]interface{}{
+	data := map[string]any{
+		"machine": map[string]any{
 			"name": machineName,
 		},
 	}

@@ -204,7 +204,7 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 		return true, nil
 	}
 
-	vimMachineCtx.VSphereMachine.Status.Initialization.Provisioned = ptr.To(true)
+	vimMachineCtx.VSphereMachine.Status.Initialization.Provisioned = new(true)
 	return false, nil
 }
 

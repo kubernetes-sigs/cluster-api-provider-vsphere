@@ -18,7 +18,6 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
@@ -32,7 +31,7 @@ var _ = Describe("When using the autoscaler with Cluster API using ClusterClass 
 				BootstrapClusterProxy:             bootstrapClusterProxy,
 				ArtifactFolder:                    artifactFolder,
 				SkipCleanup:                       skipCleanup,
-				Flavor:                            ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-autoscaler")),
+				Flavor:                            new(testSpecificSettingsGetter().FlavorForMode("topology-autoscaler")),
 				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				InfrastructureAPIGroup:            "vmware.infrastructure.cluster.x-k8s.io",
 				InfrastructureMachineTemplateKind: "vspheremachinetemplates",

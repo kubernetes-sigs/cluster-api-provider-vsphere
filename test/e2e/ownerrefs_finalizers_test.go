@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -62,7 +61,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
+				Flavor:                new(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
 				PostNamespaceCreated: func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
 					testSpecificSettingsGetter().PostNamespaceCreatedFunc(managementClusterProxy, workloadClusterNamespace)
 
@@ -294,19 +293,19 @@ var (
 	vSphereClusterIdentityOwner = metav1.OwnerReference{Kind: "VSphereClusterIdentity", APIVersion: infrav1.GroupVersion.String()}
 
 	vmwareVSphereClusterOwner      = metav1.OwnerReference{Kind: "VSphereCluster", APIVersion: vmwarev1.GroupVersion.String()}
-	vmwareVSphereMachineController = metav1.OwnerReference{Kind: "VSphereMachine", APIVersion: vmwarev1.GroupVersion.String(), Controller: ptr.To(true)}
+	vmwareVSphereMachineController = metav1.OwnerReference{Kind: "VSphereMachine", APIVersion: vmwarev1.GroupVersion.String(), Controller: new(true)}
 
 	// CAPI owners.
 	clusterClassOwner       = metav1.OwnerReference{Kind: "ClusterClass", APIVersion: clusterv1.GroupVersion.String()}
 	clusterOwner            = metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()}
-	machineController       = metav1.OwnerReference{Kind: "Machine", APIVersion: clusterv1.GroupVersion.String(), Controller: ptr.To(true)}
+	machineController       = metav1.OwnerReference{Kind: "Machine", APIVersion: clusterv1.GroupVersion.String(), Controller: new(true)}
 	clusterResourceSetOwner = metav1.OwnerReference{Kind: "ClusterResourceSet", APIVersion: addonsv1.GroupVersion.String()}
 
 	// KCP owner.
-	kubeadmControlPlaneController = metav1.OwnerReference{Kind: "KubeadmControlPlane", APIVersion: controlplanev1.GroupVersion.String(), Controller: ptr.To(true)}
+	kubeadmControlPlaneController = metav1.OwnerReference{Kind: "KubeadmControlPlane", APIVersion: controlplanev1.GroupVersion.String(), Controller: new(true)}
 
 	// CAPBK owner.
-	kubeadmConfigController = metav1.OwnerReference{Kind: "KubeadmConfig", APIVersion: bootstrapv1.GroupVersion.String(), Controller: ptr.To(true)}
+	kubeadmConfigController = metav1.OwnerReference{Kind: "KubeadmConfig", APIVersion: bootstrapv1.GroupVersion.String(), Controller: new(true)}
 )
 
 // The following names are hardcoded in templates to make cleanup easier.
@@ -394,7 +393,7 @@ func checkGovmomiVSphereClusterFailureDomains(ctx context.Context, proxy framewo
 	Expect(vSphereCluster.Status.FailureDomains).To(BeEquivalentTo([]clusterv1.FailureDomain{
 		{
 			Name:         "ownerrefs-finalizers",
-			ControlPlane: ptr.To(true),
+			ControlPlane: new(true),
 		},
 	}))
 }
@@ -407,7 +406,7 @@ func checkSupervisorVSphereClusterFailureDomains(ctx context.Context, proxy fram
 	for _, zone := range avalabilityZones.Items {
 		wantFailureDomains = append(wantFailureDomains, clusterv1.FailureDomain{
 			Name:         zone.Name,
-			ControlPlane: ptr.To(true),
+			ControlPlane: new(true),
 		})
 	}
 

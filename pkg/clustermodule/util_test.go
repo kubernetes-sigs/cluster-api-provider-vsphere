@@ -21,7 +21,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/govmomi/v1beta2"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -77,7 +76,7 @@ func Test_IsCompatible(t *testing.T) {
 func Test_Compare(t *testing.T) {
 	clusterMod := func(isControlPlane bool, objName, uuid string) infrav1.ClusterModule {
 		return infrav1.ClusterModule{
-			ControlPlane:     ptr.To(isControlPlane),
+			ControlPlane:     new(isControlPlane),
 			TargetObjectName: objName,
 			ModuleUUID:       uuid,
 		}

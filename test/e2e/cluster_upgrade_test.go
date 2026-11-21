@@ -49,7 +49,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				WorkerMachineCount:    ptr.To[int64](5),
-				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("fast-rollout")),
+				Flavor:                new(testSpecificSettingsGetter().FlavorForMode("fast-rollout")),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
@@ -68,7 +68,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass [vcsim] [
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("topology")),
+				Flavor:                new(testSpecificSettingsGetter().FlavorForMode("topology")),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				// This test is run in CI in parallel with other tests. To keep the test duration reasonable
 				// the conformance tests are skipped.

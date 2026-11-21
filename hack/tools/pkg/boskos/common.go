@@ -101,7 +101,7 @@ func (ud *UserData) MarshalJSON() ([]byte, error) {
 }
 
 // Extract unmarshalls a string a given struct if it exists.
-func (ud *UserData) Extract(id string, out interface{}) error {
+func (ud *UserData) Extract(id string, out any) error {
 	content, ok := ud.Load(id)
 	if !ok {
 		return &UserDataNotFoundError{id}
@@ -115,7 +115,7 @@ func (ud *UserData) Update(newUserData *UserData) *UserData {
 	if newUserData == nil {
 		return ud
 	}
-	newUserData.Range(func(key, value interface{}) bool {
+	newUserData.Range(func(key, value any) bool {
 		if value.(string) != "" {
 			ud.Store(key, value)
 		} else {
@@ -132,7 +132,7 @@ func (ud *UserData) ToMap() UserDataMap {
 		return nil
 	}
 	m := UserDataMap{}
-	ud.Range(func(key, value interface{}) bool {
+	ud.Range(func(key, value any) bool {
 		m[key.(string)] = value.(string)
 		return true
 	})

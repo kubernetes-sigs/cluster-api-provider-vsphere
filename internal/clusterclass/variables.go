@@ -18,7 +18,6 @@ limitations under the License.
 package clusterclass
 
 import (
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -28,7 +27,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 	variables := []clusterv1.ClusterClassVariable{
 		{
 			Name:     "sshKey",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Description: "Public key to SSH onto the cluster nodes.",
@@ -41,7 +40,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 			// and in the vcsim controller. If changes are made we should check if these places have
 			// to be adjusted as well.
 			Name:     "controlPlaneIpAddr",
-			Required: ptr.To(true),
+			Required: new(true),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",
@@ -51,7 +50,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		},
 		{
 			Name:     "controlPlanePort",
-			Required: ptr.To(true),
+			Required: new(true),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "integer",
@@ -61,7 +60,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		},
 		{
 			Name:     "kubeVipPodManifest",
-			Required: ptr.To(true),
+			Required: new(true),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",
@@ -75,7 +74,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		varForGovmomiMode := []clusterv1.ClusterClassVariable{
 			{
 				Name:     "infraServer",
-				Required: ptr.To(true),
+				Required: new(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -88,7 +87,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 			},
 			{
 				Name:     "credsSecretName",
-				Required: ptr.To(true),
+				Required: new(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:        "string",

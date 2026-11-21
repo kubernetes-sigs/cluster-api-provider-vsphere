@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -163,7 +162,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 					Template: "ubuntu-k9s-1.19",
 					Network: infrav1.NetworkSpec{
 						Devices: []infrav1.NetworkDeviceSpec{
-							{NetworkName: "network-1", DHCP4: ptr.To(true)},
+							{NetworkName: "network-1", DHCP4: new(true)},
 						},
 					},
 				},
@@ -192,7 +191,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		Eventually(func() error {
 			ph, err := patch.NewHelper(capiCluster, testEnv)
 			Expect(err).ToNot(HaveOccurred())
-			capiCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+			capiCluster.Status.Initialization.InfrastructureProvisioned = new(true)
 			return ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
 
@@ -211,7 +210,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		conditions.Set(supervisorMachine, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
 		owner := capiMachine.DeepCopy()
 		owner.Spec.Version = "test-version"
-		owner.Spec.Bootstrap.DataSecretName = ptr.To("bootstrap-data")
+		owner.Spec.Bootstrap.DataSecretName = new("bootstrap-data")
 		owner.Labels[clusterv1.MachineControlPlaneLabel] = ""
 		vm := &vmoprv1alpha5.VirtualMachine{
 			ObjectMeta: metav1.ObjectMeta{Name: owner.Name + "-vm", Namespace: testNs.Name},
@@ -273,7 +272,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		Expect(conditions.GetReason(supervisorMachine, infrav1.VSphereMachineVirtualMachineProvisionedCondition)).To(Equal(infrav1.VSphereMachineVirtualMachineWaitingForBootstrapDataReason))
 
 		Expect(baseClient.Get(ctx, client.ObjectKeyFromObject(owner), owner)).To(Succeed())
-		owner.Spec.Bootstrap.DataSecretName = ptr.To("bootstrap-data")
+		owner.Spec.Bootstrap.DataSecretName = new("bootstrap-data")
 		Expect(baseClient.Update(ctx, owner)).To(Succeed())
 
 		By("restoring normal Ready reconciliation after maintenance")
@@ -294,7 +293,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		BeforeEach(func() {
 			ph, err := patch.NewHelper(capiCluster, testEnv)
 			Expect(err).ToNot(HaveOccurred())
-			capiCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+			capiCluster.Status.Initialization.InfrastructureProvisioned = new(true)
 			Expect(ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 		})
 
@@ -313,7 +312,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				ph, err := patch.NewHelper(capiMachine, testEnv)
 				Expect(err).ToNot(HaveOccurred())
 				capiMachine.Spec.Bootstrap = clusterv1.Bootstrap{
-					DataSecretName: ptr.To("some-secret"),
+					DataSecretName: new("some-secret"),
 				}
 				return ph.Patch(ctx, capiMachine, patch.WithStatusObservedGeneration{})
 			}, timeout).Should(Succeed())
@@ -392,7 +391,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: capiCluster.Name,
-			Bootstrap:   clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			Bootstrap:   clusterv1.Bootstrap{DataSecretName: new("data")},
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: "infrastructure.cluster.x-k8s.io",
 				Kind:     "VSphereMachine",
@@ -434,7 +433,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 				Template: "ubuntu-k9s-1.19",
 				Network: infrav1.NetworkSpec{
 					Devices: []infrav1.NetworkDeviceSpec{
-						{NetworkName: "network-1", DHCP4: ptr.To(true)},
+						{NetworkName: "network-1", DHCP4: new(true)},
 					},
 				},
 			},
@@ -482,7 +481,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 					Template: "ubuntu-k9s-1.19",
 					Network: infrav1.NetworkSpec{
 						Devices: []infrav1.NetworkDeviceSpec{
-							{NetworkName: "network-1", DHCP4: ptr.To(true)},
+							{NetworkName: "network-1", DHCP4: new(true)},
 						},
 					},
 				},

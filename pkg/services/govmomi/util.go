@@ -226,7 +226,7 @@ func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx
 	reconcileVSphereVMOnChannel(
 		ctx,
 		&virtualMachineCtx.VMContext,
-		func(done <-chan struct{}) (<-chan []interface{}, <-chan error, error) {
+		func(done <-chan struct{}) (<-chan []any, <-chan error, error) {
 			// Wait for the VM to be powered on.
 			powerOnTaskInfo, err := powerOnTask.WaitForResult(ctx)
 			if err != nil && powerOnTaskInfo == nil {
@@ -260,10 +260,10 @@ func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx
 			chanIPAddresses, chanErrs := waitForIPAddresses(ctx, virtualMachineCtx, macToDeviceIndex, deviceToMacIndex, done)
 
 			// Trigger a reconcile every time a new IP is discovered.
-			chanOfLoggerKeysAndValues := make(chan []interface{})
+			chanOfLoggerKeysAndValues := make(chan []any)
 			go func() {
 				for ip := range chanIPAddresses {
-					keysAndValues := []interface{}{
+					keysAndValues := []any{
 						"reason", "network",
 						"ipAddress", ip,
 					}
@@ -297,7 +297,7 @@ func reconcileVSphereVMOnTaskCompletion(ctx context.Context, vmCtx *capvcontext.
 		"taskEntityName", task.Info.EntityName,
 		"taskDescriptionID", task.Info.DescriptionId)
 
-	reconcileVSphereVMOnFuncCompletion(ctx, vmCtx, func() ([]interface{}, error) {
+	reconcileVSphereVMOnFuncCompletion(ctx, vmCtx, func() ([]any, error) {
 		// Note: Using a separate context as the ctx passed into reconcileVSphereVMOnTaskCompletion
 		// might timeout or be cancelled at some point (e.g. through controller-runtime ReconciliationTimeout).
 		ctx := context.Background()
@@ -320,7 +320,7 @@ func reconcileVSphereVMOnTaskCompletion(ctx context.Context, vmCtx *capvcontext.
 			return nil, pkgerrors.Errorf("task failed: task is in state error")
 		}
 
-		return []interface{}{
+		return []any{
 			"reason", "task",
 			"taskRef", taskRef,
 			"taskName", taskInfo.Name,
@@ -331,7 +331,7 @@ func reconcileVSphereVMOnTaskCompletion(ctx context.Context, vmCtx *capvcontext.
 	})
 }
 
-func reconcileVSphereVMOnFuncCompletion(ctx context.Context, vmCtx *capvcontext.VMContext, waitFn func() (loggerKeysAndValues []interface{}, _ error)) {
+func reconcileVSphereVMOnFuncCompletion(ctx context.Context, vmCtx *capvcontext.VMContext, waitFn func() (loggerKeysAndValues []any, _ error)) {
 	log := ctrl.LoggerFrom(ctx)
 
 	obj := vmCtx.VSphereVM.DeepCopy()
@@ -356,7 +356,7 @@ func reconcileVSphereVMOnFuncCompletion(ctx context.Context, vmCtx *capvcontext.
 	}()
 }
 
-func reconcileVSphereVMOnChannel(ctx context.Context, vmCtx *capvcontext.VMContext, waitFn func(done <-chan struct{}) (<-chan []interface{}, <-chan error, error)) {
+func reconcileVSphereVMOnChannel(ctx context.Context, vmCtx *capvcontext.VMContext, waitFn func(done <-chan struct{}) (<-chan []any, <-chan error, error)) {
 	log := ctrl.LoggerFrom(ctx)
 
 	obj := vmCtx.VSphereVM.DeepCopy()

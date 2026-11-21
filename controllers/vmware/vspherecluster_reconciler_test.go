@@ -373,10 +373,10 @@ func TestClusterReconciler_reconcileFailureDomains(t *testing.T) {
 			want: []clusterv1.FailureDomain{
 				{
 					Name:         "zone-a",
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				}, {
 					Name:         "zone-b",
-					ControlPlane: ptr.To(false),
+					ControlPlane: new(false),
 				},
 			},
 			wantCondition: metav1.Condition{
@@ -470,7 +470,7 @@ func zone(namespace, name string, deleting bool) *topologyv1.Zone {
 	}
 
 	if deleting {
-		z.ObjectMeta.DeletionTimestamp = ptr.To(metav1.Now())
+		z.ObjectMeta.DeletionTimestamp = new(metav1.Now())
 		z.ObjectMeta.Finalizers = []string{"deletion.test.io/protection"}
 	}
 	return z
@@ -481,7 +481,7 @@ func failureDomains(names ...string) []clusterv1.FailureDomain {
 	for _, name := range names {
 		fds = append(fds, clusterv1.FailureDomain{
 			Name:         name,
-			ControlPlane: ptr.To(true),
+			ControlPlane: new(true),
 		})
 	}
 	return fds

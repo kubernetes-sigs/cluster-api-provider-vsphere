@@ -288,7 +288,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 
 	ipClaimLabels := map[string]string{}
-	for _, s := range strings.Split(ipClaimLabelsRaw, ";") {
+	for s := range strings.SplitSeq(ipClaimLabelsRaw, ";") {
 		splittedLabel := strings.Split(s, "=")
 		Expect(splittedLabel).To(HaveLen(2))
 

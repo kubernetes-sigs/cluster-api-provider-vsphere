@@ -99,11 +99,8 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 
 	// Setting the number of worker nodes to the number of hosts.
 	// Later in the test we check that all worker nodes are located on different hosts.
-	workerNodeCount := int(computeCluster.Summary.GetComputeResourceSummary().NumEffectiveHosts)
 	// Limit size to not create too much VMs when running in a big environment.
-	if workerNodeCount > 10 {
-		workerNodeCount = 10
-	}
+	workerNodeCount := min(int(computeCluster.Summary.GetComputeResourceSummary().NumEffectiveHosts), 10)
 
 	Byf("creating a workload cluster %s having %d worker nodes", clusterName, workerNodeCount)
 	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, int64(workerNodeCount),

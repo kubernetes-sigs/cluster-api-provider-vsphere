@@ -42,7 +42,7 @@ func CloudControllerManagerManifests() (string, error) {
 
 	// ClusterResourceSet does not support `kind: List`, we have to adjust the manifests
 	// to remove those lists and directly add the items instead.
-	for _, object := range strings.Split(string(withoutTag), "---\n") {
+	for object := range strings.SplitSeq(string(withoutTag), "---\n") {
 		// Ignore empty strings
 		if object == "" {
 			continue

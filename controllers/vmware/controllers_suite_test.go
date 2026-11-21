@@ -32,7 +32,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -104,7 +103,7 @@ func setup(ctx context.Context) (*helpers.TestEnvironment, client.Client, cluste
 				},
 			},
 		},
-	}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
+	}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: new(true)})
 	if err != nil {
 		panic(fmt.Sprintf("Unable to setup ClusterCache: %v", err))
 	}
@@ -113,7 +112,7 @@ func setup(ctx context.Context) (*helpers.TestEnvironment, client.Client, cluste
 		clusterCache.(interface{ Shutdown() }).Shutdown()
 	}()
 
-	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
+	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: new(true)}
 
 	if err := AddServiceAccountProviderControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, clusterCache, secretCachingClient, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup ServiceAccount controller: %v", err))

@@ -103,8 +103,8 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTy
 		return nil, apierrors.NewInternalError(pkgerrors.Wrap(err, "failed to convert old VSphereMachine to unstructured object"))
 	}
 
-	newVSphereMachineSpec := newVSphereMachine["spec"].(map[string]interface{})
-	oldVSphereMachineSpec := oldVSphereMachine["spec"].(map[string]interface{})
+	newVSphereMachineSpec := newVSphereMachine["spec"].(map[string]any)
+	oldVSphereMachineSpec := oldVSphereMachine["spec"].(map[string]any)
 
 	allowChangeKeys := []string{"providerID", "powerOffMode", "guestSoftPowerOffTimeoutSeconds"}
 	for _, key := range allowChangeKeys {
@@ -112,8 +112,8 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldTyped, newTy
 		delete(newVSphereMachineSpec, key)
 	}
 
-	newVSphereMachineNetwork := newVSphereMachineSpec["network"].(map[string]interface{})
-	oldVSphereMachineNetwork := oldVSphereMachineSpec["network"].(map[string]interface{})
+	newVSphereMachineNetwork := newVSphereMachineSpec["network"].(map[string]any)
+	oldVSphereMachineNetwork := oldVSphereMachineSpec["network"].(map[string]any)
 
 	// allow changes to the devices.
 	delete(oldVSphereMachineNetwork, "devices")

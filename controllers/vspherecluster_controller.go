@@ -215,6 +215,6 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 }
 
 func clusterToInfrastructureMapFunc(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext) handler.MapFunc {
-	gvk := infrav1.GroupVersion.WithKind(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
+	gvk := infrav1.GroupVersion.WithKind(reflect.TypeFor[infrav1.VSphereCluster]().Name())
 	return clusterutilv1.ClusterToInfrastructureMapFunc(ctx, gvk, controllerCtx.Client, &infrav1.VSphereCluster{})
 }

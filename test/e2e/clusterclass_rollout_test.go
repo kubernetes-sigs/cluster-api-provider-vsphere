@@ -18,7 +18,6 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capie2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,7 +38,7 @@ var _ = Describe("When testing ClusterClass rollouts [vcsim] [supervisor] [Clust
 				SkipCleanup:                    skipCleanup,
 				Flavor:                         testSpecificSettingsGetter().FlavorForMode("topology-taints"),
 				PostNamespaceCreated:           testSpecificSettingsGetter().PostNamespaceCreatedFunc,
-				InfrastructureProvider:         ptr.To("vsphere"),
+				InfrastructureProvider:         new("vsphere"),
 				FilterMetadataBeforeValidation: filterMetadataBeforeValidation,
 			}
 		})

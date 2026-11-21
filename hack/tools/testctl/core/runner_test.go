@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"sort"
@@ -843,9 +844,7 @@ func (p testSelectorPlugin) Select(_ context.Context, _ client.Client, objects T
 	ret := []TestObjects{} //nolint:prealloc
 	for i := range 5 {
 		t := TestObjects{}
-		for k, v := range objects {
-			t[k] = v
-		}
+		maps.Copy(t, objects)
 		t[fmt.Sprintf("k%d", len(t))] = fmt.Sprintf("v%d", i)
 
 		ret = append(ret, t)

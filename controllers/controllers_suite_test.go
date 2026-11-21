@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -94,7 +93,7 @@ func setup() {
 				},
 			},
 		},
-	}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
+	}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: new(true)})
 	if err != nil {
 		panic(fmt.Sprintf("Unable to setup ClusterCache: %v", err))
 	}
@@ -103,7 +102,7 @@ func setup() {
 		clusterCache.(interface{ Shutdown() }).Shutdown()
 	}()
 
-	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
+	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: new(true)}
 
 	if err := AddClusterControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, false, controllerOpts, nil); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereCluster controller: %v", err))

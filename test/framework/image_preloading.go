@@ -96,18 +96,18 @@ func newLoadImagesEventHandler(ctx context.Context, clusterProxy framework.Clust
 	}
 }
 
-func (eh *loadImagesEventHandler) OnAdd(obj interface{}, _ bool) {
+func (eh *loadImagesEventHandler) OnAdd(obj any, _ bool) {
 	pod := obj.(*corev1.Pod)
 
 	eh.loadImagesViaPod(eh.ctx, eh.clusterProxy, eh.sourceFile, pod, pod.Spec.Containers[0].Name)
 }
 
-func (eh *loadImagesEventHandler) OnUpdate(_, newObj interface{}) {
+func (eh *loadImagesEventHandler) OnUpdate(_, newObj any) {
 	pod := newObj.(*corev1.Pod)
 	eh.loadImagesViaPod(eh.ctx, eh.clusterProxy, eh.sourceFile, pod, pod.Spec.Containers[0].Name)
 }
 
-func (eh *loadImagesEventHandler) OnDelete(_ interface{}) {}
+func (eh *loadImagesEventHandler) OnDelete(_ any) {}
 
 func (eh *loadImagesEventHandler) loadImagesViaPod(ctx context.Context, clusterProxy framework.ClusterProxy, sourceFile string, pod *corev1.Pod, containerName string) {
 	if pod.Namespace != metav1.NamespaceSystem { // The DaemonSet is deployed in kube-system.

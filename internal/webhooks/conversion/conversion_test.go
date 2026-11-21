@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/randfill"
@@ -94,8 +93,8 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereClusterStatus,
 		hubVSphereFailureDomain,
 		spokeVSphereClusterSpec,
@@ -118,7 +117,7 @@ func hubVSphereClusterStatus(in *infrav1.VSphereClusterStatus, c randfill.Contin
 			in.FailureDomains = append(in.FailureDomains,
 				clusterv1.FailureDomain{
 					Name:         fmt.Sprintf("%d-%s", i, c.String(255)), // Ensure valid unique non-empty names.
-					ControlPlane: ptr.To(c.Bool()),
+					ControlPlane: new(c.Bool()),
 				},
 			)
 		}
@@ -135,7 +134,7 @@ func hubVSphereClusterStatus(in *infrav1.VSphereClusterStatus, c randfill.Contin
 func hubVSphereFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 	c.FillNoCustom(in)
 
-	in.ControlPlane = ptr.To(c.Bool())
+	in.ControlPlane = new(c.Bool())
 }
 
 func spokeVSphereClusterSpec(in *infrav1beta1.VSphereClusterSpec, c randfill.Continue) {
@@ -156,8 +155,8 @@ func spokeVSphereClusterStatus(in *infrav1beta1.VSphereClusterStatus, c randfill
 	}
 }
 
-func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereClusterTemplateResource,
 		spokeVSphereClusterSpec,
 	}
@@ -169,8 +168,8 @@ func hubVSphereClusterTemplateResource(in *infrav1.VSphereClusterTemplateResourc
 	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
 
-func VSphereClusterIdentityFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereClusterIdentityFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereClusterIdentityStatus,
 		spokeVSphereClusterIdentityStatus,
 	}
@@ -196,8 +195,8 @@ func spokeVSphereClusterIdentityStatus(in *infrav1beta1.VSphereClusterIdentitySt
 	}
 }
 
-func VSphereDeploymentZoneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereDeploymentZoneFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereDeploymentZoneStatus,
 		spokeVSphereDeploymentZoneStatus,
 	}
@@ -223,8 +222,8 @@ func spokeVSphereDeploymentZoneStatus(in *infrav1beta1.VSphereDeploymentZoneStat
 	}
 }
 
-func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereFailureDomainFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeVSphereFailureDomainSpec,
 		spokeTypedLocalObjectReference,
 	}
@@ -246,8 +245,8 @@ func spokeVSphereFailureDomainSpec(in *infrav1beta1.VSphereFailureDomainSpec, c 
 	in.Zone.AutoConfigure = nil   // field has been dropped in v1beta2
 }
 
-func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereMachineFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereMachineStatus,
 		spokeVSphereMachineSpec,
 		spokeVSphereMachineStatus,
@@ -285,7 +284,7 @@ func spokeVSphereMachineSpec(in *infrav1beta1.VSphereMachineSpec, c randfill.Con
 	}
 
 	if in.GuestSoftPowerOffTimeout != nil {
-		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.GuestSoftPowerOffTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 
 	in.Network.PreferredAPIServerCIDR = "" // field has been dropped in v1beta2
@@ -302,15 +301,15 @@ func spokeVSphereMachineStatus(in *infrav1beta1.VSphereMachineStatus, c randfill
 	}
 }
 
-func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereMachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeVSphereMachineSpec,
 		spokeTypedLocalObjectReference,
 	}
 }
 
-func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func VSphereVMFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVSphereVMStatus,
 		spokeVSphereVM,
 		spokeVSphereVMSpec,
@@ -348,7 +347,7 @@ func spokeVSphereVMSpec(in *infrav1beta1.VSphereVMSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.GuestSoftPowerOffTimeout != nil {
-		in.GuestSoftPowerOffTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.GuestSoftPowerOffTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 
 	in.Network.PreferredAPIServerCIDR = "" // field has been dropped in v1beta2

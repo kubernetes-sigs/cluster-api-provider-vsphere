@@ -110,7 +110,7 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 
 func clusterToSupervisorVSphereClusterFunc(ctrlclient client.Client) func(ctx context.Context, obj client.Object) []reconcile.Request {
 	return func(ctx context.Context, obj client.Object) []reconcile.Request {
-		gvk := vmwarev1.GroupVersion.WithKind(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
+		gvk := vmwarev1.GroupVersion.WithKind(reflect.TypeFor[vmwarev1.VSphereCluster]().Name())
 		requests := clusterutilv1.ClusterToInfrastructureMapFunc(ctx, gvk, ctrlclient, &vmwarev1.VSphereCluster{})(ctx, obj)
 		if len(requests) == 0 {
 			return nil

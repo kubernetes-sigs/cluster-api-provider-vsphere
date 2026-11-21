@@ -29,7 +29,7 @@ package types
 type CPIConfig struct {
 	// Global is the vSphere cloud provider's global configuration.
 	// +optional
-	Global CPIGlobalConfig `gcfg:"Global,omitempty" json:"global,omitempty"`
+	Global CPIGlobalConfig `gcfg:"Global,omitempty" json:"global,omitzero"`
 
 	// VCenter is a list of vCenter configurations.
 	// +optional
@@ -37,23 +37,23 @@ type CPIConfig struct {
 
 	// Network is the vSphere cloud provider's network configuration.
 	// +optional
-	Network CPINetworkConfig `gcfg:"Network,omitempty" json:"network,omitempty"`
+	Network CPINetworkConfig `gcfg:"Network,omitempty" json:"network,omitzero"`
 
 	// Disk is the vSphere cloud provider's disk configuration.
 	// +optional
-	Disk CPIDiskConfig `gcfg:"Disk,omitempty" json:"disk,omitempty"`
+	Disk CPIDiskConfig `gcfg:"Disk,omitempty" json:"disk,omitzero"`
 
 	// Workspace is the vSphere cloud provider's workspace configuration.
 	// +optional
-	Workspace CPIWorkspaceConfig `gcfg:"Workspace,omitempty" json:"workspace,omitempty"`
+	Workspace CPIWorkspaceConfig `gcfg:"Workspace,omitempty" json:"workspace,omitzero"`
 
 	// Labels is the vSphere cloud provider's zone and region configuration.
 	// +optional
-	Labels CPILabelConfig `gcfg:"Labels,omitempty" json:"labels,omitempty"`
+	Labels CPILabelConfig `gcfg:"Labels,omitempty" json:"labels,omitzero"`
 
 	// CPIProviderConfig contains extra information used to configure the
 	// vSphere cloud provider.
-	ProviderConfig CPIProviderConfig `json:"providerConfig,omitempty"`
+	ProviderConfig CPIProviderConfig `json:"providerConfig,omitzero"`
 }
 
 // CPIProviderConfig defines any extra information used to configure

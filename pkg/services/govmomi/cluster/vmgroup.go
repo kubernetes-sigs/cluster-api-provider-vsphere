@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"context"
+	"slices"
 
 	pkgerrors "github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
@@ -73,10 +74,8 @@ func (vg VMGroup) Add(ctx context.Context, vmObj types.ManagedObjectReference) (
 func (vg VMGroup) HasVM(vmObj types.ManagedObjectReference) (bool, error) {
 	vms := vg.listVMs()
 
-	for _, vm := range vms {
-		if vm == vmObj {
-			return true, nil
-		}
+	if slices.Contains(vms, vmObj) {
+		return true, nil
 	}
 	return false, nil
 }

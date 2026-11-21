@@ -18,7 +18,6 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
@@ -32,7 +31,7 @@ var _ = Describe("When in-place updating a workload cluster using ClusterClass [
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk-in-place")),
+				Flavor:                new(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk-in-place")),
 				// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 				// by the test-extension-webhook-service.
 				// The below values are used when creating the cluster-wide ExtensionConfig to refer

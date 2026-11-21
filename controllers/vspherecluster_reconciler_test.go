@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -278,7 +277,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Kind:       "Cluster",
 					Name:       capiCluster.Name,
 					UID:        capiCluster.UID,
-					Controller: ptr.To(true),
+					Controller: new(true),
 				}},
 			},
 			Spec: infrav1.VSphereClusterSpec{
@@ -387,7 +386,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:        testEnv.Simulator.ServerURL().Host,
 					FailureDomain: "fd-one",
-					ControlPlane:  ptr.To(true),
+					ControlPlane:  new(true),
 				},
 				Status: infrav1.VSphereDeploymentZoneStatus{},
 			}
@@ -435,7 +434,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			Eventually(func() error {
 				ph, err := patch.NewHelper(zoneOne, testEnv)
 				Expect(err).ToNot(HaveOccurred())
-				zoneOne.Status.Ready = ptr.To(true)
+				zoneOne.Status.Ready = new(true)
 				return ph.Patch(ctx, zoneOne, patch.WithStatusObservedGeneration{})
 			}, timeout).Should(Succeed())
 
@@ -453,7 +452,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				Eventually(func() error {
 					ph, err := patch.NewHelper(zoneOne, testEnv)
 					Expect(err).ToNot(HaveOccurred())
-					zoneOne.Status.Ready = ptr.To(true)
+					zoneOne.Status.Ready = new(true)
 					return ph.Patch(ctx, zoneOne, patch.WithStatusObservedGeneration{})
 				}, timeout).Should(Succeed())
 			})
@@ -535,7 +534,7 @@ func TestClusterReconciler_ReconcileDelete_SecretOwnership(t *testing.T) {
 						Finalizers: []string{infrav1.ClusterFinalizer},
 					},
 					Spec: infrav1.VSphereClusterSpec{
-						DisableClusterModule: ptr.To(true),
+						DisableClusterModule: new(true),
 						IdentityRef: infrav1.VSphereIdentityReference{
 							Kind: infrav1.SecretKind,
 							Name: secret.Name,
@@ -586,8 +585,8 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 				name:       "with all deployment zone statuses as ready",
 				reconciled: true,
 				initObjs: []client.Object{
-					deploymentZone(server, "zone-1", ptr.To(false), ptr.To(true)),
-					deploymentZone(server, "zone-2", ptr.To(true), ptr.To(true)),
+					deploymentZone(server, "zone-1", new(false), new(true)),
+					deploymentZone(server, "zone-2", new(true), new(true)),
 				},
 				assert: func(vsphereCluster *infrav1.VSphereCluster) {
 					g.Expect(conditions.IsTrue(vsphereCluster, infrav1.VSphereClusterFailureDomainsReadyCondition)).To(BeFalse())
@@ -632,8 +631,8 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 			{
 				name: "with deployment zone status not reported",
 				initObjs: []client.Object{
-					deploymentZone(server, "zone-1", ptr.To(false), nil),
-					deploymentZone(server, "zone-2", ptr.To(true), ptr.To(false)),
+					deploymentZone(server, "zone-1", new(false), nil),
+					deploymentZone(server, "zone-2", new(true), new(false)),
 				},
 				assert: func(vsphereCluster *infrav1.VSphereCluster) {
 					g.Expect(conditions.IsFalse(vsphereCluster, infrav1.VSphereClusterFailureDomainsReadyCondition)).To(BeTrue())
@@ -644,8 +643,8 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 				name:       "with some deployment zones statuses as not ready",
 				reconciled: true,
 				initObjs: []client.Object{
-					deploymentZone(server, "zone-1", ptr.To(false), ptr.To(false)),
-					deploymentZone(server, "zone-2", ptr.To(true), ptr.To(true)),
+					deploymentZone(server, "zone-1", new(false), new(false)),
+					deploymentZone(server, "zone-2", new(true), new(true)),
 				},
 				assert: func(vsphereCluster *infrav1.VSphereCluster) {
 					g.Expect(conditions.IsFalse(vsphereCluster, infrav1.VSphereClusterFailureDomainsReadyCondition)).To(BeTrue())
@@ -656,8 +655,8 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 				name:       "with all deployment zone statuses as ready",
 				reconciled: true,
 				initObjs: []client.Object{
-					deploymentZone(server, "zone-1", ptr.To(false), ptr.To(true)),
-					deploymentZone(server, "zone-2", ptr.To(true), ptr.To(true)),
+					deploymentZone(server, "zone-1", new(false), new(true)),
+					deploymentZone(server, "zone-2", new(true), new(true)),
 				},
 				assert: func(vsphereCluster *infrav1.VSphereCluster) {
 					g.Expect(conditions.IsTrue(vsphereCluster, infrav1.VSphereClusterFailureDomainsReadyCondition)).To(BeTrue())
@@ -688,17 +687,17 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 	t.Run("with zone selectors", func(t *testing.T) {
 		g := NewWithT(t)
 
-		zoneOne := deploymentZone(server, "zone-1", ptr.To(false), ptr.To(true))
+		zoneOne := deploymentZone(server, "zone-1", new(false), new(true))
 		zoneOne.Labels = map[string]string{
 			"zone":       "rack-one",
 			"datacenter": "ohio",
 		}
-		zoneTwo := deploymentZone(server, "zone-2", ptr.To(false), ptr.To(true))
+		zoneTwo := deploymentZone(server, "zone-2", new(false), new(true))
 		zoneTwo.Labels = map[string]string{
 			"zone":       "rack-two",
 			"datacenter": "ohio",
 		}
-		zoneThree := deploymentZone(server, "zone-3", ptr.To(false), ptr.To(true))
+		zoneThree := deploymentZone(server, "zone-3", new(false), new(true))
 		zoneThree.Labels = map[string]string{
 			"datacenter": "oregon",
 		}

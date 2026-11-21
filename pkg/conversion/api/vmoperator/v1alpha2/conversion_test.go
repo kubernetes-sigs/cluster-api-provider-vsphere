@@ -94,8 +94,8 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func virtualMachineFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVirtualMachineVolume,
 		hubVirtualMachineSpec,
 		hubVirtualMachineStatus,
@@ -115,8 +115,8 @@ func hubVirtualMachineAffinitySpec(in *vmoprvhub.AffinitySpec, c randfill.Contin
 	}
 }
 
-func virtualMachineServiceFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func virtualMachineServiceFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVirtualMachineServiceSpec,
 	}
 }
@@ -156,8 +156,8 @@ func hubVirtualMachineNetworkInterfaceSpec(in *vmoprvhub.VirtualMachineNetworkIn
 	in.VNUMANodeID = nil
 }
 
-func virtualMachineGroupFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func virtualMachineGroupFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubVirtualMachineGroupPlacementDatastoreStatus,
 		hubVirtualMachineGroupBootOrderGroup,
 	}

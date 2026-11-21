@@ -122,7 +122,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 				log.Error(err, "Failed to check if cluster module for object exists")
 				// Append the module and remove it from objectMap to not create new ones instead.
 				clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
-					ControlPlane:     ptr.To(obj.IsControlPlane()),
+					ControlPlane:     new(obj.IsControlPlane()),
 					TargetObjectName: obj.GetName(),
 					ModuleUUID:       mod.ModuleUUID,
 				})
@@ -135,7 +135,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 			// needs to be created.
 			if exists {
 				clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
-					ControlPlane:     ptr.To(obj.IsControlPlane()),
+					ControlPlane:     new(obj.IsControlPlane()),
 					TargetObjectName: obj.GetName(),
 					ModuleUUID:       mod.ModuleUUID,
 				})
@@ -162,7 +162,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 			continue
 		}
 		clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
-			ControlPlane:     ptr.To(obj.IsControlPlane()),
+			ControlPlane:     new(obj.IsControlPlane()),
 			TargetObjectName: obj.GetName(),
 			ModuleUUID:       moduleUUID,
 		})

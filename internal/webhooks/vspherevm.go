@@ -102,8 +102,8 @@ func (webhook *VSphereVM) ValidateUpdate(_ context.Context, oldTyped, newTyped *
 		return nil, apierrors.NewInternalError(pkgerrors.Wrap(err, "failed to convert old VSphereVM to unstructured object"))
 	}
 
-	newVSphereVMSpec := newVSphereVM["spec"].(map[string]interface{})
-	oldVSphereVMSpec := oldVSphereVM["spec"].(map[string]interface{})
+	newVSphereVMSpec := newVSphereVM["spec"].(map[string]any)
+	oldVSphereVMSpec := oldVSphereVM["spec"].(map[string]any)
 
 	// Allow changes to bootstrapRef, thumbprint, powerOffMode, guestSoftPowerOffTimeout.
 	keys := []string{"bootstrapRef", "thumbprint", "powerOffMode", "guestSoftPowerOffTimeoutSeconds"}
@@ -118,8 +118,8 @@ func (webhook *VSphereVM) ValidateUpdate(_ context.Context, oldTyped, newTyped *
 	webhook.deleteSpecKeys(oldVSphereVMSpec, keys)
 	webhook.deleteSpecKeys(newVSphereVMSpec, keys)
 
-	newVSphereVMNetwork := newVSphereVMSpec["network"].(map[string]interface{})
-	oldVSphereVMNetwork := oldVSphereVMSpec["network"].(map[string]interface{})
+	newVSphereVMNetwork := newVSphereVMSpec["network"].(map[string]any)
+	oldVSphereVMNetwork := oldVSphereVMSpec["network"].(map[string]any)
 
 	// allow changes to the network devices
 	networkKeys := []string{"devices"}
@@ -138,7 +138,7 @@ func (webhook *VSphereVM) ValidateDelete(_ context.Context, _ *infrav1.VSphereVM
 	return nil, nil
 }
 
-func (webhook *VSphereVM) deleteSpecKeys(spec map[string]interface{}, keys []string) {
+func (webhook *VSphereVM) deleteSpecKeys(spec map[string]any, keys []string) {
 	if len(spec) == 0 || len(keys) == 0 {
 		return
 	}

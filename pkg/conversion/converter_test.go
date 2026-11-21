@@ -700,7 +700,7 @@ func Test_objType(t *testing.T) {
 		{
 			name:  "return type",
 			obj:   &testhub.A{},
-			wantT: reflect.TypeOf(testhub.A{}),
+			wantT: reflect.TypeFor[testhub.A](),
 		},
 		{
 			name:    "Fails nil object",

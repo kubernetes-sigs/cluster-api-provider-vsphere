@@ -3,12 +3,12 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 go 1.26.0
 
 replace (
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.15.0-beta.1
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.15.0-rc.0
 	sigs.k8s.io/cluster-api-provider-vsphere => ../
 	sigs.k8s.io/cluster-api-provider-vsphere/api => ../api
-	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.15.0-beta.1
-	sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.15.0-beta.1
-	sigs.k8s.io/cluster-api/utils => sigs.k8s.io/cluster-api/utils v1.15.0-beta.1
+	sigs.k8s.io/cluster-api/api => sigs.k8s.io/cluster-api/api v1.15.0-rc.0
+	sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.15.0-rc.0
+	sigs.k8s.io/cluster-api/utils => sigs.k8s.io/cluster-api/utils v1.15.0-rc.0
 )
 
 require (
@@ -44,7 +44,7 @@ require (
 	sigs.k8s.io/cluster-api/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/utils v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.25.2
+	sigs.k8s.io/controller-runtime v0.25.3
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -155,9 +155,9 @@ require (
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20261009145046-ca004a72d870 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.etcd.io/etcd/api/v3 v3.7.3 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.7.3 // indirect
-	go.etcd.io/etcd/client/v3 v3.7.3 // indirect
+	go.etcd.io/etcd/api/v3 v3.7.4 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.7.4 // indirect
+	go.etcd.io/etcd/client/v3 v3.7.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.70.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0 // indirect
@@ -175,14 +175,14 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/mod v0.43.0 // indirect
-	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/net v0.63.0 // indirect
 	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.48.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.52.0 // indirect
+	golang.org/x/tools v0.53.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/grpc v1.83.2 // indirect

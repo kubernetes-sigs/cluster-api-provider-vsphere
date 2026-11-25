@@ -141,3 +141,32 @@ func Test_Compare(t *testing.T) {
 		})
 	}
 }
+
+func Test_CompareDoesNotModifyInputs(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	uuidOne, uuidTwo := uuid.New().String(), uuid.New().String()
+
+	// Provide the two slices in different orders so that Compare has to sort
+	// them internally to detect that they contain the same modules.
+	oldMods := []infrav1.ClusterModule{
+		{ControlPlane: ptr.To(true), TargetObjectName: "foo", ModuleUUID: uuidOne},
+		{ControlPlane: ptr.To(false), TargetObjectName: "bar", ModuleUUID: uuidTwo},
+	}
+	newMods := []infrav1.ClusterModule{
+		{ControlPlane: ptr.To(false), TargetObjectName: "bar", ModuleUUID: uuidTwo},
+		{ControlPlane: ptr.To(true), TargetObjectName: "foo", ModuleUUID: uuidOne},
+	}
+
+	// Capture the original order of both input slices.
+	oldOrder := []string{oldMods[0].TargetObjectName, oldMods[1].TargetObjectName}
+	newOrder := []string{newMods[0].TargetObjectName, newMods[1].TargetObjectName}
+
+	g.Expect(Compare(oldMods, newMods)).To(gomega.BeTrue())
+
+	// Compare is called from a watch predicate with ClusterModules of objects
+	// coming from the shared informer cache, so it must treat its inputs as
+	// read-only and leave their order untouched.
+	g.Expect([]string{oldMods[0].TargetObjectName, oldMods[1].TargetObjectName}).To(gomega.Equal(oldOrder))
+	g.Expect([]string{newMods[0].TargetObjectName, newMods[1].TargetObjectName}).To(gomega.Equal(newOrder))
+}

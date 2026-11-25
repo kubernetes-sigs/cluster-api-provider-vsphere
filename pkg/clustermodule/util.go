@@ -27,22 +27,32 @@ import (
 )
 
 // Compare returns whether both the cluster module slices are the same.
+//
+// Compare does not modify its inputs. It is called from a controller watch
+// predicate with the ClusterModules of objects coming from the shared informer
+// cache, so sorting the input slices in place would mutate cached objects that
+// are read concurrently.
 func Compare(oldMods, newMods []infrav1.ClusterModule) bool {
 	if len(oldMods) != len(newMods) {
 		return false
 	}
 
-	sort.SliceStable(oldMods, func(i, j int) bool {
-		return oldMods[i].TargetObjectName < oldMods[j].TargetObjectName
+	// Sort copies of the slices to avoid reordering the caller's (potentially
+	// cache-backed) slices.
+	oldModsSorted := append([]infrav1.ClusterModule(nil), oldMods...)
+	newModsSorted := append([]infrav1.ClusterModule(nil), newMods...)
+
+	sort.SliceStable(oldModsSorted, func(i, j int) bool {
+		return oldModsSorted[i].TargetObjectName < oldModsSorted[j].TargetObjectName
 	})
-	sort.SliceStable(newMods, func(i, j int) bool {
-		return newMods[i].TargetObjectName < newMods[j].TargetObjectName
+	sort.SliceStable(newModsSorted, func(i, j int) bool {
+		return newModsSorted[i].TargetObjectName < newModsSorted[j].TargetObjectName
 	})
 
-	for i := range oldMods {
-		if ptr.Deref(oldMods[i].ControlPlane, false) == ptr.Deref(newMods[i].ControlPlane, false) &&
-			oldMods[i].TargetObjectName == newMods[i].TargetObjectName &&
-			oldMods[i].ModuleUUID == newMods[i].ModuleUUID {
+	for i := range oldModsSorted {
+		if ptr.Deref(oldModsSorted[i].ControlPlane, false) == ptr.Deref(newModsSorted[i].ControlPlane, false) &&
+			oldModsSorted[i].TargetObjectName == newModsSorted[i].TargetObjectName &&
+			oldModsSorted[i].ModuleUUID == newModsSorted[i].ModuleUUID {
 			continue
 		}
 		return false
